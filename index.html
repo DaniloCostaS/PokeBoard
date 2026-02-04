@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PokéBoard V16 - Tactics Edition</title>
+    </head>
+<body>
+
+    <div id="setup-screen">
+        <h1 class="title-highlight">PokéBoard V16</h1>
+        <p class="subtitle">Tactics Edition (2-4 Players)</p>
+        
+        <div class="setup-group">
+            <label>Número de Jogadores:</label>
+            <select id="num-players" onchange="window.Setup.updateSlots()">
+                <option value="2">2 Jogadores</option>
+                <option value="3">3 Jogadores</option>
+                <option value="4">4 Jogadores</option>
+            </select>
+        </div>
+
+        <div id="player-slots-container"></div>
+
+        <button class="btn" onclick="window.Setup.start()">🚀 INICIAR JORNADA</button>
+    </div>
+
+    <div id="game-container">
+        <div id="board-wrapper">
+            <div id="board-area"></div>
+        </div>
+
+        <aside id="sidebar">
+            <div class="panel text-center bg-white">
+                <small class="text-muted">Turno Atual</small>
+                <h3 id="turn-indicator" class="my-5">-</h3>
+                <div id="d20-display">🎲 20</div>
+            </div>
+
+            <button id="roll-btn" class="btn" onclick="window.Game.rollDice()">🎲 ROLAR DADO</button>
+            <button id="shop-btn" class="btn btn-shop" onclick="window.Shop.open()">🛒 LOJA & MOCHILA</button>
+
+            <div id="my-cards" class="card-display">
+                <strong>🃏 Minhas Cartas</strong>
+                <div id="cards-list"></div>
+            </div>
+
+            <div id="players-list"></div>
+            
+            <div class="panel log-panel">
+                <strong class="log-header">📟 Log de Eventos:</strong>
+                <div id="game-log"></div>
+            </div>
+        </aside>
+    </div>
+
+    <div id="shop-modal" class="modal-overlay">
+        <div class="modal-box">
+            <h2 class="text-highlight">🛒 PokéMart</h2>
+            <p>Saldo: <span id="shop-gold" class="gold-text">0</span> <span class="small-text">Gold</span></p>
+            <div id="shop-items-list" class="scroll-list"></div>
+            <div class="inventory-section">
+                <h4>🎒 Seu Inventário</h4>
+                <div id="inventory-list"></div>
+            </div>
+            <br>
+            <button class="btn btn-secondary" onclick="document.getElementById('shop-modal')!.style.display='none'">Fechar</button>
+        </div>
+    </div>
+
+    <div id="pkmn-select-modal" class="modal-overlay z-high">
+        <div class="modal-box">
+            <h3 id="select-title">Escolha seu Pokémon</h3>
+            <div id="pkmn-select-list" class="scroll-list text-left"></div>
+        </div>
+    </div>
+
+    <div id="battle-modal" class="modal-overlay">
+        <div class="modal-box battle-box">
+            <h2 id="battle-title">⚔️ Batalha!</h2>
+            <div class="battle-scene">
+                <div class="battler self-end">
+                    <div class="battle-info-box"><span id="ply-name">Você</span> <span id="ply-lvl">Lv5</span></div>
+                    <img id="ply-img" src="" alt="Player Pokemon">
+                    <div class="hp-container"><div id="ply-hp" class="hp-fill"></div></div>
+                    <small id="ply-hp-text">50/50</small>
+                </div>
+                <div class="battler self-start">
+                    <div class="battle-info-box"><span id="opp-name">Rival</span> <span id="opp-lvl">Lv5</span></div>
+                    <img id="opp-img" src="" alt="Enemy Pokemon">
+                    <div class="hp-container"><div id="opp-hp" class="hp-fill"></div></div>
+                </div>
+            </div>
+            <div id="battle-msg">...</div>
+            <div class="battle-actions">
+                <button class="btn btn-attack" onclick="window.Battle.attack()">⚔️ Atacar</button>
+                <button class="btn btn-items" onclick="window.Battle.openBag()">🎒 Itens</button>
+                <button class="btn btn-cards" onclick="window.Battle.useCard()">🃏 Cartas</button>
+                <button class="btn btn-run" onclick="window.Battle.run()">🏃 Fugir</button>
+            </div>
+            <div id="battle-bag">
+                <h3>Usar Item</h3>
+                <div id="battle-bag-list"></div>
+                <button class="btn btn-secondary mt-15" onclick="document.getElementById('battle-bag')!.style.display='none'">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
