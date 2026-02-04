@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PokéBoard V16 - Tactics Edition</title>
-    </head>
+</head>
 <body>
 
     <div id="setup-screen">
@@ -20,12 +20,19 @@
             </select>
         </div>
 
+        <div class="setup-group">
+            <label>Tamanho do Mapa:</label>
+            <select id="map-size">
+                <option value="10">Pequeno (10x10)</option>
+                <option value="20" selected>Médio (20x20)</option>
+                <option value="30">Grande (30x30)</option>
+            </select>
+        </div>
+
         <div id="player-slots-container"></div>
 
         <button class="btn" onclick="window.Setup.start()">🚀 INICIAR JORNADA</button>
-    </div>
-
-    <div id="game-container">
+    </div> <div id="game-container">
         <div id="board-wrapper">
             <div id="board-area"></div>
         </div>
@@ -64,7 +71,7 @@
                 <div id="inventory-list"></div>
             </div>
             <br>
-            <button class="btn btn-secondary" onclick="document.getElementById('shop-modal')!.style.display='none'">Fechar</button>
+            <button class="btn btn-secondary" onclick="document.getElementById('shop-modal').style.display='none'">Fechar</button>
         </div>
     </div>
 
@@ -101,7 +108,7 @@
             <div id="battle-bag">
                 <h3>Usar Item</h3>
                 <div id="battle-bag-list"></div>
-                <button class="btn btn-secondary mt-15" onclick="document.getElementById('battle-bag')!.style.display='none'">Cancelar</button>
+                <button class="btn btn-secondary mt-15" onclick="document.getElementById('battle-bag').style.display='none'">Cancelar</button>
             </div>
         </div>
     </div>

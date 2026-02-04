@@ -1,42 +1,11 @@
 import './style.css'
+import { 
+    TILE, NPC_DATA, CARDS_DB, POKEDEX, SHOP_ITEMS 
+} from './constants';
 
-// ==========================================
-// 1. TIPOS E INTERFACES (TypeScript Power!)
-// ==========================================
-
-interface PokemonData {
-    id: number;
-    name: string;
-    type: string;
-    hp: number;
-    atk: number;
-    nextForm: string | null;
-    evoTrigger?: number;
-    isLegendary?: boolean;
-}
-
-interface ItemData {
-    id: string;
-    name: string;
-    icon: string;
-    price: number;
-    type: 'heal' | 'capture';
-    val?: number;   // Para poções
-    rate?: number;  // Para pokébolas
-}
-
-interface CardData {
-    id: string;
-    name: string;
-    icon: string;
-    desc: string;
-    type: 'move' | 'battle';
-}
-
-interface Coord {
-    x: number;
-    y: number;
-}
+import type { 
+    ItemData, CardData, Coord 
+} from './constants';
 
 // Expõe as classes globais no objeto Window para o HTML acessá-las
 declare global {
@@ -49,56 +18,7 @@ declare global {
 }
 
 // ==========================================
-// 2. CONSTANTES
-// ==========================================
-
-const BOARD_SIZE = 30;
-
-const TILE = { 
-    PATH: 0, GRASS: 1, WATER: 2, GROUND: 3, CITY: 4, GYM: 5, EVENT: 6,
-    ROCKET: 7, BIKER: 8, YOUNG: 9, OLD: 10
-};
-
-const NPC_DATA: Record<number, {name: string, gold: number, team: number[]}> = {
-    7: { name: "Rocket Grunt", gold: 300, team: [4, 74] },
-    8: { name: "Biker", gold: 200, team: [5, 74] },
-    9: { name: "Jovem", gold: 100, team: [7, 25] },
-    10: { name: "Velho", gold: 150, team: [1, 25] }
-};
-
-const CARDS_DB: CardData[] = [
-    { id: 'dice', name: "Dado Mágico", icon: "🎲", desc: "Escolha o nº do dado (1-20).", type: 'move' },
-    { id: 'crit', name: "Super Crítico", icon: "💥", desc: "Dobra o dano do próximo ataque.", type: 'battle' },
-    { id: 'master', name: "Master Ball", icon: "🟣", desc: "Captura 100% garantida.", type: 'battle' },
-    { id: 'run', name: "Fumaça Ninja", icon: "💨", desc: "Foge da batalha instantaneamente.", type: 'battle' }
-];
-
-const POKEDEX: PokemonData[] = [
-    { id: 1, name: "Bulbasaur", type: "Grama", hp: 60, atk: 12, nextForm: "Ivysaur", evoTrigger: 2 },
-    { id: 2, name: "Ivysaur", type: "Grama", hp: 90, atk: 18, nextForm: "Venusaur", evoTrigger: 5 },
-    { id: 3, name: "Venusaur", type: "Grama", hp: 120, atk: 24, nextForm: null },
-    { id: 4, name: "Charmander", type: "Fogo", hp: 55, atk: 15, nextForm: "Charmeleon", evoTrigger: 2 },
-    { id: 5, name: "Charmeleon", type: "Fogo", hp: 85, atk: 22, nextForm: "Charizard", evoTrigger: 5 },
-    { id: 6, name: "Charizard", type: "Fogo", hp: 130, atk: 28, nextForm: null },
-    { id: 7, name: "Squirtle", type: "Água", hp: 65, atk: 11, nextForm: "Wartortle", evoTrigger: 2 },
-    { id: 8, name: "Wartortle", type: "Água", hp: 90, atk: 17, nextForm: "Blastoise", evoTrigger: 5 },
-    { id: 9, name: "Blastoise", type: "Água", hp: 125, atk: 22, nextForm: null },
-    { id: 25, name: "Pikachu", type: "Elétrico", hp: 50, atk: 16, nextForm: "Raichu", evoTrigger: 3 },
-    { id: 26, name: "Raichu", type: "Elétrico", hp: 90, atk: 25, nextForm: null },
-    { id: 74, name: "Geodude", type: "Pedra", hp: 55, atk: 14, nextForm: "Graveler", evoTrigger: 3 },
-    { id: 95, name: "Onix", type: "Pedra", hp: 65, atk: 12, nextForm: null },
-    { id: 150, name: "Mewtwo", type: "Psíquico", hp: 150, atk: 35, isLegendary: true }
-];
-
-const SHOP_ITEMS: ItemData[] = [
-    { id: 'potion', name: 'Poção', icon: '💊', price: 100, type: 'heal', val: 50 },
-    { id: 'pokeball', name: 'Pokébola', icon: '🔴', price: 200, type: 'capture', rate: 1.0 },
-    { id: 'greatball', name: 'Great Ball', icon: '🔵', price: 500, type: 'capture', rate: 1.5 },
-    { id: 'ultraball', name: 'Ultra Ball', icon: '⚫', price: 1000, type: 'capture', rate: 2.0 }
-];
-
-// ==========================================
-// 3. CLASSES LÓGICAS
+// CLASSES LÓGICAS
 // ==========================================
 
 class Pokemon {
@@ -179,24 +99,34 @@ class Player {
 
 class MapSystem {
     static grid: number[][] = [];
+    static size: number = 20; // Valor padrão
     
-    static generate() {
-        this.grid = Array(BOARD_SIZE).fill(0).map(() => Array(BOARD_SIZE).fill(TILE.GRASS));
+    static generate(size: number) {
+        this.size = size;
+        this.grid = Array(this.size).fill(0).map(() => Array(this.size).fill(TILE.GRASS));
         
-        for(let i=0; i<15; i++) this.blob(TILE.WATER, 3);
-        for(let i=0; i<10; i++) this.blob(TILE.GROUND, 2); 
+        // Escala a quantidade de lagos/terra baseada no tamanho do mapa
+        const blobCount = Math.floor(this.size / 2); 
         
-        const pathTiles = BOARD_SIZE * BOARD_SIZE;
+        for(let i=0; i<blobCount; i++) this.blob(TILE.WATER, 3);
+        for(let i=0; i<Math.floor(blobCount * 0.7); i++) this.blob(TILE.GROUND, 2); 
+        
+        const pathTiles = this.size * this.size;
         let gymCounter = 0;
         
+        // Calcula frequência de ginásios baseado no tamanho total
+        const gymFrequency = Math.floor(pathTiles / 9);
+
         for(let i=0; i<pathTiles; i++) {
             const c = this.getCoord(i);
             
-            if (i > 0 && i % Math.floor(pathTiles/9) === 0 && gymCounter < 8) {
+            // Lógica de distribuição
+            if (i > 0 && i % gymFrequency === 0 && gymCounter < 8) {
                 this.grid[c.y][c.x] = TILE.GYM;
                 gymCounter++;
             }
-            else if (i % 150 === 75) {
+            // Cidade a cada 75 passos (ou adaptado se o mapa for muito pequeno)
+            else if (i > 0 && i % 75 === 0) {
                 this.grid[c.y][c.x] = TILE.CITY;
             }
             else if (Math.random() < 0.05 && this.grid[c.y][c.x] === TILE.GRASS) {
@@ -211,19 +141,19 @@ class MapSystem {
     }
 
     static blob(type: number, size: number) {
-        const cx = Math.floor(Math.random()*BOARD_SIZE);
-        const cy = Math.floor(Math.random()*BOARD_SIZE);
+        const cx = Math.floor(Math.random()*this.size);
+        const cy = Math.floor(Math.random()*this.size);
         for(let y=cy-size; y<=cy+size; y++) {
             for(let x=cx-size; x<=cx+size; x++) {
-                if(x>=0 && x<BOARD_SIZE && y>=0 && y<BOARD_SIZE) this.grid[y][x] = type;
+                if(x>=0 && x<this.size && y>=0 && y<this.size) this.grid[y][x] = type;
             }
         }
     }
 
     static getCoord(i: number): Coord {
-        const y = Math.floor(i / BOARD_SIZE);
-        let x = i % BOARD_SIZE;
-        if (y % 2 !== 0) x = (BOARD_SIZE - 1) - x; 
+        const y = Math.floor(i / this.size);
+        let x = i % this.size;
+        if (y % 2 !== 0) x = (this.size - 1) - x; 
         return {x, y};
     }
 }
@@ -522,9 +452,9 @@ class Game {
     static turn: number = 0;
     static forcedRoll: number | null = null;
 
-    static init(players: Player[]) {
+    static init(players: Player[], mapSize: number) {
         this.players = players;
-        MapSystem.generate();
+        MapSystem.generate(mapSize);
         this.renderBoard();
         this.updateSidebar();
         this.moveVisuals();
@@ -534,11 +464,13 @@ class Game {
 
     static renderBoard() {
         const area = document.getElementById('board-area')!;
-        area.style.gridTemplateColumns = `repeat(${BOARD_SIZE}, 1fr)`;
-        area.style.gridTemplateRows = `repeat(${BOARD_SIZE}, 1fr)`;
+        
+        area.style.gridTemplateColumns = `repeat(${MapSystem.size}, 1fr)`;
+        area.style.gridTemplateRows = `repeat(${MapSystem.size}, 1fr)`;
+        
         const frag = document.createDocumentFragment();
-        for(let y=0; y<BOARD_SIZE; y++) {
-            for(let x=0; x<BOARD_SIZE; x++) {
+        for(let y=0; y<MapSystem.size; y++) {
+            for(let x=0; x<MapSystem.size; x++) {
                 const d = document.createElement('div');
                 let tileClass = 'path';
                 switch(MapSystem.grid[y][x]) {
@@ -555,6 +487,10 @@ class Game {
                 }
                 d.className = `tile ${tileClass}`;
                 d.id = `tile-${x}-${y}`;
+                
+                // Ajuste de fonte para mapas grandes
+                if(MapSystem.size >= 30) d.style.fontSize = '8px';
+                
                 frag.appendChild(d);
             }
         }
@@ -571,6 +507,12 @@ class Game {
                 t.innerText = p.avatar;
                 const colors = ['#e74c3c', '#3498db', '#f1c40f', '#9b59b6'];
                 t.style.borderColor = colors[idx % colors.length];
+                
+                // Ajuste visual do token
+                if(MapSystem.size >= 30) { 
+                    t.style.width = '90%'; t.style.height = '90%'; t.style.fontSize = '10px'; 
+                }
+
                 tile.appendChild(t);
                 if(idx===this.turn) tile.scrollIntoView({block:'center',inline:'center',behavior:'smooth'});
             }
@@ -600,8 +542,16 @@ class Game {
         for(let i=0; i<steps; i++) {
             const tile = document.getElementById(`tile-${p.x}-${p.y}`)!;
             tile.classList.add('path-highlight');
-            if(p.y%2===0) { if(p.x<BOARD_SIZE-1)p.x++; else p.y++; } else { if(p.x>0)p.x--; else p.y++; }
-            if(p.y>=BOARD_SIZE){ p.y=BOARD_SIZE-1; break; }
+            
+            // Lógica de movimento usando MapSystem.size
+            if(p.y % 2 === 0) { 
+                if(p.x < MapSystem.size - 1) p.x++; else p.y++; 
+            } else { 
+                if(p.x > 0) p.x--; else p.y++; 
+            }
+            
+            if(p.y >= MapSystem.size){ p.y = MapSystem.size - 1; break; } 
+            
             this.moveVisuals();
             await new Promise(r => setTimeout(r, 80));
             tile.classList.remove('path-highlight');
@@ -723,9 +673,11 @@ class Setup {
     }
 
     static start() {
-        const num = parseInt((document.getElementById('num-players') as HTMLSelectElement).value);
+        const numPlayers = parseInt((document.getElementById('num-players') as HTMLSelectElement).value);
+        const mapSize = parseInt((document.getElementById('map-size') as HTMLSelectElement).value); 
+        
         const players: Player[] = [];
-        for(let i=0; i<num; i++) {
+        for(let i=0; i<numPlayers; i++) {
             const name = (document.getElementById(`p${i}-name`) as HTMLInputElement).value;
             const av = (document.getElementById(`p${i}-av`) as HTMLSelectElement).value;
             players.push(new Player(i, name, av));
@@ -733,19 +685,17 @@ class Setup {
         
         document.getElementById('setup-screen')!.style.display = 'none';
         document.getElementById('game-container')!.style.display = 'flex';
-        Game.init(players);
+        Game.init(players, mapSize);
     }
 }
 
 // ==========================================
-// 4. INICIALIZAÇÃO & BINDING GLOBAL
+// INICIALIZAÇÃO & BINDING GLOBAL
 // ==========================================
 
-// Expõe as classes no window para o HTML "antigo" funcionar
 window.Setup = Setup;
 window.Game = Game;
 window.Shop = Shop;
 window.Battle = Battle;
 
-// Inicia o setup
 Setup.updateSlots();
