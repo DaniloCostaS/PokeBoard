@@ -14,6 +14,9 @@ declare global {
         Game: typeof Game;
         Shop: typeof Shop;
         Battle: typeof Battle;
+        // Novas funções globais
+        openInventory: (playerId: number) => void;
+        openCards: (playerId: number) => void;
     }
 }
 
@@ -99,13 +102,12 @@ class Player {
 
 class MapSystem {
     static grid: number[][] = [];
-    static size: number = 20; // Valor padrão
+    static size: number = 20; 
     
     static generate(size: number) {
         this.size = size;
         this.grid = Array(this.size).fill(0).map(() => Array(this.size).fill(TILE.GRASS));
         
-        // Escala a quantidade de lagos/terra baseada no tamanho do mapa
         const blobCount = Math.floor(this.size / 2); 
         
         for(let i=0; i<blobCount; i++) this.blob(TILE.WATER, 3);
@@ -114,18 +116,15 @@ class MapSystem {
         const pathTiles = this.size * this.size;
         let gymCounter = 0;
         
-        // Calcula frequência de ginásios baseado no tamanho total
         const gymFrequency = Math.floor(pathTiles / 9);
 
         for(let i=0; i<pathTiles; i++) {
             const c = this.getCoord(i);
             
-            // Lógica de distribuição
             if (i > 0 && i % gymFrequency === 0 && gymCounter < 8) {
                 this.grid[c.y][c.x] = TILE.GYM;
                 gymCounter++;
             }
-            // Cidade a cada 75 passos (ou adaptado se o mapa for muito pequeno)
             else if (i > 0 && i % 75 === 0) {
                 this.grid[c.y][c.x] = TILE.CITY;
             }
@@ -408,8 +407,22 @@ class Shop {
     }
     static buy(id: string, price: number) {
         const p = Game.getCurrentPlayer();
-        if(p.gold >= price) { p.gold -= price; p.items[id]++; this.open(); }
-        else alert("Ouro insuficiente!");
+        if(p.gold >= price) { 
+            p.gold -= price; 
+            p.items[id]++; 
+            this.open(); 
+            Game.updateHUD(); // Atualiza a HUD após a compra
+        } else {
+            alert("Ouro insuficiente!");
+        }
+    }
+    // Novo método para fechar e lidar com o turno
+    static close() {
+        document.getElementById('shop-modal')!.style.display = 'none';
+        if(Game.isCityEvent) {
+            Game.isCityEvent = false;
+            Game.nextTurn();
+        }
     }
 }
 
@@ -418,32 +431,21 @@ class Cards {
         const card = CARDS_DB[Math.floor(Math.random()*CARDS_DB.length)];
         player.cards.push(card);
         Game.log(`Ganhou carta: ${card.icon} ${card.name}`);
-        this.render();
+        Game.updateHUD(); // Atualiza contador de cartas
     }
     static render() {
-        const p = Game.getCurrentPlayer();
-        const container = document.getElementById('my-cards')!;
-        const list = document.getElementById('cards-list')!;
-        if(p.cards.length > 0) {
-            container.style.display = 'block';
-            list.innerHTML = '';
-            p.cards.forEach((c, idx) => {
-                const div = document.createElement('div');
-                div.className = 'card-item';
-                div.innerHTML = `<span class="card-icon">${c.icon}</span> <div><b>${c.name}</b><br><small>${c.desc}</small></div>`;
-                if(c.type === 'move') {
-                    div.onclick = () => {
-                        const n = prompt("Escolha 1-20:");
-                        if(n) {
-                             const num = parseInt(n);
-                             if(num>=1 && num<=20) { Game.forcedRoll = num; p.cards.splice(idx,1); this.render(); Game.rollDice(); }
-                        }
-                    };
-                    div.style.border = "2px dashed yellow";
-                }
-                list.appendChild(div);
-            });
-        } else container.style.display = 'none';
+        // Método de renderização antigo (pode ser usado se quiser)
+    }
+    // Mostra cartas em um alert (temporário)
+    static showPlayerCards(playerId: number) {
+        const p = Game.players[playerId];
+        if(p.cards.length === 0) {
+            alert("Este jogador não possui cartas.");
+            return;
+        }
+        let msg = "Cartas de " + p.name + ":\n";
+        p.cards.forEach(c => msg += `- ${c.icon} ${c.name}: ${c.desc}\n`);
+        alert(msg);
     }
 }
 
@@ -451,12 +453,13 @@ class Game {
     static players: Player[] = [];
     static turn: number = 0;
     static forcedRoll: number | null = null;
+    static isCityEvent: boolean = false; // Flag para controlar evento de cidade
 
     static init(players: Player[], mapSize: number) {
         this.players = players;
         MapSystem.generate(mapSize);
         this.renderBoard();
-        this.updateSidebar();
+        this.updateHUD();
         this.moveVisuals();
     }
 
@@ -464,10 +467,8 @@ class Game {
 
     static renderBoard() {
         const area = document.getElementById('board-area')!;
-        
         area.style.gridTemplateColumns = `repeat(${MapSystem.size}, 1fr)`;
         area.style.gridTemplateRows = `repeat(${MapSystem.size}, 1fr)`;
-        
         const frag = document.createDocumentFragment();
         for(let y=0; y<MapSystem.size; y++) {
             for(let x=0; x<MapSystem.size; x++) {
@@ -487,10 +488,7 @@ class Game {
                 }
                 d.className = `tile ${tileClass}`;
                 d.id = `tile-${x}-${y}`;
-                
-                // Ajuste de fonte para mapas grandes
                 if(MapSystem.size >= 30) d.style.fontSize = '8px';
-                
                 frag.appendChild(d);
             }
         }
@@ -507,12 +505,9 @@ class Game {
                 t.innerText = p.avatar;
                 const colors = ['#e74c3c', '#3498db', '#f1c40f', '#9b59b6'];
                 t.style.borderColor = colors[idx % colors.length];
-                
-                // Ajuste visual do token
                 if(MapSystem.size >= 30) { 
                     t.style.width = '90%'; t.style.height = '90%'; t.style.fontSize = '10px'; 
                 }
-
                 tile.appendChild(t);
                 if(idx===this.turn) tile.scrollIntoView({block:'center',inline:'center',behavior:'smooth'});
             }
@@ -542,16 +537,8 @@ class Game {
         for(let i=0; i<steps; i++) {
             const tile = document.getElementById(`tile-${p.x}-${p.y}`)!;
             tile.classList.add('path-highlight');
-            
-            // Lógica de movimento usando MapSystem.size
-            if(p.y % 2 === 0) { 
-                if(p.x < MapSystem.size - 1) p.x++; else p.y++; 
-            } else { 
-                if(p.x > 0) p.x--; else p.y++; 
-            }
-            
+            if(p.y % 2 === 0) { if(p.x < MapSystem.size - 1) p.x++; else p.y++; } else { if(p.x > 0) p.x--; else p.y++; }
             if(p.y >= MapSystem.size){ p.y = MapSystem.size - 1; break; } 
-            
             this.moveVisuals();
             await new Promise(r => setTimeout(r, 80));
             tile.classList.remove('path-highlight');
@@ -561,8 +548,8 @@ class Game {
 
     static handleTile(p: Player) {
         const type = MapSystem.grid[p.y][p.x];
-        const enemy = this.players.find(o => o !== p && o.x === p.x && o.y === p.y);
         
+        const enemy = this.players.find(o => o !== p && o.x === p.x && o.y === p.y);
         if(enemy) { 
             const defMon = enemy.team.find(m => !m.isFainted());
             if(defMon) {
@@ -581,7 +568,11 @@ class Game {
             return;
         }
 
-        if(type === TILE.CITY) { this.log("Cura completa!"); p.team.forEach(m=>m.heal(999)); this.nextTurn(); }
+        // --- LÓGICA DE CIDADE ---
+        if(type === TILE.CITY) {
+            this.isCityEvent = true;
+            document.getElementById('city-modal')!.style.display = 'flex';
+        }
         else if(type === TILE.EVENT) { Cards.draw(p); this.nextTurn(); }
         else if(type === TILE.GYM) { 
             const boss = new Pokemon(150, true); 
@@ -593,51 +584,111 @@ class Game {
             const id = possibleMons[Math.floor(Math.random()*possibleMons.length)];
             const isShiny = Math.random()<0.1;
             Battle.setup(p, new Pokemon(id, isShiny), false, "Selvagem");
-        } else this.nextTurn();
+        } else {
+            this.nextTurn();
+        }
+    }
+
+    static handleCityChoice(choice: 'heal' | 'shop') {
+        const p = this.getCurrentPlayer();
+        document.getElementById('city-modal')!.style.display = 'none';
+        
+        if(choice === 'heal') {
+            p.team.forEach(m => m.heal(999));
+            this.log("Pokémon curados no Centro Pokémon!");
+            this.updateHUD(); // Atualiza visual dos pokemons curados
+            this.isCityEvent = false;
+            this.nextTurn();
+        } else {
+            Shop.open();
+        }
     }
 
     static nextTurn() {
         this.turn = (this.turn+1)%this.players.length;
         (document.getElementById('roll-btn') as HTMLButtonElement).disabled = false;
-        this.updateSidebar();
+        this.updateHUD(); // Atualiza os cantos
         this.moveVisuals();
-        Cards.render();
     }
 
-    static updateSidebar() {
-        const list = document.getElementById('players-list')!;
-        list.innerHTML = '';
-        this.players.forEach((p, i) => {
-            const active = i===this.turn;
-            const miniParty = p.team.map(m => `<img src="${m.getSprite()}" class="pc-mon-icon ${m.isFainted()?'fainted':''}">`).join('');
-            
-            const div = document.createElement('div');
-            div.className = `player-card ${active?'active':''}`;
-            
-            const itemCount = Object.values(p.items).reduce((a,b)=>a+b, 0);
-            const cardCount = p.cards.length;
+    // Nova função HUD
+    static updateHUD() {
+        const leftCol = document.getElementById('hud-col-left')!;
+        const rightCol = document.getElementById('hud-col-right')!;
+        
+        // Limpa as colunas para redesenhar
+        leftCol.innerHTML = '';
+        rightCol.innerHTML = '';
 
-            div.innerHTML = `
-                <div class="pc-header">
-                    <span>${p.avatar} <b>${p.name}</b></span>
-                    <span style="color:goldenrod;">💰${p.gold}</span>
+        this.players.forEach((p, i) => {
+            // Cria o elemento do card
+            const slot = document.createElement('div');
+            slot.className = 'player-slot';
+            if (i === this.turn) slot.classList.add('active');
+
+            // Renderiza o conteúdo
+            const miniParty = p.team.map(m => `
+                <div style="
+                    width:24px; height:24px; 
+                    border-radius:50%; 
+                    background: url('${m.getSprite()}') center/cover;
+                    border: 1px solid ${m.isFainted()?'red':'#ccc'};
+                    background-color: #eee;
+                    ${m.isFainted()?'filter:grayscale(1)':''}
+                " title="${m.name}"></div>
+            `).join('');
+
+            const itemCount = Object.values(p.items).reduce((a,b)=>a+b, 0);
+
+            slot.innerHTML = `
+                <div class="hud-header">
+                    <div>${p.avatar} ${p.name}</div>
+                    <div style="color:goldenrod;">💰${p.gold}</div>
                 </div>
-                <div class="pc-stats">
-                    <span>🎒 Itens: ${itemCount}</span>
-                    <span>🃏 Cartas: ${cardCount}</span>
+                
+                <div class="hud-team">${miniParty}</div>
+                
+                <div class="hud-actions">
+                    <button class="btn btn-secondary btn-mini" onclick="window.openInventory(${i})">
+                        🎒 Itens (${itemCount})
+                    </button>
+                    <button class="btn btn-secondary btn-mini" onclick="window.openCards(${i})">
+                        🃏 Cartas (${p.cards.length})
+                    </button>
                 </div>
-                <div class="pc-team">${miniParty}</div>
             `;
-            list.appendChild(div);
+
+            // Lógica de Distribuição:
+            // Jogadores 0 e 2 vão para a Esquerda
+            // Jogadores 1 e 3 vão para a Direita
+            if (i % 2 === 0) {
+                leftCol.appendChild(slot);
+            } else {
+                rightCol.appendChild(slot);
+            }
         });
+
+        // Atualiza nome no topo
         const name = this.getCurrentPlayer().name;
-        document.getElementById('turn-indicator')!.innerHTML = `<span style="color:var(--highlight); font-weight:bold;">${name}</span>`;
+        document.getElementById('turn-indicator')!.innerHTML = name;
     }
 
     static log(msg: string) {
-        const el = document.getElementById('game-log')!;
+        const el = document.getElementById('bottom-bar')!; // Agora miramos no container #bottom-bar, não em #game-log
+        
         const time = new Date().toLocaleTimeString().split(':');
-        el.innerHTML = `<div style="border-bottom:1px solid #444; padding:2px;">[${time[0]}:${time[1]}] ${msg}</div>` + el.innerHTML;
+        const timeStr = `${time[0]}:${time[1]}`;
+        
+        const entry = document.createElement('div');
+        entry.className = 'log-entry';
+        entry.innerHTML = `<span class="log-time">[${timeStr}]</span> ${msg}`;
+        
+        // Adiciona no começo (topo) ou fim? 
+        // Como usamos flex-direction: column-reverse no CSS, o prepend faz aparecer visualmente "embaixo"
+        el.prepend(entry);
+        
+        // Limita o log a 50 mensagens para não pesar
+        if(el.children.length > 50) el.lastElementChild?.remove();
     }
 }
 
@@ -684,7 +735,7 @@ class Setup {
         }
         
         document.getElementById('setup-screen')!.style.display = 'none';
-        document.getElementById('game-container')!.style.display = 'flex';
+        document.getElementById('game-container')!.style.display = 'block';
         Game.init(players, mapSize);
     }
 }
@@ -692,6 +743,19 @@ class Setup {
 // ==========================================
 // INICIALIZAÇÃO & BINDING GLOBAL
 // ==========================================
+
+window.openInventory = (playerId: number) => {
+    const p = Game.players[playerId];
+    let msg = `Inventário de ${p.name}:\n`;
+    Object.entries(p.items).forEach(([k,v]) => {
+        if(v > 0) msg += `- ${k}: ${v}\n`;
+    });
+    alert(msg); 
+};
+
+window.openCards = (playerId: number) => {
+    Cards.showPlayerCards(playerId);
+};
 
 window.Setup = Setup;
 window.Game = Game;

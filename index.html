@@ -32,33 +32,51 @@
         <div id="player-slots-container"></div>
 
         <button class="btn" onclick="window.Setup.start()">🚀 INICIAR JORNADA</button>
-    </div> <div id="game-container">
-        <div id="board-wrapper">
-            <div id="board-area"></div>
+    </div> 
+    <div id="game-container">
+    
+    <div id="game-layout">
+        
+        <div id="top-bar">
+            <div class="turn-box">
+                <small>Turno:</small>
+                <h3 id="turn-indicator">-</h3>
+            </div>
+            <div class="dice-box">
+                <div id="d20-display">🎲 20</div>
+                <button id="roll-btn" class="btn btn-roll" onclick="window.Game.rollDice()">Rolar</button>
+            </div>
         </div>
 
-        <aside id="sidebar">
-            <div class="panel text-center bg-white">
-                <small class="text-muted">Turno Atual</small>
-                <h3 id="turn-indicator" class="my-5">-</h3>
-                <div id="d20-display">🎲 20</div>
-            </div>
-
-            <button id="roll-btn" class="btn" onclick="window.Game.rollDice()">🎲 ROLAR DADO</button>
-            <button id="shop-btn" class="btn btn-shop" onclick="window.Shop.open()">🛒 LOJA & MOCHILA</button>
-
-            <div id="my-cards" class="card-display">
-                <strong>🃏 Minhas Cartas</strong>
-                <div id="cards-list"></div>
-            </div>
-
-            <div id="players-list"></div>
+        <div id="middle-row">
             
-            <div class="panel log-panel">
-                <strong class="log-header">📟 Log de Eventos:</strong>
-                <div id="game-log"></div>
+            <div id="hud-col-left" class="hud-column">
+                </div>
+
+            <div id="board-wrapper">
+                <div id="board-area"></div>
             </div>
-        </aside>
+
+            <div id="hud-col-right" class="hud-column">
+                </div>
+
+        </div>
+
+        <div id="bottom-bar">
+            <div id="game-log"></div>
+        </div>
+
+    </div>
+</div>
+    <div id="city-modal" class="modal-overlay">
+        <div class="modal-box">
+            <h2 style="color: #3498db;">🏙️ Centro Pokémon</h2>
+            <p>Você chegou na cidade! O que deseja fazer?</p>
+            <div style="display:flex; gap:10px; justify-content:center; margin-top:20px;">
+                <button class="btn" style="background:#2ecc71;" onclick="window.Game.handleCityChoice('heal')">❤️ Curar Time</button>
+                <button class="btn btn-shop" onclick="window.Game.handleCityChoice('shop')">🛒 Acessar Loja</button>
+            </div>
+        </div>
     </div>
 
     <div id="shop-modal" class="modal-overlay">
