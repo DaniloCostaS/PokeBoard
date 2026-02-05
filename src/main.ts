@@ -7,6 +7,19 @@ import type {
     ItemData, CardData, Coord 
 } from './constants';
 
+// --- CONFIGURAÇÃO DAS IMAGENS DOS TREINADORES ---
+const TRAINER_IMAGES = [
+    { label: "Red", file: "Red.jpg" },
+    { label: "Blue", file: "Blue.jpg" },
+    { label: "Lucas", file: "Lucas.jpg"},
+    { label: "Dawn", file: "Dawn.jpg" },
+    { label: "Barry", file: "Barry.jpg" },
+    { label: "Brendan", file: "Brendan.jpg"},
+    { label: "May", file: "May.jpg" },
+    { label: "Ethan", file: "Ethan.jpg" },
+    { label: "OAK", file: "OAK.jpg" }
+];
+
 // Expõe as classes globais no objeto Window para o HTML acessá-las
 declare global {
     interface Window {
@@ -77,7 +90,7 @@ class Pokemon {
 class Player {
     id: number;
     name: string;
-    avatar: string;
+    avatar: string; // Caminho da imagem
     x: number = 0;
     y: number = 0;
     gold: number = 500;
@@ -85,10 +98,10 @@ class Player {
     cards: CardData[] = [];
     team: Pokemon[] = [];
 
-    constructor(id: number, name: string, avatar: string) {
+    constructor(id: number, name: string, avatarFile: string) {
         this.id = id;
         this.name = name;
-        this.avatar = avatar;
+        this.avatar = `./src/assets/img/treinadores/${avatarFile}`;
         
         const starters = [1, 4, 7]; 
         this.team.push(new Pokemon(starters[Math.floor(Math.random()*starters.length)]));
@@ -501,11 +514,15 @@ class Game {
             if(tile) {
                 const t = document.createElement('div');
                 t.className = `player-token ${idx===this.turn?'active-token':''}`;
-                t.innerText = p.avatar;
+                
+                // USANDO IMAGEM DE FUNDO
+                t.style.backgroundImage = `url('${p.avatar}')`;
+                
                 const colors = ['#e74c3c', '#3498db', '#f1c40f', '#9b59b6'];
                 t.style.borderColor = colors[idx % colors.length];
+                
                 if(MapSystem.size >= 30) { 
-                    t.style.width = '90%'; t.style.height = '90%'; t.style.fontSize = '10px'; 
+                    t.style.width = '90%'; t.style.height = '90%'; 
                 }
                 tile.appendChild(t);
                 if(idx===this.turn) tile.scrollIntoView({block:'center',inline:'center',behavior:'smooth'});
@@ -610,22 +627,19 @@ class Game {
         this.moveVisuals();
     }
 
-    // Nova função HUD
+    // Nova função HUD com Avatar de Imagem
     static updateHUD() {
         const leftCol = document.getElementById('hud-col-left')!;
         const rightCol = document.getElementById('hud-col-right')!;
         
-        // Limpa as colunas para redesenhar
         leftCol.innerHTML = '';
         rightCol.innerHTML = '';
 
         this.players.forEach((p, i) => {
-            // Cria o elemento do card
             const slot = document.createElement('div');
             slot.className = 'player-slot';
             if (i === this.turn) slot.classList.add('active');
 
-            // Renderiza o conteúdo
             const miniParty = p.team.map(m => `
                 <div style="
                     width:24px; height:24px; 
@@ -639,9 +653,13 @@ class Game {
 
             const itemCount = Object.values(p.items).reduce((a,b)=>a+b, 0);
 
+            // Conteúdo atualizado com Imagem do Avatar
             slot.innerHTML = `
                 <div class="hud-header">
-                    <div>${p.avatar} ${p.name}</div>
+                    <div class="hud-name-group">
+                        <img src="${p.avatar}" class="hud-avatar-img">
+                        <span>${p.name}</span>
+                    </div>
                     <div style="color:goldenrod;">💰${p.gold}</div>
                 </div>
                 
@@ -657,9 +675,6 @@ class Game {
                 </div>
             `;
 
-            // Lógica de Distribuição:
-            // Jogadores 0 e 2 vão para a Esquerda
-            // Jogadores 1 e 3 vão para a Direita
             if (i % 2 === 0) {
                 leftCol.appendChild(slot);
             } else {
@@ -667,13 +682,11 @@ class Game {
             }
         });
 
-        // Atualiza nome no topo
         const name = this.getCurrentPlayer().name;
         document.getElementById('turn-indicator')!.innerHTML = name;
     }
 
     static log(msg: string) {
-        // ATUALIZAÇÃO: Mudamos o ID alvo para o novo painel lateral
         const el = document.getElementById('log-container')!; 
         
         const time = new Date().toLocaleTimeString().split(':');
@@ -681,12 +694,10 @@ class Game {
         
         const entry = document.createElement('div');
         entry.className = 'log-entry';
-        // Layout do log melhorado: Hora em cima, mensagem embaixo
         entry.innerHTML = `<span class="log-time">${timeStr}</span> ${msg}`;
         
         el.prepend(entry);
         
-        // Aumentei o histórico já que agora temos espaço
         if(el.children.length > 100) el.lastElementChild?.remove();
     }
 }
@@ -697,29 +708,40 @@ class Setup {
         const container = document.getElementById('player-slots-container')!;
         container.innerHTML = '';
         
-        const defaults = [
-            {name: "Ash", icon: "🧢"},
-            {name: "Gary", icon: "🎒"},
-            {name: "Misty", icon: "👒"},
-            {name: "Brock", icon: "😑"}
-        ];
+        const defaultNames = ["Ash", "Gary", "Misty", "Brock"];
+
+        // Gera as opções do <select> baseadas no array TRAINER_IMAGES
+        const optionsHTML = TRAINER_IMAGES.map((img, idx) => 
+            `<option value="${img.file}">${img.label}</option>`
+        ).join('');
 
         for(let i=0; i<num; i++) {
+            // Seleciona um padrão rotativo para cada jogador
+            const defaultImg = TRAINER_IMAGES[i % TRAINER_IMAGES.length].file;
+            
             container.innerHTML += `
                 <div class="setup-row">
                     <strong>P${i+1}</strong>
-                    <input type="text" id="p${i}-name" value="${defaults[i].name}" style="width:100px;">
-                    <select id="p${i}-av">
-                        <option ${i==0?'selected':''}>🧢</option>
-                        <option ${i==1?'selected':''}>🎒</option>
-                        <option ${i==2?'selected':''}>👒</option>
-                        <option ${i==3?'selected':''}>😑</option>
-                        <option>🐯</option>
-                        <option>👻</option>
-                    </select>
+                    <input type="text" id="p${i}-name" value="${defaultNames[i] || 'Player'}" style="width:100px;">
+                    
+                    <div class="avatar-selection">
+                        <img id="p${i}-preview" src="./src/assets/img/treinadores/${defaultImg}" class="avatar-preview">
+                        <select id="p${i}-av" onchange="window.Setup.updatePreview(${i})">
+                            ${TRAINER_IMAGES.map((img) => 
+                                `<option value="${img.file}" ${img.file === defaultImg ? 'selected' : ''}>${img.label}</option>`
+                            ).join('')}
+                        </select>
+                    </div>
                 </div>
             `;
         }
+    }
+
+    // Função nova para atualizar a imagem quando troca o select
+    static updatePreview(playerId: number) {
+        const select = document.getElementById(`p${playerId}-av`) as HTMLSelectElement;
+        const img = document.getElementById(`p${playerId}-preview`) as HTMLImageElement;
+        img.src = `./src/assets/img/treinadores/${select.value}`;
     }
 
     static start() {
@@ -729,13 +751,14 @@ class Setup {
         const players: Player[] = [];
         for(let i=0; i<numPlayers; i++) {
             const name = (document.getElementById(`p${i}-name`) as HTMLInputElement).value;
-            const av = (document.getElementById(`p${i}-av`) as HTMLSelectElement).value;
-            players.push(new Player(i, name, av));
+            // Agora pegamos o nome do arquivo (ex: 't1.png')
+            const avFile = (document.getElementById(`p${i}-av`) as HTMLSelectElement).value;
+            players.push(new Player(i, name, avFile));
         }
         
         document.getElementById('setup-screen')!.style.display = 'none';
         
-        // CORREÇÃO CRUCIAL AQUI: Usar 'flex' para o layout funcionar
+        // Mantido 'flex' conforme correção anterior
         document.getElementById('game-container')!.style.display = 'flex';
         
         Game.init(players, mapSize);

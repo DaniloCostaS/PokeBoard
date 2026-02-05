@@ -42,7 +42,7 @@ body {
 }
 
 /* ==========================================================================
-   3. TELAS DE SETUP
+   3. TELA DE SETUP
    ========================================================================== */
 #setup-screen {
     position: fixed; 
@@ -62,6 +62,21 @@ body {
 .subtitle { margin-top: 0; color: #7f8c8d; }
 .setup-group { margin-bottom: 20px; }
 .setup-row { display: flex; align-items: center; justify-content: space-between; margin: 10px 0; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+
+/* Novo: Seleção de Avatar com Imagem */
+.avatar-selection {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.avatar-preview {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid var(--highlight);
+    object-fit: cover;
+    background-color: #eee;
+}
 
 /* ==========================================================================
    4. LAYOUT DO JOGO (WIDESCREEN)
@@ -115,8 +130,6 @@ body {
     position: relative;
     padding: 20px; 
     box-sizing: border-box;
-    
-    /* CORREÇÃO: Adicionado gap para separar os cartões do mapa */
     gap: 15px; 
 }
 
@@ -139,16 +152,18 @@ body {
     justify-content: center;
 }
 
-/* CORREÇÃO: Removido margens negativas e bordas retas */
+/* CORREÇÃO: Removido margens negativas e bordas internas */
 #hud-col-left .player-slot { 
-    border-radius: 8px; /* Borda arredondada completa */
-    margin-right: 0;    /* Sem margem negativa */
+    border-radius: 8px 0 0 8px; 
+    margin-right: 0;    
+    border-right: none;
     z-index: 1;
 }
 
 #hud-col-right .player-slot { 
-    border-radius: 8px; /* Borda arredondada completa */
-    margin-left: 0;     /* Sem margem negativa */
+    border-radius: 0 8px 8px 0; 
+    margin-left: 0;     
+    border-left: none;
     z-index: 1;
 }
 
@@ -161,9 +176,8 @@ body {
     justify-content: center;
     transition: 0.3s;
     border: 2px solid transparent;
-    margin-bottom: 5px; /* Pequeno espaço entre P1 e P3 */
-    border-radius: 8px; /* Garante que todos sejam arredondados */
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3); /* Sombra para dar profundidade */
+    margin-bottom: 5px; 
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3); 
 }
 
 .player-slot.active {
@@ -172,9 +186,22 @@ body {
     z-index: 15 !important;
     box-shadow: 0 0 20px rgba(241, 196, 15, 0.5);
     transform: scale(1.05);
+    position: relative;
 }
 
+/* Novo estilo da HUD para Avatar de Imagem */
 .hud-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; font-weight: bold; font-size: 0.9vw; }
+.hud-name-group { display: flex; align-items: center; flex: 1; }
+.hud-avatar-img {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    margin-right: 8px;
+    object-fit: cover;
+    background: #ccc;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
 .hud-team { display: flex; justify-content: center; gap: 5px; margin-bottom: 5px; flex-wrap: wrap; }
 .hud-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: auto; }
 
@@ -248,12 +275,19 @@ body {
 
 .path-highlight { background: yellow !important; opacity: 0.7; z-index: 5; }
 
-/* Jogador */
+/* Jogador - Estilo Atualizado para Imagem */
 .player-token {
     position: absolute; width: 80%; height: 80%;
-    border-radius: 50%; border: 2px solid white;
-    display: flex; justify-content: center; align-items: center;
-    font-size: 16px; background: white; z-index: 10;
+    border-radius: 50%; 
+    font-size: 0; color: transparent; /* Esconde texto antigo */
+    
+    background-color: white;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    
+    z-index: 10;
+    border: 2px solid white;
     box-shadow: 0 2px 5px rgba(0,0,0,0.5);
     transition: all 0.2s;
 }
