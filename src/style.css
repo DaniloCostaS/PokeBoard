@@ -7,6 +7,8 @@
     --highlight: #3498db;
     --gold: #f1c40f;
     --danger: #e74c3c;
+    --success: #2ecc71; /* Cor da barra de HP */
+    --exp: #9b59b6;     /* Cor da barra de XP */
     --card-bg: #e67e22;
     
     /* Cores Auxiliares */
@@ -74,7 +76,6 @@ body {
     height: 40px;
     border-radius: 50%;
     border: 2px solid var(--highlight);
-    /* Garante que a imagem preencha o círculo sem distorcer */
     object-fit: cover; 
     background-color: #eee;
 }
@@ -154,6 +155,7 @@ body {
     justify-content: center;
 }
 
+/* Ajustes dos Slots Laterais */
 #hud-col-left .player-slot { 
     border-radius: 8px; 
     margin-right: 0;    
@@ -170,42 +172,103 @@ body {
 
 .player-slot {
     height: 50%; 
-    background: rgba(255,255,255,0.9);
+    background: rgba(255,255,255,0.95);
     padding: 10px;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    /* justify-content: center; <-- Removido para os cards fluírem */
     transition: 0.3s;
     border: 2px solid transparent;
     margin-bottom: 5px; 
     border-radius: 8px;
     box-shadow: 0 4px 10px rgba(0,0,0,0.3); 
+    overflow-y: auto; /* Permite rolar se tiver muitos Pokémons */
 }
+
+/* Scrollbar fina para o slot do jogador */
+.player-slot::-webkit-scrollbar { width: 4px; }
+.player-slot::-webkit-scrollbar-thumb { background: #ccc; border-radius: 2px; }
 
 .player-slot.active {
     background: #fff;
     border-color: var(--gold);
     z-index: 15 !important;
     box-shadow: 0 0 20px rgba(241, 196, 15, 0.5);
-    transform: scale(1.05);
+    transform: scale(1.02);
     position: relative;
 }
 
-/* Estilo da HUD para Avatar de Imagem */
-.hud-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; font-weight: bold; font-size: 0.9vw; }
+/* CABEÇALHO DO JOGADOR NA HUD */
+.hud-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; font-weight: bold; font-size: 0.9vw; border-bottom: 1px solid #eee; padding-bottom: 5px; }
 .hud-name-group { display: flex; align-items: center; flex: 1; }
 .hud-avatar-img {
     width: 32px; height: 32px;
     border-radius: 50%;
     border: 2px solid #fff;
     margin-right: 8px;
-    /* Garante que a imagem preencha o círculo sem distorcer */
     object-fit: cover;
     background: #ccc;
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
-.hud-team { display: flex; justify-content: center; gap: 5px; margin-bottom: 5px; flex-wrap: wrap; }
+/* --- ESTILO DOS NOVOS CARTÕES DE POKEMON --- */
+.hud-team { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 8px; 
+    margin-bottom: 10px; 
+    flex: 1; 
+}
+
+.poke-card {
+    display: flex;
+    background: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 5px;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.75rem;
+    position: relative;
+}
+
+.poke-card.fainted { opacity: 0.6; filter: grayscale(1); background: #eee; }
+
+.poke-card-img {
+    width: 40px; height: 40px;
+    image-rendering: pixelated;
+    background: #fff;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    object-fit: contain;
+}
+
+.poke-card-info { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+
+.poke-header { display: flex; justify-content: space-between; font-weight: bold; color: #444; }
+.poke-lvl { color: var(--highlight); font-size: 0.7rem; background: rgba(52, 152, 219, 0.1); padding: 0 4px; border-radius: 3px; }
+
+/* Barras de HP e XP */
+.bar-container { width: 100%; height: 4px; background: #ddd; border-radius: 2px; overflow: hidden; margin-top: 1px; }
+.bar-fill { height: 100%; transition: width 0.3s; }
+.hp-bar { background: var(--success); }
+.xp-bar { background: var(--exp); height: 2px; margin-top: 2px; }
+
+/* Grade de Atributos */
+.poke-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 2px;
+    margin-top: 3px;
+    font-size: 0.65rem;
+    color: #666;
+    text-align: center;
+    background: rgba(0,0,0,0.03);
+    border-radius: 3px;
+    padding: 2px;
+}
+.stat-item strong { color: #333; }
+
 .hud-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: auto; }
 
 /* --- PAINEL DIREITO (LOG) --- */
@@ -260,9 +323,14 @@ body {
 .tile.grass { background-image: var(--bg-grass-img); background-size: 100% 100%; image-rendering: pixelated; }
 .tile.water { background-image: var(--bg-water-img); background-size: 100% 100%; image-rendering: pixelated; }
 .tile.ground { background-image: var(--bg-ground-img); background-size: 100% 100%; image-rendering: pixelated; }
-.tile.city { background-image: var(--bg-city-img); background-size: 100% 100%; image-rendering: pixelated; border: 2px solid rgb(236, 77, 175);}
+.tile.city { background-image: var(--bg-city-img); background-size: 100% 100%; image-rendering: pixelated; }
 .tile.event { background-image: var(--bg-event-img); background-size: 100% 100%; image-rendering: pixelated; }
-.tile.gym { background-image: var(--bg-gym-img); background-size: 100% 100%; image-rendering: pixelated; border: 2px solid rgb(151, 131, 14); } 
+.tile.gym { 
+    background-image: var(--bg-gym-img); 
+    background-size: cover; 
+    image-rendering: pixelated; 
+    border: 2px solid gold; 
+} 
 .tile.path { background: var(--tile-path); }
 
 /* NPCs */
@@ -271,10 +339,9 @@ body {
 .tile.young { background-image: var(--bg-npc-young); background-size: 100% 100%; image-rendering: pixelated; background-position: center; background-repeat: no-repeat; }
 .tile.old { background-image: var(--bg-npc-old); background-size: 100% 100%; image-rendering: pixelated; background-position: center; background-repeat: no-repeat; }
 
-/* Destaque do caminho e do passo */
 .path-highlight { background: yellow !important; opacity: 0.7; z-index: 5; }
 
-/* NOVO: Destaque do chão quando o boneco pisa */
+/* Destaque do chão (Animação Tuc Tuc) */
 .step-highlight {
     box-shadow: inset 0 0 20px var(--gold), 0 0 10px var(--gold) !important;
     filter: brightness(1.2);
@@ -282,14 +349,13 @@ body {
     z-index: 5;
 }
 
-/* Jogador - Estilo Atualizado para Imagem e Animação */
+/* Jogador */
 .player-token {
     position: absolute; width: 80%; height: 80%;
     border-radius: 50%; 
     font-size: 0; color: transparent;
     
     background-color: white;
-    /* Garante que a imagem de fundo preencha o círculo sem distorcer */
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -298,12 +364,10 @@ body {
     border: 2px solid white;
     box-shadow: 0 2px 5px rgba(0,0,0,0.5);
     
-    /* NOVO: Transição suave e animação de "pop" */
     transition: all 0.3s ease-out;
     animation: tokenPop 0.3s ease-out;
 }
 
-/* Animação de "pulsar" ao aparecer na nova casa */
 @keyframes tokenPop {
     0% { transform: scale(0.8); opacity: 0.8; }
     100% { transform: scale(1); opacity: 1; }

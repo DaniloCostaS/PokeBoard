@@ -7,7 +7,7 @@ import type {
     ItemData, CardData, Coord 
 } from './constants';
 
-// --- CONFIGURAÇÃO DAS IMAGENS DOS TREINADORES (CORRIGIDA) ---
+// --- 1. CONFIGURAÇÃO DAS IMAGENS DOS TREINADORES ---
 const TRAINER_IMAGES = [
     { label: "Red", file: "Red.jpg" },
     { label: "Blue", file: "Blue.jpg" },
@@ -19,6 +19,27 @@ const TRAINER_IMAGES = [
     { label: "Ethan", file: "Ethan.jpg" },
     { label: "OAK", file: "OAK.jpg" }
 ];
+
+// --- 2. SISTEMA DE TIPOS E VANTAGENS ---
+// Define o tipo de cada Pokémon pelo nome
+const POKEMON_TYPES: {[key: string]: string} = {
+    'Charmander': 'fire', 'Charmeleon': 'fire', 'Charizard': 'fire', 'Vulpix': 'fire', 'Growlithe': 'fire',
+    'Squirtle': 'water', 'Wartortle': 'water', 'Blastoise': 'water', 'Psyduck': 'water', 'Poliwag': 'water',
+    'Bulbasaur': 'grass', 'Ivysaur': 'grass', 'Venusaur': 'grass', 'Oddish': 'grass', 'Bellsprout': 'grass',
+    'Pikachu': 'electric', 'Raichu': 'electric', 'Magnemite': 'electric', 'Voltorb': 'electric',
+    'Geodude': 'ground', 'Graveler': 'ground', 'Golem': 'ground', 'Onix': 'ground',
+    'Pidgey': 'normal', 'Rattata': 'normal', 'Meowth': 'normal', 'Eevee': 'normal'
+};
+
+// Tabela de Multiplicadores (Ataque -> Defesa)
+const TYPE_CHART: {[key: string]: {[key: string]: number}} = {
+    'fire': { 'grass': 2, 'water': 0.5, 'rock': 0.5, 'bug': 2, 'ice': 2 },
+    'water': { 'fire': 2, 'grass': 0.5, 'ground': 2, 'rock': 2 },
+    'grass': { 'water': 2, 'fire': 0.5, 'ground': 2, 'flying': 0.5, 'rock': 2 },
+    'electric': { 'water': 2, 'grass': 0.5, 'ground': 0, 'flying': 2 },
+    'ground': { 'fire': 2, 'electric': 2, 'grass': 0.5, 'flying': 0, 'rock': 2 },
+    'normal': { 'ghost': 0 }
+};
 
 // Expõe as classes globais no objeto Window para o HTML acessá-las
 declare global {
@@ -39,9 +60,20 @@ declare global {
 class Pokemon {
     id: number;
     name: string;
+    type: string; // Tipo do Pokémon
+    
+    // Stats
     maxHp: number;
     currentHp: number;
     atk: number;
+    def: number;
+    speed: number;
+    
+    // Progressão
+    level: number;
+    currentXp: number;
+    maxXp: number;
+    
     isShiny: boolean;
     wins: number;
     evoData: { next: string | null; trigger?: number };
@@ -50,10 +82,25 @@ class Pokemon {
         const template = POKEDEX.find(p => p.id === templateId) || POKEDEX[0];
         this.id = template.id;
         this.name = template.name;
-        this.maxHp = template.hp + (isShiny ? 20 : 0);
-        this.currentHp = this.maxHp;
-        this.atk = template.atk + (isShiny ? 5 : 0);
         this.isShiny = isShiny;
+        
+        // Define o tipo. Se não achar, assume 'normal'
+        this.type = POKEMON_TYPES[this.name] || 'normal';
+        
+        this.level = 5;
+        this.currentXp = 0;
+        this.maxXp = 100;
+        
+        const shinyBonus = isShiny ? 1.2 : 1.0;
+
+        this.maxHp = Math.floor((template.hp + 20) * shinyBonus);
+        this.currentHp = this.maxHp;
+        this.atk = Math.floor((template.atk + 5) * shinyBonus);
+        
+        // Gera atributos secundários se não existirem
+        this.def = Math.floor((template.atk * 0.8) * shinyBonus); 
+        this.speed = Math.floor((template.atk * 0.9 + Math.random() * 10) * shinyBonus);
+
         this.wins = 0;
         this.evoData = { next: template.nextForm, trigger: template.evoTrigger };
     }
@@ -76,9 +123,14 @@ class Pokemon {
             if (nextTemplate) {
                 this.id = nextTemplate.id;
                 this.name = nextTemplate.name;
-                this.maxHp = nextTemplate.hp + (this.isShiny ? 20 : 0);
-                this.atk = nextTemplate.atk + (this.isShiny ? 5 : 0);
+                this.type = POKEMON_TYPES[this.name] || this.type; // Atualiza tipo
+                
+                this.maxHp += 30;
                 this.currentHp = this.maxHp;
+                this.atk += 10;
+                this.def += 10;
+                this.speed += 5;
+                
                 this.evoData = { next: nextTemplate.nextForm, trigger: nextTemplate.evoTrigger };
                 return true;
             }
@@ -90,7 +142,7 @@ class Pokemon {
 class Player {
     id: number;
     name: string;
-    avatar: string; // Caminho da imagem
+    avatar: string; 
     x: number = 0;
     y: number = 0;
     gold: number = 500;
@@ -101,11 +153,13 @@ class Player {
     constructor(id: number, name: string, avatarFile: string) {
         this.id = id;
         this.name = name;
-        // Caminho corrigido com /src
         this.avatar = `./src/assets/img/treinadores/${avatarFile}`;
         
-        const starters = [1, 4, 7]; 
-        this.team.push(new Pokemon(starters[Math.floor(Math.random()*starters.length)]));
+        // Se o nome for especial de load, não cria time inicial (será carregado)
+        if(name !== "_LOAD_") {
+            const starters = [1, 4, 7]; 
+            this.team.push(new Pokemon(starters[Math.floor(Math.random()*starters.length)]));
+        }
     }
 
     isDefeated(): boolean {
@@ -203,7 +257,7 @@ class Battle {
             div.innerHTML = `
                 <img src="${mon.getSprite()}" width="40">
                 <div>
-                    <b>${mon.name}</b><br>
+                    <b>${mon.name}</b> <small>(${mon.type})</small><br>
                     <small>HP: ${mon.currentHp}/${mon.maxHp}</small>
                 </div>
             `;
@@ -236,14 +290,14 @@ class Battle {
         const pMon = this.activeMon;
         const opp = this.opponent;
 
-        // Player UI
         document.getElementById('ply-name')!.innerText = pMon.name;
+        document.getElementById('ply-lvl')!.innerText = `Lv${pMon.level}`;
         (document.getElementById('ply-img') as HTMLImageElement).src = pMon.getSprite();
         document.getElementById('ply-hp')!.style.width = (pMon.currentHp/pMon.maxHp)*100 + "%";
         document.getElementById('ply-hp-text')!.innerText = `${pMon.currentHp}/${pMon.maxHp}`;
         
-        // Opponent UI
         document.getElementById('opp-name')!.innerText = opp.name;
+        document.getElementById('opp-lvl')!.innerText = `Lv${opp.level}`;
         (document.getElementById('opp-img') as HTMLImageElement).src = opp.getSprite();
         document.getElementById('opp-hp')!.style.width = (opp.currentHp/opp.maxHp)*100 + "%";
 
@@ -258,25 +312,71 @@ class Battle {
 
     static log(msg: string) { document.getElementById('battle-msg')!.innerText = msg; }
 
+    // --- NOVA LÓGICA DE DANO COM ELEMENTOS ---
+    static calculateDamage(attacker: Pokemon, defender: Pokemon): { dmg: number, multiplier: number } {
+        let rawDmg = attacker.atk * (0.8 + Math.random() * 0.4);
+        
+        // Verifica Vantagem de Tipo
+        let multiplier = 1;
+        // Proteção caso o tipo não esteja na tabela
+        if (TYPE_CHART[attacker.type] && TYPE_CHART[attacker.type][defender.type] !== undefined) {
+            multiplier = TYPE_CHART[attacker.type][defender.type];
+        }
+
+        rawDmg *= multiplier;
+
+        let defenseFactor = defender.def * 0.5;
+        let finalDmg = Math.max(1, Math.floor(rawDmg - defenseFactor));
+        
+        return { dmg: finalDmg, multiplier };
+    }
+
     static attack() {
         if(!this.activeMon || !this.opponent) return;
         const pMon = this.activeMon;
-        let dmg = Math.floor(pMon.atk * (0.9 + Math.random()*0.2));
-        if(this.activeCard === 'crit') { dmg *= 2; this.log("💥 CRÍTICO!"); this.activeCard = null; } 
-        else { this.log(`${pMon.name} atacou! (${dmg})`); }
+        const opp = this.opponent;
 
-        this.opponent.currentHp = Math.max(0, this.opponent.currentHp - dmg);
-        this.updateUI();
+        try {
+            // Usa a nova função de cálculo
+            const { dmg, multiplier } = this.calculateDamage(pMon, opp);
+            let finalDmg = dmg;
 
-        if(this.opponent.currentHp <= 0) setTimeout(() => this.win(), 1000);
-        else setTimeout(() => this.enemyTurn(), 1000);
+            if(this.activeCard === 'crit') { finalDmg *= 2; this.log("💥 CARTA CRÍTICA!"); this.activeCard = null; } 
+            
+            // Log de Efetividade
+            let effectMsg = "";
+            if (multiplier > 1) effectMsg = " (Super Efetivo!)";
+            if (multiplier < 1) effectMsg = " (Não muito efetivo...)";
+
+            this.log(`${pMon.name} atacou! -${finalDmg}${effectMsg}`);
+
+            this.opponent.currentHp = Math.max(0, this.opponent.currentHp - finalDmg);
+            this.updateUI();
+
+            if(this.opponent.currentHp <= 0) setTimeout(() => this.win(), 1000);
+            else setTimeout(() => this.enemyTurn(), 1000);
+        
+        } catch (e) {
+            console.error("Erro na batalha:", e);
+            this.log("Erro no ataque. Dano padrão aplicado.");
+            this.opponent.currentHp -= 10; // Fallback para não travar
+            this.updateUI();
+            setTimeout(() => this.enemyTurn(), 1000);
+        }
     }
 
     static enemyTurn() {
         if(!this.activeMon || !this.opponent) return;
         const pMon = this.activeMon;
-        let dmg = Math.floor(this.opponent.atk * (0.8 + Math.random()*0.2));
-        this.log(`${this.opponent.name} bateu! (${dmg})`);
+        const opp = this.opponent;
+
+        const { dmg, multiplier } = this.calculateDamage(opp, pMon);
+        
+        let effectMsg = "";
+        if (multiplier > 1) effectMsg = " (Super Efetivo!)";
+        if (multiplier < 1) effectMsg = " (Não muito efetivo...)";
+
+        this.log(`${opp.name} bateu! -${dmg}${effectMsg}`);
         
         pMon.currentHp = Math.max(0, pMon.currentHp - dmg);
         this.updateUI();
@@ -359,7 +459,14 @@ class Battle {
 
     static run() {
         if(this.isPvP || this.isNPC) { this.log("Sem fuga desta luta!"); return; }
-        if(Math.random()>0.5) this.end(); else { this.log("Falhou!"); setTimeout(()=>this.enemyTurn(),1000); }
+        const chance = this.activeMon!.speed > this.opponent!.speed ? 0.7 : 0.4;
+        
+        if(Math.random() < chance) { 
+            this.end(); 
+        } else { 
+            this.log("Falhou!"); 
+            setTimeout(()=>this.enemyTurn(),1000); 
+        }
     }
 
     static win() {
@@ -372,6 +479,18 @@ class Battle {
         
         const p = this.activeMon!;
         p.wins++;
+        
+        p.currentXp += 50; 
+        if(p.currentXp >= p.maxXp) {
+            p.currentXp = 0;
+            p.level++;
+            p.maxHp += 5;
+            p.atk += 2;
+            p.def += 2;
+            p.speed += 1;
+            this.log(`${p.name} subiu para o nível ${p.level}!`);
+        }
+
         if(p.checkEvolution()) alert(`😲 Seu Pokémon evoluiu para ${p.name}!`);
         
         setTimeout(() => this.end(), 1500);
@@ -424,12 +543,11 @@ class Shop {
             p.gold -= price; 
             p.items[id]++; 
             this.open(); 
-            Game.updateHUD(); // Atualiza a HUD após a compra
+            Game.updateHUD(); 
         } else {
             alert("Ouro insuficiente!");
         }
     }
-    // Novo método para fechar e lidar com o turno
     static close() {
         document.getElementById('shop-modal')!.style.display = 'none';
         if(Game.isCityEvent) {
@@ -444,12 +562,9 @@ class Cards {
         const card = CARDS_DB[Math.floor(Math.random()*CARDS_DB.length)];
         player.cards.push(card);
         Game.log(`Ganhou carta: ${card.icon} ${card.name}`);
-        Game.updateHUD(); // Atualiza contador de cartas
+        Game.updateHUD();
     }
-    static render() {
-        // Método de renderização antigo (pode ser usado se quiser)
-    }
-    // Mostra cartas em um alert (temporário)
+    static render() {}
     static showPlayerCards(playerId: number) {
         const p = Game.players[playerId];
         if(p.cards.length === 0) {
@@ -470,16 +585,89 @@ class Game {
 
     static init(players: Player[], mapSize: number) {
         this.players = players;
-        MapSystem.generate(mapSize);
+        // Se o mapa não foi carregado via save, gera um novo
+        if(MapSystem.grid.length === 0) {
+            MapSystem.generate(mapSize);
+        }
         this.renderBoard();
         this.updateHUD();
         this.moveVisuals();
+    }
+
+    // --- SAVE SYSTEM ---
+    static saveGame() {
+        const saveData = {
+            players: this.players,
+            turn: this.turn,
+            mapSize: MapSystem.size,
+            // Salvar o grid é opcional se a seed fosse fixa, mas como é aleatório, o ideal seria serializar.
+            // Para simplificar, assumimos que o layout do terreno não muda drasticamente ou aceitamos gerar novo terreno no load.
+            // Se quiser salvar o terreno exato, precisaria salvar MapSystem.grid também.
+        };
+        localStorage.setItem('pokeboard_save', JSON.stringify(saveData));
+        // console.log("Jogo Salvo");
+    }
+
+    static loadGame() {
+        const json = localStorage.getItem('pokeboard_save');
+        if(!json) return false;
+        
+        try {
+            const data = JSON.parse(json);
+            
+            // Recriação dos objetos para recuperar os métodos
+            const loadedPlayers = data.players.map((pData: any) => {
+                // Tenta extrair o nome do arquivo da imagem antiga
+                const avatarFile = pData.avatar.split('/').pop() || "t1.png";
+                
+                const newP = new Player(pData.id, pData.name, "_LOAD_"); 
+                // Hack: Passamos _LOAD_ no nome para não criar time inicial no construtor
+                // Agora corrigimos os dados:
+                newP.name = pData.name;
+                newP.avatar = pData.avatar; // Mantém o caminho salvo ou recria
+                newP.x = pData.x;
+                newP.y = pData.y;
+                newP.gold = pData.gold;
+                newP.items = pData.items;
+                newP.cards = pData.cards;
+                
+                // Recria Time
+                newP.team = pData.team.map((tData: any) => {
+                    const mon = new Pokemon(tData.id, tData.isShiny);
+                    mon.currentHp = tData.currentHp;
+                    mon.maxHp = tData.maxHp;
+                    mon.atk = tData.atk;
+                    mon.def = tData.def;
+                    mon.speed = tData.speed;
+                    mon.level = tData.level;
+                    mon.currentXp = tData.currentXp;
+                    mon.maxXp = tData.maxXp;
+                    mon.type = tData.type;
+                    return mon;
+                });
+                return newP;
+            });
+
+            this.players = loadedPlayers;
+            this.turn = data.turn;
+            
+            document.getElementById('setup-screen')!.style.display = 'none';
+            document.getElementById('game-container')!.style.display = 'flex';
+            
+            Game.init(this.players, data.mapSize);
+            this.log("Jogo Carregado!");
+            return true;
+        } catch(e) {
+            console.error("Save corrompido", e);
+            return false;
+        }
     }
 
     static getCurrentPlayer(): Player { return this.players[this.turn]; }
 
     static renderBoard() {
         const area = document.getElementById('board-area')!;
+        area.innerHTML = '';
         area.style.gridTemplateColumns = `repeat(${MapSystem.size}, 1fr)`;
         area.style.gridTemplateRows = `repeat(${MapSystem.size}, 1fr)`;
         const frag = document.createDocumentFragment();
@@ -508,32 +696,24 @@ class Game {
         area.appendChild(frag);
     }
 
-    // Função corrigida para não fazer todos os bonecos pularem
     static moveVisuals() {
         this.players.forEach((p, idx) => {
             const currentTile = document.getElementById(`tile-${p.x}-${p.y}`);
             if(!currentTile) return;
 
-            // Busca pelo ID único do token
             let token = document.getElementById(`p-token-${idx}`);
 
-            // CASO 1: Token já existe e está no lugar certo?
             if (token && token.parentElement === currentTile) {
-                // Não recria. Apenas atualiza o brilho de "ativo" se for a vez dele.
                 if(idx === this.turn) token.classList.add('active-token');
                 else token.classList.remove('active-token');
-                return; // Encerra aqui para esse jogador (sem pular!)
+                return; 
             }
 
-            // CASO 2: Token existe mas está no lugar errado (está andando)
-            if (token) token.remove(); // Remove para recriar e disparar a animação
+            if (token) token.remove(); 
 
-            // CASO 3: Token não existe ou foi removido acima
             const t = document.createElement('div');
-            t.id = `p-token-${idx}`; // Define ID único
+            t.id = `p-token-${idx}`; 
             t.className = `player-token ${idx===this.turn?'active-token':''}`;
-            
-            // Define a imagem
             t.style.backgroundImage = `url('${p.avatar}')`;
             
             const colors = ['#e74c3c', '#3498db', '#f1c40f', '#9b59b6'];
@@ -564,13 +744,11 @@ class Game {
         }
         die.innerText = `🎲 ${result}`;
         this.log(`${this.getCurrentPlayer().name} rolou ${result}.`);
-        
         await this.movePlayer(result);
     }
 
     static async movePlayer(steps: number) {
         const p = this.getCurrentPlayer();
-        
         for(let i = 0; i < steps; i++) {
             if(p.y % 2 === 0) { 
                 if(p.x < MapSystem.size - 1) p.x++; else p.y++; 
@@ -581,16 +759,11 @@ class Game {
             if(p.y >= MapSystem.size){ p.y = MapSystem.size - 1; break; } 
 
             const tile = document.getElementById(`tile-${p.x}-${p.y}`);
-            
             if(tile) tile.classList.add('step-highlight');
-            
             this.moveVisuals();
-
-            await new Promise(r => setTimeout(r, 200));
-            
+            await new Promise(r => setTimeout(r, 150));
             if(tile) tile.classList.remove('step-highlight');
         }
-        
         this.handleTile(p);
     }
 
@@ -652,6 +825,9 @@ class Game {
     }
 
     static nextTurn() {
+        // Auto-Save ao fim do turno
+        this.saveGame();
+        
         this.turn = (this.turn+1)%this.players.length;
         (document.getElementById('roll-btn') as HTMLButtonElement).disabled = false;
         this.updateHUD(); 
@@ -670,16 +846,35 @@ class Game {
             slot.className = 'player-slot';
             if (i === this.turn) slot.classList.add('active');
 
-            const miniParty = p.team.map(m => `
-                <div style="
-                    width:24px; height:24px; 
-                    border-radius:50%; 
-                    background: url('${m.getSprite()}') center/cover;
-                    border: 1px solid ${m.isFainted()?'red':'#ccc'};
-                    background-color: #eee;
-                    ${m.isFainted()?'filter:grayscale(1)':''}
-                " title="${m.name}"></div>
-            `).join('');
+            const cardsHTML = p.team.map(m => {
+                const hpPercent = (m.currentHp / m.maxHp) * 100;
+                const xpPercent = (m.currentXp / m.maxXp) * 100;
+                
+                return `
+                <div class="poke-card ${m.isFainted() ? 'fainted' : ''}">
+                    <img src="${m.getSprite()}" class="poke-card-img">
+                    <div class="poke-card-info">
+                        <div class="poke-header">
+                            <span>${m.name}</span>
+                            <span class="poke-lvl">Lv.${m.level}</span>
+                        </div>
+                        
+                        <div class="bar-container" title="HP: ${m.currentHp}/${m.maxHp}">
+                            <div class="bar-fill hp-bar" style="width:${hpPercent}%"></div>
+                        </div>
+                        <div class="bar-container" title="XP: ${m.currentXp}/${m.maxXp}">
+                            <div class="bar-fill xp-bar" style="width:${xpPercent}%"></div>
+                        </div>
+
+                        <div class="poke-stats">
+                            <div class="stat-item" title="Ataque">⚔️<strong>${m.atk}</strong></div>
+                            <div class="stat-item" title="Defesa">🛡️<strong>${m.def}</strong></div>
+                            <div class="stat-item" title="Velocidade">💨<strong>${m.speed}</strong></div>
+                        </div>
+                    </div>
+                </div>
+                `;
+            }).join('');
 
             const itemCount = Object.values(p.items).reduce((a,b)=>a+b, 0);
 
@@ -692,14 +887,16 @@ class Game {
                     <div style="color:goldenrod;">💰${p.gold}</div>
                 </div>
                 
-                <div class="hud-team">${miniParty}</div>
+                <div class="hud-team">
+                    ${cardsHTML}
+                </div>
                 
                 <div class="hud-actions">
                     <button class="btn btn-secondary btn-mini" onclick="window.openInventory(${i})">
-                        🎒 Itens (${itemCount})
+                        🎒 (${itemCount})
                     </button>
                     <button class="btn btn-secondary btn-mini" onclick="window.openCards(${i})">
-                        🃏 Cartas (${p.cards.length})
+                        🃏 (${p.cards.length})
                     </button>
                 </div>
             `;
@@ -739,6 +936,23 @@ class Setup {
         
         const defaultNames = ["Ash", "Gary", "Misty", "Brock"];
 
+        // Verifica se existe Save
+        const hasSave = localStorage.getItem('pokeboard_save');
+        const existingBtn = document.getElementById('load-btn');
+        if(hasSave && !existingBtn) {
+            const btn = document.createElement('button');
+            btn.id = 'load-btn';
+            btn.className = 'btn';
+            btn.style.background = '#8e44ad'; // Roxo
+            btn.style.marginBottom = '10px';
+            btn.innerHTML = '💾 CONTINUAR JOGO SALVO';
+            btn.onclick = () => window.Game.loadGame();
+            
+            const screen = document.getElementById('setup-screen')!;
+            // Adiciona antes do botão de Iniciar
+            screen.insertBefore(btn, screen.lastElementChild);
+        }
+
         const optionsHTML = TRAINER_IMAGES.map((img, idx) => 
             `<option value="${img.file}">${img.label}</option>`
         ).join('');
@@ -767,7 +981,6 @@ class Setup {
     static updatePreview(playerId: number) {
         const select = document.getElementById(`p${playerId}-av`) as HTMLSelectElement;
         const img = document.getElementById(`p${playerId}-preview`) as HTMLImageElement;
-        // Caminho corrigido com /src
         img.src = `./src/assets/img/treinadores/${select.value}`;
     }
 
