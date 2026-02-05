@@ -42,10 +42,8 @@ body {
 }
 
 /* ==========================================================================
-   3. TELAS E LAYOUTS
+   3. TELAS DE SETUP
    ========================================================================== */
-
-/* Tela de Setup */
 #setup-screen {
     position: fixed; 
     z-index: 999;
@@ -66,7 +64,7 @@ body {
 .setup-row { display: flex; align-items: center; justify-content: space-between; margin: 10px 0; border-bottom: 1px solid #eee; padding-bottom: 10px; }
 
 /* ==========================================================================
-   LAYOUT DO JOGO (HUD STYLE)
+   4. LAYOUT DO JOGO (WIDESCREEN)
    ========================================================================== */
 
 #game-container {
@@ -74,191 +72,161 @@ body {
     width: 100vw; 
     height: 100vh;
     background: #2c3e50;
-    /* Removemos o justify-content center para o flex esticar */
-    flex-direction: column;
+    flex-direction: row; 
     overflow: hidden;
 }
 
-/* Container que segura tudo centralizado */
-#game-layout {
+/* --- PAINEL ESQUERDO (CONTROLES) --- */
+#left-panel {
+    width: 220px;
+    height: 100%;
+    background: rgba(0,0,0,0.4);
+    border-right: 1px solid rgba(255,255,255,0.1);
     display: flex;
     flex-direction: column;
-    width: 100%;
-    height: 100%; /* Ocupa 100% da altura da tela */
-    padding: 10px; /* Margem de respiro nas bordas da tela */
+    padding: 20px;
     box-sizing: border-box;
-    gap: 10px;
+    gap: 20px;
+    z-index: 20;
 }
 
-/* TABULEIRO */
-#board-area {
-    /* O mapa precisa ser QUADRADO. */
-    /* A técnica 'aspect-ratio' resolve isso modernamente */
-    aspect-ratio: 1 / 1;
+.panel-box {
+    background: rgba(255,255,255,0.05);
+    border-radius: 12px;
+    padding: 15px;
+    text-align: center;
+    border: 1px solid rgba(255,255,255,0.1);
+    color: white;
+}
+
+.turn-section h2 { margin: 10px 0 0 0; color: var(--gold); }
+.dice-section { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+#d20-display { font-size: 2.5rem; font-weight: bold; color: #fff; text-shadow: 0 0 10px var(--gold); }
+.btn-roll { width: 100%; font-size: 1.1rem; letter-spacing: 1px; }
+.extra-space { flex: 1; opacity: 0.3; display: flex; align-items: center; justify-content: center; border-style: dashed; }
+
+/* --- PAINEL CENTRAL (JOGO) --- */
+#center-stage {
+    flex: 1; 
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    padding: 20px; 
+    box-sizing: border-box;
     
-    /* Ele tenta ter 100% da altura ou largura, o que for menor para caber */
+    /* CORREÇÃO: Adicionado gap para separar os cartões do mapa */
+    gap: 15px; 
+}
+
+#board-wrapper {
     height: 100%; 
-    max-width: 100%;
-    
-    /* Se a tela for muito larga (wide), a altura limita. */
-    /* Se for muito alta (celular em pé), a largura limita. */
-    
-    display: grid;
-    /* O Grid será preenchido pelo JS */
+    aspect-ratio: 1 / 1; 
+    background: #222;
+    border: 4px solid #fff;
+    box-shadow: 0 0 50px rgba(0,0,0,0.5);
+    z-index: 10;
 }
 
-/* Colunas Laterais (HUDs) */
+#board-area { width: 100%; height: 100%; display: grid; }
+
 .hud-column {
-    width: 20%; /* Largura relativa (20% da tela para cada lado) */
-    min-width: 200px; /* Mas não deixa ficar muito espremido */
-    max-width: 300px; /* Nem muito largo em monitores gigantes */
+    width: 200px;
+    height: 100%;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    justify-content: center;
 }
 
-/* Card Individual do Jogador */
+/* CORREÇÃO: Removido margens negativas e bordas retas */
+#hud-col-left .player-slot { 
+    border-radius: 8px; /* Borda arredondada completa */
+    margin-right: 0;    /* Sem margem negativa */
+    z-index: 1;
+}
+
+#hud-col-right .player-slot { 
+    border-radius: 8px; /* Borda arredondada completa */
+    margin-left: 0;     /* Sem margem negativa */
+    z-index: 1;
+}
+
 .player-slot {
-    flex: 1; /* Ocupa altura igual */
+    height: 50%; 
     background: rgba(255,255,255,0.9);
-    border-radius: 8px;
     padding: 10px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     transition: 0.3s;
-    border: 3px solid transparent;
-    position: relative;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    border: 2px solid transparent;
+    margin-bottom: 5px; /* Pequeno espaço entre P1 e P3 */
+    border-radius: 8px; /* Garante que todos sejam arredondados */
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3); /* Sombra para dar profundidade */
 }
 
 .player-slot.active {
-    border-color: var(--gold);
     background: #fff;
-    transform: scale(1.02);
-    z-index: 5;
-    box-shadow: 0 0 20px var(--gold);
+    border-color: var(--gold);
+    z-index: 15 !important;
+    box-shadow: 0 0 20px rgba(241, 196, 15, 0.5);
+    transform: scale(1.05);
 }
 
-/* Estilos internos do HUD */
-.hud-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; font-weight: bold; font-size: 0.9vw; } /* Fonte responsiva */
+.hud-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; font-weight: bold; font-size: 0.9vw; }
 .hud-team { display: flex; justify-content: center; gap: 5px; margin-bottom: 5px; flex-wrap: wrap; }
 .hud-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: auto; }
 
-/* --- BARRA SUPERIOR --- */
-#top-bar {
-    width: 100%;
-    height: 60px; /* Altura fixa */
-    flex-shrink: 0; /* Impede de encolher */
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: rgba(255,255,255,0.1);
-    border-radius: 8px;
-    padding: 0 15px;
-    box-sizing: border-box;
-    backdrop-filter: blur(5px);
-}
-
-.turn-box, .dice-box {
-    display: flex; align-items: center; gap: 15px;
-    color: white;
-}
-#turn-indicator { margin: 0; color: var(--gold); text-transform: uppercase; font-size: 1.2rem; }
-#d20-display { font-size: 1.5rem; font-weight: bold; color: var(--gold); }
-.btn-roll { padding: 5px 20px; margin: 0; font-size: 1rem; }
-
-/* --- LINHA DO MEIO (HUDS + MAPA) --- */
-#middle-row {
-    display: flex;
-    flex: 1; /* A MÁGICA: Cresce para ocupar toda a altura sobrando */
-    gap: 10px;
-    min-height: 0; /* Importante para o scroll ou resize funcionar bem no Flexbox */
-    width: 100%;
-}
-/* O Mapa (Define o tamanho de tudo) */
-#board-wrapper {
-    flex: 1; /* Cresce para ocupar toda a largura central */
-    background: #222;
-    border: 4px solid #fff;
-    box-shadow: inset 0 0 50px rgba(0,0,0,0.8);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border-radius: 4px;
-    position: relative; /* Para conter o grid absoluto se precisar */
-}
-
-/* --- JOGADORES NOS CANTOS (HUD) --- */
-.player-hud {
-    position: absolute;
+/* --- PAINEL DIREITO (LOG) --- */
+#right-panel {
     width: 280px;
-    background: rgba(255,255,255,0.9);
-    border-radius: 10px;
-    padding: 10px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-    z-index: 10;
-    transition: transform 0.3s, border 0.3s;
-    border: 3px solid transparent;
+    height: 100%;
+    background: #1a1a1a;
+    border-left: 2px solid #444;
+    display: flex;
+    flex-direction: column;
+    z-index: 20;
 }
 
-/* Posições */
-.p-top-left { top: 20px; left: 20px; }
-.p-top-right { top: 20px; right: 20px; }
-.p-bottom-left { bottom: 80px; left: 20px; } /* Espaço pro log embaixo */
-.p-bottom-right { bottom: 80px; right: 20px; }
-
-.player-hud.active {
-    border-color: var(--gold);
-    transform: scale(1.05);
-    background: #fff;
+.panel-header {
+    padding: 15px;
+    background: #333;
+    color: #fff;
+    font-weight: bold;
+    text-align: center;
+    border-bottom: 1px solid #555;
+    letter-spacing: 1px;
 }
 
-.hud-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 5px; }
-.hud-actions { display: flex; gap: 5px; margin-top: 5px; }
-.btn-mini { font-size: 0.8rem; padding: 5px; width: 100%; }
-
-/* --- 3. BARRA INFERIOR (LOG) --- */
-#bottom-bar {
-    width: 100%;
-    height: 100px; /* Altura fixa para o log */
-    flex-shrink: 0;
-    background: rgba(0,0,0,0.8);
-    border-radius: 8px;
-    border: 2px solid #555;
-    padding: 10px;
-    box-sizing: border-box;
+#log-container {
+    flex: 1;
+    padding: 15px;
     overflow-y: auto;
-    color: #0f0;
     font-family: 'Courier New', monospace;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
+    color: #eee;
     display: flex;
     flex-direction: column-reverse;
+    gap: 8px;
 }
 
-#game-log {
-    width: 100%;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+#log-container::-webkit-scrollbar { width: 6px; }
+#log-container::-webkit-scrollbar-thumb { background: #555; border-radius: 3px; }
+
+.log-entry {
+    padding-bottom: 8px;
+    border-bottom: 1px solid #333;
+    line-height: 1.4;
 }
-
-/* Estiliza a barra de rolagem do log */
-/* Scrollbar Bonita */
-#bottom-bar::-webkit-scrollbar { width: 8px; }
-#bottom-bar::-webkit-scrollbar-track { background: #333; }
-#bottom-bar::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
-#bottom-bar::-webkit-scrollbar-thumb:hover { background: #777; }
-
-.log-entry { border-bottom: 1px solid #333; padding: 2px 0; }
-.log-time { color: #888; font-size: 0.7rem; margin-right: 8px; }
+.log-time { color: #f1c40f; font-size: 0.75rem; display: block; margin-bottom: 2px; }
 
 /* ==========================================================================
-   4. MAPA, TILES E TOKENS
+   5. COMPONENTES DO JOGO (Mapa, Tiles, Tokens)
    ========================================================================== */
 .tile { position: relative; outline: 1px solid rgba(0,0,0,0.05); display: flex; justify-content: center; align-items: center; font-size: 10px; }
 
-/* Tipos de Terreno */
+/* Terrenos */
 .tile.grass { background-image: var(--bg-grass-img); background-size: 100% 100%; image-rendering: pixelated; }
 .tile.water { background-image: var(--bg-water-img); background-size: 100% 100%; image-rendering: pixelated; }
 .tile.ground { background-image: var(--bg-ground-img); background-size: 100% 100%; image-rendering: pixelated; }
@@ -273,34 +241,10 @@ body {
 .tile.path { background: var(--tile-path); }
 
 /* NPCs */
-.tile.rocket { 
-    background-image: var(--bg-npc-rocket); 
-    background-size: 100% 100%; 
-    image-rendering: pixelated; 
-    background-position: center;
-    background-repeat: no-repeat;
-}
-.tile.biker { 
-    background-image: var(--bg-npc-biker); 
-    background-size: 100% 100%; 
-    image-rendering: pixelated; 
-    background-position: center;
-    background-repeat: no-repeat;
-}
-.tile.young { 
-    background-image: var(--bg-npc-young); 
-    background-size: 100% 100%; 
-    image-rendering: pixelated; 
-    background-position: center;
-    background-repeat: no-repeat;
-}
-.tile.old { 
-    background-image: var(--bg-npc-old); 
-    background-size: 100% 100%; 
-    image-rendering: pixelated; 
-    background-position: center;
-    background-repeat: no-repeat;
-}
+.tile.rocket { background-image: var(--bg-npc-rocket); background-size: 100% 100%; image-rendering: pixelated; background-position: center; background-repeat: no-repeat; }
+.tile.biker { background-image: var(--bg-npc-biker); background-size: 100% 100%; image-rendering: pixelated; background-position: center; background-repeat: no-repeat; }
+.tile.young { background-image: var(--bg-npc-young); background-size: 100% 100%; image-rendering: pixelated; background-position: center; background-repeat: no-repeat; }
+.tile.old { background-image: var(--bg-npc-old); background-size: 100% 100%; image-rendering: pixelated; background-position: center; background-repeat: no-repeat; }
 
 .path-highlight { background: yellow !important; opacity: 0.7; z-index: 5; }
 
@@ -316,7 +260,7 @@ body {
 .active-token { transform: scale(1.3); z-index: 20; box-shadow: 0 0 15px var(--gold); border-color: var(--gold); }
 
 /* ==========================================================================
-   5. BOTÕES E COMPONENTES UI
+   6. UI COMPONENTS (Botões, Modais)
    ========================================================================== */
 .btn { 
     width: 100%; padding: 12px; background: var(--highlight); color: white; 
@@ -333,9 +277,7 @@ body {
 .btn-cards { background: #8e44ad; }
 .btn-run { background: #95a5a6; }
 
-/* ==========================================================================
-   6. MODAIS
-   ========================================================================== */
+/* Modais */
 .modal-overlay { 
     position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
     background: rgba(0,0,0,0.85); z-index: 1000; 
@@ -354,18 +296,18 @@ body {
 .scroll-list { max-height: 200px; overflow-y: auto; text-align: left; }
 .text-left { text-align: left; }
 
-/* Loja */
+/* Loja Item */
 .shop-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; align-items: center; }
 .item-icon { font-size: 1.5rem; margin-right: 10px; }
 .inventory-section { margin-top: 15px; background: #f9f9f9; padding: 10px; border-radius: 8px; }
 #inventory-list { font-size: 0.9rem; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
 
-/* Seleção de Monstro */
+/* Monstro Select */
 .mon-select-item { display: flex; align-items: center; padding: 10px; border: 1px solid #ccc; margin: 5px 0; border-radius: 5px; cursor: pointer; }
 .mon-select-item:hover { background: #f0f0f0; }
 .mon-select-item.disabled { opacity: 0.5; cursor: not-allowed; background: #eee; }
 
-/* Batalha */
+/* Batalha Styles */
 #battle-title { color: #f1c40f; margin-top: 0; text-shadow: 2px 2px 0 #000; }
 .battle-scene { 
     background: linear-gradient(180deg, #70c5ce 0%, #70c5ce 60%, #5a9e5a 60%, #5a9e5a 100%);

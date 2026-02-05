@@ -14,7 +14,6 @@ declare global {
         Game: typeof Game;
         Shop: typeof Shop;
         Battle: typeof Battle;
-        // Novas funções globais
         openInventory: (playerId: number) => void;
         openCards: (playerId: number) => void;
     }
@@ -674,21 +673,21 @@ class Game {
     }
 
     static log(msg: string) {
-        const el = document.getElementById('bottom-bar')!; // Agora miramos no container #bottom-bar, não em #game-log
+        // ATUALIZAÇÃO: Mudamos o ID alvo para o novo painel lateral
+        const el = document.getElementById('log-container')!; 
         
         const time = new Date().toLocaleTimeString().split(':');
         const timeStr = `${time[0]}:${time[1]}`;
         
         const entry = document.createElement('div');
         entry.className = 'log-entry';
-        entry.innerHTML = `<span class="log-time">[${timeStr}]</span> ${msg}`;
+        // Layout do log melhorado: Hora em cima, mensagem embaixo
+        entry.innerHTML = `<span class="log-time">${timeStr}</span> ${msg}`;
         
-        // Adiciona no começo (topo) ou fim? 
-        // Como usamos flex-direction: column-reverse no CSS, o prepend faz aparecer visualmente "embaixo"
         el.prepend(entry);
         
-        // Limita o log a 50 mensagens para não pesar
-        if(el.children.length > 50) el.lastElementChild?.remove();
+        // Aumentei o histórico já que agora temos espaço
+        if(el.children.length > 100) el.lastElementChild?.remove();
     }
 }
 
@@ -735,7 +734,10 @@ class Setup {
         }
         
         document.getElementById('setup-screen')!.style.display = 'none';
-        document.getElementById('game-container')!.style.display = 'block';
+        
+        // CORREÇÃO CRUCIAL AQUI: Usar 'flex' para o layout funcionar
+        document.getElementById('game-container')!.style.display = 'flex';
+        
         Game.init(players, mapSize);
     }
 }

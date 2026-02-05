@@ -33,41 +33,43 @@
 
         <button class="btn" onclick="window.Setup.start()">🚀 INICIAR JORNADA</button>
     </div> 
+
     <div id="game-container">
     
-    <div id="game-layout">
-        
-        <div id="top-bar">
-            <div class="turn-box">
-                <small>Turno:</small>
-                <h3 id="turn-indicator">-</h3>
+        <div id="left-panel">
+            <div class="panel-box turn-section">
+                <small>TURNO ATUAL</small>
+                <h2 id="turn-indicator">-</h2>
             </div>
-            <div class="dice-box">
+
+            <div class="panel-box dice-section">
                 <div id="d20-display">🎲 20</div>
-                <button id="roll-btn" class="btn btn-roll" onclick="window.Game.rollDice()">Rolar</button>
+                <button id="roll-btn" class="btn btn-roll" onclick="window.Game.rollDice()">ROLAR</button>
+            </div>
+
+            <div class="panel-box extra-space">
+                <small>Menu (Futuro)</small>
             </div>
         </div>
 
-        <div id="middle-row">
-            
-            <div id="hud-col-left" class="hud-column">
-                </div>
+        <div id="center-stage">
+            <div id="hud-col-left" class="hud-column"></div>
 
             <div id="board-wrapper">
                 <div id="board-area"></div>
             </div>
 
-            <div id="hud-col-right" class="hud-column">
-                </div>
-
+            <div id="hud-col-right" class="hud-column"></div>
         </div>
 
-        <div id="bottom-bar">
-            <div id="game-log"></div>
+        <div id="right-panel">
+            <div class="panel-header">📟 Log da Partida</div>
+            <div id="log-container">
+                </div>
         </div>
 
     </div>
-</div>
+
     <div id="city-modal" class="modal-overlay">
         <div class="modal-box">
             <h2 style="color: #3498db;">🏙️ Centro Pokémon</h2>
@@ -89,7 +91,7 @@
                 <div id="inventory-list"></div>
             </div>
             <br>
-            <button class="btn btn-secondary" onclick="document.getElementById('shop-modal').style.display='none'">Fechar</button>
+            <button class="btn btn-secondary" onclick="window.Shop.close()">Fechar</button>
         </div>
     </div>
 
