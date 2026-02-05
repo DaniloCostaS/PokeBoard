@@ -7,8 +7,8 @@
     --highlight: #3498db;
     --gold: #f1c40f;
     --danger: #e74c3c;
-    --success: #2ecc71; /* Cor da barra de HP */
-    --exp: #9b59b6;     /* Cor da barra de XP */
+    --success: #2ecc71; /* Barra de HP */
+    --exp: #9b59b6;     /* Barra de XP */
     --card-bg: #e67e22;
     
     /* Cores Auxiliares */
@@ -44,7 +44,7 @@ body {
 }
 
 /* ==========================================================================
-   3. TELA DE SETUP
+   3. TELA DE SETUP (MENU)
    ========================================================================== */
 #setup-screen {
     position: fixed; 
@@ -59,13 +59,15 @@ body {
     flex-direction: column; 
     gap: 15px;
     border: 4px solid var(--highlight);
+    max-height: 90vh; /* Evita que o menu estoure telas pequenas */
+    overflow-y: auto;
 }
 .title-highlight { color: var(--highlight); margin-bottom: 0; }
 .subtitle { margin-top: 0; color: #7f8c8d; }
 .setup-group { margin-bottom: 20px; }
 .setup-row { display: flex; align-items: center; justify-content: space-between; margin: 10px 0; border-bottom: 1px solid #eee; padding-bottom: 10px; }
 
-/* Seleção de Avatar com Imagem */
+/* Avatar Preview no Setup */
 .avatar-selection {
     display: flex;
     align-items: center;
@@ -78,6 +80,24 @@ body {
     border: 2px solid var(--highlight);
     object-fit: cover; 
     background-color: #eee;
+}
+
+/* Menus de Fase (Online/Offline) */
+#menu-phase-1, #menu-phase-online, #menu-phase-setup {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+#lobby-status {
+    background: #fdf2e9;
+    padding: 10px;
+    border: 1px dashed #e67e22;
+    border-radius: 5px;
+    margin-top: 10px;
+    font-size: 0.9rem;
+    color: #d35400;
 }
 
 /* ==========================================================================
@@ -132,7 +152,7 @@ body {
     position: relative;
     padding: 20px; 
     box-sizing: border-box;
-    gap: 15px; 
+    gap: 10px; 
 }
 
 #board-wrapper {
@@ -147,15 +167,23 @@ body {
 
 #board-area { width: 100%; height: 100%; display: grid; }
 
+/* COLUNAS LATERAIS (HUD) - Ajustadas para 8 Players */
 .hud-column {
-    width: 200px;
+    width: 220px;
     height: 100%;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start; /* Começa do topo */
+    overflow-y: auto; /* Scroll se tiver muitos jogadores */
+    padding: 5px 0;
+    gap: 10px;
 }
 
-/* Ajustes dos Slots Laterais */
+/* Scrollbar fina para a coluna */
+.hud-column::-webkit-scrollbar { width: 4px; }
+.hud-column::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
+
+/* Slots Individuais */
 #hud-col-left .player-slot { 
     border-radius: 8px; 
     margin-right: 0;    
@@ -171,21 +199,21 @@ body {
 }
 
 .player-slot {
-    height: 50%; 
+    height: auto;
+    min-height: 160px; /* Garante tamanho mínimo */
+    max-height: 200px;
+    flex-shrink: 0;
     background: rgba(255,255,255,0.95);
-    padding: 10px;
+    padding: 8px;
     display: flex;
     flex-direction: column;
-    /* justify-content: center; <-- Removido para os cards fluírem */
     transition: 0.3s;
     border: 2px solid transparent;
-    margin-bottom: 5px; 
     border-radius: 8px;
     box-shadow: 0 4px 10px rgba(0,0,0,0.3); 
-    overflow-y: auto; /* Permite rolar se tiver muitos Pokémons */
+    overflow-y: auto;
 }
 
-/* Scrollbar fina para o slot do jogador */
 .player-slot::-webkit-scrollbar { width: 4px; }
 .player-slot::-webkit-scrollbar-thumb { background: #ccc; border-radius: 2px; }
 
@@ -198,8 +226,7 @@ body {
     position: relative;
 }
 
-/* CABEÇALHO DO JOGADOR NA HUD */
-.hud-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; font-weight: bold; font-size: 0.9vw; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+.hud-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-weight: bold; font-size: 0.9vw; border-bottom: 1px solid #eee; padding-bottom: 5px; }
 .hud-name-group { display: flex; align-items: center; flex: 1; }
 .hud-avatar-img {
     width: 32px; height: 32px;
@@ -211,7 +238,7 @@ body {
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
-/* --- ESTILO DOS NOVOS CARTÕES DE POKEMON --- */
+/* --- CARDS DE POKEMON NA HUD --- */
 .hud-team { 
     display: flex; 
     flex-direction: column; 
@@ -248,13 +275,11 @@ body {
 .poke-header { display: flex; justify-content: space-between; font-weight: bold; color: #444; }
 .poke-lvl { color: var(--highlight); font-size: 0.7rem; background: rgba(52, 152, 219, 0.1); padding: 0 4px; border-radius: 3px; }
 
-/* Barras de HP e XP */
 .bar-container { width: 100%; height: 4px; background: #ddd; border-radius: 2px; overflow: hidden; margin-top: 1px; }
 .bar-fill { height: 100%; transition: width 0.3s; }
 .hp-bar { background: var(--success); }
 .xp-bar { background: var(--exp); height: 2px; margin-top: 2px; }
 
-/* Grade de Atributos */
 .poke-stats {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
@@ -307,11 +332,7 @@ body {
 #log-container::-webkit-scrollbar { width: 6px; }
 #log-container::-webkit-scrollbar-thumb { background: #555; border-radius: 3px; }
 
-.log-entry {
-    padding-bottom: 8px;
-    border-bottom: 1px solid #333;
-    line-height: 1.4;
-}
+.log-entry { padding-bottom: 8px; border-bottom: 1px solid #333; line-height: 1.4; }
 .log-time { color: #f1c40f; font-size: 0.75rem; display: block; margin-bottom: 2px; }
 
 /* ==========================================================================
@@ -341,7 +362,6 @@ body {
 
 .path-highlight { background: yellow !important; opacity: 0.7; z-index: 5; }
 
-/* Destaque do chão (Animação Tuc Tuc) */
 .step-highlight {
     box-shadow: inset 0 0 20px var(--gold), 0 0 10px var(--gold) !important;
     filter: brightness(1.2);
@@ -376,7 +396,7 @@ body {
 .active-token { transform: scale(1.3); z-index: 20; box-shadow: 0 0 15px var(--gold); border-color: var(--gold); }
 
 /* ==========================================================================
-   6. UI COMPONENTS (Botões, Modais)
+   6. UI COMPONENTS
    ========================================================================== */
 .btn { 
     width: 100%; padding: 12px; background: var(--highlight); color: white; 
@@ -412,13 +432,11 @@ body {
 .scroll-list { max-height: 200px; overflow-y: auto; text-align: left; }
 .text-left { text-align: left; }
 
-/* Loja Item */
 .shop-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; align-items: center; }
 .item-icon { font-size: 1.5rem; margin-right: 10px; }
 .inventory-section { margin-top: 15px; background: #f9f9f9; padding: 10px; border-radius: 8px; }
 #inventory-list { font-size: 0.9rem; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
 
-/* Monstro Select */
 .mon-select-item { display: flex; align-items: center; padding: 10px; border: 1px solid #ccc; margin: 5px 0; border-radius: 5px; cursor: pointer; }
 .mon-select-item:hover { background: #f0f0f0; }
 .mon-select-item.disabled { opacity: 0.5; cursor: not-allowed; background: #eee; }

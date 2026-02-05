@@ -3,80 +3,102 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PokéBoard V16 - Tactics Edition</title>
+    <title>PokéBoard V17 - Online & 8 Players</title>
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
 </head>
 <body>
 
     <div id="setup-screen">
-        <h1 class="title-highlight">PokéBoard V16</h1>
-        <p class="subtitle">Tactics Edition (2-4 Players)</p>
+        <h1 class="title-highlight">PokéBoard V17</h1>
+        <p class="subtitle">Tactics Edition (Online & 8 Players)</p>
         
-        <div class="setup-group">
-            <label>Número de Jogadores:</label>
-            <select id="num-players" onchange="window.Setup.updateSlots()">
-                <option value="2">2 Jogadores</option>
-                <option value="3">3 Jogadores</option>
-                <option value="4">4 Jogadores</option>
-            </select>
+        <div id="menu-phase-1">
+            <button class="btn" onclick="window.Setup.showOfflineSetup()">🏠 JOGAR OFFLINE</button>
+            <button class="btn" style="background:#8e44ad;" onclick="window.Setup.showOnlineMenu()">🌐 JOGAR ONLINE</button>
+            <div style="margin-top:15px; border-top:1px solid #eee; padding-top:10px;">
+                <p style="font-size:0.8rem; color:#777;">Gerenciamento de Save</p>
+                <button class="btn btn-secondary" onclick="window.Game.exportSave()">💾 Baixar Save (.txt)</button>
+                <button class="btn btn-secondary" onclick="document.getElementById('file-input').click()">📂 Carregar Save (.txt)</button>
+                <input type="file" id="file-input" style="display:none" onchange="window.Game.importSave(this)">
+            </div>
         </div>
 
-        <div class="setup-group">
-            <label>Tamanho do Mapa:</label>
-            <select id="map-size">
-                <option value="10">Pequeno (10x10)</option>
-                <option value="20" selected>Médio (20x20)</option>
-                <option value="30">Grande (30x30)</option>
-            </select>
+        <div id="menu-phase-online" style="display:none;">
+            <h3>Modo Online</h3>
+            <div id="online-lobby-controls">
+                <button class="btn" onclick="window.Network.createRoom()">Criar Sala (Host)</button>
+                <div style="display:flex; gap:5px; margin-top:10px;">
+                    <input type="text" id="room-code-input" placeholder="Código da Sala" style="flex:1; padding:10px;">
+                    <button class="btn" style="width:auto; margin:0;" onclick="window.Network.joinRoom()">Entrar</button>
+                </div>
+            </div>
+            <div id="lobby-status" style="margin-top:15px; font-weight:bold; color:#e67e22;"></div>
+            <button class="btn btn-secondary" onclick="location.reload()">Voltar</button>
         </div>
 
-        <div id="player-slots-container"></div>
+        <div id="menu-phase-setup" style="display:none;">
+            <div class="setup-group">
+                <label>Número de Jogadores:</label>
+                <select id="num-players" onchange="window.Setup.updateSlots()">
+                    <option value="2">2 Jogadores</option>
+                    <option value="3">3 Jogadores</option>
+                    <option value="4">4 Jogadores</option>
+                    <option value="5">5 Jogadores</option>
+                    <option value="6">6 Jogadores</option>
+                    <option value="7">7 Jogadores</option>
+                    <option value="8">8 Jogadores</option>
+                </select>
+            </div>
 
-        <button class="btn" onclick="window.Setup.start()">🚀 INICIAR JORNADA</button>
+            <div class="setup-group">
+                <label>Tamanho do Mapa:</label>
+                <select id="map-size">
+                    <option value="10">Pequeno (10x10)</option>
+                    <option value="20" selected>Médio (20x20)</option>
+                    <option value="30">Grande (30x30)</option>
+                </select>
+            </div>
+
+            <div id="player-slots-container"></div>
+
+            <button id="btn-start-game" class="btn" onclick="window.Setup.start()">🚀 INICIAR JORNADA</button>
+        </div>
     </div> 
 
     <div id="game-container">
-    
         <div id="left-panel">
             <div class="panel-box turn-section">
                 <small>TURNO ATUAL</small>
                 <h2 id="turn-indicator">-</h2>
             </div>
-
             <div class="panel-box dice-section">
                 <div id="d20-display">🎲 20</div>
                 <button id="roll-btn" class="btn btn-roll" onclick="window.Game.rollDice()">ROLAR</button>
             </div>
-
             <div class="panel-box extra-space">
-                <small>Menu (Futuro)</small>
+                <small id="online-indicator" style="color:cyan;">OFFLINE</small>
             </div>
         </div>
 
         <div id="center-stage">
             <div id="hud-col-left" class="hud-column"></div>
-
-            <div id="board-wrapper">
-                <div id="board-area"></div>
-            </div>
-
+            <div id="board-wrapper"><div id="board-area"></div></div>
             <div id="hud-col-right" class="hud-column"></div>
         </div>
 
         <div id="right-panel">
-            <div class="panel-header">📟 Log da Partida</div>
-            <div id="log-container">
-                </div>
+            <div class="panel-header">📟 Log de Batalha</div>
+            <div id="log-container"></div>
         </div>
-
     </div>
 
     <div id="city-modal" class="modal-overlay">
         <div class="modal-box">
             <h2 style="color: #3498db;">🏙️ Centro Pokémon</h2>
-            <p>Você chegou na cidade! O que deseja fazer?</p>
+            <p>O que deseja fazer?</p>
             <div style="display:flex; gap:10px; justify-content:center; margin-top:20px;">
-                <button class="btn" style="background:#2ecc71;" onclick="window.Game.handleCityChoice('heal')">❤️ Curar Time</button>
-                <button class="btn btn-shop" onclick="window.Game.handleCityChoice('shop')">🛒 Acessar Loja</button>
+                <button class="btn" style="background:#2ecc71;" onclick="window.Game.handleCityChoice('heal')">❤️ Curar</button>
+                <button class="btn btn-shop" onclick="window.Game.handleCityChoice('shop')">🛒 Loja</button>
             </div>
         </div>
     </div>
@@ -84,22 +106,15 @@
     <div id="shop-modal" class="modal-overlay">
         <div class="modal-box">
             <h2 class="text-highlight">🛒 PokéMart</h2>
-            <p>Saldo: <span id="shop-gold" class="gold-text">0</span> <span class="small-text">Gold</span></p>
+            <p>Saldo: <span id="shop-gold" class="gold-text">0</span> G</p>
             <div id="shop-items-list" class="scroll-list"></div>
-            <div class="inventory-section">
-                <h4>🎒 Seu Inventário</h4>
-                <div id="inventory-list"></div>
-            </div>
-            <br>
-            <button class="btn btn-secondary" onclick="window.Shop.close()">Fechar</button>
+            <div class="inventory-section"><h4>🎒 Mochila</h4><div id="inventory-list"></div></div>
+            <br><button class="btn btn-secondary" onclick="window.Shop.close()">Fechar</button>
         </div>
     </div>
 
     <div id="pkmn-select-modal" class="modal-overlay z-high">
-        <div class="modal-box">
-            <h3 id="select-title">Escolha seu Pokémon</h3>
-            <div id="pkmn-select-list" class="scroll-list text-left"></div>
-        </div>
+        <div class="modal-box"><h3 id="select-title">Escolha</h3><div id="pkmn-select-list" class="scroll-list text-left"></div></div>
     </div>
 
     <div id="battle-modal" class="modal-overlay">
@@ -107,14 +122,14 @@
             <h2 id="battle-title">⚔️ Batalha!</h2>
             <div class="battle-scene">
                 <div class="battler self-end">
-                    <div class="battle-info-box"><span id="ply-name">Você</span> <span id="ply-lvl">Lv5</span></div>
-                    <img id="ply-img" src="" alt="Player Pokemon">
+                    <div class="battle-info-box"><span id="ply-name">Você</span> <span id="ply-lvl"></span></div>
+                    <img id="ply-img" src="">
                     <div class="hp-container"><div id="ply-hp" class="hp-fill"></div></div>
-                    <small id="ply-hp-text">50/50</small>
+                    <small id="ply-hp-text"></small>
                 </div>
                 <div class="battler self-start">
-                    <div class="battle-info-box"><span id="opp-name">Rival</span> <span id="opp-lvl">Lv5</span></div>
-                    <img id="opp-img" src="" alt="Enemy Pokemon">
+                    <div class="battle-info-box"><span id="opp-name">Rival</span> <span id="opp-lvl"></span></div>
+                    <img id="opp-img" src="">
                     <div class="hp-container"><div id="opp-hp" class="hp-fill"></div></div>
                 </div>
             </div>
@@ -125,9 +140,8 @@
                 <button class="btn btn-cards" onclick="window.Battle.useCard()">🃏 Cartas</button>
                 <button class="btn btn-run" onclick="window.Battle.run()">🏃 Fugir</button>
             </div>
-            <div id="battle-bag">
-                <h3>Usar Item</h3>
-                <div id="battle-bag-list"></div>
+            <div id="battle-bag" style="display:none;">
+                <h3>Usar Item</h3><div id="battle-bag-list"></div>
                 <button class="btn btn-secondary mt-15" onclick="document.getElementById('battle-bag').style.display='none'">Cancelar</button>
             </div>
         </div>

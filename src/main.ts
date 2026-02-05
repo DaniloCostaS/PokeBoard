@@ -7,7 +7,18 @@ import type {
     ItemData, CardData, Coord 
 } from './constants';
 
-// --- 1. CONFIGURAÇÃO DAS IMAGENS DOS TREINADORES ---
+// Declare a lib externa (PeerJS) para o TypeScript
+declare const Peer: any;
+
+// --- 1. CONFIGURAÇÕES E CONSTANTES GERAIS ---
+
+// Cores expandidas para 8 jogadores
+const PLAYER_COLORS = [
+    '#e74c3c', '#3498db', '#f1c40f', '#9b59b6', 
+    '#1abc9c', '#e67e22', '#34495e', '#ff7979'
+];
+
+// Imagens dos Treinadores
 const TRAINER_IMAGES = [
     { label: "Red", file: "Red.jpg" },
     { label: "Blue", file: "Blue.jpg" },
@@ -20,8 +31,7 @@ const TRAINER_IMAGES = [
     { label: "OAK", file: "OAK.jpg" }
 ];
 
-// --- 2. SISTEMA DE TIPOS E VANTAGENS ---
-// Define o tipo de cada Pokémon pelo nome
+// Definição de Tipos
 const POKEMON_TYPES: {[key: string]: string} = {
     'Charmander': 'fire', 'Charmeleon': 'fire', 'Charizard': 'fire', 'Vulpix': 'fire', 'Growlithe': 'fire',
     'Squirtle': 'water', 'Wartortle': 'water', 'Blastoise': 'water', 'Psyduck': 'water', 'Poliwag': 'water',
@@ -31,7 +41,7 @@ const POKEMON_TYPES: {[key: string]: string} = {
     'Pidgey': 'normal', 'Rattata': 'normal', 'Meowth': 'normal', 'Eevee': 'normal'
 };
 
-// Tabela de Multiplicadores (Ataque -> Defesa)
+// Tabela de Vantagens (Ataque -> Defesa = Multiplicador)
 const TYPE_CHART: {[key: string]: {[key: string]: number}} = {
     'fire': { 'grass': 2, 'water': 0.5, 'rock': 0.5, 'bug': 2, 'ice': 2 },
     'water': { 'fire': 2, 'grass': 0.5, 'ground': 2, 'rock': 2 },
@@ -41,15 +51,103 @@ const TYPE_CHART: {[key: string]: {[key: string]: number}} = {
     'normal': { 'ghost': 0 }
 };
 
-// Expõe as classes globais no objeto Window para o HTML acessá-las
+// Interface Global
 declare global {
     interface Window {
         Setup: typeof Setup;
         Game: typeof Game;
         Shop: typeof Shop;
         Battle: typeof Battle;
+        Network: typeof Network;
         openInventory: (playerId: number) => void;
         openCards: (playerId: number) => void;
+    }
+}
+
+// ==========================================
+// REDE (MULTIPLAYER / PEERJS)
+// ==========================================
+class Network {
+    static peer: any = null;
+    static conn: any = null;
+    static isHost: boolean = false;
+    static isOnline: boolean = false;
+
+    static createRoom() {
+        // Gera código de sala simples (4 letras)
+        const roomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
+        this.initPeer(roomCode, true);
+    }
+
+    static joinRoom() {
+        const code = (document.getElementById('room-code-input') as HTMLInputElement).value.toUpperCase();
+        if(!code) return alert("Digite o código da sala!");
+        this.initPeer(code, false);
+    }
+
+    static initPeer(id: string, host: boolean) {
+        this.isHost = host;
+        this.isOnline = true;
+        
+        const fullId = "pkbd-" + id; // Prefixo para evitar colisão
+        
+        try {
+            this.peer = new Peer(host ? fullId : null);
+        } catch(e) {
+            alert("Erro ao iniciar PeerJS. Verifique sua internet.");
+            return;
+        }
+
+        this.peer.on('open', (myId: string) => {
+            const displayCode = host ? id : "Conectando...";
+            document.getElementById('lobby-status')!.innerHTML = 
+                `Status: ${host ? "HOST (Aguardando...)" : "CLIENT"}<br>Sala: <b>${displayCode}</b>`;
+            
+            if(host) {
+                this.peer.on('connection', (c: any) => {
+                    this.conn = c;
+                    this.setupConnection();
+                    document.getElementById('lobby-status')!.innerHTML += "<br>⚡ Jogador Conectado!";
+                    Setup.showSetupScreen(); // Libera o setup para o host
+                });
+            } else {
+                this.conn = this.peer.connect(fullId);
+                this.setupConnection();
+            }
+        });
+
+        this.peer.on('error', (err: any) => {
+            console.error(err);
+            alert("Erro de Conexão: " + err.type);
+            this.isOnline = false;
+        });
+    }
+
+    static setupConnection() {
+        this.conn.on('open', () => {
+            console.log("P2P Aberto!");
+            if(!this.isHost) {
+                document.getElementById('lobby-status')!.innerHTML = "Conectado! Aguarde o Host iniciar.";
+            }
+        });
+
+        this.conn.on('data', (data: any) => {
+            this.handleData(data);
+        });
+    }
+
+    static handleData(data: any) {
+        if(data.type === 'GAME_STATE') {
+            console.log("Recebendo Sync...");
+            Game.loadGameFromData(data.payload);
+        }
+    }
+
+    static broadcastState() {
+        if(this.isOnline && this.conn) {
+            const saveData = Game.getSaveData();
+            this.conn.send({ type: 'GAME_STATE', payload: saveData });
+        }
     }
 }
 
@@ -60,16 +158,14 @@ declare global {
 class Pokemon {
     id: number;
     name: string;
-    type: string; // Tipo do Pokémon
+    type: string;
     
-    // Stats
     maxHp: number;
     currentHp: number;
     atk: number;
     def: number;
     speed: number;
     
-    // Progressão
     level: number;
     currentXp: number;
     maxXp: number;
@@ -84,7 +180,7 @@ class Pokemon {
         this.name = template.name;
         this.isShiny = isShiny;
         
-        // Define o tipo. Se não achar, assume 'normal'
+        // Define tipo, fallback para 'normal'
         this.type = POKEMON_TYPES[this.name] || 'normal';
         
         this.level = 5;
@@ -96,8 +192,6 @@ class Pokemon {
         this.maxHp = Math.floor((template.hp + 20) * shinyBonus);
         this.currentHp = this.maxHp;
         this.atk = Math.floor((template.atk + 5) * shinyBonus);
-        
-        // Gera atributos secundários se não existirem
         this.def = Math.floor((template.atk * 0.8) * shinyBonus); 
         this.speed = Math.floor((template.atk * 0.9 + Math.random() * 10) * shinyBonus);
 
@@ -106,8 +200,7 @@ class Pokemon {
     }
 
     getSprite(): string {
-        const baseUrl = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon";
-        return `${baseUrl}/${this.isShiny ? 'shiny/' : ''}${this.id}.png`;
+        return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${this.isShiny ? 'shiny/' : ''}${this.id}.png`;
     }
 
     isFainted(): boolean { return this.currentHp <= 0; }
@@ -123,14 +216,9 @@ class Pokemon {
             if (nextTemplate) {
                 this.id = nextTemplate.id;
                 this.name = nextTemplate.name;
-                this.type = POKEMON_TYPES[this.name] || this.type; // Atualiza tipo
-                
-                this.maxHp += 30;
-                this.currentHp = this.maxHp;
-                this.atk += 10;
-                this.def += 10;
-                this.speed += 5;
-                
+                this.type = POKEMON_TYPES[this.name] || this.type;
+                this.maxHp += 30; this.currentHp = this.maxHp;
+                this.atk += 10; this.def += 10; this.speed += 5;
                 this.evoData = { next: nextTemplate.nextForm, trigger: nextTemplate.evoTrigger };
                 return true;
             }
@@ -155,7 +243,7 @@ class Player {
         this.name = name;
         this.avatar = `./src/assets/img/treinadores/${avatarFile}`;
         
-        // Se o nome for especial de load, não cria time inicial (será carregado)
+        // Evita criar time se for carregamento de save
         if(name !== "_LOAD_") {
             const starters = [1, 4, 7]; 
             this.team.push(new Pokemon(starters[Math.floor(Math.random()*starters.length)]));
@@ -174,31 +262,23 @@ class MapSystem {
     static generate(size: number) {
         this.size = size;
         this.grid = Array(this.size).fill(0).map(() => Array(this.size).fill(TILE.GRASS));
-        
         const blobCount = Math.floor(this.size / 2); 
-        
         for(let i=0; i<blobCount; i++) this.blob(TILE.WATER, 3);
         for(let i=0; i<Math.floor(blobCount * 0.7); i++) this.blob(TILE.GROUND, 2); 
         
         const pathTiles = this.size * this.size;
         let gymCounter = 0;
-        
         const gymFrequency = Math.floor(pathTiles / 9);
 
         for(let i=0; i<pathTiles; i++) {
             const c = this.getCoord(i);
-            
             if (i > 0 && i % gymFrequency === 0 && gymCounter < 8) {
-                this.grid[c.y][c.x] = TILE.GYM;
-                gymCounter++;
-            }
-            else if (i > 0 && i % 75 === 0) {
+                this.grid[c.y][c.x] = TILE.GYM; gymCounter++;
+            } else if (i > 0 && i % 75 === 0) {
                 this.grid[c.y][c.x] = TILE.CITY;
-            }
-            else if (Math.random() < 0.05 && this.grid[c.y][c.x] === TILE.GRASS) {
+            } else if (Math.random() < 0.05 && this.grid[c.y][c.x] === TILE.GRASS) {
                 this.grid[c.y][c.x] = TILE.EVENT;
-            }
-            else if (Math.random() < 0.08 && this.grid[c.y][c.x] === TILE.GRASS) {
+            } else if (Math.random() < 0.08 && this.grid[c.y][c.x] === TILE.GRASS) {
                 const npcTypes = [TILE.ROCKET, TILE.BIKER, TILE.YOUNG, TILE.OLD];
                 this.grid[c.y][c.x] = npcTypes[Math.floor(Math.random() * npcTypes.length)];
             }
@@ -241,8 +321,7 @@ class Battle {
         this.isNPC = (reward > 0 && !isPvP);
         this.reward = reward;
         this.activeCard = null;
-        
-        this.openSelectionModal("Escolha seu Pokémon para a batalha!");
+        this.openSelectionModal("Escolha seu Pokémon!");
     }
 
     static openSelectionModal(title: string) {
@@ -262,10 +341,7 @@ class Battle {
                 </div>
             `;
             if(!mon.isFainted()) {
-                div.onclick = () => {
-                    modal.style.display = 'none';
-                    this.startRound(mon);
-                };
+                div.onclick = () => { modal.style.display = 'none'; this.startRound(mon); };
             }
             list.appendChild(div);
         });
@@ -275,20 +351,16 @@ class Battle {
     static startRound(selectedMon: Pokemon) {
         this.active = true;
         this.activeMon = selectedMon;
-        
         document.getElementById('battle-modal')!.style.display = 'flex';
         let titleText = this.isPvP ? "⚔️ PvP" : (this.isNPC ? "⚔️ Treinador" : "⚔️ Selvagem");
         document.getElementById('battle-title')!.innerText = titleText;
-
         this.updateUI();
         this.log(`Vai, ${selectedMon.name}!`);
     }
 
     static updateUI() {
         if(!this.activeMon || !this.opponent) return;
-
-        const pMon = this.activeMon;
-        const opp = this.opponent;
+        const pMon = this.activeMon; const opp = this.opponent;
 
         document.getElementById('ply-name')!.innerText = pMon.name;
         document.getElementById('ply-lvl')!.innerText = `Lv${pMon.level}`;
@@ -312,85 +384,65 @@ class Battle {
 
     static log(msg: string) { document.getElementById('battle-msg')!.innerText = msg; }
 
-    // --- NOVA LÓGICA DE DANO COM ELEMENTOS ---
     static calculateDamage(attacker: Pokemon, defender: Pokemon): { dmg: number, multiplier: number } {
         let rawDmg = attacker.atk * (0.8 + Math.random() * 0.4);
         
-        // Verifica Vantagem de Tipo
         let multiplier = 1;
-        // Proteção caso o tipo não esteja na tabela
+        // Verifica se a tabela de tipos existe para evitar crash
         if (TYPE_CHART[attacker.type] && TYPE_CHART[attacker.type][defender.type] !== undefined) {
             multiplier = TYPE_CHART[attacker.type][defender.type];
         }
 
         rawDmg *= multiplier;
-
         let defenseFactor = defender.def * 0.5;
         let finalDmg = Math.max(1, Math.floor(rawDmg - defenseFactor));
-        
         return { dmg: finalDmg, multiplier };
     }
 
     static attack() {
         if(!this.activeMon || !this.opponent) return;
-        const pMon = this.activeMon;
-        const opp = this.opponent;
-
         try {
-            // Usa a nova função de cálculo
-            const { dmg, multiplier } = this.calculateDamage(pMon, opp);
+            const { dmg, multiplier } = this.calculateDamage(this.activeMon, this.opponent);
             let finalDmg = dmg;
-
-            if(this.activeCard === 'crit') { finalDmg *= 2; this.log("💥 CARTA CRÍTICA!"); this.activeCard = null; } 
+            if(this.activeCard === 'crit') { finalDmg *= 2; this.log("💥 CRÍTICO!"); this.activeCard = null; } 
             
-            // Log de Efetividade
             let effectMsg = "";
-            if (multiplier > 1) effectMsg = " (Super Efetivo!)";
-            if (multiplier < 1) effectMsg = " (Não muito efetivo...)";
+            if (multiplier > 1) effectMsg = " (Super!)";
+            if (multiplier < 1) effectMsg = " (Fraco...)";
 
-            this.log(`${pMon.name} atacou! -${finalDmg}${effectMsg}`);
-
+            this.log(`${this.activeMon.name} atacou! -${finalDmg}${effectMsg}`);
             this.opponent.currentHp = Math.max(0, this.opponent.currentHp - finalDmg);
             this.updateUI();
 
             if(this.opponent.currentHp <= 0) setTimeout(() => this.win(), 1000);
             else setTimeout(() => this.enemyTurn(), 1000);
-        
         } catch (e) {
-            console.error("Erro na batalha:", e);
-            this.log("Erro no ataque. Dano padrão aplicado.");
-            this.opponent.currentHp -= 10; // Fallback para não travar
-            this.updateUI();
+            console.error("Erro na batalha", e);
+            this.log("Erro no ataque!");
             setTimeout(() => this.enemyTurn(), 1000);
         }
     }
 
     static enemyTurn() {
         if(!this.activeMon || !this.opponent) return;
-        const pMon = this.activeMon;
-        const opp = this.opponent;
-
-        const { dmg, multiplier } = this.calculateDamage(opp, pMon);
-        
+        const { dmg, multiplier } = this.calculateDamage(this.opponent, this.activeMon);
         let effectMsg = "";
-        if (multiplier > 1) effectMsg = " (Super Efetivo!)";
-        if (multiplier < 1) effectMsg = " (Não muito efetivo...)";
+        if (multiplier > 1) effectMsg = " (Super!)";
+        if (multiplier < 1) effectMsg = " (Fraco...)";
 
-        this.log(`${opp.name} bateu! -${dmg}${effectMsg}`);
-        
-        pMon.currentHp = Math.max(0, pMon.currentHp - dmg);
+        this.log(`${this.opponent.name} bateu! -${dmg}${effectMsg}`);
+        this.activeMon.currentHp = Math.max(0, this.activeMon.currentHp - dmg);
         this.updateUI();
 
-        if(pMon.currentHp <= 0) setTimeout(() => this.handleFaint(), 1000);
+        if(this.activeMon.currentHp <= 0) setTimeout(() => this.handleFaint(), 1000);
     }
 
     static handleFaint() {
-        if(this.player!.isDefeated()) {
-            this.lose();
-        } else {
+        if(this.player!.isDefeated()) { this.lose(); } 
+        else {
             this.log(`${this.activeMon!.name} desmaiou!`);
             document.getElementById('battle-modal')!.style.display = 'none';
-            this.openSelectionModal("Escolha o próximo Pokémon!");
+            this.openSelectionModal("Escolha o próximo!");
         }
     }
 
@@ -403,7 +455,7 @@ class Battle {
                 if(item) {
                     const btn = document.createElement('button');
                     btn.className = 'btn';
-                    btn.innerHTML = `${item.icon} ${item.name} <span style="background:rgba(0,0,0,0.2); padding:2px 5px; border-radius:4px;">x${this.player!.items[key]}</span>`;
+                    btn.innerHTML = `${item.icon} ${item.name} x${this.player!.items[key]}`;
                     btn.onclick = () => this.useItem(key, item);
                     list.appendChild(btn);
                 }
@@ -414,22 +466,16 @@ class Battle {
 
     static useItem(key: string, data: ItemData) {
         document.getElementById('battle-bag')!.style.display = 'none';
+        if(data.type === 'capture' && (this.isPvP || this.isNPC)) { this.log("Não pode roubar!"); return; }
         
-        if(data.type === 'capture') {
-            if(this.isPvP || this.isNPC) { 
-                this.log("Não pode roubar de treinador!"); 
-                return; 
-            }
-        }
-
         this.player!.items[key]--;
-        if(data.type === 'heal' && data.val) {
-            this.activeMon!.heal(data.val);
-            this.log(`Curou ${data.val} HP!`);
+        if(data.type === 'heal') {
+            this.activeMon!.heal(data.val!);
+            this.log("Curado!");
             this.updateUI();
             setTimeout(() => this.enemyTurn(), 1000);
-        } else if(data.type === 'capture' && data.rate) {
-            this.attemptCapture(data.rate);
+        } else if(data.type === 'capture') {
+            this.attemptCapture(data.rate!);
         }
     }
 
@@ -448,8 +494,8 @@ class Battle {
 
     static useCard() {
         const card = this.player!.cards.find(c => c.type === 'battle');
-        if(!card) { this.log("Sem cartas de batalha!"); return; }
-        this.log(`Usou ${card.icon} ${card.name}!`);
+        if(!card) { this.log("Sem cartas!"); return; }
+        this.log(`Usou ${card.name}!`);
         this.player!.cards.splice(this.player!.cards.indexOf(card), 1);
         Cards.render();
         if(card.id === 'crit') this.activeCard = 'crit';
@@ -458,46 +504,30 @@ class Battle {
     }
 
     static run() {
-        if(this.isPvP || this.isNPC) { this.log("Sem fuga desta luta!"); return; }
+        if(this.isPvP || this.isNPC) { this.log("Sem fuga!"); return; }
         const chance = this.activeMon!.speed > this.opponent!.speed ? 0.7 : 0.4;
-        
-        if(Math.random() < chance) { 
-            this.end(); 
-        } else { 
-            this.log("Falhou!"); 
-            setTimeout(()=>this.enemyTurn(),1000); 
-        }
+        if(Math.random() < chance) this.end();
+        else { this.log("Falhou!"); setTimeout(()=>this.enemyTurn(),1000); }
     }
 
     static win() {
-        let gain = 150; 
-        if(this.isPvP) gain = 500;
-        else if(this.isNPC) gain = this.reward;
-
+        let gain = this.isPvP ? 500 : (this.isNPC ? this.reward : 150);
         this.player!.gold += gain;
         this.log(`Vitória! +${gain} Gold`);
         
         const p = this.activeMon!;
         p.wins++;
-        
-        p.currentXp += 50; 
+        p.currentXp += 50;
         if(p.currentXp >= p.maxXp) {
-            p.currentXp = 0;
-            p.level++;
-            p.maxHp += 5;
-            p.atk += 2;
-            p.def += 2;
-            p.speed += 1;
-            this.log(`${p.name} subiu para o nível ${p.level}!`);
+            p.currentXp = 0; p.level++; p.maxHp += 5; p.atk += 2; p.def += 2; p.speed += 1;
+            this.log("Subiu de Nível!");
         }
-
-        if(p.checkEvolution()) alert(`😲 Seu Pokémon evoluiu para ${p.name}!`);
-        
+        if(p.checkEvolution()) alert(`Evoluiu para ${p.name}!`);
         setTimeout(() => this.end(), 1500);
     }
 
     static lose() {
-        this.log("Derrota Total...");
+        this.log("Derrota...");
         this.player!.gold = Math.max(0, this.player!.gold - 100);
         this.player!.team.forEach(p => p.heal(999));
         this.player!.x = 0; this.player!.y = 0;
@@ -530,11 +560,7 @@ class Shop {
             list.appendChild(div);
         });
         const inv = document.getElementById('inventory-list')!;
-        inv.innerHTML = Object.entries(p.items).map(([k,v]) => {
-            const item = SHOP_ITEMS.find(i=>i.id===k);
-            const icon = item ? item.icon : '?';
-            return `<div style="background:#ddd; padding:5px; border-radius:4px;">${icon} x${v}</div>`;
-        }).join('');
+        inv.innerHTML = Object.entries(p.items).map(([k,v]) => `<span>${k} x${v}</span>`).join(', ');
         document.getElementById('shop-modal')!.style.display = 'flex';
     }
     static buy(id: string, price: number) {
@@ -567,10 +593,7 @@ class Cards {
     static render() {}
     static showPlayerCards(playerId: number) {
         const p = Game.players[playerId];
-        if(p.cards.length === 0) {
-            alert("Este jogador não possui cartas.");
-            return;
-        }
+        if(p.cards.length === 0) { alert("Sem cartas."); return; }
         let msg = "Cartas de " + p.name + ":\n";
         p.cards.forEach(c => msg += `- ${c.icon} ${c.name}: ${c.desc}\n`);
         alert(msg);
@@ -585,82 +608,78 @@ class Game {
 
     static init(players: Player[], mapSize: number) {
         this.players = players;
-        // Se o mapa não foi carregado via save, gera um novo
-        if(MapSystem.grid.length === 0) {
-            MapSystem.generate(mapSize);
-        }
+        if(MapSystem.grid.length === 0) MapSystem.generate(mapSize);
         this.renderBoard();
         this.updateHUD();
         this.moveVisuals();
+        this.checkTurnControl();
     }
 
-    // --- SAVE SYSTEM ---
+    // --- SAVE & LOAD & EXPORT ---
+    static getSaveData() {
+        return { players: this.players, turn: this.turn, mapSize: MapSystem.size, grid: MapSystem.grid };
+    }
+
     static saveGame() {
-        const saveData = {
-            players: this.players,
-            turn: this.turn,
-            mapSize: MapSystem.size,
-            // Salvar o grid é opcional se a seed fosse fixa, mas como é aleatório, o ideal seria serializar.
-            // Para simplificar, assumimos que o layout do terreno não muda drasticamente ou aceitamos gerar novo terreno no load.
-            // Se quiser salvar o terreno exato, precisaria salvar MapSystem.grid também.
-        };
-        localStorage.setItem('pokeboard_save', JSON.stringify(saveData));
-        // console.log("Jogo Salvo");
+        const data = this.getSaveData();
+        localStorage.setItem('pokeboard_save', JSON.stringify(data));
+        Network.broadcastState(); // Sync Online
     }
 
     static loadGame() {
         const json = localStorage.getItem('pokeboard_save');
-        if(!json) return false;
-        
-        try {
-            const data = JSON.parse(json);
-            
-            // Recriação dos objetos para recuperar os métodos
-            const loadedPlayers = data.players.map((pData: any) => {
-                // Tenta extrair o nome do arquivo da imagem antiga
-                const avatarFile = pData.avatar.split('/').pop() || "t1.png";
-                
-                const newP = new Player(pData.id, pData.name, "_LOAD_"); 
-                // Hack: Passamos _LOAD_ no nome para não criar time inicial no construtor
-                // Agora corrigimos os dados:
-                newP.name = pData.name;
-                newP.avatar = pData.avatar; // Mantém o caminho salvo ou recria
-                newP.x = pData.x;
-                newP.y = pData.y;
-                newP.gold = pData.gold;
-                newP.items = pData.items;
-                newP.cards = pData.cards;
-                
-                // Recria Time
-                newP.team = pData.team.map((tData: any) => {
-                    const mon = new Pokemon(tData.id, tData.isShiny);
-                    mon.currentHp = tData.currentHp;
-                    mon.maxHp = tData.maxHp;
-                    mon.atk = tData.atk;
-                    mon.def = tData.def;
-                    mon.speed = tData.speed;
-                    mon.level = tData.level;
-                    mon.currentXp = tData.currentXp;
-                    mon.maxXp = tData.maxXp;
-                    mon.type = tData.type;
-                    return mon;
-                });
-                return newP;
-            });
+        if(json) this.loadGameFromData(JSON.parse(json));
+    }
 
-            this.players = loadedPlayers;
-            this.turn = data.turn;
-            
-            document.getElementById('setup-screen')!.style.display = 'none';
-            document.getElementById('game-container')!.style.display = 'flex';
-            
-            Game.init(this.players, data.mapSize);
-            this.log("Jogo Carregado!");
-            return true;
-        } catch(e) {
-            console.error("Save corrompido", e);
-            return false;
-        }
+    static loadGameFromData(data: any) {
+        MapSystem.size = data.mapSize;
+        MapSystem.grid = data.grid || [];
+        
+        this.players = data.players.map((pData: any) => {
+            const avatarFile = pData.avatar.split('/').pop() || "t1.png";
+            const newP = new Player(pData.id, pData.name, "_LOAD_"); 
+            Object.assign(newP, pData);
+            newP.team = pData.team.map((tData: any) => {
+                const mon = new Pokemon(tData.id, tData.isShiny);
+                Object.assign(mon, tData);
+                return mon;
+            });
+            return newP;
+        });
+        
+        this.turn = data.turn;
+        document.getElementById('setup-screen')!.style.display = 'none';
+        document.getElementById('game-container')!.style.display = 'flex';
+        Game.init(this.players, data.mapSize);
+        Game.log("Jogo Carregado/Sincronizado!");
+    }
+
+    static exportSave() {
+        const data = localStorage.getItem('pokeboard_save');
+        if(!data) return alert("Nada para salvar!");
+        const blob = new Blob([data], {type: 'text/plain'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = 'pokeboard_save.txt';
+        a.click();
+    }
+
+    static importSave(input: HTMLInputElement) {
+        const file = input.files?.[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const json = e.target?.result as string;
+                localStorage.setItem('pokeboard_save', json);
+                this.loadGameFromData(JSON.parse(json));
+            } catch(err) { alert("Arquivo inválido!"); }
+        };
+        reader.readAsText(file);
+    }
+
+    static checkTurnControl() {
+        const indicator = document.getElementById('online-indicator')!;
+        if(Network.isOnline) indicator.innerText = "ONLINE"; else indicator.innerText = "OFFLINE";
     }
 
     static getCurrentPlayer(): Player { return this.players[this.turn]; }
@@ -697,35 +716,20 @@ class Game {
     }
 
     static moveVisuals() {
+        document.querySelectorAll('.player-token').forEach(e => e.remove());
         this.players.forEach((p, idx) => {
-            const currentTile = document.getElementById(`tile-${p.x}-${p.y}`);
-            if(!currentTile) return;
-
-            let token = document.getElementById(`p-token-${idx}`);
-
-            if (token && token.parentElement === currentTile) {
-                if(idx === this.turn) token.classList.add('active-token');
-                else token.classList.remove('active-token');
-                return; 
+            const tile = document.getElementById(`tile-${p.x}-${p.y}`);
+            if(tile) {
+                const t = document.createElement('div');
+                t.className = `player-token ${idx===this.turn?'active-token':''}`;
+                t.style.backgroundImage = `url('${p.avatar}')`;
+                t.style.borderColor = PLAYER_COLORS[idx % PLAYER_COLORS.length];
+                if(MapSystem.size >= 30) { 
+                    t.style.width = '90%'; t.style.height = '90%'; 
+                }
+                tile.appendChild(t);
+                if(idx===this.turn) tile.scrollIntoView({block:'center',inline:'center',behavior:'smooth'});
             }
-
-            if (token) token.remove(); 
-
-            const t = document.createElement('div');
-            t.id = `p-token-${idx}`; 
-            t.className = `player-token ${idx===this.turn?'active-token':''}`;
-            t.style.backgroundImage = `url('${p.avatar}')`;
-            
-            const colors = ['#e74c3c', '#3498db', '#f1c40f', '#9b59b6'];
-            t.style.borderColor = colors[idx % colors.length];
-            
-            if(MapSystem.size >= 30) { 
-                t.style.width = '90%'; t.style.height = '90%'; 
-            }
-            
-            currentTile.appendChild(t);
-            
-            if(idx===this.turn) currentTile.scrollIntoView({block:'center',inline:'center',behavior:'smooth'});
         });
     }
 
@@ -733,15 +737,12 @@ class Game {
         (document.getElementById('roll-btn') as HTMLButtonElement).disabled = true;
         const die = document.getElementById('d20-display')!;
         
+        for(let i=0;i<10;i++) { 
+            die.innerText = `🎲 ${Math.floor(Math.random()*20)+1}`; 
+            await new Promise(r=>setTimeout(r,50)); 
+        }
         let result = this.forcedRoll || Math.floor(Math.random()*20)+1;
         this.forcedRoll = null;
-
-        if(!this.forcedRoll) {
-            for(let i=0;i<10;i++) { 
-                die.innerText = `🎲 ${Math.floor(Math.random()*20)+1}`; 
-                await new Promise(r=>setTimeout(r,50)); 
-            }
-        }
         die.innerText = `🎲 ${result}`;
         this.log(`${this.getCurrentPlayer().name} rolou ${result}.`);
         await this.movePlayer(result);
@@ -750,14 +751,9 @@ class Game {
     static async movePlayer(steps: number) {
         const p = this.getCurrentPlayer();
         for(let i = 0; i < steps; i++) {
-            if(p.y % 2 === 0) { 
-                if(p.x < MapSystem.size - 1) p.x++; else p.y++; 
-            } else { 
-                if(p.x > 0) p.x--; else p.y++; 
-            }
-
+            if(p.y % 2 === 0) { if(p.x < MapSystem.size - 1) p.x++; else p.y++; } else { if(p.x > 0) p.x--; else p.y++; }
             if(p.y >= MapSystem.size){ p.y = MapSystem.size - 1; break; } 
-
+            
             const tile = document.getElementById(`tile-${p.x}-${p.y}`);
             if(tile) tile.classList.add('step-highlight');
             this.moveVisuals();
@@ -769,16 +765,12 @@ class Game {
 
     static handleTile(p: Player) {
         const type = MapSystem.grid[p.y][p.x];
-        
         const enemy = this.players.find(o => o !== p && o.x === p.x && o.y === p.y);
+        
         if(enemy) { 
             const defMon = enemy.team.find(m => !m.isFainted());
-            if(defMon) {
-                Battle.setup(p, defMon, true, enemy.name); 
-            } else {
-                this.log(`${enemy.name} não pode lutar!`);
-                this.nextTurn();
-            }
+            if(defMon) { Battle.setup(p, defMon, true, enemy.name); } 
+            else { this.log(`${enemy.name} sem pokemons!`); this.nextTurn(); }
             return; 
         }
 
@@ -802,8 +794,7 @@ class Game {
             let possibleMons = [1, 4, 7, 25];
             if(type === TILE.GROUND) possibleMons = [74, 95];
             const id = possibleMons[Math.floor(Math.random()*possibleMons.length)];
-            const isShiny = Math.random()<0.1;
-            Battle.setup(p, new Pokemon(id, isShiny), false, "Selvagem");
+            Battle.setup(p, new Pokemon(id, Math.random()<0.1), false, "Selvagem");
         } else {
             this.nextTurn();
         }
@@ -812,11 +803,10 @@ class Game {
     static handleCityChoice(choice: 'heal' | 'shop') {
         const p = this.getCurrentPlayer();
         document.getElementById('city-modal')!.style.display = 'none';
-        
         if(choice === 'heal') {
             p.team.forEach(m => m.heal(999));
-            this.log("Pokémon curados no Centro Pokémon!");
-            this.updateHUD(); 
+            this.log("Pokémon curados!");
+            this.updateHUD();
             this.isCityEvent = false;
             this.nextTurn();
         } else {
@@ -825,9 +815,7 @@ class Game {
     }
 
     static nextTurn() {
-        // Auto-Save ao fim do turno
         this.saveGame();
-        
         this.turn = (this.turn+1)%this.players.length;
         (document.getElementById('roll-btn') as HTMLButtonElement).disabled = false;
         this.updateHUD(); 
@@ -837,9 +825,7 @@ class Game {
     static updateHUD() {
         const leftCol = document.getElementById('hud-col-left')!;
         const rightCol = document.getElementById('hud-col-right')!;
-        
-        leftCol.innerHTML = '';
-        rightCol.innerHTML = '';
+        leftCol.innerHTML = ''; rightCol.innerHTML = '';
 
         this.players.forEach((p, i) => {
             const slot = document.createElement('div');
@@ -858,18 +844,16 @@ class Game {
                             <span>${m.name}</span>
                             <span class="poke-lvl">Lv.${m.level}</span>
                         </div>
-                        
-                        <div class="bar-container" title="HP: ${m.currentHp}/${m.maxHp}">
+                        <div class="bar-container" title="HP">
                             <div class="bar-fill hp-bar" style="width:${hpPercent}%"></div>
                         </div>
-                        <div class="bar-container" title="XP: ${m.currentXp}/${m.maxXp}">
+                        <div class="bar-container" title="XP">
                             <div class="bar-fill xp-bar" style="width:${xpPercent}%"></div>
                         </div>
-
                         <div class="poke-stats">
-                            <div class="stat-item" title="Ataque">⚔️<strong>${m.atk}</strong></div>
-                            <div class="stat-item" title="Defesa">🛡️<strong>${m.def}</strong></div>
-                            <div class="stat-item" title="Velocidade">💨<strong>${m.speed}</strong></div>
+                            <div class="stat-item" title="Atk">⚔️<strong>${m.atk}</strong></div>
+                            <div class="stat-item" title="Def">🛡️<strong>${m.def}</strong></div>
+                            <div class="stat-item" title="Spd">💨<strong>${m.speed}</strong></div>
                         </div>
                     </div>
                 </div>
@@ -901,7 +885,8 @@ class Game {
                 </div>
             `;
 
-            if (i % 2 === 0) {
+            // Lógica de 8 Jogadores: metade para cada lado
+            if (i < Math.ceil(this.players.length / 2)) {
                 leftCol.appendChild(slot);
             } else {
                 rightCol.appendChild(slot);
@@ -914,45 +899,40 @@ class Game {
 
     static log(msg: string) {
         const el = document.getElementById('log-container')!; 
-        
         const time = new Date().toLocaleTimeString().split(':');
-        const timeStr = `${time[0]}:${time[1]}`;
-        
         const entry = document.createElement('div');
         entry.className = 'log-entry';
-        entry.innerHTML = `<span class="log-time">${timeStr}</span> ${msg}`;
-        
+        entry.innerHTML = `<span class="log-time">${time[0]}:${time[1]}</span> ${msg}`;
         el.prepend(entry);
-        
         if(el.children.length > 100) el.lastElementChild?.remove();
     }
 }
 
 class Setup {
+    // --- MÉTODOS DE CONTROLE DE MENU ---
+    static showOfflineSetup() {
+        document.getElementById('menu-phase-1')!.style.display = 'none';
+        document.getElementById('menu-phase-setup')!.style.display = 'block';
+    }
+
+    static showOnlineMenu() {
+        document.getElementById('menu-phase-1')!.style.display = 'none';
+        document.getElementById('menu-phase-online')!.style.display = 'block';
+    }
+
+    static showSetupScreen() {
+        document.getElementById('menu-phase-online')!.style.display = 'none';
+        document.getElementById('menu-phase-setup')!.style.display = 'block';
+    }
+
     static updateSlots() {
         const num = parseInt((document.getElementById('num-players') as HTMLSelectElement).value);
         const container = document.getElementById('player-slots-container')!;
         container.innerHTML = '';
         
-        const defaultNames = ["Ash", "Gary", "Misty", "Brock"];
+        const defaultNames = ["Ash", "Gary", "Misty", "Brock", "May", "Dawn", "Serena", "Goh"];
 
-        // Verifica se existe Save
-        const hasSave = localStorage.getItem('pokeboard_save');
-        const existingBtn = document.getElementById('load-btn');
-        if(hasSave && !existingBtn) {
-            const btn = document.createElement('button');
-            btn.id = 'load-btn';
-            btn.className = 'btn';
-            btn.style.background = '#8e44ad'; // Roxo
-            btn.style.marginBottom = '10px';
-            btn.innerHTML = '💾 CONTINUAR JOGO SALVO';
-            btn.onclick = () => window.Game.loadGame();
-            
-            const screen = document.getElementById('setup-screen')!;
-            // Adiciona antes do botão de Iniciar
-            screen.insertBefore(btn, screen.lastElementChild);
-        }
-
+        // Cria as opções do Select de Avatar
         const optionsHTML = TRAINER_IMAGES.map((img, idx) => 
             `<option value="${img.file}">${img.label}</option>`
         ).join('');
@@ -997,7 +977,10 @@ class Setup {
         
         document.getElementById('setup-screen')!.style.display = 'none';
         document.getElementById('game-container')!.style.display = 'flex';
+        
         Game.init(players, mapSize);
+        // Se for host online, manda o estado inicial
+        if(Network.isHost) Network.broadcastState();
     }
 }
 
@@ -1022,5 +1005,6 @@ window.Setup = Setup;
 window.Game = Game;
 window.Shop = Shop;
 window.Battle = Battle;
+window.Network = Network;
 
 Setup.updateSlots();
