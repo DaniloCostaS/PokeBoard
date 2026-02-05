@@ -7,7 +7,7 @@ import type {
     ItemData, CardData, Coord 
 } from './constants';
 
-// --- CONFIGURAÇÃO DAS IMAGENS DOS TREINADORES ---
+// --- CONFIGURAÇÃO DAS IMAGENS DOS TREINADORES (CORRIGIDA) ---
 const TRAINER_IMAGES = [
     { label: "Red", file: "Red.jpg" },
     { label: "Blue", file: "Blue.jpg" },
@@ -101,6 +101,7 @@ class Player {
     constructor(id: number, name: string, avatarFile: string) {
         this.id = id;
         this.name = name;
+        // Caminho corrigido com /src
         this.avatar = `./src/assets/img/treinadores/${avatarFile}`;
         
         const starters = [1, 4, 7]; 
@@ -465,7 +466,7 @@ class Game {
     static players: Player[] = [];
     static turn: number = 0;
     static forcedRoll: number | null = null;
-    static isCityEvent: boolean = false; // Flag para controlar evento de cidade
+    static isCityEvent: boolean = false; 
 
     static init(players: Player[], mapSize: number) {
         this.players = players;
@@ -507,26 +508,44 @@ class Game {
         area.appendChild(frag);
     }
 
+    // Função corrigida para não fazer todos os bonecos pularem
     static moveVisuals() {
-        document.querySelectorAll('.player-token').forEach(e => e.remove());
         this.players.forEach((p, idx) => {
-            const tile = document.getElementById(`tile-${p.x}-${p.y}`);
-            if(tile) {
-                const t = document.createElement('div');
-                t.className = `player-token ${idx===this.turn?'active-token':''}`;
-                
-                // USANDO IMAGEM DE FUNDO
-                t.style.backgroundImage = `url('${p.avatar}')`;
-                
-                const colors = ['#e74c3c', '#3498db', '#f1c40f', '#9b59b6'];
-                t.style.borderColor = colors[idx % colors.length];
-                
-                if(MapSystem.size >= 30) { 
-                    t.style.width = '90%'; t.style.height = '90%'; 
-                }
-                tile.appendChild(t);
-                if(idx===this.turn) tile.scrollIntoView({block:'center',inline:'center',behavior:'smooth'});
+            const currentTile = document.getElementById(`tile-${p.x}-${p.y}`);
+            if(!currentTile) return;
+
+            // Busca pelo ID único do token
+            let token = document.getElementById(`p-token-${idx}`);
+
+            // CASO 1: Token já existe e está no lugar certo?
+            if (token && token.parentElement === currentTile) {
+                // Não recria. Apenas atualiza o brilho de "ativo" se for a vez dele.
+                if(idx === this.turn) token.classList.add('active-token');
+                else token.classList.remove('active-token');
+                return; // Encerra aqui para esse jogador (sem pular!)
             }
+
+            // CASO 2: Token existe mas está no lugar errado (está andando)
+            if (token) token.remove(); // Remove para recriar e disparar a animação
+
+            // CASO 3: Token não existe ou foi removido acima
+            const t = document.createElement('div');
+            t.id = `p-token-${idx}`; // Define ID único
+            t.className = `player-token ${idx===this.turn?'active-token':''}`;
+            
+            // Define a imagem
+            t.style.backgroundImage = `url('${p.avatar}')`;
+            
+            const colors = ['#e74c3c', '#3498db', '#f1c40f', '#9b59b6'];
+            t.style.borderColor = colors[idx % colors.length];
+            
+            if(MapSystem.size >= 30) { 
+                t.style.width = '90%'; t.style.height = '90%'; 
+            }
+            
+            currentTile.appendChild(t);
+            
+            if(idx===this.turn) currentTile.scrollIntoView({block:'center',inline:'center',behavior:'smooth'});
         });
     }
 
@@ -545,20 +564,33 @@ class Game {
         }
         die.innerText = `🎲 ${result}`;
         this.log(`${this.getCurrentPlayer().name} rolou ${result}.`);
+        
         await this.movePlayer(result);
     }
 
     static async movePlayer(steps: number) {
         const p = this.getCurrentPlayer();
-        for(let i=0; i<steps; i++) {
-            const tile = document.getElementById(`tile-${p.x}-${p.y}`)!;
-            tile.classList.add('path-highlight');
-            if(p.y % 2 === 0) { if(p.x < MapSystem.size - 1) p.x++; else p.y++; } else { if(p.x > 0) p.x--; else p.y++; }
+        
+        for(let i = 0; i < steps; i++) {
+            if(p.y % 2 === 0) { 
+                if(p.x < MapSystem.size - 1) p.x++; else p.y++; 
+            } else { 
+                if(p.x > 0) p.x--; else p.y++; 
+            }
+
             if(p.y >= MapSystem.size){ p.y = MapSystem.size - 1; break; } 
+
+            const tile = document.getElementById(`tile-${p.x}-${p.y}`);
+            
+            if(tile) tile.classList.add('step-highlight');
+            
             this.moveVisuals();
-            await new Promise(r => setTimeout(r, 80));
-            tile.classList.remove('path-highlight');
+
+            await new Promise(r => setTimeout(r, 200));
+            
+            if(tile) tile.classList.remove('step-highlight');
         }
+        
         this.handleTile(p);
     }
 
@@ -584,7 +616,6 @@ class Game {
             return;
         }
 
-        // --- LÓGICA DE CIDADE ---
         if(type === TILE.CITY) {
             this.isCityEvent = true;
             document.getElementById('city-modal')!.style.display = 'flex';
@@ -612,7 +643,7 @@ class Game {
         if(choice === 'heal') {
             p.team.forEach(m => m.heal(999));
             this.log("Pokémon curados no Centro Pokémon!");
-            this.updateHUD(); // Atualiza visual dos pokemons curados
+            this.updateHUD(); 
             this.isCityEvent = false;
             this.nextTurn();
         } else {
@@ -623,11 +654,10 @@ class Game {
     static nextTurn() {
         this.turn = (this.turn+1)%this.players.length;
         (document.getElementById('roll-btn') as HTMLButtonElement).disabled = false;
-        this.updateHUD(); // Atualiza os cantos
+        this.updateHUD(); 
         this.moveVisuals();
     }
 
-    // Nova função HUD com Avatar de Imagem
     static updateHUD() {
         const leftCol = document.getElementById('hud-col-left')!;
         const rightCol = document.getElementById('hud-col-right')!;
@@ -653,7 +683,6 @@ class Game {
 
             const itemCount = Object.values(p.items).reduce((a,b)=>a+b, 0);
 
-            // Conteúdo atualizado com Imagem do Avatar
             slot.innerHTML = `
                 <div class="hud-header">
                     <div class="hud-name-group">
@@ -710,13 +739,11 @@ class Setup {
         
         const defaultNames = ["Ash", "Gary", "Misty", "Brock"];
 
-        // Gera as opções do <select> baseadas no array TRAINER_IMAGES
         const optionsHTML = TRAINER_IMAGES.map((img, idx) => 
             `<option value="${img.file}">${img.label}</option>`
         ).join('');
 
         for(let i=0; i<num; i++) {
-            // Seleciona um padrão rotativo para cada jogador
             const defaultImg = TRAINER_IMAGES[i % TRAINER_IMAGES.length].file;
             
             container.innerHTML += `
@@ -737,10 +764,10 @@ class Setup {
         }
     }
 
-    // Função nova para atualizar a imagem quando troca o select
     static updatePreview(playerId: number) {
         const select = document.getElementById(`p${playerId}-av`) as HTMLSelectElement;
         const img = document.getElementById(`p${playerId}-preview`) as HTMLImageElement;
+        // Caminho corrigido com /src
         img.src = `./src/assets/img/treinadores/${select.value}`;
     }
 
@@ -751,16 +778,12 @@ class Setup {
         const players: Player[] = [];
         for(let i=0; i<numPlayers; i++) {
             const name = (document.getElementById(`p${i}-name`) as HTMLInputElement).value;
-            // Agora pegamos o nome do arquivo (ex: 't1.png')
             const avFile = (document.getElementById(`p${i}-av`) as HTMLSelectElement).value;
             players.push(new Player(i, name, avFile));
         }
         
         document.getElementById('setup-screen')!.style.display = 'none';
-        
-        // Mantido 'flex' conforme correção anterior
         document.getElementById('game-container')!.style.display = 'flex';
-        
         Game.init(players, mapSize);
     }
 }
