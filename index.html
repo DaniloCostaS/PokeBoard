@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PokéBoard V22 - Card System</title>
+    <title>PokéBoard V23 - Full RPG</title>
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
 </head>
 <body>
 
     <div id="setup-screen">
-        <h1 class="title-highlight">PokéBoard - Beta</h1>
+        <h1 class="title-highlight">PokéBoard V23</h1>
         <p class="subtitle">Tactics Edition</p>
         
         <div id="menu-phase-1">
@@ -78,7 +78,16 @@
             </div>
             
             <div class="panel-box extra-space">
+                <button class="btn btn-secondary" onclick="window.Game.openCardLibrary()">📖 Ver Todas as Cartas</button>
+                <button class="btn btn-secondary" style="background: #27ae60;" onclick="window.Game.openXpRules()">📘 Regras de XP</button>
+                
+                <div style="margin-top:10px; font-size:0.7rem; color:#aaa;">DEBUG MOVE</div>
+                <div style="display:flex; gap:5px; justify-content:center;">
+                    <input type="number" id="debug-input" value="1" min="1" max="50" style="width:50px; text-align:center; border:none; padding:5px; border-radius:4px;">
+                    <button class="btn" style="width:auto; margin:0; padding:5px 10px;" onclick="window.Game.debugMove()">GO</button>
                 </div>
+                <div style="margin-top:5px;"><small id="online-indicator" style="color:cyan;">OFFLINE</small></div>
+            </div>
         </div>
 
         <div id="center-stage">
@@ -90,6 +99,33 @@
         <div id="right-panel">
             <div class="panel-header">📟 Log de Batalha</div>
             <div id="log-container"></div>
+            
+            <div class="evo-legend">
+                <h4>🧬 Regras de Evolução</h4>
+                <ul>
+                    <li><strong>2 Evoluções:</strong> Lvl 5 e 10</li>
+                    <li><strong>1 Evolução:</strong> Lvl 8</li>
+                    <li><small>Evoluir cura e dá cartas!</small></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div id="xp-rules-modal" class="modal-overlay">
+        <div class="modal-box" style="text-align: left;">
+            <h3 style="text-align:center; color: var(--gold);">⭐ Regras de XP & Nível</h3>
+            <ul style="font-size: 0.9rem; line-height: 1.5;">
+                <li><strong>Nível Máximo:</strong> 15 (Max 1 level por turno)</li>
+                <li><strong>Movimento:</strong> +1 XP (Aleatório no time)</li>
+                <hr style="border-color:#eee; margin: 5px 0;">
+                <li><strong>PvP:</strong> Vitória +15 XP | Derrota +5 XP</li>
+                <li><strong>NPC:</strong> Vitória +10 XP | Derrota +3 XP</li>
+                <li><strong>Ginásio:</strong> Vitória +25 XP | Derrota +8 XP</li>
+                <li><strong>Selvagem:</strong> Vitória +5 XP | Fuga +2 XP | Captura +3 XP Bônus</li>
+                <hr style="border-color:#eee; margin: 5px 0;">
+                <li><strong>Bônus Desafio:</strong> +5 XP ao vencer oponente 2+ níveis acima.</li>
+            </ul>
+            <button class="btn btn-secondary mt-15" onclick="document.getElementById('xp-rules-modal').style.display='none'">Fechar</button>
         </div>
     </div>
 
@@ -133,7 +169,6 @@
     <div id="library-modal" class="modal-overlay">
         <div class="modal-box" style="width: 500px;">
             <h3>📖 Biblioteca de Cartas</h3>
-            <p style="font-size:0.8rem; color:#666;">Lista de todas as cartas existentes no jogo.</p>
             <div id="library-list" class="scroll-list" style="max-height: 300px;"></div>
             <button class="btn btn-secondary mt-15" onclick="document.getElementById('library-modal').style.display='none'">Fechar</button>
         </div>

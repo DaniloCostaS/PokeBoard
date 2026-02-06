@@ -7,9 +7,11 @@
     --highlight: #3498db;
     --gold: #f1c40f;
     --danger: #e74c3c;
-    --success: #2ecc71;
-    --warning: #f1c40f;
-    --critical: #c0392b;
+    /* Cores de HP */
+    --hp-high: #2ecc71;  /* > 50% */
+    --hp-mid: #f1c40f;   /* <= 50% */
+    --hp-low: #e74c3c;   /* <= 10% */
+    
     --exp: #9b59b6;
     --card-bg: #e67e22;
     --tile-path: #bdc3c7;
@@ -81,8 +83,8 @@ body {
 
 /* Insígnias */
 .badges-container { display: flex; gap: 2px; justify-content: center; margin-bottom: 5px; background: rgba(0,0,0,0.05); padding: 3px; border-radius: 10px; }
-.badge-slot { width: 12px; height: 12px; border-radius: 50%; background: #ccc; border: 1px solid #999; box-shadow: inset 1px 1px 2px rgba(0,0,0,0.2); }
-.badge-slot.active { background: linear-gradient(135deg, #f1c40f, #e67e22); border-color: #d35400; box-shadow: 0 0 5px var(--gold); }
+.badge-slot { width: 10px; height: 10px; border-radius: 50%; background: #ccc; border: 1px solid #999; box-shadow: inset 1px 1px 2px rgba(0,0,0,0.2); transition: all 0.3s; }
+.badge-slot.active { background: linear-gradient(135deg, #f1c40f, #e67e22); border-color: #d35400; box-shadow: 0 0 5px var(--gold); transform: scale(1.2); }
 
 /* Cards Pokemon */
 .poke-card { display: flex; background: #f8f9fa; border: 1px solid #ddd; border-radius: 6px; padding: 4px; align-items: center; gap: 6px; font-size: 0.7rem; position: relative; }
@@ -93,39 +95,10 @@ body {
 .poke-lvl { color: var(--highlight); font-size: 0.65rem; background: rgba(52, 152, 219, 0.1); padding: 0 3px; border-radius: 3px; }
 .bar-container { width: 100%; height: 10px; background: #ddd; border-radius: 3px; overflow: hidden; margin-top: 1px; position: relative; }
 .bar-fill { height: 100%; transition: width 0.3s, background-color 0.3s; }
-.hp-green { background: var(--success); } .hp-yellow { background: var(--warning); } .hp-red { background: var(--critical); }
+.hp-green { background: var(--hp-high); } .hp-yellow { background: var(--hp-mid); } .hp-red { background: var(--hp-low); }
 .xp-bar { background: var(--exp); height: 4px; margin-top: 2px; }
 .bar-text { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 8px; color: #fff; text-shadow: 1px 1px 0 #000; line-height: 10px; white-space: nowrap; pointer-events: none; }
 .poke-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2px; margin-top: 2px; font-size: 0.6rem; color: #555; text-align: center; background: rgba(0,0,0,0.03); border-radius: 3px; padding: 2px; }
-
-/* Estilos para a Lista de Cartas */
-.card-item {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 10px; border-bottom: 1px solid #eee; background: #fafafa;
-    border-radius: 5px; margin-bottom: 5px;
-}
-.card-info { text-align: left; flex: 1; }
-.card-name { font-weight: bold; display: block; }
-.card-desc { font-size: 0.8rem; color: #666; display: block; }
-
-/* Badges de Tipo */
-.card-type-badge {
-    font-size: 0.65rem; padding: 2px 6px; border-radius: 4px;
-    text-transform: uppercase; font-weight: bold; margin-left: 5px;
-    color: white;
-}
-.type-move { background-color: #3498db; }   /* Azul para Move */
-.type-battle { background-color: #e74c3c; } /* Vermelho para Battle */
-
-/* Botão de usar carta */
-.btn-use-card {
-    background: var(--highlight); color: white; border: none;
-    padding: 5px 10px; border-radius: 4px; cursor: pointer;
-    font-size: 0.8rem; margin-left: 10px;
-}
-.btn-use-card:disabled {
-    background: #ccc; cursor: not-allowed; opacity: 0.6;
-}
 
 /* PAINEL DIREITO */
 #right-panel { width: 280px; height: 100%; background: #1a1a1a; border-left: 2px solid #444; display: flex; flex-direction: column; z-index: 20; }
@@ -136,15 +109,53 @@ body {
 .log-entry { padding-bottom: 8px; border-bottom: 1px solid #333; line-height: 1.4; }
 .log-time { color: #f1c40f; font-size: 0.75rem; display: block; margin-bottom: 2px; }
 
+/* --- LEGENDA DE EVOLUÇÃO (POSICIONAMENTO NO PAINEL) --- */
+.evo-legend {
+    /* Resetando posições anteriores */
+    position: relative;
+    top: auto;
+    right: auto;
+    transform: none;
+    
+    /* Novo estilo para ficar dentro do painel */
+    width: 90%;
+    margin: 10px auto; /* Centraliza no painel e dá margem */
+    background: rgba(255, 255, 255, 0.95);
+    border: 2px solid var(--highlight);
+    border-radius: 8px;
+    padding: 10px;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
+    text-align: left;
+    flex-shrink: 0; /* Impede de encolher se o log crescer demais */
+}
+
+.evo-legend h4 {
+    margin: 0 0 8px 0;
+    color: var(--highlight);
+    text-align: center;
+    font-size: 0.85rem;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+}
+
+.evo-legend ul {
+    padding-left: 15px;
+    margin: 0;
+    font-size: 0.75rem;
+    color: #444;
+}
+
+.evo-legend li { margin-bottom: 4px; }
+
 /* MAPA E TOKENS */
 .tile { position: relative; outline: 1px solid rgba(0,0,0,0.05); display: flex; justify-content: center; align-items: center; font-size: 10px; }
+/* Caminhos absolutos */
 .tile.grass { background-image: url('/assets/img/Terrenos/Grama.jpg'); background-size: 100% 100%; image-rendering: pixelated; }
 .tile.water { background-image: url('/assets/img/Terrenos/Agua.jpg'); background-size: 100% 100%; image-rendering: pixelated; }
 .tile.ground { background-image: url('/assets/img/Terrenos/Areia.jpg'); background-size: 100% 100%; image-rendering: pixelated; }
 .tile.city { background-image: url('/assets/img/PCMart.jpg'); background-size: 100% 100%; image-rendering: pixelated; }
 .tile.event { background-image: url('/assets/img/PokeBolaItem.jpg'); background-size: 100% 100%; image-rendering: pixelated; }
-/* MANTIDO AJUSTE SOLICITADO */
-.tile.gym { background-image: url('/assets/img/Ginasio.jpg'); background-size: 100% 100%; image-rendering: pixelated; border: 2px solid gold; } 
+.tile.gym { background-image: url('/assets/img/Ginasio.jpg'); background-size: 100% 100%; image-rendering: pixelated; border: 2px solid gold; color: white; text-shadow: 0 0 2px #000; font-weight: bold; } 
 .tile.path { background: var(--tile-path); }
 .tile.rocket { background-image: url('/assets/img/NPCs/Rocket.jpg'); background-size: 100% 100%; image-rendering: pixelated; background-position: center; background-repeat: no-repeat; }
 .tile.biker { background-image: url('/assets/img/NPCs/Motoqueiro.jpg'); background-size: 100% 100%; image-rendering: pixelated; background-position: center; background-repeat: no-repeat; }
@@ -173,6 +184,7 @@ body {
 .btn-cards { background: #8e44ad; }
 .btn-run { background: #95a5a6; }
 
+/* Modais */
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; display: none; justify-content: center; align-items: center; }
 .z-high { z-index: 1100; }
 .modal-box { background: #fff; padding: 25px; border-radius: 12px; width: 450px; max-width: 95%; text-align: center; position: relative; box-shadow: 0 0 30px rgba(0,0,0,0.5); }
@@ -188,6 +200,17 @@ body {
 .mon-select-item:hover { background: #f0f0f0; }
 .mon-select-item.disabled { opacity: 0.5; cursor: not-allowed; background: #eee; }
 
+/* Estilos para a Lista de Cartas */
+.card-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; background: #fafafa; border-radius: 5px; margin-bottom: 5px; }
+.card-info { text-align: left; flex: 1; }
+.card-name { font-weight: bold; display: block; }
+.card-desc { font-size: 0.8rem; color: #666; display: block; }
+.card-type-badge { font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; font-weight: bold; margin-left: 5px; color: white; }
+.type-move { background-color: #3498db; }   
+.type-battle { background-color: #e74c3c; } 
+.btn-use-card { background: var(--highlight); color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; margin-left: 10px; }
+.btn-use-card:disabled { background: #ccc; cursor: not-allowed; opacity: 0.6; }
+
 #battle-title { color: #f1c40f; margin-top: 0; text-shadow: 2px 2px 0 #000; }
 .battle-scene { 
     background: linear-gradient(180deg, #70c5ce 0%, #70c5ce 60%, #5a9e5a 60%, #5a9e5a 100%); 
@@ -198,10 +221,7 @@ body {
 .battler { display: flex; flex-direction: column; align-items: center; position: relative; width: 130px; }
 .self-end { align-self: flex-end; } .self-start { align-self: flex-start; }
 
-.battler-images {
-    position: relative; width: 100px; height: 100px;
-    display: flex; justify-content: center; align-items: flex-end;
-}
+.battler-images { position: relative; width: 100px; height: 100px; display: flex; justify-content: center; align-items: flex-end; }
 .pokemon-battle-img { 
     width: 90px; height: 90px; image-rendering: pixelated; 
     filter: drop-shadow(0 5px 5px rgba(0,0,0,0.4)); 
@@ -215,10 +235,9 @@ body {
 .battler.shiny .pokemon-battle-img { filter: hue-rotate(150deg) drop-shadow(0 0 10px gold); }
 @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
 
-/* Indicadores de time */
-.battle-team-indicator { display: flex; gap: 2px; margin-top: 5px; justify-content: center; }
-.ball-icon { width: 12px; height: 12px; border-radius: 50%; background: #e74c3c; border: 1px solid #fff; box-shadow: 0 0 2px #000; }
-.ball-icon.lost { background: #555; opacity: 0.5; }
+.battle-team-indicator { display: flex; gap: 4px; margin-top: 5px; justify-content: center; }
+.ball-icon { width: 10px; height: 10px; border-radius: 50%; background: #e74c3c; border: 1px solid #fff; box-shadow: 0 0 2px #000; }
+.ball-icon.lost { background: #333; opacity: 0.3; }
 
 .hp-container { background: #444; height: 12px; width: 100%; border-radius: 6px; margin-top: 5px; border: 2px solid #fff; }
 .hp-fill { height: 100%; transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
