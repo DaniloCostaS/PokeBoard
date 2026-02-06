@@ -4,7 +4,7 @@ import {
 } from './constants';
 
 import type { 
-    ItemData, CardData, Coord 
+    CardData, Coord 
 } from './constants';
 
 // Declare a lib externa (PeerJS)
@@ -587,7 +587,7 @@ class Game {
             if(Math.random() < 0.5) {
                 Cards.draw(p);
             } else {
-                const itemKeys = Object.keys(SHOP_ITEMS.map(i=>i.id)); 
+                Object.keys(SHOP_ITEMS.map(i=>i.id)); 
                 // Simplificado: Pokeball ou Potion
                 const gift = Math.random() > 0.5 ? 'pokeball' : 'potion';
                 p.items[gift]++;
