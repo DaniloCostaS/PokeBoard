@@ -72,9 +72,9 @@ class Network {
     static conn: any = null;
     static isHost: boolean = false;
     static isOnline: boolean = false;
+    static myPlayerId: number = 0; 
 
     static createRoom() {
-        // Gera código de sala simples (4 letras)
         const roomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
         this.initPeer(roomCode, true);
     }
@@ -88,6 +88,7 @@ class Network {
     static initPeer(id: string, host: boolean) {
         this.isHost = host;
         this.isOnline = true;
+        this.myPlayerId = host ? 0 : 1; 
         
         const fullId = "pkbd-" + id; // Prefixo para evitar colisão
         
@@ -98,7 +99,8 @@ class Network {
             return;
         }
 
-        this.peer.on('open', (myId: string) => {
+        // CORREÇÃO: Usar _myId (underline) para indicar parâmetro não usado (TS fix)
+        this.peer.on('open', (_myId: string) => {
             const displayCode = host ? id : "Conectando...";
             document.getElementById('lobby-status')!.innerHTML = 
                 `Status: ${host ? "HOST (Aguardando...)" : "CLIENT"}<br>Sala: <b>${displayCode}</b>`;
@@ -156,23 +158,10 @@ class Network {
 // ==========================================
 
 class Pokemon {
-    id: number;
-    name: string;
-    type: string;
-    
-    maxHp: number;
-    currentHp: number;
-    atk: number;
-    def: number;
-    speed: number;
-    
-    level: number;
-    currentXp: number;
-    maxXp: number;
-    
-    isShiny: boolean;
-    wins: number;
-    evoData: { next: string | null; trigger?: number };
+    id: number; name: string; type: string;
+    maxHp: number; currentHp: number; atk: number; def: number; speed: number;
+    level: number; currentXp: number; maxXp: number;
+    isShiny: boolean; wins: number; evoData: { next: string | null; trigger?: number };
 
     constructor(templateId: number, isShiny: boolean = false) {
         const template = POKEDEX.find(p => p.id === templateId) || POKEDEX[0];
@@ -228,12 +217,8 @@ class Pokemon {
 }
 
 class Player {
-    id: number;
-    name: string;
-    avatar: string; 
-    x: number = 0;
-    y: number = 0;
-    gold: number = 500;
+    id: number; name: string; avatar: string; 
+    x: number = 0; y: number = 0; gold: number = 500;
     items: { [key: string]: number } = { 'pokeball': 6, 'potion': 1, 'greatball': 0, 'ultraball': 0 };
     cards: CardData[] = [];
     team: Pokemon[] = [];
@@ -241,9 +226,9 @@ class Player {
     constructor(id: number, name: string, avatarFile: string) {
         this.id = id;
         this.name = name;
-        this.avatar = `./src/assets/img/treinadores/${avatarFile}`;
+        // Caminho relativo para a pasta public/assets
+        this.avatar = `./assets/img/Treinadores/${avatarFile}`;
         
-        // Evita criar time se for carregamento de save
         if(name !== "_LOAD_") {
             const starters = [1, 4, 7]; 
             this.team.push(new Pokemon(starters[Math.floor(Math.random()*starters.length)]));
@@ -636,7 +621,7 @@ class Game {
         MapSystem.grid = data.grid || [];
         
         this.players = data.players.map((pData: any) => {
-            const avatarFile = pData.avatar.split('/').pop() || "t1.png";
+            // Removemos a variável avatarFile que não estava sendo usada
             const newP = new Player(pData.id, pData.name, "_LOAD_"); 
             Object.assign(newP, pData);
             newP.team = pData.team.map((tData: any) => {
@@ -715,21 +700,39 @@ class Game {
         area.appendChild(frag);
     }
 
+    // --- CORREÇÃO TUC TUC: SÓ RECRIA QUEM SE MEXEU ---
     static moveVisuals() {
-        document.querySelectorAll('.player-token').forEach(e => e.remove());
         this.players.forEach((p, idx) => {
-            const tile = document.getElementById(`tile-${p.x}-${p.y}`);
-            if(tile) {
-                const t = document.createElement('div');
-                t.className = `player-token ${idx===this.turn?'active-token':''}`;
-                t.style.backgroundImage = `url('${p.avatar}')`;
-                t.style.borderColor = PLAYER_COLORS[idx % PLAYER_COLORS.length];
-                if(MapSystem.size >= 30) { 
-                    t.style.width = '90%'; t.style.height = '90%'; 
-                }
-                tile.appendChild(t);
-                if(idx===this.turn) tile.scrollIntoView({block:'center',inline:'center',behavior:'smooth'});
+            const currentTile = document.getElementById(`tile-${p.x}-${p.y}`);
+            if(!currentTile) return;
+
+            // Busca o token pelo ID único
+            let token = document.getElementById(`p-token-${idx}`);
+
+            // Se o token já existe e está no lugar certo, não faz nada (evita tuc tuc)
+            if (token && token.parentElement === currentTile) {
+                // Atualiza apenas a classe 'active-token' se for a vez dele
+                if(idx === this.turn) token.classList.add('active-token');
+                else token.classList.remove('active-token');
+                return; 
             }
+
+            // Se existe mas está no lugar errado (ou não existe), recria/move
+            if (token) token.remove(); 
+
+            const t = document.createElement('div');
+            t.id = `p-token-${idx}`; // Atribui ID Único
+            t.className = `player-token ${idx===this.turn?'active-token':''}`;
+            t.style.backgroundImage = `url('${p.avatar}')`;
+            t.style.borderColor = PLAYER_COLORS[idx % PLAYER_COLORS.length];
+            
+            if(MapSystem.size >= 30) { 
+                t.style.width = '90%'; t.style.height = '90%'; 
+            }
+            
+            currentTile.appendChild(t);
+            
+            if(idx===this.turn) currentTile.scrollIntoView({block:'center',inline:'center',behavior:'smooth'});
         });
     }
 
@@ -932,25 +935,28 @@ class Setup {
         
         const defaultNames = ["Ash", "Gary", "Misty", "Brock", "May", "Dawn", "Serena", "Goh"];
 
-        // Cria as opções do Select de Avatar
-        const optionsHTML = TRAINER_IMAGES.map((img, idx) => 
+        // CORREÇÃO: Variável não usada removida
+        TRAINER_IMAGES.map((img) => 
             `<option value="${img.file}">${img.label}</option>`
         ).join('');
 
         for(let i=0; i<num; i++) {
             const defaultImg = TRAINER_IMAGES[i % TRAINER_IMAGES.length].file;
             
+            // Recria a lista de opções, selecionando a correta
+            const optionsHTML = TRAINER_IMAGES.map((img) => 
+                `<option value="${img.file}" ${img.file === defaultImg ? 'selected' : ''}>${img.label}</option>`
+            ).join('');
+
             container.innerHTML += `
                 <div class="setup-row">
                     <strong>P${i+1}</strong>
                     <input type="text" id="p${i}-name" value="${defaultNames[i] || 'Player'}" style="width:100px;">
                     
                     <div class="avatar-selection">
-                        <img id="p${i}-preview" src="./src/assets/img/treinadores/${defaultImg}" class="avatar-preview">
+                        <img id="p${i}-preview" src="./assets/img/Treinadores/${defaultImg}" class="avatar-preview">
                         <select id="p${i}-av" onchange="window.Setup.updatePreview(${i})">
-                            ${TRAINER_IMAGES.map((img) => 
-                                `<option value="${img.file}" ${img.file === defaultImg ? 'selected' : ''}>${img.label}</option>`
-                            ).join('')}
+                            ${optionsHTML}
                         </select>
                     </div>
                 </div>
@@ -961,7 +967,7 @@ class Setup {
     static updatePreview(playerId: number) {
         const select = document.getElementById(`p${playerId}-av`) as HTMLSelectElement;
         const img = document.getElementById(`p${playerId}-preview`) as HTMLImageElement;
-        img.src = `./src/assets/img/treinadores/${select.value}`;
+        img.src = `./assets/img/Treinadores/${select.value}`;
     }
 
     static start() {
