@@ -1,5 +1,4 @@
 import './style.css'
-// IMPORTAÇÕES ORGANIZADAS
 import { TILE, NPC_DATA, CARDS_DB, SHOP_ITEMS } from './constants'; 
 import { POKEDEX } from './constants/pokedex';
 import { PLAYER_COLORS } from './constants/playerColors';
@@ -23,9 +22,6 @@ declare global {
     }
 }
 
-// ==========================================
-// REDE
-// ==========================================
 class Network {
     static peer: any = null;
     static conn: any = null;
@@ -55,7 +51,7 @@ class Network {
         this.isHost = host;
         this.isOnline = true;
         this.myPlayerId = host ? 0 : 1; 
-        const fullId = "pkbd-v21-" + id; 
+        const fullId = "pkbd-v22-" + id; // Versão atualizada
         try { this.peer = new Peer(host ? fullId : null); } catch(e) { alert("Erro PeerJS"); return; }
 
         this.peer.on('open', (_id: string) => {
@@ -103,9 +99,7 @@ class Network {
     }
 }
 
-// ==========================================
-// CLASSES (POKEMON / PLAYER)
-// ==========================================
+// ... (Classes Pokemon, Player, MapSystem mantidas iguais) ...
 class Pokemon {
     id: number; name: string; type: string;
     maxHp: number; currentHp: number; atk: number; def: number; speed: number;
@@ -115,10 +109,8 @@ class Pokemon {
     constructor(templateId: number, isShiny: boolean = false) {
         const template = POKEDEX.find(p => p.id === templateId) || POKEDEX[0];
         this.id = template.id; this.name = template.name; this.isShiny = isShiny;
-        // Prioriza o tipo do POKEDEX, senão usa o fallback manual POKEMON_TYPES
         this.type = template.type || POKEMON_TYPES[this.name] || 'Normal';
         this.level = 5; this.currentXp = 0; this.maxXp = 100;
-        
         const bonus = isShiny ? 1.2 : 1.0;
         this.maxHp = Math.floor((template.hp + 20) * bonus); this.currentHp = this.maxHp;
         this.atk = Math.floor((template.atk + 5) * bonus);
@@ -198,7 +190,7 @@ class MapSystem {
 }
 
 // ==========================================
-// BATALHA & UI REVISADA
+// BATALHA
 // ==========================================
 class Battle {
     static active: boolean = false;
@@ -342,6 +334,7 @@ class Battle {
     static calculateDamage(attacker: Pokemon, defender: Pokemon): { dmg: number, multiplier: number } {
         let raw = attacker.atk * (0.8 + Math.random()*0.4);
         let mul = 1;
+        // Usa TYPE_CHART importado
         if (TYPE_CHART[attacker.type] && TYPE_CHART[attacker.type][defender.type] !== undefined) mul = TYPE_CHART[attacker.type][defender.type];
         let dmg = Math.max(1, Math.floor((raw * mul) - (defender.def * 0.5)));
         return { dmg, multiplier: mul };
@@ -415,7 +408,6 @@ class Battle {
                 this.enemyPlayer.skipTurn = true;
                 msg += `Inimigo falido! Ganhou 100G e ele perde a vez!`;
             }
-            // Punição de derrota total pro inimigo
             this.enemyPlayer.x = 0; this.enemyPlayer.y = 0;
             this.enemyPlayer.team.forEach(p => p.heal(999));
             this.enemyPlayer.skipTurn = true;
@@ -448,7 +440,6 @@ class Battle {
         this.player!.gold = Math.max(0, this.player!.gold - 100);
         this.player!.team.forEach(p => p.heal(999));
         
-        // PUNIÇÃO DE DERROTA
         this.player!.x = 0; 
         this.player!.y = 0;
         this.player!.skipTurn = true;
@@ -514,16 +505,59 @@ class Battle {
         }
     }
 
-    static useCard() { 
-        const card = this.player!.cards.find(c => c.type === 'battle');
-        if(!card) return alert("Sem cartas de batalha!");
+    // --- NOVA LÓGICA DE CARTAS DE BATALHA ---
+    static openCardSelection() {
+        const list = document.getElementById('battle-cards-list')!;
+        list.innerHTML = '';
+        const battleCards = this.player!.cards.filter(c => c.type === 'battle');
         
+        if(battleCards.length === 0) {
+            list.innerHTML = "<em>Sem cartas de batalha.</em>";
+        } else {
+            battleCards.forEach(c => {
+                const d = document.createElement('div'); d.className='card-item';
+                d.innerHTML = `
+                    <div class="card-info">
+                        <span class="card-name">${c.icon} ${c.name}</span>
+                        <span class="card-desc">${c.desc}</span>
+                        <span class="card-type-badge type-battle">BATTLE</span>
+                    </div>
+                    <button class="btn-use-card" onclick="window.Battle.useCard('${c.id}')">USAR</button>
+                `;
+                list.appendChild(d);
+            });
+        }
+        document.getElementById('battle-cards-modal')!.style.display = 'flex';
+    }
+
+    static useCard(cardId: string) { 
+        document.getElementById('battle-cards-modal')!.style.display = 'none';
+        const cardIndex = this.player!.cards.findIndex(c => c.id === cardId);
+        if(cardIndex === -1) return;
+        const card = this.player!.cards[cardIndex];
+
+        // Efeitos
         if (card.id === 'run') {
-            this.player!.cards.splice(this.player!.cards.indexOf(card), 1);
+            // Se for carta de fuga, permite fugir mesmo em PvP/Gym
+            this.player!.cards.splice(cardIndex, 1);
             this.log("Usou Carta de Fuga!");
             this.end(false);
+        } else if (card.id === 'crit') {
+            this.player!.cards.splice(cardIndex, 1);
+            this.activeCard = 'crit';
+            this.log("Usou Ataque Crítico! Próximo ataque x2.");
+        } else if (card.id === 'master') {
+             // Masterball só funciona em selvagem
+             if(this.isPvP || this.isNPC || this.isGym) {
+                 alert("Masterball falha contra treinadores!");
+                 return;
+             }
+             this.player!.cards.splice(cardIndex, 1);
+             this.activeCard = 'master';
+             this.log("Usou Masterball! Captura garantida.");
         } else {
-            this.player!.cards.splice(this.player!.cards.indexOf(card), 1);
+            // Genérico
+            this.player!.cards.splice(cardIndex, 1);
             this.activeCard = card.id;
             this.log(`Usou ${card.name}!`);
         }
@@ -565,18 +599,7 @@ class Cards {
         Game.log(`Ganhou carta: ${card.icon} ${card.name}`);
         Game.updateHUD();
     }
-    static showPlayerCards(playerId: number) {
-        const p = Game.players[playerId];
-        const list = document.getElementById('board-cards-list')!;
-        list.innerHTML = '';
-        if(p.cards.length === 0) list.innerHTML = "<em>Sem cartas.</em>";
-        p.cards.forEach(c => {
-            const d = document.createElement('div'); d.className='shop-item';
-            d.innerHTML = `<span>${c.icon} ${c.name}</span> <small>${c.desc}</small>`;
-            list.appendChild(d);
-        });
-        document.getElementById('board-cards-modal')!.style.display = 'flex';
-    }
+    // Função genérica de visualização
 }
 
 // ==========================================
@@ -586,6 +609,7 @@ class Game {
     static players: Player[] = [];
     static turn: number = 0;
     static isCityEvent: boolean = false; 
+    static hasRolled: boolean = false; // Controle de turno
 
     static init(players: Player[], mapSize: number) {
         this.players = players;
@@ -599,22 +623,116 @@ class Game {
         const container = document.querySelector('.extra-space');
         if(container) {
             container.innerHTML = `
-                <div style="font-size:0.7rem; color:#aaa; margin-bottom:5px;">DEBUG MOVE</div>
+                <button class="btn btn-secondary" onclick="window.Game.openCardLibrary()">📖 Biblioteca de Cartas</button>
+                
+                <div style="margin-top:10px; font-size:0.7rem; color:#aaa;">DEBUG MOVE</div>
                 <div style="display:flex; gap:5px; justify-content:center;">
                     <input type="number" id="debug-input" value="1" min="1" max="50" style="width:50px; text-align:center; border:none; padding:5px; border-radius:4px;">
                     <button class="btn" style="width:auto; margin:0; padding:5px 10px;" onclick="window.Game.debugMove()">GO</button>
                 </div>
-                <div style="margin-top:10px;"><small id="online-indicator" style="color:cyan;">OFFLINE</small></div>
+                <div style="margin-top:5px;"><small id="online-indicator" style="color:cyan;">OFFLINE</small></div>
             `;
         }
     }
 
+    // --- VISUALIZADOR DE TODAS AS CARTAS ---
+    static openCardLibrary() {
+        const list = document.getElementById('library-list')!;
+        list.innerHTML = '';
+        CARDS_DB.forEach(c => {
+            const d = document.createElement('div'); d.className = 'card-item';
+            const typeClass = c.type === 'move' ? 'type-move' : 'type-battle';
+            const typeLabel = c.type === 'move' ? 'MOVE' : 'BATTLE';
+            
+            d.innerHTML = `
+                <div class="card-info">
+                    <span class="card-name">${c.icon} ${c.name} <span class="card-type-badge ${typeClass}">${typeLabel}</span></span>
+                    <span class="card-desc">${c.desc}</span>
+                </div>
+            `;
+            list.appendChild(d);
+        });
+        document.getElementById('library-modal')!.style.display = 'flex';
+    }
+
+    // --- CARTAS NO BOARD (TIPO MOVE) ---
+    static openBoardCards(pId: number) {
+        // Validação: Só o dono do turno pode ver/usar antes de rolar
+        if(Network.isOnline && pId !== Network.myPlayerId) return alert("Privado!");
+        
+        const p = this.players[pId];
+        const list = document.getElementById('board-cards-list')!;
+        list.innerHTML = '';
+        
+        if(p.cards.length === 0) list.innerHTML = "<em>Sem cartas.</em>";
+        
+        const isMyTurn = this.canAct() && this.turn === pId;
+        const canUseMove = isMyTurn && !this.hasRolled;
+
+        p.cards.forEach(c => {
+            const d = document.createElement('div'); d.className = 'card-item';
+            const typeClass = c.type === 'move' ? 'type-move' : 'type-battle';
+            const typeLabel = c.type === 'move' ? 'MOVE' : 'BATTLE';
+            
+            let actionBtn = '';
+            // Só habilita botão se for tipo MOVE e ainda não rolou o dado
+            if (c.type === 'move') {
+                if (canUseMove) {
+                    actionBtn = `<button class="btn-use-card" onclick="window.Game.useBoardCard('${c.id}')">USAR</button>`;
+                } else {
+                    actionBtn = `<button class="btn-use-card" disabled title="Só antes de rolar">USAR</button>`;
+                }
+            } else {
+                actionBtn = `<button class="btn-use-card" disabled style="background:#555" title="Só em batalha">BATTLE</button>`;
+            }
+
+            d.innerHTML = `
+                <div class="card-info">
+                    <span class="card-name">${c.icon} ${c.name} <span class="card-type-badge ${typeClass}">${typeLabel}</span></span>
+                    <span class="card-desc">${c.desc}</span>
+                </div>
+                ${actionBtn}
+            `;
+            list.appendChild(d);
+        });
+        document.getElementById('board-cards-modal')!.style.display = 'flex';
+    }
+
+    static useBoardCard(cardId: string) {
+        const p = this.getCurrentPlayer();
+        const cardIndex = p.cards.findIndex(c => c.id === cardId);
+        if (cardIndex === -1) return;
+        const card = p.cards[cardIndex];
+
+        // Lógica de cartas de movimento (Exemplos genéricos)
+        if (card.id === 'bike') {
+            // Exemplo: Anda 5 casas
+            p.cards.splice(cardIndex, 1);
+            document.getElementById('board-cards-modal')!.style.display = 'none';
+            this.log(`${p.name} usou Bicicleta!`);
+            Network.send('ROLL_DICE', { result: 5 }); 
+            this.hasRolled = true; // Impede rolar de novo
+            this.animateDice(5);
+        } else if (card.id === 'teleport') {
+            // Exemplo: Vai pro CP
+            p.cards.splice(cardIndex, 1);
+            document.getElementById('board-cards-modal')!.style.display = 'none';
+            this.log(`${p.name} usou Teleporte!`);
+            p.x = 0; p.y = 0;
+            this.moveVisuals();
+            this.handleTile(p); // Processa tile 0
+        } else {
+            alert("Efeito não implementado na demo.");
+        }
+    }
+
     static debugMove() {
-        if(!this.canAct()) return;
+        if(!this.canAct() || this.hasRolled) return;
         const input = document.getElementById('debug-input') as HTMLInputElement;
         const result = parseInt(input.value) || 1;
         this.log(`[DEBUG] Forçando ${result} passos.`);
         Network.send('ROLL_DICE', { result }); 
+        this.hasRolled = true;
         this.animateDice(result);
     }
 
@@ -641,7 +759,8 @@ class Game {
     }
 
     static async rollDice() {
-        if(!this.canAct()) return;
+        if(!this.canAct() || this.hasRolled) return;
+        this.hasRolled = true; // Bloqueia novas rolagens ou cartas de move
         const result = Math.floor(Math.random()*20)+1;
         Network.send('ROLL_DICE', { result });
         this.animateDice(result);
@@ -747,6 +866,7 @@ class Game {
     static nextTurn() {
         this.saveGame();
         this.turn = (this.turn+1)%this.players.length;
+        this.hasRolled = false; // RESETA O ESTADO PARA O PRÓXIMO PLAYER
         
         const nextP = this.players[this.turn];
         if(nextP.skipTurn) {
@@ -762,6 +882,7 @@ class Game {
         this.checkTurnControl();
     }
 
+    // ... (Métodos checkTurnControl, canAct, save/load, export/import iguais) ...
     static checkTurnControl() {
         const btn = document.getElementById('roll-btn') as HTMLButtonElement;
         const me = Network.myPlayerId;
@@ -823,7 +944,7 @@ class Game {
         const p = this.players[pId];
         const list = document.getElementById('board-inventory-list')!;
         list.innerHTML = '';
-        const canUse = (this.canAct() && this.turn === pId);
+        const canUse = (this.canAct() && this.turn === pId && !this.hasRolled);
 
         Object.keys(p.items).forEach(key => {
             if(p.items[key] > 0) {
@@ -915,7 +1036,6 @@ class Game {
                 else if(t===TILE.ROCKET)c='rocket'; else if(t===TILE.BIKER)c='biker'; else if(t===TILE.YOUNG)c='young'; else if(t===TILE.OLD)c='old';
                 d.className = `tile ${c}`; d.id = `tile-${x}-${y}`;
                 if(MapSystem.size>=30)d.style.fontSize='8px';
-                // Mostra numero do Ginasio
                 if(t===TILE.GYM) {
                     const gid = MapSystem.gymLocations[`${x},${y}`];
                     d.innerHTML = gid ? gid.toString() : '';
@@ -956,6 +1076,6 @@ class Setup {
 
 // BINDING GLOBAL ATUALIZADO
 window.openInventory = (id) => Game.openInventoryModal(id);
-window.openCards = (id) => { if(Network.isOnline && id !== Network.myPlayerId) return alert("Privado!"); Cards.showPlayerCards(id); };
+window.openCards = (id) => Game.openBoardCards(id);
 window.Setup = Setup; window.Game = Game; window.Shop = Shop; window.Battle = Battle; window.Network = Network;
 Setup.updateSlots();

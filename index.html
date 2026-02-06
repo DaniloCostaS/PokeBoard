@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PokéBoard V21 - Full RPG</title>
+    <title>PokéBoard V22 - Card System</title>
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
 </head>
 <body>
 
     <div id="setup-screen">
-        <h1 class="title-highlight">PokéBoard V21</h1>
+        <h1 class="title-highlight">PokéBoard - Beta</h1>
         <p class="subtitle">Tactics Edition</p>
         
         <div id="menu-phase-1">
@@ -76,15 +76,17 @@
                 <div id="d20-display">🎲 20</div>
                 <button id="roll-btn" class="btn btn-roll" onclick="window.Game.rollDice()">ROLAR</button>
             </div>
+            
             <div class="panel-box extra-space">
-                <small id="online-indicator" style="color:cyan;">OFFLINE</small>
-            </div>
+                </div>
         </div>
+
         <div id="center-stage">
             <div id="hud-col-left" class="hud-column"></div>
             <div id="board-wrapper"><div id="board-area"></div></div>
             <div id="hud-col-right" class="hud-column"></div>
         </div>
+
         <div id="right-panel">
             <div class="panel-header">📟 Log de Batalha</div>
             <div id="log-container"></div>
@@ -121,9 +123,27 @@
 
     <div id="board-cards-modal" class="modal-overlay">
         <div class="modal-box">
-            <h3>🃏 Minhas Cartas</h3>
+            <h3>🃏 Minhas Cartas (Tabuleiro)</h3>
+            <p style="font-size:0.8rem; color:#666;">Apenas cartas do tipo <b>Move</b> podem ser usadas aqui.</p>
             <div id="board-cards-list" class="scroll-list"></div>
             <button class="btn btn-secondary mt-15" onclick="document.getElementById('board-cards-modal').style.display='none'">Fechar</button>
+        </div>
+    </div>
+
+    <div id="library-modal" class="modal-overlay">
+        <div class="modal-box" style="width: 500px;">
+            <h3>📖 Biblioteca de Cartas</h3>
+            <p style="font-size:0.8rem; color:#666;">Lista de todas as cartas existentes no jogo.</p>
+            <div id="library-list" class="scroll-list" style="max-height: 300px;"></div>
+            <button class="btn btn-secondary mt-15" onclick="document.getElementById('library-modal').style.display='none'">Fechar</button>
+        </div>
+    </div>
+
+    <div id="battle-cards-modal" class="modal-overlay" style="z-index: 1200;">
+        <div class="modal-box">
+            <h3>🃏 Cartas de Batalha</h3>
+            <div id="battle-cards-list" class="scroll-list"></div>
+            <button class="btn btn-secondary mt-15" onclick="document.getElementById('battle-cards-modal').style.display='none'">Cancelar</button>
         </div>
     </div>
 
@@ -163,7 +183,7 @@
             <div class="battle-actions">
                 <button class="btn btn-attack" onclick="window.Battle.attack()">⚔️ Atacar</button>
                 <button class="btn btn-items" onclick="window.Battle.openBag()">🎒 Itens</button>
-                <button class="btn btn-cards" onclick="window.Battle.useCard()">🃏 Cartas</button>
+                <button class="btn btn-cards" onclick="window.Battle.openCardSelection()">🃏 Cartas</button>
                 <button id="btn-run" class="btn btn-run" onclick="window.Battle.run()">🏃 Fugir</button>
             </div>
 
