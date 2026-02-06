@@ -1,48 +1,15 @@
 import './style.css'
-import { 
-    TILE, NPC_DATA, CARDS_DB, POKEDEX, SHOP_ITEMS 
-} from './constants';
+// IMPORTAÇÕES ORGANIZADAS
+import { TILE, NPC_DATA, CARDS_DB, SHOP_ITEMS } from './constants'; 
+import { POKEDEX } from './constants/pokedex';
+import { PLAYER_COLORS } from './constants/playerColors';
+import { TRAINER_IMAGES } from './constants/trainerImages';
+import { POKEMON_TYPES } from './constants/pokemonTypes';
+import { TYPE_CHART } from './constants/typeChart';
 
-import type { 
-    ItemData, CardData, Coord 
-} from './constants';
+import type { ItemData, CardData, Coord } from './constants';
 
 declare const Peer: any;
-
-const PLAYER_COLORS = [
-    '#e74c3c', '#3498db', '#f1c40f', '#9b59b6', 
-    '#1abc9c', '#e67e22', '#34495e', '#ff7979'
-];
-
-const TRAINER_IMAGES = [
-    { label: "Red", file: "Red.jpg" },
-    { label: "Blue", file: "Blue.jpg" },
-    { label: "Lucas", file: "Lucas.jpg"},
-    { label: "Dawn", file: "Dawn.jpg" },
-    { label: "Barry", file: "Barry.jpg" },
-    { label: "Brendan", file: "Brendan.jpg"},
-    { label: "May", file: "May.jpg" },
-    { label: "Ethan", file: "Ethan.jpg" },
-    { label: "OAK", file: "OAK.jpg" }
-];
-
-const POKEMON_TYPES: {[key: string]: string} = {
-    'Charmander': 'fire', 'Charmeleon': 'fire', 'Charizard': 'fire', 'Vulpix': 'fire', 'Growlithe': 'fire',
-    'Squirtle': 'water', 'Wartortle': 'water', 'Blastoise': 'water', 'Psyduck': 'water', 'Poliwag': 'water',
-    'Bulbasaur': 'grass', 'Ivysaur': 'grass', 'Venusaur': 'grass', 'Oddish': 'grass', 'Bellsprout': 'grass',
-    'Pikachu': 'electric', 'Raichu': 'electric', 'Magnemite': 'electric', 'Voltorb': 'electric',
-    'Geodude': 'ground', 'Graveler': 'ground', 'Golem': 'ground', 'Onix': 'ground',
-    'Pidgey': 'normal', 'Rattata': 'normal', 'Meowth': 'normal', 'Eevee': 'normal'
-};
-
-const TYPE_CHART: {[key: string]: {[key: string]: number}} = {
-    'fire': { 'grass': 2, 'water': 0.5, 'rock': 0.5, 'bug': 2, 'ice': 2 },
-    'water': { 'fire': 2, 'grass': 0.5, 'ground': 2, 'rock': 2 },
-    'grass': { 'water': 2, 'fire': 0.5, 'ground': 2, 'flying': 0.5, 'rock': 2 },
-    'electric': { 'water': 2, 'grass': 0.5, 'ground': 0, 'flying': 2 },
-    'ground': { 'fire': 2, 'electric': 2, 'grass': 0.5, 'flying': 0, 'rock': 2 },
-    'normal': { 'ghost': 0 }
-};
 
 declare global {
     interface Window {
@@ -148,7 +115,8 @@ class Pokemon {
     constructor(templateId: number, isShiny: boolean = false) {
         const template = POKEDEX.find(p => p.id === templateId) || POKEDEX[0];
         this.id = template.id; this.name = template.name; this.isShiny = isShiny;
-        this.type = POKEMON_TYPES[this.name] || 'normal';
+        // Prioriza o tipo do POKEDEX, senão usa o fallback manual POKEMON_TYPES
+        this.type = template.type || POKEMON_TYPES[this.name] || 'Normal';
         this.level = 5; this.currentXp = 0; this.maxXp = 100;
         
         const bonus = isShiny ? 1.2 : 1.0;
@@ -165,7 +133,7 @@ class Pokemon {
         if (this.evoData.next && this.wins >= (this.evoData.trigger || 999)) {
             const next = POKEDEX.find(p => p.name === this.evoData.next);
             if (next) {
-                this.id = next.id; this.name = next.name; this.type = POKEMON_TYPES[this.name] || this.type;
+                this.id = next.id; this.name = next.name; this.type = next.type;
                 this.maxHp+=30; this.currentHp=this.maxHp; this.atk+=10; this.def+=10; this.speed+=5;
                 this.evoData = { next: next.nextForm, trigger: next.evoTrigger };
                 return true;
@@ -191,7 +159,10 @@ class Player {
             this.team.push(new Pokemon(starters[Math.floor(Math.random()*starters.length)]));
         }
     }
-    isDefeated() { return this.team.every(p => p.isFainted()); }
+    isDefeated() { 
+        const battleTeam = this.getBattleTeam();
+        return battleTeam.length === 0 || battleTeam.every(p => p.isFainted());
+    }
     getBattleTeam() { return this.team.filter(p => !p.isFainted()).slice(0, 3); }
 }
 
@@ -247,10 +218,10 @@ class Battle {
     static setup(player: Player, enemyMon: Pokemon, isPvP: boolean = false, _label: string = "", reward: number = 0, enemyPlayer: Player | null = null, isGym: boolean = false, gymId: number = 0) {
         this.player = player; this.isPvP = isPvP; this.isNPC = (reward > 0 && !isPvP);
         this.isGym = isGym; this.gymId = gymId; this.reward = reward; this.activeCard = null; this.enemyPlayer = enemyPlayer;
-        this.plyTeamList = player.getBattleTeam();
+        this.plyTeamList = player.getBattleTeam().slice(0, 3);
         
         if (isPvP && enemyPlayer) {
-            this.oppTeamList = enemyPlayer.getBattleTeam();
+            this.oppTeamList = enemyPlayer.getBattleTeam().slice(0, 3);
             this.opponent = this.oppTeamList[0];
         } else if (isGym) {
             this.oppTeamList = [enemyMon, new Pokemon(enemyMon.id + 1), new Pokemon(enemyMon.id + 2)];
@@ -258,6 +229,13 @@ class Battle {
         } else {
             this.oppTeamList = [enemyMon]; this.opponent = enemyMon;
         }
+        
+        if(this.plyTeamList.length === 0) {
+            alert("Você não tem Pokémons vivos!");
+            Battle.lose();
+            return;
+        }
+
         this.openSelectionModal("Escolha seu Pokémon!");
     }
 
@@ -300,7 +278,7 @@ class Battle {
     static renderBattleScreen() { 
         document.getElementById('battle-modal')!.style.display = 'flex'; 
         const btnRun = document.getElementById('btn-run') as HTMLButtonElement;
-        if (this.isPvP || this.isNPC || this.isGym) { btnRun.disabled = true; btnRun.title = "Bloqueado!"; } 
+        if (this.isPvP || this.isGym) { btnRun.disabled = true; btnRun.title = "Use uma Carta de Fuga!"; } 
         else { btnRun.disabled = false; btnRun.title = ""; }
         this.updateUI(); 
     }
@@ -315,10 +293,10 @@ class Battle {
     static updateUI() {
         if(!this.activeMon || !this.opponent) return;
         
+        // Player
         document.getElementById('ply-name')!.innerText = this.activeMon.name;
         document.getElementById('ply-lvl')!.innerText = `Lv.${this.activeMon.level}`;
         (document.getElementById('ply-img') as HTMLImageElement).src = this.activeMon.getSprite();
-        
         const plyPct = (this.activeMon.currentHp/this.activeMon.maxHp)*100;
         const plyBar = document.getElementById('ply-hp')!;
         plyBar.style.width = plyPct + "%";
@@ -326,10 +304,10 @@ class Battle {
         document.getElementById('ply-hp-text')!.innerText = `${this.activeMon.currentHp}/${this.activeMon.maxHp}`;
         (document.getElementById('ply-trainer-img') as HTMLImageElement).src = this.player!.avatar;
 
+        // Oponente
         document.getElementById('opp-name')!.innerText = this.opponent.name;
         document.getElementById('opp-lvl')!.innerText = `Lv.${this.opponent.level}`;
         (document.getElementById('opp-img') as HTMLImageElement).src = this.opponent.getSprite();
-        
         const oppPct = (this.opponent.currentHp/this.opponent.maxHp)*100;
         const oppBar = document.getElementById('opp-hp')!;
         oppBar.style.width = oppPct + "%";
@@ -341,6 +319,7 @@ class Battle {
         else if (this.isGym || this.isNPC) { oppTrainer.src = '/assets/img/Treinadores/Red.jpg'; oppTrainer.style.display = 'block'; } 
         else { oppTrainer.style.display = 'none'; }
 
+        // Indicadores
         if(!this.isNPC && !this.isGym && !this.isPvP) {
             document.getElementById('ply-team-indicator')!.innerHTML = ''; document.getElementById('opp-team-indicator')!.innerHTML = '';
         } else {
@@ -436,7 +415,7 @@ class Battle {
                 this.enemyPlayer.skipTurn = true;
                 msg += `Inimigo falido! Ganhou 100G e ele perde a vez!`;
             }
-            // Inimigo também sofre penalidade de derrota total
+            // Punição de derrota total pro inimigo
             this.enemyPlayer.x = 0; this.enemyPlayer.y = 0;
             this.enemyPlayer.team.forEach(p => p.heal(999));
             this.enemyPlayer.skipTurn = true;
@@ -465,17 +444,17 @@ class Battle {
     }
 
     static lose() {
-        // DERROTA TOTAL: Volta ao início, cura tudo, perde a vez
         let msg = "DERROTA... ";
         this.player!.gold = Math.max(0, this.player!.gold - 100);
         this.player!.team.forEach(p => p.heal(999));
         
+        // PUNIÇÃO DE DERROTA
         this.player!.x = 0; 
         this.player!.y = 0;
         this.player!.skipTurn = true;
 
         if (this.isPvP && this.enemyPlayer) {
-            this.enemyPlayer.team[0].currentXp += 100; // XP pro Vencedor (Defensor)
+            this.enemyPlayer.team[0].currentXp += 100; 
             msg += ` ${this.enemyPlayer.name} ganhou XP!`;
         } 
 
@@ -936,6 +915,11 @@ class Game {
                 else if(t===TILE.ROCKET)c='rocket'; else if(t===TILE.BIKER)c='biker'; else if(t===TILE.YOUNG)c='young'; else if(t===TILE.OLD)c='old';
                 d.className = `tile ${c}`; d.id = `tile-${x}-${y}`;
                 if(MapSystem.size>=30)d.style.fontSize='8px';
+                // Mostra numero do Ginasio
+                if(t===TILE.GYM) {
+                    const gid = MapSystem.gymLocations[`${x},${y}`];
+                    d.innerHTML = gid ? gid.toString() : '';
+                }
                 area.appendChild(d);
             }
         }
