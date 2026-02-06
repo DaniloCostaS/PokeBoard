@@ -4,13 +4,11 @@ import {
 } from './constants';
 
 import type { 
-    CardData, Coord 
+    ItemData, CardData, Coord 
 } from './constants';
 
-// Declare a lib externa (PeerJS)
 declare const Peer: any;
 
-// --- CONSTANTES ---
 const PLAYER_COLORS = [
     '#e74c3c', '#3498db', '#f1c40f', '#9b59b6', 
     '#1abc9c', '#e67e22', '#34495e', '#ff7979'
@@ -67,15 +65,22 @@ class Network {
     static isHost: boolean = false;
     static isOnline: boolean = false;
     static myPlayerId: number = 0; 
+    static localName: string = "";
 
     static createRoom() {
+        const nameInput = document.getElementById('online-player-name') as HTMLInputElement;
+        if(!nameInput.value) return alert("Digite seu nome primeiro!");
+        this.localName = nameInput.value;
         const roomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
         this.initPeer(roomCode, true);
     }
 
     static joinRoom() {
+        const nameInput = document.getElementById('online-player-name') as HTMLInputElement;
+        if(!nameInput.value) return alert("Digite seu nome primeiro!");
+        this.localName = nameInput.value;
         const code = (document.getElementById('room-code-input') as HTMLInputElement).value.toUpperCase();
-        if(!code) return alert("Digite o código!");
+        if(!code) return alert("Digite o código da sala!");
         this.initPeer(code, false);
     }
 
@@ -83,19 +88,16 @@ class Network {
         this.isHost = host;
         this.isOnline = true;
         this.myPlayerId = host ? 0 : 1; 
-        const fullId = "pkbd-v17-" + id;
+        const fullId = "pkbd-v19-" + id; 
         try { this.peer = new Peer(host ? fullId : null); } catch(e) { alert("Erro PeerJS"); return; }
 
-        this.peer.on('open', (_myId: string) => {
-            const displayCode = host ? id : "Conectando...";
+        this.peer.on('open', (_id: string) => {
             document.getElementById('lobby-status')!.innerHTML = 
-                `Status: ${host ? "HOST" : "CLIENT"}<br>Sala: <b>${displayCode}</b>`;
+                `Status: ${host ? "HOST" : "CLIENT"}<br>Sala: <b>${host ? id : "Conectando..."}</b>`;
             
             if(host) {
                 this.peer.on('connection', (c: any) => {
                     this.conn = c; this.setupConnection();
-                    document.getElementById('lobby-status')!.innerHTML += "<br>⚡ Conectado!";
-                    Setup.showSetupScreen();
                 });
             } else {
                 this.conn = this.peer.connect(fullId); this.setupConnection();
@@ -107,7 +109,7 @@ class Network {
 
     static setupConnection() {
         this.conn.on('open', () => {
-            if(!this.isHost) document.getElementById('lobby-status')!.innerHTML = "Conectado! Aguarde...";
+            this.send('HANDSHAKE', { name: this.localName });
         });
         this.conn.on('data', (data: any) => this.handleData(data));
     }
@@ -124,8 +126,12 @@ class Network {
 
     static handleData(data: any) {
         switch(data.type) {
-            case 'GAME_STATE': Game.loadGameFromData(data.payload); break;
-            case 'FULL_STATE': Game.loadGameFromData(data.payload); break;
+            case 'HANDSHAKE':
+                document.getElementById('lobby-status')!.innerHTML += `<br>🤝 Oponente: ${data.payload.name}`;
+                if(this.isHost) Setup.showSetupScreen();
+                else document.getElementById('lobby-status')!.innerHTML = `Conectado a ${data.payload.name}! Aguardando Host...`;
+                break;
+            case 'GAME_STATE': case 'FULL_STATE': Game.loadGameFromData(data.payload); break;
             case 'ROLL_DICE': Game.animateDice(data.payload.result); break;
             case 'MOVE_STEP': Game.performVisualStep(data.payload.playerId, data.payload.x, data.payload.y); break;
             case 'TURN_CHANGE': 
@@ -185,7 +191,7 @@ class Player {
     x: number = 0; y: number = 0; gold: number = 500;
     items: {[key:string]:number} = {'pokeball':6, 'potion':1};
     cards: CardData[] = []; team: Pokemon[] = [];
-    skipTurn: boolean = false; // NOVO: Flag para pular turno
+    skipTurn: boolean = false; 
 
     constructor(id: number, name: string, avatarFile: string) {
         this.id = id; this.name = name;
@@ -231,7 +237,7 @@ class Battle {
     static player: Player | null = null;
     static activeMon: Pokemon | null = null; 
     static opponent: Pokemon | null = null;
-    static enemyPlayer: Player | null = null; // NOVO: Para saber quem é o dono no PvP
+    static enemyPlayer: Player | null = null; 
     static isPvP: boolean = false;
     static isNPC: boolean = false; 
     static activeCard: string | null = null;
@@ -261,8 +267,8 @@ class Battle {
     static startRound(selectedMon: Pokemon) {
         this.active = true; this.activeMon = selectedMon;
         this.renderBattleScreen();
-        // Serializa enemyPlayer ID se existir
         const enemyId = this.enemyPlayer ? this.enemyPlayer.id : -1;
+        // Serializa dados do oponente para enviar pela rede
         Network.send('BATTLE_START', {
             pId: this.player!.id, monIdx: this.player!.team.indexOf(this.activeMon),
             oppData: this.opponent, isPvP: this.isPvP, reward: this.reward, enemyId
@@ -284,13 +290,34 @@ class Battle {
 
     static updateUI() {
         if(!this.activeMon || !this.opponent) return;
+        
+        // --- JOGADOR (VOCÊ/ATACANTE) ---
         document.getElementById('ply-name')!.innerText = this.activeMon.name;
         (document.getElementById('ply-img') as HTMLImageElement).src = this.activeMon.getSprite();
         document.getElementById('ply-hp')!.style.width = (this.activeMon.currentHp/this.activeMon.maxHp)*100 + "%";
-        
+        document.getElementById('ply-hp-text')!.innerText = `${this.activeMon.currentHp}/${this.activeMon.maxHp}`;
+        // Imagem do Treinador (Só aparece se for player)
+        const plyTrainer = document.getElementById('ply-trainer-img') as HTMLImageElement;
+        plyTrainer.src = this.player!.avatar;
+        plyTrainer.style.display = 'block';
+
+        // --- OPONENTE ---
         document.getElementById('opp-name')!.innerText = this.opponent.name;
         (document.getElementById('opp-img') as HTMLImageElement).src = this.opponent.getSprite();
         document.getElementById('opp-hp')!.style.width = (this.opponent.currentHp/this.opponent.maxHp)*100 + "%";
+        document.getElementById('opp-hp-text')!.innerText = `${this.opponent.currentHp}/${this.opponent.maxHp}`;
+        // Imagem Treinador Inimigo (Só se for PvP ou NPC conhecido)
+        const oppTrainer = document.getElementById('opp-trainer-img') as HTMLImageElement;
+        if(this.isPvP && this.enemyPlayer) {
+            oppTrainer.src = this.enemyPlayer.avatar;
+            oppTrainer.style.display = 'block';
+        } else if (this.isNPC) {
+            // Se for NPC, não temos avatar fácil aqui, então ocultamos ou pomos genérico
+            oppTrainer.style.display = 'none'; 
+        } else {
+            // Selvagem
+            oppTrainer.style.display = 'none';
+        }
     }
 
     static updateFromNetwork(payload: any) {
@@ -359,26 +386,18 @@ class Battle {
         if(Network.isOnline && Game.turn !== Network.myPlayerId && Network.myPlayerId !== 0) return;
         
         let gain = 0;
-        
-        // --- LÓGICA PVP REVISADA ---
         if(this.isPvP && this.enemyPlayer) {
             if(this.enemyPlayer.gold > 0) {
-                // Ganha 30% do inimigo
                 gain = Math.floor(this.enemyPlayer.gold * 0.3);
                 this.enemyPlayer.gold -= gain;
                 Game.log(`Roubou ${gain}G de ${this.enemyPlayer.name}!`);
             } else {
-                // Inimigo falido: ganha 100G do jogo e inimigo perde turno
                 gain = 100;
                 this.enemyPlayer.skipTurn = true;
-                Game.log(`${this.enemyPlayer.name} está falido e pulará o turno!`);
-                alert(`${this.enemyPlayer.name} pulará a próxima rodada!`);
+                Game.log(`${this.enemyPlayer.name} faliu e pulará a vez!`);
             }
-        } else if (this.isNPC) {
-            gain = this.reward;
-        } else {
-            gain = 150; // Selvagem
-        }
+        } else if (this.isNPC) { gain = this.reward; } 
+        else { gain = 150; }
 
         this.player!.gold += gain;
         this.activeMon!.currentXp += 50;
@@ -404,8 +423,52 @@ class Battle {
         if(!isRemote) { Network.send('BATTLE_END', {}); Game.nextTurn(); }
     }
 
-    static openBag() { /* ... */ }
-    static useCard() { /* ... */ }
+    // --- MÉTODOS DE MOCHILA NA BATALHA ---
+    static openBag() { 
+        const list = document.getElementById('battle-bag-list')!; list.innerHTML = '';
+        Object.keys(this.player!.items).forEach(key => {
+            if(this.player!.items[key] > 0) {
+                const item = SHOP_ITEMS.find(i => i.id === key);
+                if(item) {
+                    const btn = document.createElement('button'); btn.className = 'btn';
+                    btn.innerHTML = `${item.icon} ${item.name} x${this.player!.items[key]}`;
+                    btn.onclick = () => this.useItem(key, item);
+                    list.appendChild(btn);
+                }
+            }
+        });
+        document.getElementById('battle-bag')!.style.display = 'block';
+    }
+
+    static useItem(key: string, data: ItemData) {
+        document.getElementById('battle-bag')!.style.display = 'none';
+        if(data.type === 'capture' && (this.isPvP || this.isNPC)) { this.log("Não pode roubar!"); return; }
+        this.player!.items[key]--;
+        if(data.type === 'heal') {
+            this.activeMon!.heal(data.val!);
+            this.log("Usou item de cura!");
+            this.updateUI();
+            Network.send('BATTLE_UPDATE', { plyHp: this.activeMon!.currentHp, oppHp: this.opponent!.currentHp, msg: "Usou Cura!" });
+            setTimeout(() => this.enemyTurn(), 1000);
+        } else if(data.type === 'capture') {
+            this.attemptCapture(data.rate!);
+        }
+    }
+
+    static attemptCapture(rate: number) {
+        if(!this.opponent) return;
+        const chance = ((1 - (this.opponent.currentHp/this.opponent.maxHp)) * rate) + 0.2;
+        if(Math.random() < chance) {
+            this.log(`✨ Capturou ${this.opponent.name}!`);
+            this.player!.team.push(this.opponent);
+            setTimeout(() => this.end(false), 1500);
+        } else {
+            this.log("Escapou!");
+            setTimeout(() => this.enemyTurn(), 1000);
+        }
+    }
+
+    static useCard() { /* Simplificado: Cartas de batalha não implementadas totalmente nessa versão base */ }
     static run() { this.end(false); }
     static log(m: string) { Game.log(m); }
 }
@@ -441,10 +504,15 @@ class Cards {
     }
     static showPlayerCards(playerId: number) {
         const p = Game.players[playerId];
-        if(p.cards.length === 0) { alert("Sem cartas."); return; }
-        let msg = "Cartas de " + p.name + ":\n";
-        p.cards.forEach(c => msg += `- ${c.icon} ${c.name}: ${c.desc}\n`);
-        alert(msg);
+        const list = document.getElementById('board-cards-list')!;
+        list.innerHTML = '';
+        if(p.cards.length === 0) list.innerHTML = "<em>Sem cartas.</em>";
+        p.cards.forEach(c => {
+            const d = document.createElement('div'); d.className='shop-item';
+            d.innerHTML = `<span>${c.icon} ${c.name}</span> <small>${c.desc}</small>`;
+            list.appendChild(d);
+        });
+        document.getElementById('board-cards-modal')!.style.display = 'flex';
     }
 }
 
@@ -464,7 +532,6 @@ class Game {
         this.renderDebugPanel(); 
     }
 
-    // --- DEBUG MODE ---
     static renderDebugPanel() {
         const container = document.querySelector('.extra-space');
         if(container) {
@@ -488,22 +555,17 @@ class Game {
         this.animateDice(result);
     }
 
-    // --- MOVEMENT VISUALS (FIX TUC TUC) ---
     static moveVisuals() {
         this.players.forEach((p, idx) => {
             const currentTile = document.getElementById(`tile-${p.x}-${p.y}`);
             if(!currentTile) return;
-
             let token = document.getElementById(`p-token-${idx}`);
-
             if (token && token.parentElement === currentTile) {
                 if(idx === this.turn) token.classList.add('active-token');
                 else token.classList.remove('active-token');
                 return;
             }
-
             if (token) token.remove(); 
-
             const t = document.createElement('div');
             t.id = `p-token-${idx}`; 
             t.className = `player-token ${idx===this.turn?'active-token':''}`;
@@ -543,7 +605,6 @@ class Game {
 
             Network.send('MOVE_STEP', { playerId: this.turn, x: p.x, y: p.y });
             this.performVisualStep(this.turn, p.x, p.y);
-            
             await new Promise(r => setTimeout(r, 150));
         }
         this.handleTile(p);
@@ -552,7 +613,6 @@ class Game {
     static performVisualStep(pId: number, x: number, y: number) {
         const p = this.players[pId];
         if(pId !== this.turn || !this.canAct()) { p.x = x; p.y = y; }
-        
         const tile = document.getElementById(`tile-${x}-${y}`);
         if(tile) {
             tile.classList.add('step-highlight');
@@ -563,11 +623,11 @@ class Game {
 
     static handleTile(p: Player) {
         const type = MapSystem.grid[p.y][p.x];
-        const enemy = this.players.find(o => o !== p && o.x === p.x && o.y === p.y);
         
+        const enemy = this.players.find(o => o !== p && o.x === p.x && o.y === p.y);
         if(enemy) { 
             const defMon = enemy.team.find(m => !m.isFainted());
-            if(defMon) { Battle.setup(p, defMon, true, enemy.name, 0, enemy); } // Passa enemyPlayer
+            if(defMon) { Battle.setup(p, defMon, true, enemy.name, 0, enemy); } 
             else { this.log(`${enemy.name} sem pokemons!`); this.nextTurn(); }
             return; 
         }
@@ -583,22 +643,15 @@ class Game {
             this.isCityEvent = true; document.getElementById('city-modal')!.style.display='flex'; 
         }
         else if(type === TILE.EVENT) { 
-            // NOVA LÓGICA DE EVENTO: Carta OU Item (50/50)
-            if(Math.random() < 0.5) {
-                Cards.draw(p);
-            } else {
-                Object.keys(SHOP_ITEMS.map(i=>i.id)); 
-                // Simplificado: Pokeball ou Potion
+            if(Math.random() < 0.5) { Cards.draw(p); } 
+            else {
                 const gift = Math.random() > 0.5 ? 'pokeball' : 'potion';
-                p.items[gift]++;
-                this.log(`Encontrou um item: ${gift}!`);
-                this.updateHUD();
+                p.items[gift]++; this.log(`Achou ${gift}!`); this.updateHUD();
             }
             this.nextTurn(); 
         }
         else if(type === TILE.GYM) { 
-            const boss = new Pokemon(150, true); 
-            Battle.setup(p, boss, false, "Líder de Ginásio", 1000); 
+            const boss = new Pokemon(150, true); Battle.setup(p, boss, false, "Líder de Ginásio", 1000); 
         }
         else if([TILE.GRASS, TILE.WATER, TILE.GROUND].includes(type) && Math.random()<0.35) {
             let possibleMons = [1, 4, 7, 25];
@@ -617,19 +670,17 @@ class Game {
     }
 
     static nextTurn() {
+        this.saveGame();
         this.turn = (this.turn+1)%this.players.length;
         
-        // Verifica se o próximo jogador deve pular o turno
         const nextP = this.players[this.turn];
         if(nextP.skipTurn) {
             nextP.skipTurn = false;
             this.log(`${nextP.name} perdeu a vez!`);
             alert(`${nextP.name} perdeu a vez!`);
-            this.nextTurn(); // Pula recursivamente
-            return;
+            this.nextTurn(); return;
         }
 
-        this.saveGame();
         Network.send('TURN_CHANGE', { turn: this.turn });
         this.updateHUD(); 
         this.moveVisuals();
@@ -672,6 +723,10 @@ class Game {
             pl.team = pd.team.map((td:any) => { const po=new Pokemon(td.id, td.isShiny); Object.assign(po, td); return po; });
             return pl;
         });
+        if(Network.isOnline && Network.localName) {
+            const match = this.players.findIndex(p => p.name === Network.localName);
+            if(match !== -1) Network.myPlayerId = match;
+        }
         this.turn = d.turn;
         document.getElementById('setup-screen')!.style.display='none';
         document.getElementById('game-container')!.style.display='flex';
@@ -688,7 +743,52 @@ class Game {
         const r = new FileReader(); r.onload=e=>{ localStorage.setItem('pk_save', e.target?.result as string); this.loadGame(); }; r.readAsText(f);
     }
 
-    // --- HUD RESTAURADA (BARRAS E STATUS) ---
+    // --- USO DE ITEM NO TABULEIRO ---
+    static openInventoryModal(pId: number) {
+        const p = this.players[pId];
+        const list = document.getElementById('board-inventory-list')!;
+        list.innerHTML = '';
+        
+        // Só permite usar se for o próprio jogador e for a vez dele
+        const canUse = (this.canAct() && this.turn === pId);
+
+        Object.keys(p.items).forEach(key => {
+            if(p.items[key] > 0) {
+                const item = SHOP_ITEMS.find(i => i.id === key);
+                if(item) {
+                    const d = document.createElement('div'); d.className='shop-item';
+                    let btnHTML = '';
+                    if(canUse && item.type === 'heal') {
+                        btnHTML = `<button class="btn btn-mini" style="width:auto;" onclick="window.Game.useItemBoard('${key}', ${pId})">Usar</button>`;
+                    }
+                    d.innerHTML = `<span>${item.icon} ${item.name} x${p.items[key]}</span> ${btnHTML}`;
+                    list.appendChild(d);
+                }
+            }
+        });
+        document.getElementById('board-inventory-modal')!.style.display='flex';
+    }
+
+    static useItemBoard(key: string, pId: number) {
+        const p = this.players[pId];
+        const item = SHOP_ITEMS.find(i => i.id === key);
+        if(p.items[key] > 0 && item?.type === 'heal') {
+            p.items[key]--;
+            // Cura o primeiro pokemon vivo
+            const mon = p.team.find(m => !m.isFainted());
+            if(mon) {
+                mon.heal(item.val || 20);
+                alert(`Usou ${item.name} em ${mon.name}!`);
+                this.updateHUD();
+                this.openInventoryModal(pId); // Atualiza modal
+                Network.send('LOG_MSG', { msg: `${p.name} usou ${item.name}.` });
+                this.saveGame();
+            } else {
+                alert("Todos desmaiados!");
+            }
+        }
+    }
+
     static updateHUD() {
         const left = document.getElementById('hud-col-left')!; left.innerHTML = '';
         const right = document.getElementById('hud-col-right')!; right.innerHTML = '';
@@ -700,8 +800,7 @@ class Game {
                     <img src="${m.getSprite()}" class="poke-card-img">
                     <div class="poke-card-info">
                         <div class="poke-header">
-                            <span>${m.name}</span>
-                            <span class="poke-lvl">Lv.${m.level}</span>
+                            <span>${m.name}</span> <span class="poke-lvl">Lv.${m.level}</span>
                         </div>
                         <div class="bar-container" title="HP">
                             <div class="bar-fill hp-bar" style="width:${(m.currentHp/m.maxHp)*100}%"></div>
@@ -771,8 +870,8 @@ class Setup {
     }
 }
 
-// BINDING
-window.openInventory = (id) => { const p=Game.players[id]; alert("Itens: "+JSON.stringify(p.items)); };
+// BINDING GLOBAL ATUALIZADO
+window.openInventory = (id) => Game.openInventoryModal(id);
 window.openCards = (id) => { if(Network.isOnline && id !== Network.myPlayerId) return alert("Privado!"); Cards.showPlayerCards(id); };
 window.Setup = Setup; window.Game = Game; window.Shop = Shop; window.Battle = Battle; window.Network = Network;
 Setup.updateSlots();
