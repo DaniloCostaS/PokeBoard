@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PokéBoard V19 - Full RPG</title>
+    <title>PokéBoard V21 - Full RPG</title>
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
 </head>
 <body>
 
     <div id="setup-screen">
-        <h1 class="title-highlight">PokéBoard V19</h1>
+        <h1 class="title-highlight">PokéBoard V21</h1>
         <p class="subtitle">Tactics Edition</p>
         
         <div id="menu-phase-1">
@@ -25,12 +25,10 @@
 
         <div id="menu-phase-online" style="display:none;">
             <h3>Modo Online</h3>
-            
             <div class="setup-group">
                 <label>Seu Nome (Para identificação):</label>
                 <input type="text" id="online-player-name" placeholder="Ex: Ash Ketchum" style="width:90%; padding:10px; font-weight:bold;">
             </div>
-
             <div id="online-lobby-controls">
                 <button class="btn" onclick="window.Network.createRoom()">Criar Sala (Host)</button>
                 <div style="display:flex; gap:5px; margin-top:10px;">
@@ -55,7 +53,6 @@
                     <option value="8">8 Jogadores</option>
                 </select>
             </div>
-
             <div class="setup-group">
                 <label>Tamanho do Mapa:</label>
                 <select id="map-size">
@@ -64,9 +61,7 @@
                     <option value="30">Grande (30x30)</option>
                 </select>
             </div>
-
             <div id="player-slots-container"></div>
-
             <button id="btn-start-game" class="btn" onclick="window.Setup.start()">🚀 INICIAR JORNADA</button>
         </div>
     </div> 
@@ -85,13 +80,11 @@
                 <small id="online-indicator" style="color:cyan;">OFFLINE</small>
             </div>
         </div>
-
         <div id="center-stage">
             <div id="hud-col-left" class="hud-column"></div>
             <div id="board-wrapper"><div id="board-area"></div></div>
             <div id="hud-col-right" class="hud-column"></div>
         </div>
-
         <div id="right-panel">
             <div class="panel-header">📟 Log de Batalha</div>
             <div id="log-container"></div>
@@ -114,7 +107,6 @@
             <h2 class="text-highlight">🛒 PokéMart</h2>
             <p>Saldo: <span id="shop-gold" class="gold-text">0</span> G</p>
             <div id="shop-items-list" class="scroll-list"></div>
-            <div class="inventory-section"><h4>🎒 Mochila</h4><div id="inventory-list"></div></div>
             <br><button class="btn btn-secondary" onclick="window.Shop.close()">Fechar</button>
         </div>
     </div>
@@ -149,10 +141,9 @@
                         <img id="ply-trainer-img" class="trainer-battle-img" src="">
                         <img id="ply-img" class="pokemon-battle-img" src="">
                     </div>
-                    <div class="hp-container">
-                        <div id="ply-hp" class="hp-fill"></div>
-                    </div>
+                    <div class="hp-container"><div id="ply-hp" class="hp-fill"></div></div>
                     <small id="ply-hp-text" style="text-shadow: 1px 1px 0 #000;">100/100</small>
+                    <div id="ply-team-indicator" class="battle-team-indicator"></div>
                 </div>
 
                 <div class="battler self-start">
@@ -161,10 +152,9 @@
                         <img id="opp-trainer-img" class="trainer-battle-img" src="">
                         <img id="opp-img" class="pokemon-battle-img" src="">
                     </div>
-                    <div class="hp-container">
-                        <div id="opp-hp" class="hp-fill"></div>
-                    </div>
+                    <div class="hp-container"><div id="opp-hp" class="hp-fill"></div></div>
                     <small id="opp-hp-text" style="text-shadow: 1px 1px 0 #000;">100/100</small>
+                    <div id="opp-team-indicator" class="battle-team-indicator"></div>
                 </div>
             </div>
             
@@ -174,7 +164,7 @@
                 <button class="btn btn-attack" onclick="window.Battle.attack()">⚔️ Atacar</button>
                 <button class="btn btn-items" onclick="window.Battle.openBag()">🎒 Itens</button>
                 <button class="btn btn-cards" onclick="window.Battle.useCard()">🃏 Cartas</button>
-                <button class="btn btn-run" onclick="window.Battle.run()">🏃 Fugir</button>
+                <button id="btn-run" class="btn btn-run" onclick="window.Battle.run()">🏃 Fugir</button>
             </div>
 
             <div id="battle-bag" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(44, 62, 80, 0.95); z-index:20; padding:20px; box-sizing:border-box; border-radius:10px;">
