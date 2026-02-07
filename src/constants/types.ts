@@ -4,6 +4,8 @@ export interface PokemonData {
     type: string;
     hp: number;
     atk: number;
+    def: number;
+    spd: number;
     nextForm: string | null;
     evoTrigger?: number;
     isLegendary?: boolean;

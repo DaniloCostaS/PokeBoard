@@ -25,11 +25,6 @@ declare global {
     }
 }
 
-// ... (Classes Network e Pokemon mantidas iguais) ...
-// ... (Copie as classes Network e Pokemon do código anterior) ...
-
-// VOU REPETIR AS CLASSES COM MUDANÇAS RELEVANTES:
-
 class Network {
     // ... (Código Network inalterado) ...
     static peer: any = null;
