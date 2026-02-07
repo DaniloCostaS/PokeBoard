@@ -81,10 +81,35 @@ body {
 .hud-avatar-img { width: 32px; height: 32px; border-radius: 50%; border: 2px solid #fff; margin-right: 8px; object-fit: cover; background: #ccc; }
 .hud-team { display: flex; flex-direction: column; gap: 5px; margin-bottom: 5px; flex: 1; overflow-y: auto; }
 
-/* Insígnias */
-.badges-container { display: flex; gap: 2px; justify-content: center; margin-bottom: 5px; background: rgba(0,0,0,0.05); padding: 3px; border-radius: 10px; }
-.badge-slot { width: 10px; height: 10px; border-radius: 50%; background: #ccc; border: 1px solid #999; box-shadow: inset 1px 1px 2px rgba(0,0,0,0.2); transition: all 0.3s; }
-.badge-slot.active { background: linear-gradient(135deg, #f1c40f, #e67e22); border-color: #d35400; box-shadow: 0 0 5px var(--gold); transform: scale(1.2); }
+/* --- INSÍGNIAS (ATUALIZADO) --- */
+.badges-container {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+    margin-bottom: 5px;
+    background: rgba(0,0,0,0.1);
+    padding: 4px;
+    border-radius: 12px;
+}
+
+.badge-slot {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: rgba(255,255,255,0.2);
+    border: 1px solid rgba(0,0,0,0.2);
+    background-size: cover;
+    background-position: center;
+    filter: grayscale(100%) opacity(0.4); /* Desativado */
+    transition: all 0.5s;
+}
+
+.badge-slot.active {
+    filter: grayscale(0%) opacity(1); /* Ativado */
+    box-shadow: 0 0 8px var(--gold);
+    transform: scale(1.2);
+    border-color: #fff;
+}
 
 /* Cards Pokemon */
 .poke-card { display: flex; background: #f8f9fa; border: 1px solid #ddd; border-radius: 6px; padding: 4px; align-items: center; gap: 6px; font-size: 0.7rem; position: relative; }
@@ -155,7 +180,26 @@ body {
 .tile.ground { background-image: url('/assets/img/Terrenos/Areia.jpg'); background-size: 100% 100%; image-rendering: pixelated; }
 .tile.city { background-image: url('/assets/img/PCMart.jpg'); background-size: 100% 100%; image-rendering: pixelated; }
 .tile.event { background-image: url('/assets/img/PokeBolaItem.jpg'); background-size: 100% 100%; image-rendering: pixelated; }
-.tile.gym { background-image: url('/assets/img/Ginasio.jpg'); background-size: 100% 100%; image-rendering: pixelated; border: 2px solid gold; color: white; text-shadow: 0 0 2px #000; font-weight: bold; } 
+
+/* Item de Troca de Pokemon */
+.swap-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px; margin: 5px 0; border: 1px solid #ccc;
+    border-radius: 5px; cursor: pointer; background: #fff;
+    transition: background 0.2s;
+}
+.swap-item:hover { background: #ffebeb; border-color: var(--danger); }
+.swap-item.new-mon { border: 2px solid var(--highlight); background: #f0f8ff; }
+.swap-item img { width: 40px; height: 40px; }
+
+/*.tile.gym { background-image: url('/assets/img/Ginasio.jpg'); background-size: 100% 100%; image-rendering: pixelated; border: 2px solid gold; color: white; text-shadow: 0 0 2px #000; font-weight: bold; } */
+.tile.gym {
+    background-size: 100% 100% !important;
+    image-rendering: pixelated;
+    border: 2px solid gold;
+    color: transparent; /* Oculta texto se tiver imagem */
+}
+
 .tile.path { background: var(--tile-path); }
 .tile.rocket { background-image: url('/assets/img/NPCs/Rocket.jpg'); background-size: 100% 100%; image-rendering: pixelated; background-position: center; background-repeat: no-repeat; }
 .tile.biker { background-image: url('/assets/img/NPCs/Motoqueiro.jpg'); background-size: 100% 100%; image-rendering: pixelated; background-position: center; background-repeat: no-repeat; }

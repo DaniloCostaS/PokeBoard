@@ -61,6 +61,7 @@ export const POKEDEX: PokemonData[] = [
     { id: 92, name: "Gastly", type: "Fantasma", hp: 45, atk: 11, nextForm: "Haunter", evoTrigger: 5 },
     { id: 93, name: "Haunter", type: "Fantasma", hp: 67, atk: 16, nextForm: "Gengar", evoTrigger: 10 }, 
     { id: 94, name: "Gengar", type: "Fantasma", hp: 90, atk: 21, nextForm: null },
+    { id: 95, name: "Onix", type: "Pedra", hp: 90, atk: 21, nextForm: null },
 
     { id: 147, name: "Dratini", type: "Dragão", hp: 61, atk: 21, nextForm: "Dragonair", evoTrigger: 5 },
     { id: 148, name: "Dragonair", type: "Dragão", hp: 91, atk: 28, nextForm: "Dragonite", evoTrigger: 10 },

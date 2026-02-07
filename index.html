@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PokéBoard V23 - Full RPG</title>
+    <title>PokéBoard V24 - Loop & Swap</title>
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
 </head>
 <body>
 
     <div id="setup-screen">
-        <h1 class="title-highlight">PokéBoard V23</h1>
+        <h1 class="title-highlight">PokéBoard V24</h1>
         <p class="subtitle">Tactics Edition</p>
         
         <div id="menu-phase-1">
@@ -80,7 +80,6 @@
             <div class="panel-box extra-space">
                 <button class="btn btn-secondary" onclick="window.Game.openCardLibrary()">📖 Ver Todas as Cartas</button>
                 <button class="btn btn-secondary" style="background: #27ae60;" onclick="window.Game.openXpRules()">📘 Regras de XP</button>
-                
                 <div style="margin-top:10px; font-size:0.7rem; color:#aaa;">DEBUG MOVE</div>
                 <div style="display:flex; gap:5px; justify-content:center;">
                     <input type="number" id="debug-input" value="1" min="1" max="50" style="width:50px; text-align:center; border:none; padding:5px; border-radius:4px;">
@@ -99,7 +98,6 @@
         <div id="right-panel">
             <div class="panel-header">📟 Log de Batalha</div>
             <div id="log-container"></div>
-            
             <div class="evo-legend">
                 <h4>🧬 Regras de Evolução</h4>
                 <ul>
@@ -116,7 +114,7 @@
             <h3 style="text-align:center; color: var(--gold);">⭐ Regras de XP & Nível</h3>
             <ul style="font-size: 0.9rem; line-height: 1.5;">
                 <li><strong>Nível Máximo:</strong> 15 (Max 1 level por turno)</li>
-                <li><strong>Movimento:</strong> +1 XP (Aleatório no time)</li>
+                <li><strong>Volta no Mapa:</strong> +200G e +1 Carta</li>
                 <hr style="border-color:#eee; margin: 5px 0;">
                 <li><strong>PvP:</strong> Vitória +15 XP | Derrota +5 XP</li>
                 <li><strong>NPC:</strong> Vitória +10 XP | Derrota +3 XP</li>
@@ -179,6 +177,15 @@
             <h3>🃏 Cartas de Batalha</h3>
             <div id="battle-cards-list" class="scroll-list"></div>
             <button class="btn btn-secondary mt-15" onclick="document.getElementById('battle-cards-modal').style.display='none'">Cancelar</button>
+        </div>
+    </div>
+
+    <div id="swap-modal" class="modal-overlay" style="z-index: 1300;">
+        <div class="modal-box">
+            <h3>⚠️ Time Cheio!</h3>
+            <p>Seu time já tem 6 Pokémons.</p>
+            <p style="font-size:0.9rem;">Clique em um Pokémon para <strong>SOLTAR</strong> (abandonar) e manter o resto.</p>
+            <div id="swap-list" class="scroll-list"></div>
         </div>
     </div>
 

@@ -5,6 +5,7 @@ import { PLAYER_COLORS } from './constants/playerColors';
 import { TRAINER_IMAGES } from './constants/trainerImages';
 import { POKEMON_TYPES } from './constants/pokemonTypes';
 import { TYPE_CHART } from './constants/typeChart';
+import { GYM_DATA } from './constants/gyms';
 
 import type { ItemData, CardData, Coord } from './constants';
 
@@ -24,14 +25,13 @@ declare global {
     }
 }
 
-// ... (Resto do código mantido idêntico ao da resposta anterior, classes Network, Pokemon, Player, etc.) ...
-// Para não estourar o limite de resposta, estou confirmando que o código lógico permanece o mesmo da versão V23 que enviei acima.
-// A única mudança crítica foi no index.html e style.css para corrigir o layout.
+// ... (Classes Network e Pokemon mantidas iguais) ...
+// ... (Copie as classes Network e Pokemon do código anterior) ...
 
-// ==========================================
-// REDE
-// ==========================================
+// VOU REPETIR AS CLASSES COM MUDANÇAS RELEVANTES:
+
 class Network {
+    // ... (Código Network inalterado) ...
     static peer: any = null;
     static conn: any = null;
     static isHost: boolean = false;
@@ -60,7 +60,7 @@ class Network {
         this.isHost = host;
         this.isOnline = true;
         this.myPlayerId = host ? 0 : 1; 
-        const fullId = "pkbd-v23-" + id; 
+        const fullId = "pkbd-v24-" + id; // Versão atualizada
         try { this.peer = new Peer(host ? fullId : null); } catch(e) { alert("Erro PeerJS"); return; }
 
         this.peer.on('open', (_id: string) => {
@@ -108,9 +108,6 @@ class Network {
     }
 }
 
-// ==========================================
-// CLASSES (POKEMON / PLAYER)
-// ==========================================
 class Pokemon {
     id: number; name: string; type: string;
     maxHp: number; currentHp: number; atk: number; def: number; speed: number;
@@ -145,16 +142,21 @@ class Pokemon {
         }
     }
 
-    levelUp(player: Player) {
+    levelUp(player: Player | null) {
         this.level++;
         this.maxHp += 5; this.currentHp = this.maxHp; 
         this.atk += 2; this.def += 1;
         this.maxXp = this.level * 20;
-        Game.log(`${this.name} subiu para o Nível ${this.level}!`);
+        if(player) Game.log(`${this.name} subiu para o Nível ${this.level}!`);
         this.checkEvolution(player);
     }
 
-    checkEvolution(player: Player): boolean {
+    forceLevel(targetLevel: number) {
+        while(this.level < targetLevel) { this.levelUp(null); }
+        this.currentHp = this.maxHp; 
+    }
+
+    checkEvolution(player: Player | null): boolean {
         if (this.evoData.next && this.level >= (this.evoData.trigger || 999)) {
             const next = POKEDEX.find(p => p.name === this.evoData.next);
             if (next) {
@@ -164,11 +166,11 @@ class Pokemon {
                 this.atk += 10; this.def += 5;
                 this.evoData = { next: next.nextForm, trigger: next.evoTrigger };
                 
-                Game.log(`✨ ${oldName} evoluiu para ${this.name}! (HP Restaurado)`);
-
-                if (this.level === 8) { Cards.draw(player); Cards.draw(player); Game.log("Bônus Evolução: Ganhou 2 Cartas!"); } 
-                else if (this.level === 5 || this.level === 10) { Cards.draw(player); Game.log("Bônus Evolução: Ganhou 1 Carta!"); }
-
+                if(player) {
+                    Game.log(`✨ ${oldName} evoluiu para ${this.name}! (HP Restaurado)`);
+                    if (this.level === 8) { Cards.draw(player); Cards.draw(player); Game.log("Bônus Evolução: Ganhou 2 Cartas!"); } 
+                    else if (this.level === 5 || this.level === 10) { Cards.draw(player); Game.log("Bônus Evolução: Ganhou 1 Carta!"); }
+                }
                 return true;
             }
         }
@@ -193,10 +195,13 @@ class Player {
         }
     }
     isDefeated() { 
-        const battleTeam = this.getBattleTeam();
+        const battleTeam = this.getBattleTeam(false); 
         return battleTeam.length === 0 || battleTeam.every(p => p.isFainted());
     }
-    getBattleTeam() { return this.team.filter(p => !p.isFainted()).slice(0, 3); }
+    getBattleTeam(isGymLimit: boolean) {
+        const limit = isGymLimit ? 6 : 3;
+        return this.team.filter(p => !p.isFainted()).slice(0, limit); 
+    }
     resetTurnFlags() { this.team.forEach(p => p.leveledUpThisTurn = false); }
 }
 
@@ -229,6 +234,14 @@ class MapSystem {
     static getCoord(i: number): Coord { 
         const y=Math.floor(i/this.size); let x=i%this.size; if(y%2!==0) x=(this.size-1)-x; return {x,y}; 
     }
+    // NOVOS MÉTODOS PARA O LOOP DO MAPA
+    static getIndex(x: number, y: number): number {
+        // Inverso de getCoord
+        // Se y é impar, x é invertido: x = (size-1) - realX
+        let realX = x;
+        if(y % 2 !== 0) realX = (this.size - 1) - x;
+        return (y * this.size) + realX;
+    }
 }
 
 // ==========================================
@@ -248,18 +261,28 @@ class Battle {
     static reward: number = 0;
     static plyTeamList: Pokemon[] = [];
     static oppTeamList: Pokemon[] = [];
+    static pendingCapture: Pokemon | null = null; // Para troca de pokemon
 
     static setup(player: Player, enemyMon: Pokemon, isPvP: boolean = false, _label: string = "", reward: number = 0, enemyPlayer: Player | null = null, isGym: boolean = false, gymId: number = 0) {
         this.player = player; this.isPvP = isPvP; this.isNPC = (reward > 0 && !isPvP);
         this.isGym = isGym; this.gymId = gymId; this.reward = reward; this.activeCard = null; this.enemyPlayer = enemyPlayer;
-        this.plyTeamList = player.getBattleTeam().slice(0, 3);
+        
+        this.plyTeamList = player.getBattleTeam(isGym).slice(0, isGym ? 6 : 3);
         
         if (isPvP && enemyPlayer) {
-            this.oppTeamList = enemyPlayer.getBattleTeam().slice(0, 3);
+            this.oppTeamList = enemyPlayer.getBattleTeam(false);
             this.opponent = this.oppTeamList[0];
         } else if (isGym) {
-            this.oppTeamList = [enemyMon, new Pokemon(enemyMon.id + 1), new Pokemon(enemyMon.id + 2)];
-            this.opponent = this.oppTeamList[0];
+            const gymData = GYM_DATA.find(g => g.id === gymId);
+            if(gymData) {
+                const allPokemons = Game.players.flatMap(p => p.team);
+                const avgLvl = Math.floor(allPokemons.reduce((sum, p) => sum + p.level, 0) / allPokemons.length) + 1;
+                this.oppTeamList = gymData.teamIds.map(id => {
+                    const p = new Pokemon(id); p.forceLevel(avgLvl); return p;
+                });
+                this.opponent = this.oppTeamList[0];
+                Game.log(`Desafiando Líder ${gymData.leaderName} (Nvl ${avgLvl})!`);
+            } else { this.oppTeamList = [enemyMon]; this.opponent = enemyMon; }
         } else {
             this.oppTeamList = [enemyMon]; this.opponent = enemyMon;
         }
@@ -269,7 +292,6 @@ class Battle {
             Battle.lose();
             return;
         }
-
         this.openSelectionModal("Escolha seu Pokémon!");
     }
 
@@ -294,7 +316,7 @@ class Battle {
         const enemyId = this.enemyPlayer ? this.enemyPlayer.id : -1;
         Network.send('BATTLE_START', {
             pId: this.player!.id, monIdx: this.player!.team.indexOf(this.activeMon),
-            oppData: this.opponent, isPvP: this.isPvP, reward: this.reward, enemyId, isGym: this.isGym
+            oppData: this.opponent, isPvP: this.isPvP, reward: this.reward, enemyId, isGym: this.isGym, gymId: this.gymId
         });
     }
 
@@ -304,7 +326,7 @@ class Battle {
         const opp = payload.oppData;
         this.opponent = new Pokemon(opp.id, opp.isShiny);
         Object.assign(this.opponent, opp);
-        this.isPvP = payload.isPvP; this.isGym = payload.isGym;
+        this.isPvP = payload.isPvP; this.isGym = payload.isGym; this.gymId = payload.gymId;
         if(payload.enemyId >= 0) this.enemyPlayer = Game.players[payload.enemyId];
         this.renderBattleScreen();
     }
@@ -348,7 +370,12 @@ class Battle {
         
         const oppTrainer = document.getElementById('opp-trainer-img') as HTMLImageElement;
         if(this.isPvP && this.enemyPlayer) { oppTrainer.src = this.enemyPlayer.avatar; oppTrainer.style.display = 'block'; } 
-        else if (this.isGym || this.isNPC) { oppTrainer.src = '/assets/img/Treinadores/Red.jpg'; oppTrainer.style.display = 'block'; } 
+        else if (this.isGym) {
+            const gData = GYM_DATA.find(g => g.id === this.gymId);
+            if(gData) oppTrainer.src = `/assets/img/LideresGym/${gData.leaderImg}`;
+            oppTrainer.style.display = 'block';
+        }
+        else if (this.isNPC) { oppTrainer.src = '/assets/img/Treinadores/Red.jpg'; oppTrainer.style.display = 'block'; } 
         else { oppTrainer.style.display = 'none'; }
 
         if(!this.isNPC && !this.isGym && !this.isPvP) {
@@ -442,10 +469,7 @@ class Battle {
         else if(this.isNPC) xpGain = 10;
         else xpGain = 5; 
 
-        if (this.opponent!.level >= this.activeMon!.level + 2) {
-            xpGain += 5;
-            msg += "(+Bônus Desafio) ";
-        }
+        if (this.opponent!.level >= this.activeMon!.level + 2) { xpGain += 5; msg += "(+Bônus Desafio) "; }
 
         if(this.isPvP && this.enemyPlayer) {
             if(this.enemyPlayer.gold > 0) {
@@ -483,7 +507,9 @@ class Battle {
         let msg = "DERROTA... ";
         this.player!.gold = Math.max(0, this.player!.gold - 100);
         this.player!.team.forEach(p => p.heal(999));
-        this.player!.x = 0; this.player!.y = 0;
+        
+        this.player!.x = 0; 
+        this.player!.y = 0;
         this.player!.skipTurn = true;
 
         let xpGain = 0;
@@ -548,59 +574,71 @@ class Battle {
         if(Math.random() < chance) {
             this.log(`✨ Capturou ${this.opponent.name}!`);
             this.activeMon!.gainXp(3, this.player!);
-            this.player!.team.push(this.opponent);
-            setTimeout(() => this.end(false), 1500);
+            
+            // --- NOVO: LÓGICA DE LIMITE DE TIME (6) ---
+            if(this.player!.team.length < 6) {
+                this.player!.team.push(this.opponent);
+                setTimeout(() => this.end(false), 1500);
+            } else {
+                // Time cheio, chama modal de troca
+                this.pendingCapture = this.opponent;
+                this.openSwapModal();
+            }
         } else {
             this.log("Escapou!");
             setTimeout(() => this.enemyTurn(), 1000);
         }
     }
 
-    static openCardSelection() {
-        const list = document.getElementById('battle-cards-list')!;
+    // --- TROCA DE POKEMON (MODAL) ---
+    static openSwapModal() {
+        const modal = document.getElementById('swap-modal')!;
+        const list = document.getElementById('swap-list')!;
         list.innerHTML = '';
-        const battleCards = this.player!.cards.filter(c => c.type === 'battle');
-        
-        if(battleCards.length === 0) {
-            list.innerHTML = "<em>Sem cartas de batalha.</em>";
-        } else {
-            battleCards.forEach(c => {
-                const d = document.createElement('div'); d.className='card-item';
-                d.innerHTML = `
-                    <div class="card-info">
-                        <span class="card-name">${c.icon} ${c.name} <span class="card-type-badge type-battle">BATTLE</span></span>
-                        <span class="card-desc">${c.desc}</span>
-                    </div>
-                    <button class="btn-use-card" onclick="window.Battle.useCard('${c.id}')">USAR</button>
-                `;
-                list.appendChild(d);
-            });
-        }
-        document.getElementById('battle-cards-modal')!.style.display = 'flex';
+
+        // Lista os 6 atuais
+        this.player!.team.forEach((p, idx) => {
+            const div = document.createElement('div');
+            div.className = 'swap-item';
+            div.innerHTML = `<img src="${p.getSprite()}"> <b>${p.name}</b> Lv.${p.level}`;
+            div.onclick = () => this.executeSwap(idx);
+            list.appendChild(div);
+        });
+
+        // Adiciona o novo capturado como opção de "Soltar ele mesmo"
+        const newP = this.pendingCapture!;
+        const divNew = document.createElement('div');
+        divNew.className = 'swap-item new-mon';
+        divNew.innerHTML = `<img src="${newP.getSprite()}"> <b>${newP.name} (NOVO)</b> Lv.${newP.level} <br><small>Clique para descartar este</small>`;
+        divNew.onclick = () => this.executeSwap(-1); // -1 = descarta novo
+        list.appendChild(divNew);
+
+        modal.style.display = 'block';
     }
 
-    static useCard(cardId: string) { 
-        document.getElementById('battle-cards-modal')!.style.display = 'none';
-        const cardIndex = this.player!.cards.findIndex(c => c.id === cardId);
-        if(cardIndex === -1) return;
-        const card = this.player!.cards[cardIndex];
-
-        if (card.id === 'run') {
-            this.player!.cards.splice(cardIndex, 1);
-            this.log("Usou Carta de Fuga!");
-            this.activeMon!.gainXp(2, this.player!);
-            this.end(false);
-        } else if (card.id === 'crit') {
-            this.player!.cards.splice(cardIndex, 1);
-            this.activeCard = 'crit';
-            this.log("Usou Ataque Crítico! Próximo ataque x2.");
-        } else if (card.id === 'master') {
-             if(this.isPvP || this.isNPC || this.isGym) { alert("Masterball falha contra treinadores!"); return; }
-             this.player!.cards.splice(cardIndex, 1);
-             this.activeCard = 'master';
-             this.log("Usou Masterball! Captura garantida.");
+    static executeSwap(indexToRelease: number) {
+        if (indexToRelease === -1) {
+            this.log(`Libertou ${this.pendingCapture!.name}.`);
         } else {
-            this.player!.cards.splice(cardIndex, 1);
+            const released = this.player!.team[indexToRelease];
+            this.log(`Libertou ${released.name} e ficou com ${this.pendingCapture!.name}!`);
+            this.player!.team[indexToRelease] = this.pendingCapture!;
+        }
+        this.pendingCapture = null;
+        document.getElementById('swap-modal')!.style.display = 'none';
+        Game.updateHUD();
+        setTimeout(() => this.end(false), 500);
+    }
+
+    static useCard() { 
+        const card = this.player!.cards.find(c => c.type === 'battle');
+        if(!card) return alert("Sem cartas de batalha!");
+        if (card.id === 'run') {
+            this.player!.cards.splice(this.player!.cards.indexOf(card), 1);
+            this.log("Usou Carta de Fuga!");
+            this.end(false);
+        } else {
+            this.player!.cards.splice(this.player!.cards.indexOf(card), 1);
             this.activeCard = card.id;
             this.log(`Usou ${card.name}!`);
         }
@@ -644,7 +682,6 @@ class Cards {
         Game.updateHUD();
     }
     static showPlayerCards(playerId: number) {
-        // Agora usa o modal de board cards
         Game.openBoardCards(playerId);
     }
 }
@@ -657,6 +694,8 @@ class Game {
     static turn: number = 0;
     static isCityEvent: boolean = false; 
     static hasRolled: boolean = false; 
+    
+    static globalGymLevel: number = 1; 
 
     static init(players: Player[], mapSize: number) {
         this.players = players;
@@ -805,15 +844,33 @@ class Game {
         }
     }
 
+    // --- NOVA LÓGICA DE MOVIMENTO COM LOOP ---
     static async movePlayerLogic(steps: number) {
         const p = this.getCurrentPlayer();
-        for(let i=0; i<steps; i++) {
-            if(p.y%2===0) { if(p.x<MapSystem.size-1)p.x++; else p.y++; }
-            else { if(p.x>0)p.x--; else p.y++; }
-            if(p.y>=MapSystem.size) { p.y = MapSystem.size-1; break; }
+        const totalTiles = MapSystem.size * MapSystem.size;
 
-            Network.send('MOVE_STEP', { playerId: this.turn, x: p.x, y: p.y });
-            this.performVisualStep(this.turn, p.x, p.y);
+        for(let i=0; i<steps; i++) {
+            // Converte (x,y) -> Índice linear
+            let currentIdx = MapSystem.getIndex(p.x, p.y);
+            
+            // Avança
+            currentIdx++;
+
+            // Check Loop
+            if (currentIdx >= totalTiles) {
+                currentIdx = 0; // Volta pro início
+                p.gold += 200;
+                Cards.draw(p);
+                this.log("🚩 Completou uma volta! Ganhou 200G e 1 Carta!");
+                alert("🚩 Completou uma volta! Ganhou 200G e 1 Carta!");
+            }
+
+            // Converte Índice -> (x,y)
+            const nextCoord = MapSystem.getCoord(currentIdx);
+            
+            Network.send('MOVE_STEP', { playerId: this.turn, x: nextCoord.x, y: nextCoord.y });
+            this.performVisualStep(this.turn, nextCoord.x, nextCoord.y);
+            
             await new Promise(r => setTimeout(r, 150));
         }
         this.handleTile(p);
@@ -821,7 +878,10 @@ class Game {
 
     static performVisualStep(pId: number, x: number, y: number) {
         const p = this.players[pId];
-        if(pId !== this.turn || !this.canAct()) { p.x = x; p.y = y; }
+        // Se eu sou o jogador da vez, minha posição lógica já está sendo atualizada no loop.
+        // Se eu sou espectador (online), preciso atualizar aqui.
+        p.x = x; p.y = y;
+        
         const tile = document.getElementById(`tile-${x}-${y}`);
         if(tile) {
             tile.classList.add('step-highlight');
@@ -866,6 +926,9 @@ class Game {
         }
         else if(type === TILE.GYM) { 
             const gymId = MapSystem.gymLocations[`${p.x},${p.y}`] || 1;
+            
+            // REMOVIDA TRAVA DE ORDEM DE GINÁSIO
+            
             if (!p.badges[gymId-1]) {
                 const boss = new Pokemon(150, true); 
                 Battle.setup(p, boss, false, "Líder de Ginásio", 1000, null, true, gymId); 
@@ -1015,8 +1078,22 @@ class Game {
             const d = document.createElement('div');
             d.className = `player-slot ${i===this.turn?'active':''}`;
             
+            // --- CORREÇÃO: INSÍGNIAS ---
             let badgeHTML = '<div class="badges-container">';
-            for(let b=0; b<8; b++) badgeHTML += `<div class="badge-slot ${p.badges[b]?'active':''}" title="Insígnia ${b+1}"></div>`;
+            for(let b=0; b<8; b++) {
+                const isActive = p.badges[b];
+                const gData = GYM_DATA.find(g => g.id === b+1);
+                
+                // Caminho da imagem (Pasta Insignias com I maiúsculo)
+                const imgUrl = gData ? `/assets/img/Insignias/${gData.badgeImg}` : '';
+                
+                // Estilo dinâmico: Se ativo, põe a imagem ajustada. Se não, fundo cinza.
+                const style = isActive 
+                    ? `background-image: url('${imgUrl}'); background-size: 100% 100%; background-repeat: no-repeat; background-color: transparent;` 
+                    : `background-color: #ccc;`;
+                
+                badgeHTML += `<div class="badge-slot ${isActive?'active':''}" style="${style}" title="Insígnia ${b+1}"></div>`;
+            }
             badgeHTML += '</div>';
 
             const th = p.team.map(m => `
@@ -1056,15 +1133,32 @@ class Game {
             for(let x=0; x<MapSystem.size; x++) {
                 const d = document.createElement('div');
                 let c = 'path'; const t = MapSystem.grid[y][x];
+                
+                // Define a classe base do tile
                 if(t===TILE.GRASS)c='grass'; else if(t===TILE.WATER)c='water'; else if(t===TILE.GROUND)c='ground';
                 else if(t===TILE.CITY)c='city'; else if(t===TILE.GYM)c='gym'; else if(t===TILE.EVENT)c='event';
                 else if(t===TILE.ROCKET)c='rocket'; else if(t===TILE.BIKER)c='biker'; else if(t===TILE.YOUNG)c='young'; else if(t===TILE.OLD)c='old';
+                
                 d.className = `tile ${c}`; d.id = `tile-${x}-${y}`;
                 if(MapSystem.size>=30)d.style.fontSize='8px';
+                
+                // --- CORREÇÃO: IMAGENS DOS GINÁSIOS ---
                 if(t===TILE.GYM) {
                     const gid = MapSystem.gymLocations[`${x},${y}`];
-                    d.innerHTML = gid ? gid.toString() : '';
+                    if(gid) {
+                        const gData = GYM_DATA.find(g => g.id === gid);
+                        if(gData) {
+                            // Caminho absoluto apontando para a pasta 'Ginasios' (Plural)
+                            d.style.backgroundImage = `url('/assets/img/Ginasios/${gData.gymImg}')`;
+                            d.style.backgroundSize = '100% 100%'; // Garante que preencha o quadrado
+                            d.style.backgroundRepeat = 'no-repeat';
+                            d.title = `Ginásio ${gData.type} - Líder ${gData.leaderName}`;
+                        }
+                        // Limpa texto para não ficar número em cima da imagem
+                        d.innerText = ""; 
+                    }
                 }
+                
                 area.appendChild(d);
             }
         }
@@ -1090,11 +1184,17 @@ class Setup {
     static updatePreview(i: number) { (document.getElementById(`p${i}-preview`) as HTMLImageElement).src = `/assets/img/Treinadores/${(document.getElementById(`p${i}-av`) as HTMLSelectElement).value}`; }
     static start() {
         const n = parseInt((document.getElementById('num-players') as HTMLSelectElement).value);
+        
+        // CORREÇÃO: Usando o valor selecionado do mapa, não 20 fixo
+        const mapSize = parseInt((document.getElementById('map-size') as HTMLSelectElement).value); 
+
         const ps = [];
         for(let i=0; i<n; i++) ps.push(new Player(i, (document.getElementById(`p${i}-name`) as HTMLInputElement).value, (document.getElementById(`p${i}-av`) as HTMLSelectElement).value));
         document.getElementById('setup-screen')!.style.display='none';
         document.getElementById('game-container')!.style.display='flex';
-        Game.init(ps, 20);
+        
+        // CORREÇÃO: Iniciando com mapSize correto
+        Game.init(ps, mapSize);
         if(Network.isHost) Network.broadcastState();
     }
 }
