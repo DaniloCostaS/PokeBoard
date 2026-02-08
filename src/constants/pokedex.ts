@@ -21,15 +21,15 @@ export const POKEDEX: PokemonData[] = [
   {"id":14,"name":"Kakuna","type":"Inseto","hp":45,"atk":25,"def":38,"spd":35,"nextForm":"Beedrill","evoTrigger":10},
   {"id":15,"name":"Beedrill","type":"Inseto","hp":65,"atk":68,"def":60,"spd":75,"nextForm":null},
 
-  {"id":16,"name":"Pidgey","type":"Normal","hp":40,"atk":40,"def":38,"spd":56,"nextForm":"Pidgeotto","evoTrigger":5},
-  {"id":17,"name":"Pidgeotto","type":"Normal","hp":63,"atk":55,"def":53,"spd":71,"nextForm":"Pidgeot","evoTrigger":10},
-  {"id":18,"name":"Pidgeot","type":"Normal","hp":83,"atk":75,"def":73,"spd":91,"nextForm":null},
+  {"id":16,"name":"Pidgey","type":"Voador","hp":40,"atk":40,"def":38,"spd":56,"nextForm":"Pidgeotto","evoTrigger":5},
+  {"id":17,"name":"Pidgeotto","type":"Voador","hp":63,"atk":55,"def":53,"spd":71,"nextForm":"Pidgeot","evoTrigger":10},
+  {"id":18,"name":"Pidgeot","type":"Voador","hp":83,"atk":75,"def":73,"spd":91,"nextForm":null},
 
   {"id":19,"name":"Rattata","type":"Normal","hp":30,"atk":41,"def":35,"spd":72,"nextForm":"Raticate","evoTrigger":8},
   {"id":20,"name":"Raticate","type":"Normal","hp":55,"atk":66,"def":65,"spd":97,"nextForm":null},
 
-  {"id":21,"name":"Spearow","type":"Normal","hp":40,"atk":46,"def":31,"spd":70,"nextForm":"Fearow","evoTrigger":8},
-  {"id":22,"name":"Fearow","type":"Normal","hp":65,"atk":76,"def":63,"spd":100,"nextForm":null},
+  {"id":21,"name":"Spearow","type":"Voador","hp":40,"atk":46,"def":31,"spd":70,"nextForm":"Fearow","evoTrigger":8},
+  {"id":22,"name":"Fearow","type":"Voador","hp":65,"atk":76,"def":63,"spd":100,"nextForm":null},
 
   {"id":23,"name":"Ekans","type":"Veneno","hp":35,"atk":50,"def":49,"spd":55,"nextForm":"Arbok","evoTrigger":8},
   {"id":24,"name":"Arbok","type":"Veneno","hp":60,"atk":80,"def":74,"spd":80,"nextForm":null},
@@ -117,10 +117,10 @@ export const POKEDEX: PokemonData[] = [
   {"id":81,"name":"Magnemite","type":"Elétrico","hp":25,"atk":65,"def":63,"spd":45,"nextForm":"Magneton","evoTrigger":8},
   {"id":82,"name":"Magneton","type":"Elétrico","hp":50,"atk":90,"def":83,"spd":70,"nextForm":null},
 
-  {"id":83,"name":"Farfetch'd","type":"Normal","hp":52,"atk":74,"def":59,"spd":60,"nextForm":null},
+  {"id":83,"name":"Farfetch'd","type":"Voador","hp":52,"atk":74,"def":59,"spd":60,"nextForm":null},
 
-  {"id":84,"name":"Doduo","type":"Normal","hp":35,"atk":60,"def":40,"spd":75,"nextForm":"Dodrio","evoTrigger":8},
-  {"id":85,"name":"Dodrio","type":"Normal","hp":60,"atk":85,"def":65,"spd":100,"nextForm":null},
+  {"id":84,"name":"Doduo","type":"Voador","hp":35,"atk":60,"def":40,"spd":75,"nextForm":"Dodrio","evoTrigger":8},
+  {"id":85,"name":"Dodrio","type":"Voador","hp":60,"atk":85,"def":65,"spd":100,"nextForm":null},
 
   {"id":86,"name":"Seel","type":"Água","hp":65,"atk":45,"def":63,"spd":45,"nextForm":"Dewgong","evoTrigger":8},
   {"id":87,"name":"Dewgong","type":"Gelo","hp":90,"atk":70,"def":88,"spd":70,"nextForm":null},
