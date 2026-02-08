@@ -203,6 +203,30 @@ body {
     color: transparent; /* Oculta texto se tiver imagem */
 }
 
+/* --- ÍCONES DE ITENS --- */
+.item-icon-mini {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    vertical-align: middle;
+    margin-right: 8px;
+    filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));
+}
+
+/* Ajuste para botões da mochila na batalha ficarem alinhados */
+#battle-bag-list .btn {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start; /* Alinha texto e icone a esquerda */
+    padding-left: 15px;
+}
+
+/* Ajuste para lista da loja e inventário */
+.shop-item, .inventory-item {
+    display: flex;
+    align-items: center;
+}
+
 .tile.path { background: var(--tile-path); }
 .tile.rocket { background-image: url('/assets/img/NPCs/Rocket.jpg'); background-size: 100% 100%; image-rendering: pixelated; background-position: center; background-repeat: no-repeat; }
 .tile.biker { background-image: url('/assets/img/NPCs/Motoqueiro.jpg'); background-size: 100% 100%; image-rendering: pixelated; background-position: center; background-repeat: no-repeat; }

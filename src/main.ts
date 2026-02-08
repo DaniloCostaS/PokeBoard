@@ -769,7 +769,7 @@ class Battle {
 
     // --- ITENS E CARTAS NA BATALHA ---
     static openBag() { 
-        if (!this.isPlayerTurn || this.processingAction) return; // Bloqueio de turno
+        if (!this.isPlayerTurn || this.processingAction) return; 
 
         const list = document.getElementById('battle-bag-list')!; list.innerHTML = '';
         Object.keys(this.player!.items).forEach(key => {
@@ -777,7 +777,8 @@ class Battle {
                 const item = SHOP_ITEMS.find(i => i.id === key);
                 if(item) {
                     const btn = document.createElement('button'); btn.className = 'btn';
-                    btn.innerHTML = `${item.icon} ${item.name} x${this.player!.items[key]}`;
+                    // ALTERAÇÃO AQUI: Usando tag img para o ícone
+                    btn.innerHTML = `<img src="/assets/img/Itens/${item.icon}" class="item-icon-mini"> ${item.name} x${this.player!.items[key]}`;
                     btn.onclick = () => this.useItem(key, item);
                     list.appendChild(btn);
                 }
@@ -899,7 +900,13 @@ class Shop {
         const list = document.getElementById('shop-items-list')!; list.innerHTML = '';
         SHOP_ITEMS.forEach(item => {
             const div = document.createElement('div'); div.className = 'shop-item';
-            div.innerHTML = `<span>${item.icon} ${item.name}</span><button class="btn" style="width:auto" onclick="window.Shop.buy('${item.id}', ${item.price})">${item.price}</button>`;
+            // ALTERAÇÃO AQUI: Usando tag img e melhorando o layout flex
+            div.innerHTML = `
+                <div style="display:flex; align-items:center;">
+                    <img src="/assets/img/Itens/${item.icon}" class="item-icon-mini">
+                    <span>${item.name}</span>
+                </div>
+                <button class="btn" style="width:auto" onclick="window.Shop.buy('${item.id}', ${item.price})">${item.price}</button>`;
             list.appendChild(div);
         });
         document.getElementById('shop-modal')!.style.display = 'flex';
@@ -1291,7 +1298,13 @@ class Game {
                     if(canUse && item.type === 'heal') {
                         btnHTML = `<button class="btn btn-mini" style="width:auto;" onclick="window.Game.useItemBoard('${key}', ${pId})">Usar</button>`;
                     }
-                    d.innerHTML = `<span>${item.icon} ${item.name} x${p.items[key]}</span> ${btnHTML}`;
+                    // ALTERAÇÃO AQUI: Usando tag img
+                    d.innerHTML = `
+                        <div style="display:flex; align-items:center;">
+                            <img src="/assets/img/Itens/${item.icon}" class="item-icon-mini">
+                            <span>${item.name} x${p.items[key]}</span>
+                        </div>
+                        ${btnHTML}`;
                     list.appendChild(d);
                 }
             }
