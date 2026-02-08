@@ -1,4 +1,5 @@
 import './style.css'
+// IMPORTAÇÕES DAS CONSTANTES
 import { TILE, NPC_DATA, CARDS_DB, SHOP_ITEMS } from './constants'; 
 import { POKEDEX } from './constants/pokedex';
 import { PLAYER_COLORS } from './constants/playerColors';
@@ -25,8 +26,10 @@ declare global {
     }
 }
 
+// ==========================================
+// REDE (MULTIPLAYER & HANDSHAKE)
+// ==========================================
 class Network {
-    // ... (Código Network inalterado) ...
     static peer: any = null;
     static conn: any = null;
     static isHost: boolean = false;
@@ -55,7 +58,7 @@ class Network {
         this.isHost = host;
         this.isOnline = true;
         this.myPlayerId = host ? 0 : 1; 
-        const fullId = "pkbd-v24-" + id; // Versão atualizada
+        const fullId = "pkbd-v25-" + id; 
         try { this.peer = new Peer(host ? fullId : null); } catch(e) { alert("Erro PeerJS"); return; }
 
         this.peer.on('open', (_id: string) => {
@@ -103,6 +106,9 @@ class Network {
     }
 }
 
+// ==========================================
+// CLASSES (POKEMON / PLAYER)
+// ==========================================
 class Pokemon {
     id: number; name: string; type: string;
     maxHp: number; currentHp: number; atk: number; def: number; speed: number;
@@ -229,10 +235,7 @@ class MapSystem {
     static getCoord(i: number): Coord { 
         const y=Math.floor(i/this.size); let x=i%this.size; if(y%2!==0) x=(this.size-1)-x; return {x,y}; 
     }
-    // NOVOS MÉTODOS PARA O LOOP DO MAPA
     static getIndex(x: number, y: number): number {
-        // Inverso de getCoord
-        // Se y é impar, x é invertido: x = (size-1) - realX
         let realX = x;
         if(y % 2 !== 0) realX = (this.size - 1) - x;
         return (y * this.size) + realX;
@@ -240,7 +243,7 @@ class MapSystem {
 }
 
 // ==========================================
-// BATALHA
+// BATALHA (LÓGICA REESCRITA)
 // ==========================================
 class Battle {
     static active: boolean = false;
@@ -248,22 +251,43 @@ class Battle {
     static activeMon: Pokemon | null = null; 
     static opponent: Pokemon | null = null;
     static enemyPlayer: Player | null = null; 
+    
+    // Configurações
     static isPvP: boolean = false;
     static isNPC: boolean = false; 
     static isGym: boolean = false;
     static gymId: number = 0;
     static activeCard: string | null = null;
     static reward: number = 0;
+
+    // Listas de Pokémons
     static plyTeamList: Pokemon[] = [];
     static oppTeamList: Pokemon[] = [];
-    static pendingCapture: Pokemon | null = null; // Para troca de pokemon
+    static pendingCapture: Pokemon | null = null; 
+
+    // --- CONTROLE DE TURNO E ESTADO (ANTI-BUG) ---
+    // 'isPlayerTurn': Indica se a lógica do jogo considera a vez do jogador.
+    // 'processingAction': Bloqueia inputs enquanto animações/delays ocorrem.
+    static isPlayerTurn: boolean = false;  
+    static processingAction: boolean = false; 
 
     static setup(player: Player, enemyMon: Pokemon, isPvP: boolean = false, _label: string = "", reward: number = 0, enemyPlayer: Player | null = null, isGym: boolean = false, gymId: number = 0) {
-        this.player = player; this.isPvP = isPvP; this.isNPC = (reward > 0 && !isPvP);
-        this.isGym = isGym; this.gymId = gymId; this.reward = reward; this.activeCard = null; this.enemyPlayer = enemyPlayer;
+        this.player = player; 
+        this.isPvP = isPvP; 
+        this.isNPC = (reward > 0 && !isPvP);
+        this.isGym = isGym; 
+        this.gymId = gymId; 
+        this.reward = reward; 
+        this.activeCard = null; 
+        this.enemyPlayer = enemyPlayer;
+
+        // Reset de Estado
+        this.processingAction = false;
         
+        // Time do Jogador (até 6 no ginásio, até 3 fora)
         this.plyTeamList = player.getBattleTeam(isGym).slice(0, isGym ? 6 : 3);
         
+        // Define oponente
         if (isPvP && enemyPlayer) {
             this.oppTeamList = enemyPlayer.getBattleTeam(false);
             this.opponent = this.oppTeamList[0];
@@ -277,7 +301,9 @@ class Battle {
                 });
                 this.opponent = this.oppTeamList[0];
                 Game.log(`Desafiando Líder ${gymData.leaderName} (Nvl ${avgLvl})!`);
-            } else { this.oppTeamList = [enemyMon]; this.opponent = enemyMon; }
+            } else { 
+                this.oppTeamList = [enemyMon]; this.opponent = enemyMon; 
+            }
         } else {
             this.oppTeamList = [enemyMon]; this.opponent = enemyMon;
         }
@@ -287,7 +313,8 @@ class Battle {
             Battle.lose();
             return;
         }
-        this.openSelectionModal("Escolha seu Pokémon!");
+        
+        this.openSelectionModal("Escolha seu Pokémon para começar!");
     }
 
     static openSelectionModal(title: string) {
@@ -306,44 +333,287 @@ class Battle {
     }
 
     static startRound(selectedMon: Pokemon) {
-        this.active = true; this.activeMon = selectedMon;
+        this.active = true; 
+        this.activeMon = selectedMon;
+        
+        // 1. DETERMINAR ORDEM DE ATAQUE (Iniciativa)
+        this.determineTurnOrder();
+
         this.renderBattleScreen();
+        
         const enemyId = this.enemyPlayer ? this.enemyPlayer.id : -1;
         Network.send('BATTLE_START', {
-            pId: this.player!.id, monIdx: this.player!.team.indexOf(this.activeMon),
-            oppData: this.opponent, isPvP: this.isPvP, reward: this.reward, enemyId, isGym: this.isGym, gymId: this.gymId
+            pId: this.player!.id, 
+            monIdx: this.player!.team.indexOf(this.activeMon),
+            oppData: this.opponent, 
+            isPvP: this.isPvP, 
+            reward: this.reward, 
+            enemyId, 
+            isGym: this.isGym, 
+            gymId: this.gymId
+        });
+    }
+
+    // --- NOVA LÓGICA DE ORDEM DE ATAQUE ---
+    static determineTurnOrder() {
+        if (!this.activeMon || !this.opponent) return;
+
+        let logMsg = "";
+        let playerGoesFirst = false;
+
+        // Compara Velocidade
+        if (this.activeMon.speed > this.opponent.speed) {
+            playerGoesFirst = true;
+            logMsg = `💨 ${this.activeMon.name} (${this.activeMon.speed}) é mais rápido que ${this.opponent.name} (${this.opponent.speed})!`;
+        } else if (this.activeMon.speed < this.opponent.speed) {
+            playerGoesFirst = false;
+            logMsg = `💨 ${this.opponent.name} (${this.opponent.speed}) é mais rápido que ${this.activeMon.name} (${this.activeMon.speed})!`;
+        } else {
+            // Empate: Rolar 1d20
+            const roll = Math.floor(Math.random() * 20) + 1;
+            if (roll > 10) {
+                playerGoesFirst = true;
+                logMsg = `🎲 Speed Empatado! Player rolou ${roll} (>10). Vai primeiro!`;
+            } else {
+                playerGoesFirst = false;
+                logMsg = `🎲 Speed Empatado! Player rolou ${roll} (<=10). Rival vai primeiro!`;
+            }
+        }
+
+        // Define o estado do turno
+        this.isPlayerTurn = playerGoesFirst;
+        this.processingAction = false;
+        
+        // Atualiza UI e Log
+        this.updateButtons(); // Bloqueia/Desbloqueia botões
+        this.updateUI();
+        this.logBattle(logMsg);
+
+        // Se o inimigo começa, dispara o turno dele com atraso
+        if (!this.isPlayerTurn) {
+            this.processingAction = true; // Bloqueia player enquanto espera
+            this.updateButtons();
+            setTimeout(() => this.enemyTurn(), 2000);
+        }
+    }
+
+    static updateButtons() {
+        const btns = document.querySelectorAll('.battle-actions button');
+        const canAct = this.isPlayerTurn && !this.processingAction;
+        
+        btns.forEach((btn: Element) => {
+            const button = btn as HTMLButtonElement;
+            button.disabled = !canAct;
+            // Botão de fugir tem regra especial
+            if (button.id === 'btn-run' && (this.isPvP || this.isGym)) {
+                button.disabled = true; // Sempre travado em PvP/Gym a menos que use carta
+                button.title = "Fuga bloqueada! Use uma carta.";
+            } else {
+                button.title = "";
+            }
         });
     }
 
     static startFromNetwork(payload: any) {
-        this.active = true; this.player = Game.players[payload.pId];
+        this.active = true; 
+        this.player = Game.players[payload.pId];
         this.activeMon = this.player.team[payload.monIdx];
         const opp = payload.oppData;
         this.opponent = new Pokemon(opp.id, opp.isShiny);
         Object.assign(this.opponent, opp);
-        this.isPvP = payload.isPvP; this.isGym = payload.isGym; this.gymId = payload.gymId;
+        this.isPvP = payload.isPvP; 
+        this.isGym = payload.isGym; 
+        this.gymId = payload.gymId;
         if(payload.enemyId >= 0) this.enemyPlayer = Game.players[payload.enemyId];
         this.renderBattleScreen();
     }
 
     static renderBattleScreen() { 
         document.getElementById('battle-modal')!.style.display = 'flex'; 
-        const btnRun = document.getElementById('btn-run') as HTMLButtonElement;
-        if (this.isPvP || this.isGym) { btnRun.disabled = true; btnRun.title = "Use uma Carta de Fuga!"; } 
-        else { btnRun.disabled = false; btnRun.title = ""; }
+        this.updateButtons();
         this.updateUI(); 
+    }
+
+    // --- NOVA FÓRMULA DE DANO (SOLICITAÇÃO 2 & 3) ---
+    static calculateDamage(attacker: Pokemon, defender: Pokemon): { damage: number, msg: string } {
+        // 1. Rolar D20
+        const d20 = Math.floor(Math.random() * 20) + 1;
+        let rollModifier = 0;
+        let isCritical = false;
+
+        // Tabela de Modificadores do D20
+        if (d20 <= 2) rollModifier = -2;
+        else if (d20 <= 5) rollModifier = -1;
+        else if (d20 <= 10) rollModifier = 0;
+        else if (d20 <= 15) rollModifier = +1;
+        else if (d20 <= 19) rollModifier = +2;
+        else { // 20 Natural (Crítico)
+            rollModifier = +3;
+            isCritical = true;
+        }
+
+        // 2. Base de Dano
+        // base = floor((atk / 10) - (def / 20))
+        let defenseVal = defender.def;
+        
+        // CRÍTICO: Ignora metade da defesa
+        if (isCritical) {
+            defenseVal = Math.floor(defenseVal / 2);
+        }
+
+        let base = Math.floor((attacker.atk / 5) - (defenseVal / 20));
+        base = Math.max(1, base); // Mínimo 1
+
+        // 3. Multiplicador de Tipo
+        // Vantagem: 1.5, Desvantagem: 0.75, Normal: 1
+        let rawMulti = 1;
+        if (TYPE_CHART[attacker.type] && TYPE_CHART[attacker.type][defender.type] !== undefined) {
+            rawMulti = TYPE_CHART[attacker.type][defender.type];
+        }
+
+        let finalMulti = 1;
+        if (rawMulti > 1) finalMulti = 1.5;      // Super efetivo
+        else if (rawMulti < 1) finalMulti = 0.75; // Pouco efetivo (inclui 0)
+        else finalMulti = 1;                     // Normal
+
+        const typeDamage = Math.floor(base * finalMulti);
+
+        // 4. Dano Final
+        const finalDamage = Math.max(0, typeDamage + rollModifier);
+
+        // Monta mensagem do log
+        let logDetails = `(🎲${d20})`;
+        if (isCritical) logDetails += " 💥CRÍTICO!";
+        if (finalMulti > 1) logDetails += " 🔥Super!";
+        if (finalMulti < 1) logDetails += " 🛡️Resistiu.";
+        if (rollModifier !== 0 && !isCritical) logDetails += ` Mod:${rollModifier>0?'+':''}${rollModifier}`;
+
+        return { damage: finalDamage, msg: logDetails };
+    }
+
+    // --- AÇÃO DO JOGADOR (ATACAR) ---
+    static attack() {
+        if(!this.activeMon || !this.opponent) return;
+        // BLOQUEIO DE BUG: Se não for vez do player ou já estiver processando, sai.
+        if (!this.isPlayerTurn || this.processingAction) return;
+
+        this.processingAction = true; // Trava UI
+        this.updateButtons();
+
+        // Calcular Dano
+        let calc = this.calculateDamage(this.activeMon, this.opponent);
+        let dmg = calc.damage;
+
+        // Carta Critico (Bônus extra do jogo base)
+        if(this.activeCard === 'crit') { 
+            dmg *= 2; 
+            this.logBattle("🃏 Carta Crítico Ativada (x2)!");
+            this.activeCard = null; 
+        } 
+
+        // Aplicar Dano
+        this.opponent.currentHp = Math.max(0, this.opponent.currentHp - dmg);
+        
+        // Logar e Atualizar UI
+        this.logBattle(`${this.activeMon.name} atacou! 💥${dmg} ${calc.msg}`);
+        this.updateUI();
+        
+        // Sync Online
+        Network.send('BATTLE_UPDATE', { plyHp: this.activeMon.currentHp, oppHp: this.opponent.currentHp, msg: `Oponente: ${this.activeMon.name} tirou ${dmg}!` });
+
+        // Verifica Fim ou Passa a Vez
+        if(this.opponent.currentHp <= 0) {
+            setTimeout(() => {
+                this.checkWinCondition();
+                this.processingAction = false; 
+            }, 1000);
+        } else {
+            // Passa a vez para o inimigo
+            this.isPlayerTurn = false;
+            this.updateButtons(); // Desabilita botões
+            setTimeout(() => this.enemyTurn(), 2000); // Delay maior para leitura
+        }
+    }
+
+    // --- AÇÃO DO INIMIGO (IA) ---
+    static enemyTurn() {
+        if(!this.activeMon || !this.opponent) return;
+        
+        // Garante estado
+        this.processingAction = true;
+        this.isPlayerTurn = false; 
+
+        // Calcular Dano (Inimigo -> Jogador)
+        let calc = this.calculateDamage(this.opponent, this.activeMon);
+        let dmg = calc.damage;
+
+        // Aplicar Dano
+        this.activeMon.currentHp = Math.max(0, this.activeMon.currentHp - dmg);
+        
+        // Logar e Atualizar UI
+        this.logBattle(`${this.opponent.name} atacou! 💥${dmg} ${calc.msg}`);
+        this.updateUI();
+
+        // Sync Online
+        Network.send('BATTLE_UPDATE', { plyHp: this.activeMon.currentHp, oppHp: this.opponent.currentHp, msg: `Inimigo: ${this.opponent.name} tirou ${dmg}!` });
+
+        // Verifica Fim ou Passa a Vez
+        if(this.activeMon.currentHp <= 0) {
+            setTimeout(() => {
+                this.handleFaint();
+            }, 1000);
+        } else {
+            // Devolve a vez para o jogador
+            this.isPlayerTurn = true;
+            this.processingAction = false;
+            this.updateButtons(); // Reabilita botões
+        }
+    }
+
+    static checkWinCondition() {
+        const nextOpp = this.oppTeamList.find(p => !p.isFainted());
+        if (nextOpp) {
+            this.opponent = nextOpp;
+            this.logBattle(`Rival enviou ${nextOpp.name}!`);
+            // Recalcula iniciativa na troca
+            this.determineTurnOrder(); 
+        } else { 
+            this.win(); 
+        }
+    }
+
+    static handleFaint() {
+        const nextPly = this.plyTeamList.find(p => !p.isFainted());
+        if (nextPly) {
+            this.logBattle(`${this.activeMon!.name} desmaiou!`);
+            document.getElementById('battle-modal')!.style.display = 'none';
+            // Abre modal para escolher o próximo
+            this.openSelectionModal("Escolha o próximo!");
+            // processingAction será resetado quando startRound for chamado
+        } else { 
+            this.lose(); 
+        }
+    }
+
+    // --- MÉTODOS DE CONTROLE VISUAL ---
+    static logBattle(msg: string) {
+        // Atualiza o texto rápido do modal
+        document.getElementById('battle-msg')!.innerText = msg;
+        // Adiciona ao histórico lateral (Log)
+        Game.log(`[Batalha] ${msg}`);
     }
 
     static getHpColor(current: number, max: number) {
         const pct = (current / max) * 100;
         if(pct > 50) return 'hp-green';
-        if(pct > 20) return 'hp-yellow';
+        if(pct > 10) return 'hp-yellow'; 
         return 'hp-red';
     }
 
     static updateUI() {
         if(!this.activeMon || !this.opponent) return;
         
+        // Player
         document.getElementById('ply-name')!.innerText = this.activeMon.name;
         document.getElementById('ply-lvl')!.innerText = `Lv.${this.activeMon.level}`;
         (document.getElementById('ply-img') as HTMLImageElement).src = this.activeMon.getSprite();
@@ -354,6 +624,7 @@ class Battle {
         document.getElementById('ply-hp-text')!.innerText = `${this.activeMon.currentHp}/${this.activeMon.maxHp}`;
         (document.getElementById('ply-trainer-img') as HTMLImageElement).src = this.player!.avatar;
 
+        // Oponente
         document.getElementById('opp-name')!.innerText = this.opponent.name;
         document.getElementById('opp-lvl')!.innerText = `Lv.${this.opponent.level}`;
         (document.getElementById('opp-img') as HTMLImageElement).src = this.opponent.getSprite();
@@ -373,6 +644,7 @@ class Battle {
         else if (this.isNPC) { oppTrainer.src = '/assets/img/Treinadores/Red.jpg'; oppTrainer.style.display = 'block'; } 
         else { oppTrainer.style.display = 'none'; }
 
+        // Indicadores de PokeBolas
         if(!this.isNPC && !this.isGym && !this.isPvP) {
             document.getElementById('ply-team-indicator')!.innerHTML = ''; document.getElementById('opp-team-indicator')!.innerHTML = '';
         } else {
@@ -388,70 +660,11 @@ class Battle {
         if(!this.activeMon || !this.opponent) return;
         this.activeMon.currentHp = payload.plyHp;
         this.opponent.currentHp = payload.oppHp;
-        Game.log(payload.msg);
+        this.logBattle(payload.msg); // Usa logBattle para atualizar ambos
         this.updateUI();
     }
 
-    static calculateDamage(attacker: Pokemon, defender: Pokemon): { dmg: number, multiplier: number } {
-        let raw = attacker.atk * (0.8 + Math.random()*0.4);
-        let mul = 1;
-        if (TYPE_CHART[attacker.type] && TYPE_CHART[attacker.type][defender.type] !== undefined) mul = TYPE_CHART[attacker.type][defender.type];
-        let dmg = Math.max(1, Math.floor((raw * mul) - (defender.def * 0.5)));
-        return { dmg, multiplier: mul };
-    }
-
-    static attack() {
-        if(!this.activeMon || !this.opponent) return;
-        try {
-            const { dmg, multiplier } = this.calculateDamage(this.activeMon, this.opponent);
-            let finalDmg = dmg;
-            if(this.activeCard === 'crit') { finalDmg *= 2; this.log("💥 CRÍTICO!"); this.activeCard = null; } 
-            
-            let effectMsg = multiplier > 1 ? " (Super!)" : (multiplier < 1 ? " (Fraco...)" : "");
-            const msg = `${this.activeMon.name} atacou! -${finalDmg}${effectMsg}`;
-            this.log(msg);
-
-            this.opponent.currentHp = Math.max(0, this.opponent.currentHp - finalDmg);
-            this.updateUI();
-            Network.send('BATTLE_UPDATE', { plyHp: this.activeMon.currentHp, oppHp: this.opponent.currentHp, msg });
-
-            if(this.opponent.currentHp <= 0) setTimeout(() => this.checkWinCondition(), 1000);
-            else setTimeout(() => this.enemyTurn(), 1000);
-        } catch (e) { console.error(e); setTimeout(() => this.enemyTurn(), 1000); }
-    }
-
-    static enemyTurn() {
-        if(!this.activeMon || !this.opponent) return;
-        const { dmg, multiplier } = this.calculateDamage(this.opponent, this.activeMon);
-        let effectMsg = multiplier > 1 ? " (Super!)" : (multiplier < 1 ? " (Fraco...)" : "");
-        const msg = `${this.opponent.name} bateu! -${dmg}${effectMsg}`;
-        this.log(msg);
-
-        this.activeMon.currentHp = Math.max(0, this.activeMon.currentHp - dmg);
-        this.updateUI();
-        Network.send('BATTLE_UPDATE', { plyHp: this.activeMon.currentHp, oppHp: this.opponent.currentHp, msg });
-
-        if(this.activeMon.currentHp <= 0) setTimeout(() => this.handleFaint(), 1000);
-    }
-
-    static checkWinCondition() {
-        const nextOpp = this.oppTeamList.find(p => !p.isFainted());
-        if (nextOpp) {
-            this.opponent = nextOpp;
-            this.log(`Rival enviou ${nextOpp.name}!`);
-            this.updateUI();
-        } else { this.win(); }
-    }
-
-    static handleFaint() {
-        const nextPly = this.plyTeamList.find(p => !p.isFainted());
-        if (nextPly) {
-            this.log(`${this.activeMon!.name} desmaiou!`);
-            document.getElementById('battle-modal')!.style.display = 'none';
-            this.openSelectionModal("Escolha o próximo!");
-        } else { this.lose(); }
-    }
-
+    // --- RESULTADOS ---
     static win() {
         if(Network.isOnline && Game.turn !== Network.myPlayerId && Network.myPlayerId !== 0) return;
         
@@ -479,7 +692,7 @@ class Battle {
             this.enemyPlayer.x = 0; this.enemyPlayer.y = 0;
             this.enemyPlayer.team.forEach(p => p.heal(999));
             this.enemyPlayer.skipTurn = true;
-            this.enemyPlayer.team[0].gainXp(5, this.enemyPlayer); 
+            Game.log(`[PvP] ${this.enemyPlayer.name} voltou ao início.`);
         } 
         else if (this.isGym) {
             gain = 1000;
@@ -530,7 +743,10 @@ class Battle {
         if(!isRemote) { Network.send('BATTLE_END', {}); Game.nextTurn(); }
     }
 
+    // --- ITENS E CARTAS NA BATALHA ---
     static openBag() { 
+        if (!this.isPlayerTurn || this.processingAction) return; // Bloqueio de turno
+
         const list = document.getElementById('battle-bag-list')!; list.innerHTML = '';
         Object.keys(this.player!.items).forEach(key => {
             if(this.player!.items[key] > 0) {
@@ -548,16 +764,21 @@ class Battle {
 
     static useItem(key: string, data: ItemData) {
         document.getElementById('battle-bag')!.style.display = 'none';
+        
         if(data.type === 'capture' && (this.isPvP || this.isNPC || this.isGym)) { 
             alert("Não pode capturar pokémons de treinadores!"); return; 
         }
+
         this.player!.items[key]--;
+        this.processingAction = true; // Bloqueia spam
+        this.updateButtons();
+
         if(data.type === 'heal') {
             this.activeMon!.heal(data.val!);
-            this.log("Usou item de cura!");
+            this.logBattle("Usou item de cura!");
             this.updateUI();
             Network.send('BATTLE_UPDATE', { plyHp: this.activeMon!.currentHp, oppHp: this.opponent!.currentHp, msg: "Usou Cura!" });
-            setTimeout(() => this.enemyTurn(), 1000);
+            setTimeout(() => this.enemyTurn(), 1500); // Passa a vez
         } else if(data.type === 'capture') {
             this.attemptCapture(data.rate!);
         }
@@ -566,86 +787,86 @@ class Battle {
     static attemptCapture(rate: number) {
         if(!this.opponent) return;
         const chance = ((1 - (this.opponent.currentHp/this.opponent.maxHp)) * rate) + 0.2;
-        if(Math.random() < chance) {
-            this.log(`✨ Capturou ${this.opponent.name}!`);
-            this.activeMon!.gainXp(3, this.player!);
-            
-            // --- NOVO: LÓGICA DE LIMITE DE TIME (6) ---
-            if(this.player!.team.length < 6) {
-                this.player!.team.push(this.opponent);
-                setTimeout(() => this.end(false), 1500);
+        
+        setTimeout(() => {
+            if(Math.random() < chance) {
+                this.logBattle(`✨ Capturou ${this.opponent!.name}!`);
+                this.activeMon!.gainXp(3, this.player!);
+                
+                if(this.player!.team.length < 6) {
+                    this.player!.team.push(this.opponent!);
+                    setTimeout(() => this.end(false), 1500);
+                } else {
+                    this.pendingCapture = this.opponent;
+                    this.openSwapModal();
+                }
             } else {
-                // Time cheio, chama modal de troca
-                this.pendingCapture = this.opponent;
-                this.openSwapModal();
+                this.logBattle("Escapou!");
+                setTimeout(() => this.enemyTurn(), 1000);
             }
-        } else {
-            this.log("Escapou!");
-            setTimeout(() => this.enemyTurn(), 1000);
-        }
+        }, 1000); 
     }
 
-    // --- TROCA DE POKEMON (MODAL) ---
-    static openSwapModal() {
-        const modal = document.getElementById('swap-modal')!;
-        const list = document.getElementById('swap-list')!;
+    static openSwapModal() { Game.openSwapModal(this.pendingCapture!); }
+
+    static openCardSelection() {
+        if (!this.isPlayerTurn || this.processingAction) return;
+
+        const list = document.getElementById('battle-cards-list')!;
         list.innerHTML = '';
-
-        // Lista os 6 atuais
-        this.player!.team.forEach((p, idx) => {
-            const div = document.createElement('div');
-            div.className = 'swap-item';
-            div.innerHTML = `<img src="${p.getSprite()}"> <b>${p.name}</b> Lv.${p.level}`;
-            div.onclick = () => this.executeSwap(idx);
-            list.appendChild(div);
-        });
-
-        // Adiciona o novo capturado como opção de "Soltar ele mesmo"
-        const newP = this.pendingCapture!;
-        const divNew = document.createElement('div');
-        divNew.className = 'swap-item new-mon';
-        divNew.innerHTML = `<img src="${newP.getSprite()}"> <b>${newP.name} (NOVO)</b> Lv.${newP.level} <br><small>Clique para descartar este</small>`;
-        divNew.onclick = () => this.executeSwap(-1); // -1 = descarta novo
-        list.appendChild(divNew);
-
-        modal.style.display = 'block';
-    }
-
-    static executeSwap(indexToRelease: number) {
-        if (indexToRelease === -1) {
-            this.log(`Libertou ${this.pendingCapture!.name}.`);
+        const battleCards = this.player!.cards.filter(c => c.type === 'battle');
+        
+        if(battleCards.length === 0) {
+            list.innerHTML = "<em>Sem cartas de batalha.</em>";
         } else {
-            const released = this.player!.team[indexToRelease];
-            this.log(`Libertou ${released.name} e ficou com ${this.pendingCapture!.name}!`);
-            this.player!.team[indexToRelease] = this.pendingCapture!;
+            battleCards.forEach(c => {
+                const d = document.createElement('div'); d.className='card-item';
+                d.innerHTML = `
+                    <div class="card-info">
+                        <span class="card-name">${c.icon} ${c.name} <span class="card-type-badge type-battle">BATTLE</span></span>
+                        <span class="card-desc">${c.desc}</span>
+                    </div>
+                    <button class="btn-use-card" onclick="window.Battle.useCard('${c.id}')">USAR</button>
+                `;
+                list.appendChild(d);
+            });
         }
-        this.pendingCapture = null;
-        document.getElementById('swap-modal')!.style.display = 'none';
-        Game.updateHUD();
-        setTimeout(() => this.end(false), 500);
+        document.getElementById('battle-cards-modal')!.style.display = 'flex';
     }
 
-    static useCard() { 
-        const card = this.player!.cards.find(c => c.type === 'battle');
-        if(!card) return alert("Sem cartas de batalha!");
+    static useCard(cardId: string) { 
+        document.getElementById('battle-cards-modal')!.style.display = 'none';
+        const cardIndex = this.player!.cards.findIndex(c => c.id === cardId);
+        if(cardIndex === -1) return;
+        const card = this.player!.cards[cardIndex];
+
         if (card.id === 'run') {
-            this.player!.cards.splice(this.player!.cards.indexOf(card), 1);
-            this.log("Usou Carta de Fuga!");
+            this.player!.cards.splice(cardIndex, 1);
+            this.logBattle("Usou Carta de Fuga!");
+            this.activeMon!.gainXp(2, this.player!);
             this.end(false);
+        } else if (card.id === 'crit') {
+            this.player!.cards.splice(cardIndex, 1);
+            this.activeCard = 'crit';
+            this.logBattle("Usou Ataque Crítico! Próximo ataque x2.");
         } else {
-            this.player!.cards.splice(this.player!.cards.indexOf(card), 1);
+            this.player!.cards.splice(cardIndex, 1);
             this.activeCard = card.id;
-            this.log(`Usou ${card.name}!`);
+            this.logBattle(`Usou ${card.name}!`);
         }
     }
     
     static run() { 
-        if(this.isPvP || this.isNPC || this.isGym) { alert("Não pode fugir!"); } 
-        else { this.activeMon!.gainXp(2, this.player!); this.end(false); }
+        if(this.isPvP || this.isNPC || this.isGym) { 
+            alert("Não pode fugir!"); 
+        } else { 
+            this.activeMon!.gainXp(2, this.player!); 
+            this.end(false); 
+        }
     }
-    
-    static log(m: string) { Game.log(m); }
 }
+
+// ... (Classes Shop e Cards mantidas iguais ao anterior) ...
 
 class Shop {
     static open() { 
@@ -682,14 +903,13 @@ class Cards {
 }
 
 // ==========================================
-// MOTOR DO JOGO
+// MOTOR DO JOGO (GAME)
 // ==========================================
 class Game {
     static players: Player[] = [];
     static turn: number = 0;
     static isCityEvent: boolean = false; 
     static hasRolled: boolean = false; 
-    
     static globalGymLevel: number = 1; 
 
     static init(players: Player[], mapSize: number) {
@@ -699,6 +919,8 @@ class Game {
         this.checkTurnControl();
         this.renderDebugPanel(); 
     }
+    
+    // ... (Helpers de UI renderDebug, openLibrary, openXpRules, debugMove, moveVisuals, rollDice, animateDice mantidos) ...
 
     static renderDebugPanel() {
         const container = document.querySelector('.extra-space');
@@ -827,60 +1049,67 @@ class Game {
         
         if(this.canAct()) {
             this.log(`${this.getCurrentPlayer().name} tirou ${result}`);
-            
             const p = this.getCurrentPlayer();
             if(p.team.length > 0) {
                 const luckyMon = p.team[Math.floor(Math.random() * p.team.length)];
                 luckyMon.gainXp(1, p);
             }
-
             Network.send('LOG_MSG', { msg: `${this.getCurrentPlayer().name} tirou ${result}` });
             this.movePlayerLogic(result);
         }
     }
 
-    // --- NOVA LÓGICA DE MOVIMENTO COM LOOP ---
+    // --- LÓGICA DE MOVIMENTO E LOOP ---
     static async movePlayerLogic(steps: number) {
         const p = this.getCurrentPlayer();
         const totalTiles = MapSystem.size * MapSystem.size;
 
         for(let i=0; i<steps; i++) {
-            // Converte (x,y) -> Índice linear
+            // 1. Pega o índice atual baseado na posição ATUAL
             let currentIdx = MapSystem.getIndex(p.x, p.y);
             
-            // Avança
+            // 2. Calcula o próximo índice
             currentIdx++;
 
-            // Check Loop
+            // 3. Verifica o Loop do Mapa (Volta ao início)
             if (currentIdx >= totalTiles) {
-                currentIdx = 0; // Volta pro início
+                currentIdx = 0; 
                 p.gold += 200;
                 Cards.draw(p);
                 this.log("🚩 Completou uma volta! Ganhou 200G e 1 Carta!");
-                alert("🚩 Completou uma volta! Ganhou 200G e 1 Carta!");
             }
 
-            // Converte Índice -> (x,y)
+            // 4. Converte o novo índice para coordenadas X, Y
             const nextCoord = MapSystem.getCoord(currentIdx);
             
-            Network.send('MOVE_STEP', { playerId: this.turn, x: nextCoord.x, y: nextCoord.y });
-            this.performVisualStep(this.turn, nextCoord.x, nextCoord.y);
+            // 5. ATUALIZAÇÃO CRÍTICA: Salva a nova posição no jogador IMEDIATAMENTE
+            // Sem isso, o próximo loop calcularia baseado na posição velha
+            p.x = nextCoord.x;
+            p.y = nextCoord.y;
             
+            // 6. Envia para rede e atualiza visual
+            Network.send('MOVE_STEP', { playerId: this.turn, x: p.x, y: p.y });
+            this.performVisualStep(this.turn, p.x, p.y);
+            
+            // Pequena pausa para animação
             await new Promise(r => setTimeout(r, 150));
         }
+        
+        // Finaliza o movimento no tile de destino
         this.handleTile(p);
     }
 
     static performVisualStep(pId: number, x: number, y: number) {
         const p = this.players[pId];
-        // Se eu sou o jogador da vez, minha posição lógica já está sendo atualizada no loop.
-        // Se eu sou espectador (online), preciso atualizar aqui.
-        p.x = x; p.y = y;
+        
+        // Garante que a lógica esteja sincronizada (importante para o Online)
+        p.x = x; 
+        p.y = y;
         
         const tile = document.getElementById(`tile-${x}-${y}`);
         if(tile) {
             tile.classList.add('step-highlight');
-            this.moveVisuals(); 
+            this.moveVisuals(); // Move o boneco (CSS) para o novo x,y
             setTimeout(() => tile.classList.remove('step-highlight'), 300);
         }
     }
@@ -921,9 +1150,6 @@ class Game {
         }
         else if(type === TILE.GYM) { 
             const gymId = MapSystem.gymLocations[`${p.x},${p.y}`] || 1;
-            
-            // REMOVIDA TRAVA DE ORDEM DE GINÁSIO
-            
             if (!p.badges[gymId-1]) {
                 const boss = new Pokemon(150, true); 
                 Battle.setup(p, boss, false, "Líder de Ginásio", 1000, null, true, gymId); 
@@ -966,6 +1192,9 @@ class Game {
         this.moveVisuals();
         this.checkTurnControl();
     }
+    
+    // ... (Métodos checkTurnControl, canAct, save/load, export/import, openInventoryModal, useItemBoard mantidos) ...
+    // Vou incluir tudo para garantir o arquivo completo
 
     static checkTurnControl() {
         const btn = document.getElementById('roll-btn') as HTMLButtonElement;
@@ -1023,7 +1252,6 @@ class Game {
         const r = new FileReader(); r.onload=e=>{ localStorage.setItem('pk_save', e.target?.result as string); this.loadGame(); }; r.readAsText(f);
     }
 
-    // --- USO DE ITEM NO TABULEIRO ---
     static openInventoryModal(pId: number) {
         const p = this.players[pId];
         const list = document.getElementById('board-inventory-list')!;
@@ -1066,6 +1294,42 @@ class Game {
         }
     }
 
+    static openSwapModal(newMon: Pokemon) {
+        const modal = document.getElementById('swap-modal')!;
+        const list = document.getElementById('swap-list')!;
+        list.innerHTML = '';
+        
+        const p = this.getCurrentPlayer();
+        
+        p.team.forEach((currP, idx) => {
+            const div = document.createElement('div'); div.className = 'swap-item';
+            div.innerHTML = `<img src="${currP.getSprite()}"> <b>${currP.name}</b> Lv.${currP.level}`;
+            div.onclick = () => this.executeSwap(idx, newMon);
+            list.appendChild(div);
+        });
+        
+        const divNew = document.createElement('div'); divNew.className = 'swap-item new-mon';
+        divNew.innerHTML = `<img src="${newMon.getSprite()}"> <b>${newMon.name} (NOVO)</b> Lv.${newMon.level} <br><small>Clique para descartar este</small>`;
+        divNew.onclick = () => this.executeSwap(-1, newMon);
+        list.appendChild(divNew);
+
+        modal.style.display = 'block';
+    }
+
+    static executeSwap(indexToRelease: number, newMon: Pokemon) {
+        const p = this.getCurrentPlayer();
+        if (indexToRelease === -1) {
+            this.log(`Libertou ${newMon.name}.`);
+        } else {
+            const released = p.team[indexToRelease];
+            this.log(`Libertou ${released.name} e ficou com ${newMon.name}!`);
+            p.team[indexToRelease] = newMon;
+        }
+        document.getElementById('swap-modal')!.style.display = 'none';
+        Game.updateHUD(); // CORRIGIDO AQUI
+        setTimeout(() => Battle.end(false), 500);
+    }
+
     static updateHUD() {
         const left = document.getElementById('hud-col-left')!; left.innerHTML = '';
         const right = document.getElementById('hud-col-right')!; right.innerHTML = '';
@@ -1073,20 +1337,14 @@ class Game {
             const d = document.createElement('div');
             d.className = `player-slot ${i===this.turn?'active':''}`;
             
-            // --- CORREÇÃO: INSÍGNIAS ---
             let badgeHTML = '<div class="badges-container">';
             for(let b=0; b<8; b++) {
                 const isActive = p.badges[b];
                 const gData = GYM_DATA.find(g => g.id === b+1);
-                
-                // Caminho da imagem (Pasta Insignias com I maiúsculo)
                 const imgUrl = gData ? `/assets/img/Insignias/${gData.badgeImg}` : '';
-                
-                // Estilo dinâmico: Se ativo, põe a imagem ajustada. Se não, fundo cinza.
                 const style = isActive 
                     ? `background-image: url('${imgUrl}'); background-size: 100% 100%; background-repeat: no-repeat; background-color: transparent;` 
                     : `background-color: #ccc;`;
-                
                 badgeHTML += `<div class="badge-slot ${isActive?'active':''}" style="${style}" title="Insígnia ${b+1}"></div>`;
             }
             badgeHTML += '</div>';
@@ -1128,32 +1386,24 @@ class Game {
             for(let x=0; x<MapSystem.size; x++) {
                 const d = document.createElement('div');
                 let c = 'path'; const t = MapSystem.grid[y][x];
-                
-                // Define a classe base do tile
                 if(t===TILE.GRASS)c='grass'; else if(t===TILE.WATER)c='water'; else if(t===TILE.GROUND)c='ground';
                 else if(t===TILE.CITY)c='city'; else if(t===TILE.GYM)c='gym'; else if(t===TILE.EVENT)c='event';
                 else if(t===TILE.ROCKET)c='rocket'; else if(t===TILE.BIKER)c='biker'; else if(t===TILE.YOUNG)c='young'; else if(t===TILE.OLD)c='old';
-                
                 d.className = `tile ${c}`; d.id = `tile-${x}-${y}`;
                 if(MapSystem.size>=30)d.style.fontSize='8px';
-                
-                // --- CORREÇÃO: IMAGENS DOS GINÁSIOS ---
                 if(t===TILE.GYM) {
                     const gid = MapSystem.gymLocations[`${x},${y}`];
                     if(gid) {
                         const gData = GYM_DATA.find(g => g.id === gid);
                         if(gData) {
-                            // Caminho absoluto apontando para a pasta 'Ginasios' (Plural)
                             d.style.backgroundImage = `url('/assets/img/Ginasios/${gData.gymImg}')`;
-                            d.style.backgroundSize = '100% 100%'; // Garante que preencha o quadrado
+                            d.style.backgroundSize = '100% 100%'; 
                             d.style.backgroundRepeat = 'no-repeat';
                             d.title = `Ginásio ${gData.type} - Líder ${gData.leaderName}`;
                         }
-                        // Limpa texto para não ficar número em cima da imagem
                         d.innerText = ""; 
                     }
                 }
-                
                 area.appendChild(d);
             }
         }
@@ -1179,16 +1429,11 @@ class Setup {
     static updatePreview(i: number) { (document.getElementById(`p${i}-preview`) as HTMLImageElement).src = `/assets/img/Treinadores/${(document.getElementById(`p${i}-av`) as HTMLSelectElement).value}`; }
     static start() {
         const n = parseInt((document.getElementById('num-players') as HTMLSelectElement).value);
-        
-        // CORREÇÃO: Usando o valor selecionado do mapa, não 20 fixo
         const mapSize = parseInt((document.getElementById('map-size') as HTMLSelectElement).value); 
-
         const ps = [];
         for(let i=0; i<n; i++) ps.push(new Player(i, (document.getElementById(`p${i}-name`) as HTMLInputElement).value, (document.getElementById(`p${i}-av`) as HTMLSelectElement).value));
         document.getElementById('setup-screen')!.style.display='none';
         document.getElementById('game-container')!.style.display='flex';
-        
-        // CORREÇÃO: Iniciando com mapSize correto
         Game.init(ps, mapSize);
         if(Network.isHost) Network.broadcastState();
     }
