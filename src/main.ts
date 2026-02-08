@@ -4,7 +4,6 @@ import { TILE, NPC_DATA, CARDS_DB, SHOP_ITEMS } from './constants';
 import { POKEDEX } from './constants/pokedex';
 import { PLAYER_COLORS } from './constants/playerColors';
 import { TRAINER_IMAGES } from './constants/trainerImages';
-import { POKEMON_TYPES } from './constants/pokemonTypes';
 import { TYPE_CHART } from './constants/typeChart';
 import { GYM_DATA } from './constants/gyms';
 
@@ -119,7 +118,9 @@ class Pokemon {
     constructor(templateId: number, isShiny: boolean = false) {
         const template = POKEDEX.find(p => p.id === templateId) || POKEDEX[0];
         this.id = template.id; this.name = template.name; this.isShiny = isShiny;
-        this.type = template.type || POKEMON_TYPES[this.name] || 'Normal';
+
+        this.type = template.type;
+
         this.level = 1; this.currentXp = 0; this.maxXp = 20;
         
         const bonus = isShiny ? 1.2 : 1.0;
@@ -162,7 +163,7 @@ class Pokemon {
             const next = POKEDEX.find(p => p.name === this.evoData.next);
             if (next) {
                 const oldName = this.name;
-                this.id = next.id; this.name = next.name; this.type = next.type || this.type;
+                this.id = next.id; this.name = next.name; this.type = next.type;
                 this.maxHp += 30; this.currentHp = this.maxHp;
                 this.atk += 10; this.def += 5;
                 this.evoData = { next: next.nextForm, trigger: next.evoTrigger };
@@ -180,29 +181,50 @@ class Pokemon {
 }
 
 class Player {
-    id: number; name: string; avatar: string; 
-    x: number = 0; y: number = 0; gold: number = 500;
+    id: number; 
+    name: string; 
+    avatar: string; 
+    x: number = 0; 
+    y: number = 0; 
+    gold: number = 500;
     items: {[key:string]:number} = {'pokeball':6, 'potion':1};
-    cards: CardData[] = []; team: Pokemon[] = [];
+    cards: CardData[] = []; 
+    team: Pokemon[] = [];
     skipTurn: boolean = false; 
     badges: boolean[] = [false,false,false,false,false,false,false,false];
 
     constructor(id: number, name: string, avatarFile: string) {
-        this.id = id; this.name = name;
+        this.id = id; 
+        this.name = name;
         this.avatar = `/assets/img/Treinadores/${avatarFile}`;
+        
+        // Se não for carregamento de save, cria o time inicial
         if(name !== "_LOAD_") {
-            const starters = [1, 4, 7]; 
-            this.team.push(new Pokemon(starters[Math.floor(Math.random()*starters.length)]));
+            // IDs: 1(Bulbasaur), 4(Charmander), 7(Squirtle), 25(Pikachu)
+            const starters = [1, 4, 7, 25]; 
+            
+            // Sorteia um dos IDs
+            const randomStarterId = starters[Math.floor(Math.random() * starters.length)];
+            
+            // Define se é Shiny (5% de chance)
+            // Math.random() gera um número entre 0 e 1. Se for menor que 0.05, é shiny.
+            const isShiny = Math.random() < 0.05;
+
+            // Cria o Pokémon e adiciona ao time
+            this.team.push(new Pokemon(randomStarterId, isShiny));
         }
     }
+
     isDefeated() { 
         const battleTeam = this.getBattleTeam(false); 
         return battleTeam.length === 0 || battleTeam.every(p => p.isFainted());
     }
+    
     getBattleTeam(isGymLimit: boolean) {
         const limit = isGymLimit ? 6 : 3;
         return this.team.filter(p => !p.isFainted()).slice(0, limit); 
     }
+    
     resetTurnFlags() { this.team.forEach(p => p.leveledUpThisTurn = false); }
 }
 
@@ -453,7 +475,7 @@ class Battle {
         }
 
         // 2. Base de Dano
-        // base = floor((atk / 10) - (def / 20))
+        // base = floor((atk / 5) - (def / 20))
         let defenseVal = defender.def;
         
         // CRÍTICO: Ignora metade da defesa
