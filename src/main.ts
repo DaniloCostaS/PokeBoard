@@ -112,7 +112,9 @@ class Pokemon {
     id: number; name: string; type: string;
     maxHp: number; currentHp: number; atk: number; def: number; speed: number;
     level: number; currentXp: number; maxXp: number;
-    isShiny: boolean; wins: number; evoData: any;
+    isShiny: boolean; 
+    isLegendary: boolean;
+    wins: number; evoData: any;
     leveledUpThisTurn: boolean = false;
 
     constructor(templateId: number, isShiny: boolean = false) {
@@ -120,7 +122,7 @@ class Pokemon {
         this.id = template.id; this.name = template.name; this.isShiny = isShiny;
 
         this.type = template.type;
-
+        this.isLegendary = !!template.isLegendary;
         this.level = 1; this.currentXp = 0; this.maxXp = 20;
         
         const bonus = isShiny ? 1.2 : 1.0;
@@ -1370,12 +1372,22 @@ class Game {
                 badgeHTML += `<div class="badge-slot ${isActive?'active':''}" style="${style}" title="Insígnia ${b+1}"></div>`;
             }
             badgeHTML += '</div>';
+            
+            
+            const th = p.team.map(m => {
+                // --- LÓGICA DA AURA ---
+                let auraClass = '';
+                if (m.isShiny) auraClass = 'aura-shiny';
+                else if (m.isLegendary) auraClass = 'aura-legendary';
+                // ---------------------
 
-            const th = p.team.map(m => `
+                return `
                 <div class="poke-card ${m.isFainted() ? 'fainted' : ''}">
-                    <img src="${m.getSprite()}" class="poke-card-img">
+                    <img src="${m.getSprite()}" class="poke-card-img ${auraClass}">
                     <div class="poke-card-info">
-                        <div class="poke-header"><span>${m.name}</span> <span class="poke-lvl">Lv.${m.level}</span></div>
+                        <div class="poke-header">
+                            <span>${m.name}</span> <span class="poke-lvl">Lv.${m.level}</span>
+                        </div>
                         <div class="bar-container" title="HP">
                             <div class="bar-fill ${Battle.getHpColor(m.currentHp, m.maxHp)}" style="width:${(m.currentHp/m.maxHp)*100}%"></div>
                             <div class="bar-text">${m.currentHp}/${m.maxHp}</div>
@@ -1387,7 +1399,8 @@ class Game {
                             <div class="stat-item">💨${m.speed}</div>
                         </div>
                     </div>
-                </div>`).join('');
+                </div>`;
+            }).join('');
             
             d.innerHTML = `
                 <div class="hud-header"><div class="hud-name-group"><img src="${p.avatar}" class="hud-avatar-img"><span>${p.name}</span></div><div>💰${p.gold}</div></div>

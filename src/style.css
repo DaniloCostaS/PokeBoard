@@ -114,7 +114,16 @@ body {
 /* Cards Pokemon */
 .poke-card { display: flex; background: #f8f9fa; border: 1px solid #ddd; border-radius: 6px; padding: 4px; align-items: center; gap: 6px; font-size: 0.7rem; position: relative; }
 .poke-card.fainted { opacity: 0.6; filter: grayscale(1); background: #eee; }
-.poke-card-img { width: 36px; height: 36px; image-rendering: pixelated; background: #fff; border-radius: 4px; border: 1px solid #ccc; object-fit: contain; }
+.poke-card-img { 
+    width: 50px;  /* Era 36px, aumentei para 50px */
+    height: 50px; /* Era 36px, aumentei para 50px */
+    image-rendering: pixelated; 
+    background: #fff; 
+    border-radius: 4px; 
+    border: 1px solid #ccc; 
+    object-fit: contain; 
+    transition: all 0.3s ease; /* Suavizar a animação */
+}
 .poke-card-info { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .poke-header { display: flex; justify-content: space-between; font-weight: bold; color: #444; }
 .poke-lvl { color: var(--highlight); font-size: 0.65rem; background: rgba(52, 152, 219, 0.1); padding: 0 3px; border-radius: 3px; }
@@ -136,12 +145,6 @@ body {
 
 /* --- LEGENDA DE EVOLUÇÃO (POSICIONAMENTO NO PAINEL) --- */
 .evo-legend {
-    /* Resetando posições anteriores */
-    position: relative;
-    top: auto;
-    right: auto;
-    transform: none;
-    
     /* Novo estilo para ficar dentro do painel */
     width: 90%;
     margin: 10px auto; /* Centraliza no painel e dá margem */
@@ -151,7 +154,7 @@ body {
     padding: 10px;
     box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
     text-align: left;
-    flex-shrink: 0; /* Impede de encolher se o log crescer demais */
+    flex-shrink: 0; 
 }
 
 .evo-legend h4 {
@@ -278,6 +281,29 @@ body {
 }
 .battler.shiny .pokemon-battle-img { filter: hue-rotate(150deg) drop-shadow(0 0 10px gold); }
 @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+
+/* Animação para Shiny (Dourado) */
+@keyframes glowGold {
+    0% { box-shadow: 0 0 2px gold; border-color: gold; }
+    50% { box-shadow: 0 0 10px gold, 0 0 5px yellow; border-color: yellow; }
+    100% { box-shadow: 0 0 2px gold; border-color: gold; }
+}
+/* Animação para Lendário (Roxo) */
+@keyframes glowPurple {
+    0% { box-shadow: 0 0 2px #9b59b6; border-color: #8e44ad; }
+    50% { box-shadow: 0 0 10px #9b59b6, 0 0 5px magenta; border-color: magenta; }
+    100% { box-shadow: 0 0 2px #9b59b6; border-color: #8e44ad; }
+}
+/* Classes que serão adicionadas via Javascript */
+.aura-shiny {
+    animation: glowGold 2s infinite alternate;
+    border: 2px solid gold !important; /* Força a borda dourada */
+}
+
+.aura-legendary {
+    animation: glowPurple 2s infinite alternate;
+    border: 2px solid #8e44ad !important; /* Força a borda roxa */
+}
 
 .battle-team-indicator { display: flex; gap: 4px; margin-top: 5px; justify-content: center; }
 .ball-icon { width: 10px; height: 10px; border-radius: 50%; background: #e74c3c; border: 1px solid #fff; box-shadow: 0 0 2px #000; }
