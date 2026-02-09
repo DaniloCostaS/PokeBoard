@@ -6,7 +6,6 @@ import { PLAYER_COLORS } from './constants/playerColors';
 import { TRAINER_IMAGES } from './constants/trainerImages';
 import { TYPE_CHART } from './constants/typeChart';
 import { GYM_DATA } from './constants/gyms';
-// Nova importação da configuração do Firebase
 import { firebaseConfig } from './constants/connectConfig';
 
 import type { ItemData, CardData, Coord } from './constants';
@@ -15,14 +14,13 @@ import type { ItemData, CardData, Coord } from './constants';
 import { initializeApp } from 'firebase/app';
 import { getDatabase, ref, set, get, onValue, update, Database } from 'firebase/database';
 
-// Inicializa Firebase com tratamento de erro básico
+// Inicializa Firebase
 let app, db: Database;
 try {
-    // Usa a configuração importada do arquivo separado
     app = initializeApp(firebaseConfig);
     db = getDatabase(app);
 } catch (e) {
-    console.error("Erro ao inicializar Firebase. Verifique a configuração.", e);
+    console.error("Erro ao inicializar Firebase", e);
 }
 
 declare global {
@@ -40,7 +38,117 @@ declare global {
 }
 
 // ==========================================
-// SETUP (MENU E INICIALIZAÇÃO)
+// 1. CLASSES DE DADOS E MAPA (BASE)
+// ==========================================
+
+class Pokemon {
+    id: number; name: string; type: string;
+    maxHp: number; currentHp: number; atk: number; def: number; speed: number;
+    level: number; currentXp: number; maxXp: number;
+    isShiny: boolean; isLegendary: boolean; wins: number; evoData: any; leveledUpThisTurn: boolean = false;
+
+    constructor(templateId: number, isShiny: boolean = false) {
+        const template = POKEDEX.find(p => p.id === templateId) || POKEDEX[0];
+        this.id = template.id; this.name = template.name; this.isShiny = isShiny;
+        this.type = template.type; this.isLegendary = !!template.isLegendary;
+        this.level = 1; this.currentXp = 0; this.maxXp = 20;
+        const bonus = isShiny ? 1.2 : 1.0;
+        this.maxHp = Math.floor((template.hp + 20) * bonus); this.currentHp = this.maxHp;
+        this.atk = Math.floor((template.atk + 5) * bonus);
+        this.def = Math.floor((template.atk * 0.8) * bonus); 
+        this.speed = Math.floor((template.atk * 0.9) * bonus);
+        this.wins = 0; this.evoData = { next: template.nextForm, trigger: template.evoTrigger };
+    }
+    getSprite() { return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${this.isShiny ? 'shiny/' : ''}${this.id}.png`; }
+    isFainted() { return this.currentHp <= 0; }
+    heal(amt: number) { this.currentHp = Math.min(this.maxHp, this.currentHp + amt); }
+    gainXp(amount: number, player: Player) { if(this.level >= 15) return; this.currentXp += amount; if(this.currentXp >= this.maxXp && !this.leveledUpThisTurn) { this.currentXp -= this.maxXp; this.levelUp(player); this.leveledUpThisTurn = true; } }
+    levelUp(player: Player | null) { this.level++; this.maxHp += 5; this.currentHp = this.maxHp; this.atk += 2; this.def += 1; this.maxXp = this.level * 20; if(player) Game.log(`${this.name} subiu para o Nível ${this.level}!`); this.checkEvolution(player); }
+    forceLevel(targetLevel: number) { while(this.level < targetLevel) { this.levelUp(null); } this.currentHp = this.maxHp; }
+    checkEvolution(player: Player | null): boolean { if (this.evoData.next && this.level >= (this.evoData.trigger || 999)) { const next = POKEDEX.find(p => p.name === this.evoData.next); if (next) { const oldName = this.name; this.id = next.id; this.name = next.name; this.type = next.type; this.maxHp += 30; this.currentHp = this.maxHp; this.atk += 10; this.def += 5; this.evoData = { next: next.nextForm, trigger: next.evoTrigger }; if(player) { Game.log(`✨ ${oldName} evoluiu para ${this.name}! (HP Restaurado)`); if (this.level === 8) { Cards.draw(player); Cards.draw(player); Game.log("Bônus Evolução: Ganhou 2 Cartas!"); } else if (this.level === 5 || this.level === 10) { Cards.draw(player); Game.log("Bônus Evolução: Ganhou 1 Carta!"); } } return true; } } return false; }
+}
+
+class Player {
+    id: number; name: string; avatar: string; x: number = 0; y: number = 0; gold: number = 500;
+    items: {[key:string]:number} = {'pokeball':6, 'potion':1};
+    cards: CardData[] = []; team: Pokemon[] = [];
+    skipTurn: boolean = false; badges: boolean[] = [false,false,false,false,false,false,false,false];
+
+    constructor(id: number, name: string, avatarFile: string, isLoadMode: boolean) {
+        this.id = id; this.name = name; this.avatar = `/assets/img/Treinadores/${avatarFile}`;
+        if(!isLoadMode && name !== "_LOAD_") {
+            const starters = [1, 4, 7, 25]; 
+            const randomStarterId = starters[Math.floor(Math.random() * starters.length)];
+            const isShiny = Math.random() < 0.05;
+            this.team.push(new Pokemon(randomStarterId, isShiny));
+        }
+    }
+    isDefeated() { return this.getBattleTeam(false).length === 0 || this.getBattleTeam(false).every(p => p.isFainted()); }
+    getBattleTeam(isGymLimit: boolean) { const limit = isGymLimit ? 6 : 3; return this.team.filter(p => !p.isFainted()).slice(0, limit); }
+    resetTurnFlags() { this.team.forEach(p => p.leveledUpThisTurn = false); }
+}
+
+class MapSystem {
+    static grid: number[][] = []; 
+    static size: number = 20; 
+    static gymLocations: {[key: string]: number} = {};
+
+    static generate(size: number) {
+        this.size = size;
+        this.grid = Array(size).fill(0).map(() => Array(size).fill(0).map(() => {
+            const r = Math.random();
+            if(r < 0.6) return TILE.GRASS;
+            if(r < 0.8) return TILE.WATER;
+            return TILE.GROUND;
+        }));
+        this.gymLocations = {};
+
+        const totalTiles = size * size;
+        const allCoords: Coord[] = [];
+        for(let y=0; y<size; y++) {
+            for(let x=0; x<size; x++) {
+                if(x===0 && y===0) continue; 
+                allCoords.push({x,y});
+            }
+        }
+        allCoords.sort(() => Math.random() - 0.5);
+
+        for(let i=0; i<8; i++) {
+            if(allCoords.length === 0) break;
+            const c = allCoords.pop()!;
+            this.grid[c.y][c.x] = TILE.GYM;
+            this.gymLocations[`${c.x},${c.y}`] = i + 1;
+        }
+
+        const targetCount = Math.floor(totalTiles * 0.1);
+        
+        const cityCount = Math.max(0, targetCount - 1); 
+        this.grid[0][0] = TILE.CITY;
+        for(let i=0; i<cityCount; i++) {
+            if(allCoords.length === 0) break;
+            const c = allCoords.pop()!;
+            this.grid[c.y][c.x] = TILE.CITY;
+        }
+
+        for(let i=0; i<targetCount; i++) {
+            if(allCoords.length === 0) break;
+            const c = allCoords.pop()!;
+            this.grid[c.y][c.x] = TILE.EVENT;
+        }
+
+        const npcTypes = [TILE.ROCKET, TILE.BIKER, TILE.YOUNG, TILE.OLD];
+        for(let i=0; i<targetCount; i++) {
+            if(allCoords.length === 0) break;
+            const c = allCoords.pop()!;
+            this.grid[c.y][c.x] = npcTypes[Math.floor(Math.random() * npcTypes.length)];
+        }
+    }
+    static getCoord(i: number): Coord { const y=Math.floor(i/this.size); let x=i%this.size; if(y%2!==0) x=(this.size-1)-x; return {x,y}; }
+    static getIndex(x: number, y: number): number { let realX = x; if(y % 2 !== 0) realX = (this.size - 1) - x; return (y * this.size) + realX; }
+}
+
+// ==========================================
+// 2. SETUP
 // ==========================================
 class Setup {
     static showOfflineSetup() { 
@@ -53,7 +161,7 @@ class Setup {
         document.getElementById('menu-phase-online')!.style.display='block';
         
         const sel = document.getElementById('online-avatar-select') as HTMLSelectElement;
-        if(sel.options.length === 0) {
+        if(sel && sel.options.length === 0) {
             sel.innerHTML = TRAINER_IMAGES.map(img => `<option value="${img.file}">${img.label}</option>`).join('');
         }
         this.updateOnlinePreview();
@@ -62,14 +170,19 @@ class Setup {
     static updateOnlinePreview() {
         const sel = document.getElementById('online-avatar-select') as HTMLSelectElement;
         const img = document.getElementById('online-avatar-preview') as HTMLImageElement;
-        if (sel && img) {
+        if (sel && img && sel.value) {
             img.src = `/assets/img/Treinadores/${sel.value}`;
         }
     }
 
     static showLobbyUIOnly() {
-        document.getElementById('online-lobby-controls')!.style.display = 'none';
-        if (!Network.isHost) document.getElementById('host-controls')!.style.display = 'none';
+        const ctrl = document.getElementById('online-lobby-controls');
+        if(ctrl) ctrl.style.display = 'none';
+        
+        if (!Network.isHost) {
+            const hc = document.getElementById('host-controls');
+            if(hc) hc.style.display = 'none';
+        }
     }
 
     static showSetupScreen() { 
@@ -78,7 +191,10 @@ class Setup {
     }
 
     static updateSlots() {
-        const n = parseInt((document.getElementById('num-players') as HTMLSelectElement).value);
+        const numInput = document.getElementById('num-players') as HTMLSelectElement;
+        if (!numInput) return; 
+        
+        const n = parseInt(numInput.value);
         const c = document.getElementById('player-slots-container')!; 
         c.innerHTML = '';
         const defs = ["Ash", "Gary", "Misty", "Brock", "May", "Dawn", "Serena", "Goh"];
@@ -100,7 +216,7 @@ class Setup {
         const mapSize = parseInt((document.getElementById('map-size') as HTMLSelectElement).value); 
         const ps = [];
         for(let i=0; i<n; i++) {
-            ps.push(new Player(i, (document.getElementById(`p${i}-name`) as HTMLInputElement).value, (document.getElementById(`p${i}-av`) as HTMLSelectElement).value));
+            ps.push(new Player(i, (document.getElementById(`p${i}-name`) as HTMLInputElement).value, (document.getElementById(`p${i}-av`) as HTMLSelectElement).value, false));
         }
         document.getElementById('setup-screen')!.style.display='none';
         document.getElementById('game-container')!.style.display='flex';
@@ -111,7 +227,6 @@ class Setup {
     static async startOnlineGame() {
         if (!Network.isHost) return;
         
-        // 1. Host gera o mapa
         const mapSize = parseInt((document.getElementById('online-map-size') as HTMLSelectElement).value);
         MapSystem.generate(mapSize);
 
@@ -124,7 +239,6 @@ class Setup {
             }
         };
 
-        // 2. Envia para o Firebase (Mapa + Status) Atomicamente
         if (db) {
             await update(ref(db, `rooms/${Network.currentRoomId}`), updateData);
         }
@@ -132,7 +246,7 @@ class Setup {
 }
 
 // ==========================================
-// REDE (FIREBASE REALTIME DATABASE)
+// 3. NETWORK
 // ==========================================
 class Network {
     static isOnline: boolean = false;
@@ -141,7 +255,7 @@ class Network {
     static currentRoomId: string = "";
     static localName: string = "";
     static localAvatar: string = "";
-    static isListenerActive: boolean = false; // Controle para evitar listeners duplicados
+    static isListenerActive: boolean = false;
     
     static lobbyPlayers: any[] = [];
 
@@ -156,7 +270,6 @@ class Network {
         return true;
     }
 
-    // --- CRIAÇÃO DE SALA ---
     static async createRoom() {
         if(!this.checkInput()) return;
         
@@ -165,22 +278,24 @@ class Network {
         this.myPlayerId = 0; 
         this.isHost = true;
 
+        const myPlayerObj = new Player(0, this.localName, this.localAvatar, false);
+
         const initialData = {
             status: "LOBBY",
             turn: 0,
             mapSize: 20,
             players: {
                 0: {
-                    name: this.localName,
-                    avatar: this.localAvatar,
+                    name: myPlayerObj.name,
+                    avatar: myPlayerObj.avatar,
                     id: 0,
                     x: 0, y: 0,
                     gold: 500,
-                    items: {'pokeball':6, 'potion':1},
+                    items: myPlayerObj.items,
                     cards: [],
-                    team: [],
+                    team: myPlayerObj.team,
                     skipTurn: false,
-                    badges: [false,false,false,false,false,false,false,false]
+                    badges: myPlayerObj.badges
                 }
             },
             lastAction: { type: "INIT", timestamp: Date.now() }
@@ -196,7 +311,6 @@ class Network {
         document.getElementById('host-controls')!.style.display = 'block';
     }
 
-    // --- ENTRAR NA SALA ---
     static async joinRoom() {
         if(!this.checkInput()) return;
         const code = (document.getElementById('room-code-input') as HTMLInputElement).value.toUpperCase();
@@ -218,17 +332,19 @@ class Network {
         this.currentRoomId = code;
         this.isHost = false;
 
+        const myPlayerObj = new Player(this.myPlayerId, this.localName, this.localAvatar, false);
+
         const newPlayer = {
-            name: this.localName,
-            avatar: this.localAvatar,
+            name: myPlayerObj.name,
+            avatar: myPlayerObj.avatar,
             id: this.myPlayerId,
             x: 0, y: 0,
             gold: 500,
-            items: {'pokeball':6, 'potion':1},
+            items: myPlayerObj.items,
             cards: [],
-            team: [],
+            team: myPlayerObj.team,
             skipTurn: false,
-            badges: [false,false,false,false,false,false,false,false]
+            badges: myPlayerObj.badges
         };
 
         await set(ref(db, `rooms/${code}/players/${this.myPlayerId}`), newPlayer);
@@ -241,7 +357,6 @@ class Network {
         Setup.showLobbyUIOnly();
     }
 
-    // --- LISTENER DO LOBBY ---
     static setupLobbyListener() {
         const playersRef = ref(db, `rooms/${this.currentRoomId}/players`);
         const statusRef = ref(db, `rooms/${this.currentRoomId}/status`);
@@ -269,7 +384,6 @@ class Network {
         });
     }
 
-    // --- INÍCIO DO JOGO ---
     static async initializeGameFromFirebase() {
         const snapshot = await get(ref(db, `rooms/${this.currentRoomId}`));
         const data = snapshot.val();
@@ -279,12 +393,12 @@ class Network {
             MapSystem.grid = data.map.grid;
             MapSystem.gymLocations = data.map.gymLocations || {};
         } else {
-            console.error("ERRO CRÍTICO: Mapa não sincronizado!");
+            console.error("ERRO: Mapa não encontrado no Firebase!");
             return;
         }
 
         const playerArray = Object.values(data.players).map((pd: any) => {
-            const pl = new Player(pd.id, pd.name, pd.avatar);
+            const pl = new Player(pd.id, pd.name, pd.avatar, true);
             if(pd.team && pd.team.length > 0) {
                 pl.team = pd.team.map((td: any) => {
                     const po = new Pokemon(td.id, td.isShiny);
@@ -305,17 +419,15 @@ class Network {
     }
 
     static setupGameLoopListener() {
-        if (this.isListenerActive) return; // Evita duplicar listeners
+        if (this.isListenerActive) return;
         this.isListenerActive = true;
 
-        // Escuta Ações (Eventos de Animação/Log)
         onValue(ref(db, `rooms/${this.currentRoomId}/lastAction`), (snapshot) => {
             const action = snapshot.val();
             if(!action || action.type === 'INIT') return;
             this.handleRemoteAction(action);
         });
 
-        // Escuta Turno
         onValue(ref(db, `rooms/${this.currentRoomId}/turn`), (snapshot) => {
             const turn = snapshot.val();
             if(turn !== null) {
@@ -325,11 +437,9 @@ class Network {
             }
         });
 
-        // Escuta Estado dos Jogadores (Sync)
         onValue(ref(db, `rooms/${this.currentRoomId}/players`), (snapshot) => {
             const playersData = snapshot.val();
             if(!playersData) return;
-
             Object.values(playersData).forEach((pd: any) => {
                 const localPlayer = Game.players.find(p => p.id === pd.id);
                 if(localPlayer) {
@@ -400,10 +510,7 @@ class Network {
         if(!this.isOnline) return;
         const p = Game.players[this.myPlayerId];
         update(ref(db, `rooms/${this.currentRoomId}/players/${this.myPlayerId}`), {
-            x: p.x,
-            y: p.y,
-            gold: p.gold,
-            team: p.team
+            x: p.x, y: p.y, gold: p.gold, team: p.team
         });
     }
 
@@ -414,162 +521,7 @@ class Network {
 }
 
 // ==========================================
-// CLASSES (POKEMON / PLAYER)
-// ==========================================
-class Pokemon {
-    id: number; name: string; type: string;
-    maxHp: number; currentHp: number; atk: number; def: number; speed: number;
-    level: number; currentXp: number; maxXp: number;
-    isShiny: boolean; isLegendary: boolean; wins: number; evoData: any; leveledUpThisTurn: boolean = false;
-
-    constructor(templateId: number, isShiny: boolean = false) {
-        const template = POKEDEX.find(p => p.id === templateId) || POKEDEX[0];
-        this.id = template.id; this.name = template.name; this.isShiny = isShiny;
-        this.type = template.type; this.isLegendary = !!template.isLegendary;
-        this.level = 1; this.currentXp = 0; this.maxXp = 20;
-        const bonus = isShiny ? 1.2 : 1.0;
-        this.maxHp = Math.floor((template.hp + 20) * bonus); this.currentHp = this.maxHp;
-        this.atk = Math.floor((template.atk + 5) * bonus);
-        this.def = Math.floor((template.atk * 0.8) * bonus); 
-        this.speed = Math.floor((template.atk * 0.9) * bonus);
-        this.wins = 0; this.evoData = { next: template.nextForm, trigger: template.evoTrigger };
-    }
-    getSprite() { return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${this.isShiny ? 'shiny/' : ''}${this.id}.png`; }
-    isFainted() { return this.currentHp <= 0; }
-    heal(amt: number) { this.currentHp = Math.min(this.maxHp, this.currentHp + amt); }
-
-    gainXp(amount: number, player: Player) {
-        if(this.level >= 15) return;
-        this.currentXp += amount;
-        if(this.currentXp >= this.maxXp && !this.leveledUpThisTurn) {
-            this.currentXp -= this.maxXp; 
-            this.levelUp(player);
-            this.leveledUpThisTurn = true;
-        }
-    }
-
-    levelUp(player: Player | null) {
-        this.level++;
-        this.maxHp += 5; this.currentHp = this.maxHp; 
-        this.atk += 2; this.def += 1;
-        this.maxXp = this.level * 20;
-        if(player) Game.log(`${this.name} subiu para o Nível ${this.level}!`);
-        this.checkEvolution(player);
-    }
-
-    forceLevel(targetLevel: number) {
-        while(this.level < targetLevel) { this.levelUp(null); }
-        this.currentHp = this.maxHp; 
-    }
-
-    checkEvolution(player: Player | null): boolean {
-        if (this.evoData.next && this.level >= (this.evoData.trigger || 999)) {
-            const next = POKEDEX.find(p => p.name === this.evoData.next);
-            if (next) {
-                const oldName = this.name;
-                this.id = next.id; this.name = next.name; this.type = next.type;
-                this.maxHp += 30; this.currentHp = this.maxHp;
-                this.atk += 10; this.def += 5;
-                this.evoData = { next: next.nextForm, trigger: next.evoTrigger };
-                if(player) {
-                    Game.log(`✨ ${oldName} evoluiu para ${this.name}! (HP Restaurado)`);
-                    if (this.level === 8) { Cards.draw(player); Cards.draw(player); Game.log("Bônus Evolução: Ganhou 2 Cartas!"); } 
-                    else if (this.level === 5 || this.level === 10) { Cards.draw(player); Game.log("Bônus Evolução: Ganhou 1 Carta!"); }
-                }
-                return true;
-            }
-        }
-        return false;
-    }
-}
-
-class Player {
-    id: number; name: string; avatar: string; x: number = 0; y: number = 0; gold: number = 500;
-    items: {[key:string]:number} = {'pokeball':6, 'potion':1};
-    cards: CardData[] = []; team: Pokemon[] = [];
-    skipTurn: boolean = false; badges: boolean[] = [false,false,false,false,false,false,false,false];
-
-    constructor(id: number, name: string, avatarFile: string) {
-        this.id = id; this.name = name; this.avatar = `/assets/img/Treinadores/${avatarFile}`;
-        if(name !== "_LOAD_") {
-            const starters = [1, 4, 7, 25]; 
-            const randomStarterId = starters[Math.floor(Math.random() * starters.length)];
-            const isShiny = Math.random() < 0.05;
-            this.team.push(new Pokemon(randomStarterId, isShiny));
-        }
-    }
-    isDefeated() { return this.getBattleTeam(false).length === 0 || this.getBattleTeam(false).every(p => p.isFainted()); }
-    getBattleTeam(isGymLimit: boolean) { const limit = isGymLimit ? 6 : 3; return this.team.filter(p => !p.isFainted()).slice(0, limit); }
-    resetTurnFlags() { this.team.forEach(p => p.leveledUpThisTurn = false); }
-}
-
-class MapSystem {
-    static grid: number[][] = []; 
-    static size: number = 20; 
-    static gymLocations: {[key: string]: number} = {};
-
-    static generate(size: number) {
-        this.size = size;
-        this.grid = Array(size).fill(0).map(() => Array(size).fill(0).map(() => {
-            const r = Math.random();
-            if(r < 0.6) return TILE.GRASS;
-            if(r < 0.8) return TILE.WATER;
-            return TILE.GROUND;
-        }));
-        this.gymLocations = {};
-
-        const totalTiles = size * size;
-        const allCoords: Coord[] = [];
-        for(let y=0; y<size; y++) {
-            for(let x=0; x<size; x++) {
-                if(x===0 && y===0) continue; 
-                allCoords.push({x,y});
-            }
-        }
-
-        allCoords.sort(() => Math.random() - 0.5);
-
-        // 8 Ginásios Fixos
-        for(let i=0; i<8; i++) {
-            if(allCoords.length === 0) break;
-            const c = allCoords.pop()!;
-            this.grid[c.y][c.x] = TILE.GYM;
-            this.gymLocations[`${c.x},${c.y}`] = i + 1;
-        }
-
-        // 10% de cada tipo especial
-        const targetCount = Math.floor(totalTiles * 0.1);
-        
-        // Cidades (10% - 1 da inicial)
-        const cityCount = Math.max(0, targetCount - 1); 
-        this.grid[0][0] = TILE.CITY;
-        for(let i=0; i<cityCount; i++) {
-            if(allCoords.length === 0) break;
-            const c = allCoords.pop()!;
-            this.grid[c.y][c.x] = TILE.CITY;
-        }
-
-        // Eventos (10%)
-        for(let i=0; i<targetCount; i++) {
-            if(allCoords.length === 0) break;
-            const c = allCoords.pop()!;
-            this.grid[c.y][c.x] = TILE.EVENT;
-        }
-
-        // NPCs (10%)
-        const npcTypes = [TILE.ROCKET, TILE.BIKER, TILE.YOUNG, TILE.OLD];
-        for(let i=0; i<targetCount; i++) {
-            if(allCoords.length === 0) break;
-            const c = allCoords.pop()!;
-            this.grid[c.y][c.x] = npcTypes[Math.floor(Math.random() * npcTypes.length)];
-        }
-    }
-    static getCoord(i: number): Coord { const y=Math.floor(i/this.size); let x=i%this.size; if(y%2!==0) x=(this.size-1)-x; return {x,y}; }
-    static getIndex(x: number, y: number): number { let realX = x; if(y % 2 !== 0) realX = (this.size - 1) - x; return (y * this.size) + realX; }
-}
-
-// ==========================================
-// BATALHA
+// 4. BATALHA
 // ==========================================
 class Battle {
     static active: boolean = false;
@@ -822,7 +774,7 @@ class Cards {
 }
 
 // ==========================================
-// MOTOR DO JOGO (GAME)
+// 5. MOTOR DO JOGO
 // ==========================================
 class Game {
     static players: Player[] = []; 
@@ -923,7 +875,7 @@ class Game {
     static loadGame() { const json=localStorage.getItem('pk_save'); if(json) this.loadGameFromData(JSON.parse(json)); }
     static loadGameFromData(d: any) { 
         MapSystem.size=d.mapSize; MapSystem.grid=d.grid; MapSystem.gymLocations=d.gymLoc || {};
-        this.players = d.players.map((pd:any) => { const file = pd.avatar.split('/').pop(); const pl = new Player(pd.id, pd.name, file); Object.assign(pl, pd); pl.avatar = `/assets/img/Treinadores/${file}`; pl.team = pd.team.map((td:any) => { const po=new Pokemon(td.id, td.isShiny); Object.assign(po, td); return po; }); return pl; });
+        this.players = d.players.map((pd:any) => { const file = pd.avatar.split('/').pop(); const pl = new Player(pd.id, pd.name, file, true); Object.assign(pl, pd); pl.avatar = `/assets/img/Treinadores/${file}`; pl.team = pd.team.map((td:any) => { const po=new Pokemon(td.id, td.isShiny); Object.assign(po, td); return po; }); return pl; });
         this.turn = d.turn; document.getElementById('setup-screen')!.style.display='none'; document.getElementById('game-container')!.style.display='flex';
         Game.init(this.players, d.mapSize);
     }
