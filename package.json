@@ -14,5 +14,8 @@
   },
   "overrides": {
     "vite": "npm:rolldown-vite@7.2.5"
+  },
+  "dependencies": {
+    "firebase": "^12.9.0"
   }
 }

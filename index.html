@@ -3,14 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PokéBoard V24 - Loop & Swap</title>
-    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <title>PokéBoard V24 - Firebase Realtime</title>
+    <link rel="stylesheet" href="style.css">
+    
+    <script type="importmap">
+      {
+        "imports": {
+          "firebase/app": "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js",
+          "firebase/database": "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js"
+        }
+      }
+    </script>
 </head>
 <body>
 
     <div id="setup-screen">
         <h1 class="title-highlight">PokéBoard V24</h1>
-        <p class="subtitle">Tactics Edition</p>
+        <p class="subtitle">Firebase Edition</p>
         
         <div id="menu-phase-1">
             <button class="btn" onclick="window.Setup.showOfflineSetup()">🏠 JOGAR OFFLINE</button>
@@ -24,20 +33,43 @@
         </div>
 
         <div id="menu-phase-online" style="display:none;">
-            <h3>Modo Online</h3>
+            <h3>Modo Online (Firebase)</h3>
+            
             <div class="setup-group">
-                <label>Seu Nome (Para identificação):</label>
-                <input type="text" id="online-player-name" placeholder="Ex: Ash Ketchum" style="width:90%; padding:10px; font-weight:bold;">
+                <label>Seu Nome:</label>
+                <input type="text" id="online-player-name" placeholder="Ex: Ash Ketchum" style="width:90%; padding:10px; font-weight:bold; margin-bottom: 10px;">
+                
+                <label>Seu Avatar:</label>
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                    <img id="online-avatar-preview" src="/assets/img/Treinadores/Ash.png" class="avatar-preview">
+                    <select id="online-avatar-select" onchange="window.Setup.updateOnlinePreview()" style="flex:1; padding:8px;">
+                        </select>
+                </div>
             </div>
+
             <div id="online-lobby-controls">
-                <button class="btn" onclick="window.Network.createRoom()">Criar Sala (Host)</button>
+                <button class="btn" onclick="window.Network.createRoom()">Criar Sala</button>
                 <div style="display:flex; gap:5px; margin-top:10px;">
                     <input type="text" id="room-code-input" placeholder="Código da Sala" style="flex:1; padding:10px;">
                     <button class="btn" style="width:auto; margin:0;" onclick="window.Network.joinRoom()">Entrar</button>
                 </div>
             </div>
-            <div id="lobby-status"></div>
-            <button class="btn btn-secondary" onclick="location.reload()">Voltar</button>
+            
+            <div id="lobby-status" style="display:none;"></div>
+            
+            <div id="online-lobby-list" class="scroll-list" style="max-height: 150px; margin-top:10px; display:none;"></div>
+
+            <div id="host-controls" style="display:none; margin-top:15px; border-top:1px solid #eee; padding-top:10px;">
+                <label>Tamanho do Mapa:</label>
+                <select id="online-map-size">
+                    <option value="10">Pequeno (10x10)</option>
+                    <option value="20" selected>Médio (20x20)</option>
+                    <option value="30">Grande (30x30)</option>
+                </select>
+                <button class="btn" style="margin-top:10px; background:#27ae60;" onclick="window.Setup.startOnlineGame()">🚀 INICIAR JOGO (TODOS)</button>
+            </div>
+
+            <button class="btn btn-secondary" style="margin-top:15px;" onclick="location.reload()">Voltar</button>
         </div>
 
         <div id="menu-phase-setup" style="display:none;">
@@ -116,131 +148,44 @@
         </div>
     </div>
 
-    <div id="xp-rules-modal" class="modal-overlay">
-        <div class="modal-box" style="text-align: left;">
-            <h3 style="text-align:center; color: var(--gold);">⭐ Regras de XP & Nível</h3>
-            <ul style="font-size: 0.9rem; line-height: 1.5;">
-                <li><strong>Nível Máximo:</strong> 15 (Max 1 level por turno)</li>
-                <li><strong>Volta no Mapa:</strong> +200G e +1 Carta</li>
-                <hr style="border-color:#eee; margin: 5px 0;">
-                <li><strong>Movimento:</strong> +1 XP (Aleatório no time)</li>
-                <li><strong>PvP:</strong> Vitória +15 XP | Derrota +5 XP</li>
-                <li><strong>NPC:</strong> Vitória +10 XP | Derrota +3 XP</li>
-                <li><strong>Ginásio:</strong> Vitória +25 XP | Derrota +8 XP</li>
-                <li><strong>Selvagem:</strong> Vitória +5 XP | Fuga +2 XP | Captura +3 XP Bônus</li>
-                <hr style="border-color:#eee; margin: 5px 0;">
-                <li><strong>Bônus Desafio:</strong> +5 XP ao vencer oponente 2+ níveis acima.</li>
-            </ul>
-            <button class="btn btn-secondary mt-15" onclick="document.getElementById('xp-rules-modal').style.display='none'">Fechar</button>
-        </div>
-    </div>
-
-    <div id="city-modal" class="modal-overlay">
-        <div class="modal-box">
-            <h2 style="color: #3498db;">🏙️ Centro Pokémon</h2>
-            <p>O que deseja fazer?</p>
-            <div style="display:flex; gap:10px; justify-content:center; margin-top:20px;">
-                <button class="btn" style="background:#2ecc71;" onclick="window.Game.handleCityChoice('heal')">❤️ Curar</button>
-                <button class="btn btn-shop" onclick="window.Game.handleCityChoice('shop')">🛒 Loja</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="shop-modal" class="modal-overlay">
-        <div class="modal-box">
-            <h2 class="text-highlight">🛒 PokéMart</h2>
-            <p>Saldo: <span id="shop-gold" class="gold-text">0</span> G</p>
-            <div id="shop-items-list" class="scroll-list"></div>
-            <br><button class="btn btn-secondary" onclick="window.Shop.close()">Fechar</button>
-        </div>
-    </div>
-
-    <div id="board-inventory-modal" class="modal-overlay">
-        <div class="modal-box">
-            <h3>🎒 Mochila</h3>
-            <div id="board-inventory-list" class="scroll-list"></div>
-            <button class="btn btn-secondary mt-15" onclick="document.getElementById('board-inventory-modal').style.display='none'">Fechar</button>
-        </div>
-    </div>
-
-    <div id="board-cards-modal" class="modal-overlay">
-        <div class="modal-box">
-            <h3>🃏 Minhas Cartas (Tabuleiro)</h3>
-            <p style="font-size:0.8rem; color:#666;">Apenas cartas do tipo <b>Move</b> podem ser usadas aqui.</p>
-            <div id="board-cards-list" class="scroll-list"></div>
-            <button class="btn btn-secondary mt-15" onclick="document.getElementById('board-cards-modal').style.display='none'">Fechar</button>
-        </div>
-    </div>
-
-    <div id="library-modal" class="modal-overlay">
-        <div class="modal-box" style="width: 500px;">
-            <h3>📖 Biblioteca de Cartas</h3>
-            <div id="library-list" class="scroll-list" style="max-height: 300px;"></div>
-            <button class="btn btn-secondary mt-15" onclick="document.getElementById('library-modal').style.display='none'">Fechar</button>
-        </div>
-    </div>
-
-    <div id="battle-cards-modal" class="modal-overlay" style="z-index: 1200;">
-        <div class="modal-box">
-            <h3>🃏 Cartas de Batalha</h3>
-            <div id="battle-cards-list" class="scroll-list"></div>
-            <button class="btn btn-secondary mt-15" onclick="document.getElementById('battle-cards-modal').style.display='none'">Cancelar</button>
-        </div>
-    </div>
-
-    <div id="swap-modal" class="modal-overlay" style="z-index: 1300;">
-        <div class="modal-box">
-            <h3>⚠️ Time Cheio!</h3>
-            <p>Seu time já tem 6 Pokémons.</p>
-            <p style="font-size:0.9rem;">Clique em um Pokémon para <strong>SOLTAR</strong> (abandonar) e manter o resto.</p>
-            <div id="swap-list" class="scroll-list"></div>
-        </div>
-    </div>
-
-    <div id="pkmn-select-modal" class="modal-overlay z-high">
-        <div class="modal-box"><h3 id="select-title">Escolha</h3><div id="pkmn-select-list" class="scroll-list text-left"></div></div>
-    </div>
-
+    <div id="xp-rules-modal" class="modal-overlay"><div class="modal-box" style="text-align: left;"><h3 style="text-align:center; color: var(--gold);">⭐ Regras de XP & Nível</h3><ul style="font-size: 0.9rem; line-height: 1.5;"><li><strong>Nível Máximo:</strong> 15 (Max 1 level por turno)</li><li><strong>Volta no Mapa:</strong> +200G e +1 Carta</li><hr style="border-color:#eee; margin: 5px 0;"><li><strong>Movimento:</strong> +1 XP (Aleatório no time)</li><li><strong>PvP:</strong> Vitória +15 XP | Derrota +5 XP</li><li><strong>NPC:</strong> Vitória +10 XP | Derrota +3 XP</li><li><strong>Ginásio:</strong> Vitória +25 XP | Derrota +8 XP</li><li><strong>Selvagem:</strong> Vitória +5 XP | Fuga +2 XP | Captura +3 XP Bônus</li><hr style="border-color:#eee; margin: 5px 0;"><li><strong>Bônus Desafio:</strong> +5 XP ao vencer oponente 2+ níveis acima.</li></ul><button class="btn btn-secondary mt-15" onclick="document.getElementById('xp-rules-modal').style.display='none'">Fechar</button></div></div>
+    <div id="city-modal" class="modal-overlay"><div class="modal-box"><h2 style="color: #3498db;">🏙️ Centro Pokémon</h2><p>O que deseja fazer?</p><div style="display:flex; gap:10px; justify-content:center; margin-top:20px;"><button class="btn" style="background:#2ecc71;" onclick="window.Game.handleCityChoice('heal')">❤️ Curar</button><button class="btn btn-shop" onclick="window.Game.handleCityChoice('shop')">🛒 Loja</button></div></div></div>
+    <div id="shop-modal" class="modal-overlay"><div class="modal-box"><h2 class="text-highlight">🛒 PokéMart</h2><p>Saldo: <span id="shop-gold" class="gold-text">0</span> G</p><div id="shop-items-list" class="scroll-list"></div><br><button class="btn btn-secondary" onclick="window.Shop.close()">Fechar</button></div></div>
+    <div id="board-inventory-modal" class="modal-overlay"><div class="modal-box"><h3>🎒 Mochila</h3><div id="board-inventory-list" class="scroll-list"></div><button class="btn btn-secondary mt-15" onclick="document.getElementById('board-inventory-modal').style.display='none'">Fechar</button></div></div>
+    <div id="board-cards-modal" class="modal-overlay"><div class="modal-box"><h3>🃏 Minhas Cartas (Tabuleiro)</h3><p style="font-size:0.8rem; color:#666;">Apenas cartas do tipo <b>Move</b> podem ser usadas aqui.</p><div id="board-cards-list" class="scroll-list"></div><button class="btn btn-secondary mt-15" onclick="document.getElementById('board-cards-modal').style.display='none'">Fechar</button></div></div>
+    <div id="library-modal" class="modal-overlay"><div class="modal-box" style="width: 500px;"><h3>📖 Biblioteca de Cartas</h3><div id="library-list" class="scroll-list" style="max-height: 300px;"></div><button class="btn btn-secondary mt-15" onclick="document.getElementById('library-modal').style.display='none'">Fechar</button></div></div>
+    <div id="battle-cards-modal" class="modal-overlay" style="z-index: 1200;"><div class="modal-box"><h3>🃏 Cartas de Batalha</h3><div id="battle-cards-list" class="scroll-list"></div><button class="btn btn-secondary mt-15" onclick="document.getElementById('battle-cards-modal').style.display='none'">Cancelar</button></div></div>
+    <div id="swap-modal" class="modal-overlay" style="z-index: 1300;"><div class="modal-box"><h3>⚠️ Time Cheio!</h3><p>Seu time já tem 6 Pokémons.</p><p style="font-size:0.9rem;">Clique em um Pokémon para <strong>SOLTAR</strong> (abandonar) e manter o resto.</p><div id="swap-list" class="scroll-list"></div></div></div>
+    <div id="pkmn-select-modal" class="modal-overlay z-high"><div class="modal-box"><h3 id="select-title">Escolha</h3><div id="pkmn-select-list" class="scroll-list text-left"></div></div></div>
+    
     <div id="battle-modal" class="modal-overlay">
         <div class="modal-box battle-box">
             <h2 id="battle-title">⚔️ Batalha!</h2>
             <div class="battle-scene">
                 <div class="battler self-end">
                     <div class="battle-info-box"><span id="ply-name">Você</span> <span id="ply-lvl"></span></div>
-                    <div class="battler-images">
-                        <img id="ply-trainer-img" class="trainer-battle-img" src="">
-                        <img id="ply-img" class="pokemon-battle-img" src="">
-                    </div>
+                    <div class="battler-images"><img id="ply-trainer-img" class="trainer-battle-img" src=""><img id="ply-img" class="pokemon-battle-img" src=""></div>
                     <div class="hp-container"><div id="ply-hp" class="hp-fill"></div></div>
                     <small id="ply-hp-text" style="text-shadow: 1px 1px 0 #000;">100/100</small>
                     <div id="ply-team-indicator" class="battle-team-indicator"></div>
                 </div>
-
                 <div class="battler self-start">
                     <div class="battle-info-box"><span id="opp-name">Rival</span> <span id="opp-lvl"></span></div>
-                    <div class="battler-images">
-                        <img id="opp-trainer-img" class="trainer-battle-img" src="">
-                        <img id="opp-img" class="pokemon-battle-img" src="">
-                    </div>
+                    <div class="battler-images"><img id="opp-trainer-img" class="trainer-battle-img" src=""><img id="opp-img" class="pokemon-battle-img" src=""></div>
                     <div class="hp-container"><div id="opp-hp" class="hp-fill"></div></div>
                     <small id="opp-hp-text" style="text-shadow: 1px 1px 0 #000;">100/100</small>
                     <div id="opp-team-indicator" class="battle-team-indicator"></div>
                 </div>
             </div>
-            
             <div id="battle-msg">...</div>
-            
             <div class="battle-actions">
                 <button class="btn btn-attack" onclick="window.Battle.attack()">⚔️ Atacar</button>
                 <button class="btn btn-items" onclick="window.Battle.openBag()">🎒 Itens</button>
                 <button class="btn btn-cards" onclick="window.Battle.openCardSelection()">🃏 Cartas</button>
                 <button id="btn-run" class="btn btn-run" onclick="window.Battle.run()">🏃 Fugir</button>
             </div>
-
             <div id="battle-bag" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(44, 62, 80, 0.95); z-index:20; padding:20px; box-sizing:border-box; border-radius:10px;">
-                <h3>Usar Item (Batalha)</h3>
-                <div id="battle-bag-list" class="scroll-list"></div>
-                <button class="btn btn-secondary mt-15" onclick="document.getElementById('battle-bag').style.display='none'">Cancelar</button>
+                <h3>Usar Item (Batalha)</h3><div id="battle-bag-list" class="scroll-list"></div><button class="btn btn-secondary mt-15" onclick="document.getElementById('battle-bag').style.display='none'">Cancelar</button>
             </div>
         </div>
     </div>
