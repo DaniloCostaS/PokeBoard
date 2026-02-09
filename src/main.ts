@@ -57,7 +57,13 @@ class Pokemon {
         this.atk = Math.floor((template.atk + 5) * bonus);
         this.def = Math.floor((template.atk * 0.8) * bonus); 
         this.speed = Math.floor((template.atk * 0.9) * bonus);
-        this.wins = 0; this.evoData = { next: template.nextForm, trigger: template.evoTrigger };
+        this.wins = 0; 
+        
+        // CORREÇÃO 1: Evita undefined no Firebase
+        this.evoData = { 
+            next: template.nextForm || null, 
+            trigger: template.evoTrigger || null 
+        };
     }
     getSprite() { return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${this.isShiny ? 'shiny/' : ''}${this.id}.png`; }
     isFainted() { return this.currentHp <= 0; }
@@ -75,7 +81,10 @@ class Player {
     skipTurn: boolean = false; badges: boolean[] = [false,false,false,false,false,false,false,false];
 
     constructor(id: number, name: string, avatarFile: string, isLoadMode: boolean) {
-        this.id = id; this.name = name; this.avatar = `/assets/img/Treinadores/${avatarFile}`;
+        this.id = id; this.name = name; 
+        // Constrói caminho completo
+        this.avatar = `/assets/img/Treinadores/${avatarFile}`;
+        
         if(!isLoadMode && name !== "_LOAD_") {
             const starters = [1, 4, 7, 25]; 
             const randomStarterId = starters[Math.floor(Math.random() * starters.length)];
@@ -287,7 +296,7 @@ class Network {
             players: {
                 0: {
                     name: myPlayerObj.name,
-                    avatar: myPlayerObj.avatar,
+                    avatar: this.localAvatar, // CORREÇÃO 2: Salva apenas nome do arquivo
                     id: 0,
                     x: 0, y: 0,
                     gold: 500,
@@ -336,7 +345,7 @@ class Network {
 
         const newPlayer = {
             name: myPlayerObj.name,
-            avatar: myPlayerObj.avatar,
+            avatar: this.localAvatar, // CORREÇÃO 2: Salva apenas nome do arquivo
             id: this.myPlayerId,
             x: 0, y: 0,
             gold: 500,
@@ -399,6 +408,7 @@ class Network {
 
         const playerArray = Object.values(data.players).map((pd: any) => {
             const pl = new Player(pd.id, pd.name, pd.avatar, true);
+            
             if(pd.team && pd.team.length > 0) {
                 pl.team = pd.team.map((td: any) => {
                     const po = new Pokemon(td.id, td.isShiny);
@@ -450,6 +460,14 @@ class Network {
                         pd.team.forEach((tData: any, idx: number) => {
                             if(localPlayer.team[idx]) Object.assign(localPlayer.team[idx], tData);
                         });
+                        if(pd.team.length > localPlayer.team.length) {
+                             for(let i = localPlayer.team.length; i < pd.team.length; i++) {
+                                 const tData = pd.team[i];
+                                 const po = new Pokemon(tData.id, tData.isShiny);
+                                 Object.assign(po, tData);
+                                 localPlayer.team.push(po);
+                             }
+                        }
                     }
                 }
             });
@@ -487,6 +505,14 @@ class Network {
                         action.payload.team.forEach((tData:any, idx:number) => {
                             if(p.team[idx]) Object.assign(p.team[idx], tData);
                         });
+                        if(action.payload.team.length > p.team.length) {
+                             for(let i = p.team.length; i < action.payload.team.length; i++) {
+                                 const tData = action.payload.team[i];
+                                 const po = new Pokemon(tData.id, tData.isShiny);
+                                 Object.assign(po, tData);
+                                 p.team.push(po);
+                             }
+                        }
                     }
                     Game.moveVisuals();
                     Game.updateHUD();
@@ -755,7 +781,35 @@ class Battle {
     
     static openBag() { if (!this.isPlayerTurn || this.processingAction) return; const list = document.getElementById('battle-bag-list')!; list.innerHTML = ''; Object.keys(this.player!.items).forEach(key => { if(this.player!.items[key] > 0) { const item = SHOP_ITEMS.find(i => i.id === key); if(item) { const btn = document.createElement('button'); btn.className = 'btn'; btn.innerHTML = `<img src="/assets/img/Itens/${item.icon}" class="item-icon-mini"> ${item.name} x${this.player!.items[key]}`; btn.onclick = () => this.useItem(key, item); list.appendChild(btn); } } }); document.getElementById('battle-bag')!.style.display = 'block'; }
     static useItem(key: string, data: ItemData) { document.getElementById('battle-bag')!.style.display = 'none'; if(data.type === 'capture' && (this.isPvP || this.isNPC || this.isGym)) { alert("Não pode capturar pokémons de treinadores!"); return; } this.player!.items[key]--; this.processingAction = true; this.updateButtons(); if(data.type === 'heal') { this.activeMon!.heal(data.val!); this.logBattle("Usou item de cura!"); this.updateUI(); if(Network.isOnline) Network.sendAction('BATTLE_UPDATE', { plyHp: this.activeMon!.currentHp, oppHp: this.opponent!.currentHp, msg: "Usou Cura!" }); setTimeout(() => this.enemyTurn(), 1500); } else if(data.type === 'capture') { this.attemptCapture(data.rate!); } if(Network.isOnline) Network.syncPlayerState(); }
-    static attemptCapture(rate: number) { if(!this.opponent) return; const chance = ((1 - (this.opponent.currentHp/this.opponent.maxHp)) * rate) + 0.2; setTimeout(() => { if(Math.random() < chance) { this.logBattle(`✨ Capturou ${this.opponent!.name}!`); this.activeMon!.gainXp(3, this.player!); if(this.player!.team.length < 6) { this.player!.team.push(this.opponent!); setTimeout(() => this.end(false), 1500); } else { this.pendingCapture = this.opponent; this.openSwapModal(); } } else { this.logBattle("Escapou!"); setTimeout(() => this.enemyTurn(), 1000); } }, 1000); }
+    
+    // CORREÇÃO 3: Sync de Captura movido para dentro do callback de sucesso
+    static attemptCapture(rate: number) { 
+        if(!this.opponent) return; 
+        const chance = ((1 - (this.opponent.currentHp/this.opponent.maxHp)) * rate) + 0.2; 
+        
+        setTimeout(() => { 
+            if(Math.random() < chance) { 
+                this.logBattle(`✨ Capturou ${this.opponent!.name}!`); 
+                this.activeMon!.gainXp(3, this.player!); 
+                
+                if(this.player!.team.length < 6) { 
+                    this.player!.team.push(this.opponent!); 
+                    
+                    // SYNC IMEDIATO APÓS ADICIONAR AO ARRAY
+                    if(Network.isOnline) Network.syncPlayerState();
+
+                    setTimeout(() => this.end(false), 1500); 
+                } else { 
+                    this.pendingCapture = this.opponent; 
+                    this.openSwapModal(); 
+                } 
+            } else { 
+                this.logBattle("Escapou!"); 
+                setTimeout(() => this.enemyTurn(), 1000); 
+            } 
+        }, 1000); 
+    }
+    
     static openSwapModal() { Game.openSwapModal(this.pendingCapture!); }
     static openCardSelection() { if (!this.isPlayerTurn || this.processingAction) return; const list = document.getElementById('battle-cards-list')!; list.innerHTML = ''; const battleCards = this.player!.cards.filter(c => c.type === 'battle'); if(battleCards.length === 0) { list.innerHTML = "<em>Sem cartas de batalha.</em>"; } else { battleCards.forEach(c => { const d = document.createElement('div'); d.className='card-item'; d.innerHTML = `<div class="card-info"><span class="card-name">${c.icon} ${c.name} <span class="card-type-badge type-battle">BATTLE</span></span><span class="card-desc">${c.desc}</span></div><button class="btn-use-card" onclick="window.Battle.useCard('${c.id}')">USAR</button>`; list.appendChild(d); }); } document.getElementById('battle-cards-modal')!.style.display = 'flex'; }
     static useCard(cardId: string) { document.getElementById('battle-cards-modal')!.style.display = 'none'; const cardIndex = this.player!.cards.findIndex(c => c.id === cardId); if(cardIndex === -1) return; const card = this.player!.cards[cardIndex]; if (card.id === 'run') { this.player!.cards.splice(cardIndex, 1); this.logBattle("Usou Carta de Fuga!"); this.activeMon!.gainXp(2, this.player!); this.end(false); } else if (card.id === 'crit') { this.player!.cards.splice(cardIndex, 1); this.activeCard = 'crit'; this.logBattle("Usou Ataque Crítico! Próximo ataque x2."); } else { this.player!.cards.splice(cardIndex, 1); this.activeCard = card.id; this.logBattle(`Usou ${card.name}!`); } if(Network.isOnline) Network.syncPlayerState(); }
