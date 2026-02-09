@@ -6,6 +6,8 @@ import { PLAYER_COLORS } from './constants/playerColors';
 import { TRAINER_IMAGES } from './constants/trainerImages';
 import { TYPE_CHART } from './constants/typeChart';
 import { GYM_DATA } from './constants/gyms';
+// Nova importação da configuração do Firebase
+import { firebaseConfig } from './constants/connectConfig';
 
 import type { ItemData, CardData, Coord } from './constants';
 
@@ -13,20 +15,10 @@ import type { ItemData, CardData, Coord } from './constants';
 import { initializeApp } from 'firebase/app';
 import { getDatabase, ref, set, get, onValue, update, Database } from 'firebase/database';
 
-// === CONFIGURAÇÃO DO FIREBASE (INSIRA A SUA AQUI) ===
-const firebaseConfig = {
-  apiKey: "AIzaSyBdV8_HMXwX7K9IaxWExxK3wzpI2UjfYeM",
-  authDomain: "pokemonmasterboard.firebaseapp.com",
-  databaseURL: "https://pokemonmasterboard-default-rtdb.firebaseio.com/",
-  projectId: "pokemonmasterboard",
-  storageBucket: "pokemonmasterboard.firebasestorage.app",
-  messagingSenderId: "949731697037",
-  appId: "1:949731697037:web:76a03b5b65dc9cf80c5dc4"
-};
-
 // Inicializa Firebase com tratamento de erro básico
 let app, db: Database;
 try {
+    // Usa a configuração importada do arquivo separado
     app = initializeApp(firebaseConfig);
     db = getDatabase(app);
 } catch (e) {
@@ -313,16 +305,13 @@ class Network {
     }
 
     static setupGameLoopListener() {
-        if (this.isListenerActive) return; // CORREÇÃO: Evita duplicar listeners
+        if (this.isListenerActive) return; // Evita duplicar listeners
         this.isListenerActive = true;
 
         // Escuta Ações (Eventos de Animação/Log)
         onValue(ref(db, `rooms/${this.currentRoomId}/lastAction`), (snapshot) => {
             const action = snapshot.val();
             if(!action || action.type === 'INIT') return;
-            
-            // O timestamp poderia ser verificado aqui para evitar re-execução de ação muito antiga,
-            // mas o mais importante é não rodar a ação localmente antes.
             this.handleRemoteAction(action);
         });
 
@@ -425,7 +414,7 @@ class Network {
 }
 
 // ==========================================
-// CLASSES DO JOGO
+// CLASSES (POKEMON / PLAYER)
 // ==========================================
 class Pokemon {
     id: number; name: string; type: string;
@@ -521,26 +510,59 @@ class MapSystem {
 
     static generate(size: number) {
         this.size = size;
-        this.grid = Array(size).fill(0).map(() => Array(size).fill(TILE.GRASS));
+        this.grid = Array(size).fill(0).map(() => Array(size).fill(0).map(() => {
+            const r = Math.random();
+            if(r < 0.6) return TILE.GRASS;
+            if(r < 0.8) return TILE.WATER;
+            return TILE.GROUND;
+        }));
         this.gymLocations = {};
-        for(let i=0; i<Math.floor(size/2); i++) this.blob(TILE.WATER, 3);
-        for(let i=0; i<Math.floor(size/2); i++) this.blob(TILE.GROUND, 2); 
-        const tiles = size*size; let gyms=0;
-        for(let i=0; i<tiles; i++) {
-            const c = this.getCoord(i);
-            if(i>0 && i%Math.floor(tiles/9)===0 && gyms<8) {
-                this.grid[c.y][c.x]=TILE.GYM; gyms++;
-                this.gymLocations[`${c.x},${c.y}`] = gyms;
+
+        const totalTiles = size * size;
+        const allCoords: Coord[] = [];
+        for(let y=0; y<size; y++) {
+            for(let x=0; x<size; x++) {
+                if(x===0 && y===0) continue; 
+                allCoords.push({x,y});
             }
-            else if(i>0 && i%75===0) this.grid[c.y][c.x]=TILE.CITY;
-            else if(Math.random()<0.05 && this.grid[c.y][c.x]===TILE.GRASS) this.grid[c.y][c.x]=TILE.EVENT;
-            else if(Math.random()<0.08 && this.grid[c.y][c.x]===TILE.GRASS) this.grid[c.y][c.x] = [TILE.ROCKET, TILE.BIKER, TILE.YOUNG][Math.floor(Math.random()*3)];
         }
-        this.grid[0][0]=TILE.CITY;
-    }
-    static blob(t: number, s: number) {
-        const cx=Math.floor(Math.random()*this.size), cy=Math.floor(Math.random()*this.size);
-        for(let y=cy-s; y<=cy+s; y++) for(let x=cx-s; x<=cx+s; x++) if(x>=0 && x<this.size && y>=0 && y<this.size) this.grid[y][x]=t;
+
+        allCoords.sort(() => Math.random() - 0.5);
+
+        // 8 Ginásios Fixos
+        for(let i=0; i<8; i++) {
+            if(allCoords.length === 0) break;
+            const c = allCoords.pop()!;
+            this.grid[c.y][c.x] = TILE.GYM;
+            this.gymLocations[`${c.x},${c.y}`] = i + 1;
+        }
+
+        // 10% de cada tipo especial
+        const targetCount = Math.floor(totalTiles * 0.1);
+        
+        // Cidades (10% - 1 da inicial)
+        const cityCount = Math.max(0, targetCount - 1); 
+        this.grid[0][0] = TILE.CITY;
+        for(let i=0; i<cityCount; i++) {
+            if(allCoords.length === 0) break;
+            const c = allCoords.pop()!;
+            this.grid[c.y][c.x] = TILE.CITY;
+        }
+
+        // Eventos (10%)
+        for(let i=0; i<targetCount; i++) {
+            if(allCoords.length === 0) break;
+            const c = allCoords.pop()!;
+            this.grid[c.y][c.x] = TILE.EVENT;
+        }
+
+        // NPCs (10%)
+        const npcTypes = [TILE.ROCKET, TILE.BIKER, TILE.YOUNG, TILE.OLD];
+        for(let i=0; i<targetCount; i++) {
+            if(allCoords.length === 0) break;
+            const c = allCoords.pop()!;
+            this.grid[c.y][c.x] = npcTypes[Math.floor(Math.random() * npcTypes.length)];
+        }
     }
     static getCoord(i: number): Coord { const y=Math.floor(i/this.size); let x=i%this.size; if(y%2!==0) x=(this.size-1)-x; return {x,y}; }
     static getIndex(x: number, y: number): number { let realX = x; if(y % 2 !== 0) realX = (this.size - 1) - x; return (y * this.size) + realX; }
@@ -586,7 +608,6 @@ class Battle {
                 const avgLvl = Math.floor(allPokemons.reduce((sum, p) => sum + p.level, 0) / allPokemons.length) + 1;
                 this.oppTeamList = gymData.teamIds.map(id => { const p = new Pokemon(id); p.forceLevel(avgLvl); return p; });
                 this.opponent = this.oppTeamList[0];
-                Game.log(`Desafiando Líder ${gymData.leaderName} (Nvl ${avgLvl})!`);
             } else { this.oppTeamList = [enemyMon]; this.opponent = enemyMon; }
         } else {
             this.oppTeamList = [enemyMon]; this.opponent = enemyMon;
@@ -612,6 +633,7 @@ class Battle {
     }
 
     static startRound(selectedMon: Pokemon) {
+        document.getElementById('pkmn-select-modal')!.style.display = 'none'; 
         this.active = true; 
         this.activeMon = selectedMon;
         this.determineTurnOrder();
@@ -667,7 +689,9 @@ class Battle {
     }
 
     static renderBattleScreen() { 
-        document.getElementById('battle-modal')!.style.display = 'flex'; 
+        document.getElementById('pkmn-select-modal')!.style.display = 'none';
+        const bm = document.getElementById('battle-modal');
+        if (bm) bm.style.display = 'flex';
         this.updateButtons(); 
         this.updateUI(); 
     }
@@ -717,7 +741,7 @@ class Battle {
         if (nextPly) { this.logBattle(`${this.activeMon!.name} desmaiou!`); document.getElementById('battle-modal')!.style.display = 'none'; this.openSelectionModal("Escolha o próximo!"); } else { this.lose(); }
     }
 
-    static logBattle(msg: string) { document.getElementById('battle-msg')!.innerText = msg; Game.log(`[Batalha] ${msg}`); }
+    static logBattle(msg: string) { const el = document.getElementById('battle-msg'); if(el) el.innerText = msg; Game.log(`[Batalha] ${msg}`); }
     static getHpColor(current: number, max: number) { const pct = (current / max) * 100; if(pct > 50) return 'hp-green'; if(pct > 10) return 'hp-yellow'; return 'hp-red'; }
     
     static updateUI() {
@@ -770,7 +794,12 @@ class Battle {
         alert(msg); Game.log(msg); setTimeout(() => { this.end(false); Game.moveVisuals(); }, 1500);
     }
 
-    static end(isRemote: boolean) { this.active = false; document.getElementById('battle-modal')!.style.display = 'none'; if(!isRemote) { if(Network.isOnline) Network.sendAction('BATTLE_END', {}); Game.nextTurn(); } }
+    static end(isRemote: boolean) { 
+        this.active = false; 
+        this.opponent = null; // Limpa para evitar reuso acidental
+        document.getElementById('battle-modal')!.style.display = 'none'; 
+        if(!isRemote) { if(Network.isOnline) Network.sendAction('BATTLE_END', {}); Game.nextTurn(); } 
+    }
     
     static openBag() { if (!this.isPlayerTurn || this.processingAction) return; const list = document.getElementById('battle-bag-list')!; list.innerHTML = ''; Object.keys(this.player!.items).forEach(key => { if(this.player!.items[key] > 0) { const item = SHOP_ITEMS.find(i => i.id === key); if(item) { const btn = document.createElement('button'); btn.className = 'btn'; btn.innerHTML = `<img src="/assets/img/Itens/${item.icon}" class="item-icon-mini"> ${item.name} x${this.player!.items[key]}`; btn.onclick = () => this.useItem(key, item); list.appendChild(btn); } } }); document.getElementById('battle-bag')!.style.display = 'block'; }
     static useItem(key: string, data: ItemData) { document.getElementById('battle-bag')!.style.display = 'none'; if(data.type === 'capture' && (this.isPvP || this.isNPC || this.isGym)) { alert("Não pode capturar pokémons de treinadores!"); return; } this.player!.items[key]--; this.processingAction = true; this.updateButtons(); if(data.type === 'heal') { this.activeMon!.heal(data.val!); this.logBattle("Usou item de cura!"); this.updateUI(); if(Network.isOnline) Network.sendAction('BATTLE_UPDATE', { plyHp: this.activeMon!.currentHp, oppHp: this.opponent!.currentHp, msg: "Usou Cura!" }); setTimeout(() => this.enemyTurn(), 1500); } else if(data.type === 'capture') { this.attemptCapture(data.rate!); } if(Network.isOnline) Network.syncPlayerState(); }
@@ -805,7 +834,6 @@ class Game {
     static init(players: Player[], mapSize: number) {
         this.players = players;
         
-        // Se grid vazio (offline ou novo host), gera. Se vier do firebase, já está populado.
         if(MapSystem.grid.length === 0) {
             MapSystem.generate(mapSize);
         }
@@ -861,15 +889,23 @@ class Game {
     }
 
     static performVisualStep(pId: number, x: number, y: number) { const p = this.players[pId]; if(!p) return; p.x = x; p.y = y; const tile = document.getElementById(`tile-${x}-${y}`); if(tile) { tile.classList.add('step-highlight'); this.moveVisuals(); setTimeout(() => tile.classList.remove('step-highlight'), 300); } }
+    
     static handleTile(p: Player) {
+        if (Battle.active) return; // CORREÇÃO BUG 2: Impede nova batalha se já houver uma
+
         const type = MapSystem.grid[p.y][p.x];
         const enemy = this.players.find(o => o !== p && o.x === p.x && o.y === p.y);
+        
         if(enemy) { const defMon = enemy.team.find(m => !m.isFainted()); if(defMon) { this.log(`⚔️ Conflito! ${p.name} vs ${enemy.name}`); Battle.setup(p, defMon, true, enemy.name, 0, enemy); } else { this.log(`${enemy.name} sem pokemons!`); this.nextTurn(); } return; }
+        
         if(NPC_DATA[type]) { const npc = NPC_DATA[type]; const monId = npc.team[Math.floor(Math.random() * npc.team.length)]; Battle.setup(p, new Pokemon(monId), false, npc.name, npc.gold); return; }
+        
         if(type === TILE.CITY) { this.isCityEvent = true; document.getElementById('city-modal')!.style.display='flex'; }
         else if(type === TILE.EVENT) { if(Math.random() < 0.5) { Cards.draw(p); } else { const gift = Math.random() > 0.5 ? 'pokeball' : 'potion'; p.items[gift]++; this.log(`Achou ${gift}!`); this.updateHUD(); if(Network.isOnline) Network.syncPlayerState(); } this.nextTurn(); }
         else if(type === TILE.GYM) { const gymId = MapSystem.gymLocations[`${p.x},${p.y}`] || 1; if (!p.badges[gymId-1]) { const boss = new Pokemon(150, true); Battle.setup(p, boss, false, "Líder de Ginásio", 1000, null, true, gymId); } else { this.log("Você já venceu este ginásio!"); this.nextTurn(); } }
-        else if([TILE.GRASS, TILE.WATER, TILE.GROUND].includes(type) && Math.random() < 0.8) { let possibleMons = [1, 4, 7, 25]; if(type === TILE.GROUND) possibleMons = [74, 95]; const id = possibleMons[Math.floor(Math.random()*possibleMons.length)]; Battle.setup(p, new Pokemon(id, Math.random()<0.1), false, "Selvagem"); } 
+        else if([TILE.GRASS, TILE.WATER, TILE.GROUND].includes(type) && Math.random() < 0.8) { // AJUSTE 3: Taxa 80% (0.8)
+            let possibleMons = [1, 4, 7, 25]; if(type === TILE.GROUND) possibleMons = [74, 95]; const id = possibleMons[Math.floor(Math.random()*possibleMons.length)]; Battle.setup(p, new Pokemon(id, Math.random()<0.1), false, "Selvagem"); 
+        } 
         else { this.nextTurn(); }
     }
     static handleCityChoice(c: string) { if(c==='heal') { this.getCurrentPlayer().team.forEach(p=>p.heal(999)); this.isCityEvent=false; if(Network.isOnline) Network.syncPlayerState(); this.nextTurn(); } else Shop.open(); document.getElementById('city-modal')!.style.display='none'; }
@@ -904,7 +940,6 @@ class Game {
 }
 
 // BINDING GLOBAL ATUALIZADO E SEGURO
-// Garantindo que as funções só sejam chamadas quando a classe Game estiver pronta
 window.openInventory = (id) => Game.openInventoryModal(id);
 window.openCards = (id) => { if(Network.isOnline && id !== Network.myPlayerId) return alert("Privado!"); Cards.showPlayerCards(id); };
 window.openCardLibrary = () => Game.openCardLibrary();
@@ -919,7 +954,7 @@ window.Network = Network;
 document.addEventListener('DOMContentLoaded', () => {
     Setup.updateSlots();
 });
-// Fallback caso o DOM já tenha carregado
+// Fallback
 if (document.readyState === "complete" || document.readyState === "interactive") {
     Setup.updateSlots();
 }
