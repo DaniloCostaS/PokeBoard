@@ -89,8 +89,8 @@ export class Pokemon {
     gainXp(amount: number, player: Player) { 
         if(this.level >= 15) return; 
         
-        // Log global simples de XP (opcional, se ficar muito spam, comente a linha abaixo)
-        // (window as any).Game.sendGlobalLog(`${this.name} ganhou ${amount} XP!`);
+        // Log global de XP para todos verem
+        (window as any).Game.sendGlobalLog(`${this.name} ganhou ${amount} XP!`);
 
         this.currentXp += amount; 
         if(this.currentXp >= this.maxXp && !this.leveledUpThisTurn) { 
