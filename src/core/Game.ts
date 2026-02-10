@@ -48,7 +48,7 @@ export class Game {
     }
     
     // =========================================================
-    // 🚑 FUNÇÃO DE DERROTA TOTAL E RECUPERAÇÃO (CORRIGIDA)
+    // 🚑 FUNÇÃO DE DERROTA TOTAL E RECUPERAÇÃO
     // =========================================================
     static handleTotalDefeat(p: Player) {
         // 1. Aviso Visual (Bloqueante)
@@ -369,6 +369,7 @@ export class Game {
                 const wildMon = this.generateWildPokemon();
                 Battle.setup(p, wildMon, false, "Selvagem"); 
             } else {
+                // FEEDBACK DIVERTIDO + ALERT (UX)
                 const messages = [
                     "Você procurou, mas nenhum Pokémon selvagem apareceu dessa vez!",
                     "O mato se mexeu... mas era só o vento 😅",
@@ -377,7 +378,13 @@ export class Game {
                     "Um Pidgey voou longe, você não alcançou."
                 ];
                 const msg = messages[Math.floor(Math.random() * messages.length)];
+                
+                // Mensagem no Log
                 this.log(msg);
+                
+                // Mensagem na "Telinha" (Alert)
+                alert(msg);
+                
                 this.nextTurn();
             }
         } 
@@ -429,105 +436,9 @@ export class Game {
     static exportSave() { const d = localStorage.getItem('pk_save'); if(!d)return alert("Vazio"); const b = new Blob([d], {type:'text/plain'}); const a = document.createElement('a'); a.href=URL.createObjectURL(b); a.download='save.txt'; a.click(); }
     static importSave(i: HTMLInputElement) { const f = i.files?.[0]; if(!f)return; const r = new FileReader(); r.onload=e=>{ localStorage.setItem('pk_save', e.target?.result as string); this.loadGame(); }; r.readAsText(f); }
     static openInventoryModal(pId: number) { const p = this.players[pId]; const list = document.getElementById('board-inventory-list')!; list.innerHTML = ''; const canUse = (this.canAct() && this.turn === pId); Object.keys(p.items).forEach(key => { if(p.items[key] > 0) { const item = SHOP_ITEMS.find(i => i.id === key); if(item) { const d = document.createElement('div'); d.className='shop-item'; let btnHTML = ''; if(canUse && (item.type === 'heal' || item.type === 'revive')) { btnHTML = `<button class="btn btn-mini" style="width:auto;" onclick="window.Game.useItemBoard('${key}', ${pId})">Usar</button>`; } d.innerHTML = `<div style="display:flex; align-items:center;"><img src="/assets/img/Itens/${item.icon}" class="item-icon-mini"><span>${item.name} x${p.items[key]}</span></div>${btnHTML}`; list.appendChild(d); } } }); document.getElementById('board-inventory-modal')!.style.display='flex'; }
-    
-    static useItemBoard(key: string, pId: number) {
-        const p = this.players[pId];
-        const item = SHOP_ITEMS.find(i => i.id === key);
-        
-        if (!item || p.items[key] <= 0) return;
-
-        if (item.type === 'heal') {
-            if (item.id === 'ultrafullrestore') {
-                this.applyBoardItemEffect(p, item, -1);
-                return;
-            }
-            this.openHealSelector(pId, key);
-        } 
-        else if (item.type === 'revive') {
-            if (item.id === 'ultramaxrevive') {
-                this.applyBoardItemEffect(p, item, -1);
-                return;
-            }
-            this.openHealSelector(pId, key);
-        }
-    }
-
-    static openHealSelector(pId: number, itemKey: string) {
-        this.pendingHealItem = itemKey;
-        const p = this.players[pId];
-        const modal = document.getElementById('pkmn-select-modal')!;
-        const list = document.getElementById('pkmn-select-list')!;
-        const title = document.getElementById('select-title')!;
-        
-        title.innerText = "Usar em qual Pokémon?";
-        list.innerHTML = ''; 
-        
-        p.team.forEach((mon, idx) => { 
-            const div = document.createElement('div'); 
-            div.className = `mon-select-item`; 
-            div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>(${mon.currentHp}/${mon.maxHp})</small>`; 
-            
-            div.onclick = () => { 
-                modal.style.display = 'none'; 
-                this.applyBoardItemEffect(p, SHOP_ITEMS.find(i=>i.id === itemKey)!, idx);
-            }; 
-            list.appendChild(div); 
-        }); 
-        
-        const cancelBtn = document.createElement('button');
-        cancelBtn.className = "btn btn-secondary mt-15";
-        cancelBtn.innerText = "Cancelar";
-        cancelBtn.onclick = () => { modal.style.display = 'none'; this.pendingHealItem = null; };
-        list.appendChild(cancelBtn);
-
-        modal.style.display = 'flex';
-    }
-
-    static applyBoardItemEffect(p: Player, item: ItemData, targetIdx: number) {
-        let used = false;
-
-        if (item.type === 'heal') {
-            if (item.id === 'ultrafullrestore') {
-                let count = 0;
-                p.team.forEach(m => { if(!m.isFainted() && m.currentHp < m.maxHp) { m.heal(9999); count++; } });
-                if(count > 0) { used = true; alert(`${count} Pokémon curados!`); }
-                else alert("Ninguém precisa de cura!");
-            } else {
-                const target = p.team[targetIdx];
-                if(target.isFainted()) return alert("Não funciona em Pokémon desmaiado!");
-                if(target.currentHp >= target.maxHp) return alert("HP já está cheio!");
-                target.heal(item.val || 20);
-                alert(`Usou ${item.name} em ${target.name}.`);
-                used = true;
-            }
-        } 
-        else if (item.type === 'revive') {
-            if (item.id === 'ultramaxrevive') {
-                let count = 0;
-                p.team.forEach(m => { if(m.isFainted()) { m.revive(100); count++; } });
-                if(count > 0) { used = true; alert(`${count} Pokémon revividos!`); }
-                else alert("Ninguém está desmaiado!");
-            } else {
-                const target = p.team[targetIdx];
-                if(!target.isFainted()) return alert("Este Pokémon não está desmaiado!");
-                target.revive(item.val || 50);
-                alert(`Usou ${item.name} em ${target.name}.`);
-                used = true;
-            }
-        }
-
-        if (used) {
-            p.items[item.id]--;
-            this.updateHUD();
-            this.openInventoryModal(p.id); 
-            this.saveGame();
-            if (Network.isOnline) {
-                Network.sendAction('LOG', { msg: `${p.name} usou ${item.name}.` });
-                Network.syncPlayerState();
-            }
-        }
-    }
-
+    static useItemBoard(key: string, pId: number) { const p = this.players[pId]; const item = SHOP_ITEMS.find(i => i.id === key); if (!item || p.items[key] <= 0) return; if (item.type === 'heal') { if (item.id === 'ultrafullrestore') { this.applyBoardItemEffect(p, item, -1); return; } this.openHealSelector(pId, key); } else if (item.type === 'revive') { if (item.id === 'ultramaxrevive') { this.applyBoardItemEffect(p, item, -1); return; } this.openHealSelector(pId, key); } }
+    static openHealSelector(pId: number, itemKey: string) { this.pendingHealItem = itemKey; const p = this.players[pId]; const modal = document.getElementById('pkmn-select-modal')!; const list = document.getElementById('pkmn-select-list')!; const title = document.getElementById('select-title')!; title.innerText = "Usar em qual Pokémon?"; list.innerHTML = ''; p.team.forEach((mon, idx) => { const div = document.createElement('div'); div.className = `mon-select-item`; div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>(${mon.currentHp}/${mon.maxHp})</small>`; div.onclick = () => { modal.style.display = 'none'; this.applyBoardItemEffect(p, SHOP_ITEMS.find(i=>i.id === itemKey)!, idx); }; list.appendChild(div); }); const cancelBtn = document.createElement('button'); cancelBtn.className = "btn btn-secondary mt-15"; cancelBtn.innerText = "Cancelar"; cancelBtn.onclick = () => { modal.style.display = 'none'; this.pendingHealItem = null; }; list.appendChild(cancelBtn); modal.style.display = 'flex'; }
+    static applyBoardItemEffect(p: Player, item: ItemData, targetIdx: number) { let used = false; if (item.type === 'heal') { if (item.id === 'ultrafullrestore') { let count = 0; p.team.forEach(m => { if(!m.isFainted() && m.currentHp < m.maxHp) { m.heal(9999); count++; } }); if(count > 0) { used = true; alert(`${count} Pokémon curados!`); } else alert("Ninguém precisa de cura!"); } else { const target = p.team[targetIdx]; if(target.isFainted()) return alert("Não funciona em Pokémon desmaiado!"); if(target.currentHp >= target.maxHp) return alert("HP já está cheio!"); target.heal(item.val || 20); alert(`Usou ${item.name} em ${target.name}.`); used = true; } } else if (item.type === 'revive') { if (item.id === 'ultramaxrevive') { let count = 0; p.team.forEach(m => { if(m.isFainted()) { m.revive(100); count++; } }); if(count > 0) { used = true; alert(`${count} Pokémon revividos!`); } else alert("Ninguém está desmaiado!"); } else { const target = p.team[targetIdx]; if(!target.isFainted()) return alert("Este Pokémon não está desmaiado!"); target.revive(item.val || 50); alert(`Usou ${item.name} em ${target.name}.`); used = true; } } if (used) { p.items[item.id]--; this.updateHUD(); this.openInventoryModal(p.id); this.saveGame(); if (Network.isOnline) { Network.sendAction('LOG', { msg: `${p.name} usou ${item.name}.` }); Network.syncPlayerState(); } } }
     static openSwapModal(newMon: Pokemon) { const modal = document.getElementById('swap-modal')!; const list = document.getElementById('swap-list')!; list.innerHTML = ''; const p = this.getCurrentPlayer(); p.team.forEach((currP, idx) => { const div = document.createElement('div'); div.className = 'swap-item'; div.innerHTML = `<img src="${currP.getSprite()}"> <b>${currP.name}</b> Lv.${currP.level}`; div.onclick = () => this.executeSwap(idx, newMon); list.appendChild(div); }); const divNew = document.createElement('div'); divNew.className = 'swap-item new-mon'; divNew.innerHTML = `<img src="${newMon.getSprite()}"> <b>${newMon.name} (NOVO)</b> Lv.${newMon.level} <br><small>Clique para descartar este</small>`; divNew.onclick = () => this.executeSwap(-1, newMon); list.appendChild(divNew); modal.style.display = 'block'; }
     static executeSwap(indexToRelease: number, newMon: Pokemon) { const p = this.getCurrentPlayer(); if (indexToRelease === -1) { this.log(`Libertou ${newMon.name}.`); } else { const released = p.team[indexToRelease]; this.log(`Libertou ${released.name} e ficou com ${newMon.name}!`); p.team[indexToRelease] = newMon; } document.getElementById('swap-modal')!.style.display = 'none'; Game.updateHUD(); setTimeout(() => Battle.end(false), 500); if(Network.isOnline) Network.syncPlayerState(); }
     static updateHUD() { const left = document.getElementById('hud-col-left')!; left.innerHTML = ''; const right = document.getElementById('hud-col-right')!; right.innerHTML = ''; if (!this.players || this.players.length === 0) return; this.players.forEach((p,i) => { const d = document.createElement('div'); d.className = `player-slot ${i===this.turn?'active':''}`; let badgeHTML = '<div class="badges-container">'; for(let b=0; b<8; b++) { const isActive = p.badges[b]; const gData = GYM_DATA.find(g => g.id === b+1); const imgUrl = gData ? `/assets/img/Insignias/${gData.badgeImg}` : ''; const style = isActive ? `background-image: url('${imgUrl}'); background-size: 100% 100%; background-repeat: no-repeat; background-color: transparent;` : `background-color: #ccc;`; badgeHTML += `<div class="badge-slot ${isActive?'active':''}" style="${style}" title="Insígnia ${b+1}"></div>`; } badgeHTML += '</div>'; const th = p.team.map(m => { let auraClass = ''; if (m.isShiny) auraClass = 'aura-shiny'; else if (m.isLegendary) auraClass = 'aura-legendary'; return ` <div class="poke-card ${m.isFainted() ? 'fainted' : ''}"> <img src="${m.getSprite()}" class="poke-card-img ${auraClass}"> <div class="poke-card-info"> <div class="poke-header"> <span>${m.name}</span> <span class="poke-lvl">Lv.${m.level}</span> </div> <div class="bar-container" title="HP"> <div class="bar-fill ${Battle.getHpColor(m.currentHp, m.maxHp)}" style="width:${(m.currentHp/m.maxHp)*100}%"></div> <div class="bar-text">${m.currentHp}/${m.maxHp}</div> </div> <div class="bar-container" title="XP"><div class="bar-fill xp-bar" style="width:${(m.currentXp/m.maxXp)*100}%"></div></div> <div class="poke-stats"> <div class="stat-item">⚔️${m.atk}</div> <div class="stat-item">🛡️${m.def}</div> <div class="stat-item">💨${m.speed}</div> </div> </div> </div>`; }).join(''); d.innerHTML = ` <div class="hud-header"><div class="hud-name-group"><img src="${p.avatar}" class="hud-avatar-img"><span>${p.name}</span></div><div>💰${p.gold}</div></div> ${badgeHTML} <div class="hud-team">${th}</div> <div class="hud-actions"><button class="btn btn-secondary btn-mini" onclick="window.openInventory(${i})">🎒</button><button class="btn btn-secondary btn-mini" onclick="window.openCards(${i})">🃏</button></div>`; if(i < Math.ceil(this.players.length/2)) left.appendChild(d); else right.appendChild(d); }); const turnPlayer = this.players[this.turn]; if (turnPlayer) document.getElementById('turn-indicator')!.innerText = turnPlayer.name; }

@@ -7,25 +7,52 @@ import type { ItemData } from '../constants';
 import { Cards } from './Cards';
 
 export class Battle {
-    // ... (Propriedades e métodos de setup mantidos) ...
-    static active: boolean = false; static player: Player | null = null; static activeMon: Pokemon | null = null; static opponent: Pokemon | null = null; static enemyPlayer: Player | null = null; static isPvP: boolean = false; static isNPC: boolean = false; static isGym: boolean = false; static gymId: number = 0; static reward: number = 0; static battleTitle: string = "Batalha!"; static plyTeamList: Pokemon[] = []; static oppTeamList: Pokemon[] = []; static pendingCapture: Pokemon | null = null; static isPlayerTurn: boolean = false; static processingAction: boolean = false; static activeEffects: any = {};
-    
-    // CORREÇÃO NO SETUP: Se já não tem pokémons, nem inicia batalha, chama derrota total
-    static setup(player: Player, enemyMon: Pokemon, isPvP: boolean = false, _label: string = "", reward: number = 0, enemyPlayer: Player | null = null, isGym: boolean = false, gymId: number = 0, npcImage: string = "") { const Game = (window as any).Game; this.player = player; this.isPvP = isPvP; this.isNPC = (reward > 0 && !isPvP); this.isGym = isGym; this.gymId = gymId; this.reward = reward; this.enemyPlayer = enemyPlayer; this.processingAction = false; this.activeEffects = {}; this.battleTitle = isPvP ? "Batalha PvP!" : `Batalha contra ${_label}!`; this.plyTeamList = player.getBattleTeam(isGym).slice(0, isGym ? 6 : 3); if (isPvP && enemyPlayer) { this.oppTeamList = enemyPlayer.getBattleTeam(false); this.opponent = this.oppTeamList[0]; if (enemyPlayer.effects.curse) { this.logBattle(`☠️ ${enemyPlayer.name} está amaldiçoado! (Dano reduzido)`); } } else if (isGym) { const gymData = GYM_DATA.find(g => g.id === gymId); const globalAvg = Game.getGlobalAverageLevel(); const gymLevel = globalAvg + 1; if(gymData) { this.oppTeamList = gymData.teamIds.map((id: number) => new Pokemon(id, gymLevel, false)); this.opponent = this.oppTeamList[0]; } else { this.oppTeamList = [enemyMon]; this.opponent = enemyMon; } } else { this.oppTeamList = [enemyMon]; this.opponent = enemyMon; } 
+    static active: boolean = false; 
+    static player: Player | null = null; 
+    static activeMon: Pokemon | null = null; 
+    static opponent: Pokemon | null = null; 
+    static enemyPlayer: Player | null = null; 
+    static isPvP: boolean = false; 
+    static isNPC: boolean = false; 
+    static isGym: boolean = false; 
+    static gymId: number = 0; 
+    static reward: number = 0;
+    static battleTitle: string = "Batalha!";
+    static plyTeamList: Pokemon[] = []; 
+    static oppTeamList: Pokemon[] = []; 
+    static pendingCapture: Pokemon | null = null; 
+    static isPlayerTurn: boolean = false; 
+    static processingAction: boolean = false; 
+    static activeEffects: any = {};
+
+    static setup(player: Player, enemyMon: Pokemon, isPvP: boolean = false, _label: string = "", reward: number = 0, enemyPlayer: Player | null = null, isGym: boolean = false, gymId: number = 0, npcImage: string = "") {
+        const Game = (window as any).Game;
+        this.player = player; this.isPvP = isPvP; this.isNPC = (reward > 0 && !isPvP); this.isGym = isGym; this.gymId = gymId; this.reward = reward; this.enemyPlayer = enemyPlayer; this.processingAction = false;
+        this.activeEffects = {};
+        this.battleTitle = isPvP ? "Batalha PvP!" : `Batalha contra ${_label}!`;
+        this.plyTeamList = player.getBattleTeam(isGym).slice(0, isGym ? 6 : 3);
         
-        // CORREÇÃO CRÍTICA
+        if (isPvP && enemyPlayer) { 
+            this.oppTeamList = enemyPlayer.getBattleTeam(false); 
+            this.opponent = this.oppTeamList[0]; 
+            if (enemyPlayer.effects.curse) { this.logBattle(`☠️ ${enemyPlayer.name} está amaldiçoado! (Dano reduzido)`); }
+        } else if (isGym) {
+            const gymData = GYM_DATA.find(g => g.id === gymId);
+            const globalAvg = Game.getGlobalAverageLevel();
+            const gymLevel = globalAvg + 1; 
+            if(gymData) { this.oppTeamList = gymData.teamIds.map((id: number) => new Pokemon(id, gymLevel, false)); this.opponent = this.oppTeamList[0]; } 
+            else { this.oppTeamList = [enemyMon]; this.opponent = enemyMon; }
+        } else { this.oppTeamList = [enemyMon]; this.opponent = enemyMon; }
+
         if(this.plyTeamList.length === 0) { 
-            // Invoca a recuperação total
             Game.handleTotalDefeat(player);
-            // Avança o turno para não travar
             Game.nextTurn();
             return; 
-        } 
-        
-        if(this.isNPC && npcImage) { (this.opponent as any)._npcImage = npcImage; (this.opponent as any)._npcName = _label; } this.openSelectionModal("Escolha seu Pokémon para começar!"); 
+        }
+        if(this.isNPC && npcImage) { (this.opponent as any)._npcImage = npcImage; (this.opponent as any)._npcName = _label; }
+        this.openSelectionModal("Escolha seu Pokémon para começar!");
     }
 
-    // ... (openSelectionModal, startRound, determineTurnOrder, updateButtons, startFromNetwork, renderBattleScreen, calculateDamage, attack, enemyTurn, checkWinCondition, handleFaint, logBattle, getHpColor, updateUI, renderTeamIcons, updateFromNetwork, win mantidos) ...
     static openSelectionModal(title: string) { const modal = document.getElementById('pkmn-select-modal')!; const list = document.getElementById('pkmn-select-list')!; document.getElementById('select-title')!.innerText = title; list.innerHTML = ''; this.plyTeamList.forEach((mon) => { const div = document.createElement('div'); div.className = `mon-select-item ${mon.isFainted() ? 'disabled' : ''}`; div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>(${mon.currentHp}/${mon.maxHp})</small>`; if(!mon.isFainted()) div.onclick = () => { modal.style.display = 'none'; this.startRound(mon); }; list.appendChild(div); }); modal.style.display = 'flex'; }
     static startRound(selectedMon: Pokemon) { const Network = (window as any).Network; document.getElementById('pkmn-select-modal')!.style.display = 'none'; this.active = true; this.activeMon = selectedMon; this.determineTurnOrder(); this.renderBattleScreen(); const enemyId = this.enemyPlayer ? this.enemyPlayer.id : -1; if(Network.isOnline && this.player!.id === Network.myPlayerId) { const npcImg = (this.opponent as any)._npcImage || ""; const npcName = (this.opponent as any)._npcName || ""; Network.sendAction('BATTLE_START', { pId: this.player!.id, monIdx: this.player!.team.indexOf(this.activeMon), oppData: this.opponent, isPvP: this.isPvP, reward: this.reward, enemyId, isGym: this.isGym, gymId: this.gymId, npcImage: npcImg, npcName: npcName, battleTitle: this.battleTitle }); } }
     static determineTurnOrder() { if (!this.activeMon || !this.opponent) return; if (this.activeEffects.stunOpponent && this.activeEffects.stunOpponent > 0) { this.isPlayerTurn = true; this.logBattle(`⚡ Inimigo atordoado! (${this.activeEffects.stunOpponent} turnos)`); } else { let playerGoesFirst = false; if (this.activeMon.speed > this.opponent.speed) playerGoesFirst = true; else if (this.activeMon.speed < this.opponent.speed) playerGoesFirst = false; else playerGoesFirst = Math.random() > 0.5; this.isPlayerTurn = playerGoesFirst; } this.processingAction = false; this.updateButtons(); this.updateUI(); if(!this.activeEffects.stunOpponent) { const faster = this.isPlayerTurn ? this.activeMon.name : this.opponent.name; this.logBattle(`💨 ${faster} age primeiro!`); } if (!this.isPlayerTurn) { this.processingAction = true; this.updateButtons(); setTimeout(() => this.enemyTurn(), 2000); } }
@@ -44,7 +71,6 @@ export class Battle {
     static updateFromNetwork(payload: any) { if(!this.activeMon || !this.opponent) return; this.activeMon.currentHp = payload.plyHp; this.opponent.currentHp = payload.oppHp; this.logBattle(payload.msg); this.updateUI(); }
     static win() { const Game = (window as any).Game; const Network = (window as any).Network; const Cards = (window as any).Cards; if(Network.isOnline && Game.turn !== Network.myPlayerId && Network.myPlayerId !== 0) return; this.player!.effects.curse = false; this.player!.team = this.player!.team.filter(p => !(p as any).isTemp); let gain = 0; let xpGain = 0; let msg = "VITÓRIA! "; if(this.isPvP) xpGain = 15; else if(this.isGym) xpGain = 25; else if(this.isNPC) xpGain = 10; else xpGain = 5; if (this.opponent!.level >= this.activeMon!.level + 2) { xpGain += 5; msg += "(+Bônus Desafio) "; } if (this.isPvP && this.enemyPlayer && this.activeEffects.stealBadgeFrom === this.enemyPlayer.id) { const myBadges = this.player!.badges; const enBadges = this.enemyPlayer.badges; for(let i=0; i<8; i++) { if(enBadges[i] && !myBadges[i]) { myBadges[i] = true; enBadges[i] = false; msg += ` Roubou Insígnia ${i+1}!`; break; } } } if (this.activeEffects.destiny) { this.player!.gold += 200; if(Cards) Cards.draw(this.player!); msg += " (Destino Selado: +200G +Carta)"; } if(this.isPvP && this.enemyPlayer) { if(this.enemyPlayer.gold > 0) { gain = Math.floor(this.enemyPlayer.gold * 0.3); this.enemyPlayer.gold -= gain; msg += `Roubou ${gain}G!`; } else { gain = 100; msg += `Inimigo falido (Perde vez)!`; } Game.sendGlobalLog(`[PvP] ${this.enemyPlayer.name} foi derrotado por ${this.player?.name}!`); if(Network.isOnline) { Network.sendAction('PVP_SYNC_DAMAGE', { targetId: this.enemyPlayer.id, team: this.oppTeamList, resetPos: true, skipTurn: true }); } } else if (this.isGym) { gain = 1000; if (!this.player!.badges[this.gymId - 1]) { this.player!.badges[this.gymId - 1] = true; msg += ` Insígnia ${this.gymId}!`; } } else if (this.isNPC) { gain = this.reward; } else { gain = 150; } this.player!.gold += gain; this.activeMon!.gainXp(xpGain, this.player!); if(Network.isOnline) Network.syncPlayerState(); alert(msg); Game.sendGlobalLog(`${this.player?.name} venceu! ${msg} (${this.activeMon?.name} +${xpGain}XP)`); setTimeout(() => this.end(false), 1000); }
     
-    // CORREÇÃO: Lógica de Derrota agora verifica se é Derrota Total
     static lose() {
         const Game = (window as any).Game;
         const Network = (window as any).Network;
@@ -54,14 +80,12 @@ export class Battle {
         let msg = "DERROTA... "; 
         this.player!.gold = Math.max(0, this.player!.gold - 100); 
         
-        // Verifica derrota TOTAL
         if (this.player!.isDefeated()) {
             Game.handleTotalDefeat(this.player!);
-            this.end(false); // Fecha batalha
+            this.end(false); 
             return;
         }
 
-        // Derrota parcial (tem outros pokemons vivos, mas perdeu esta batalha)
         if (!this.isPvP) { 
             this.player!.team.forEach(p => p.heal(999)); 
         }
@@ -86,8 +110,107 @@ export class Battle {
     static end(isRemote: boolean) { const Game = (window as any).Game; const Network = (window as any).Network; this.active = false; this.opponent = null; document.getElementById('battle-modal')!.style.display = 'none'; if(!isRemote) { if(Network.isOnline) Network.sendAction('BATTLE_END', {}); Game.nextTurn(); } }
     static useCard(cardId: string) { const Network = (window as any).Network; const Game = (window as any).Game; if (this.isPvP && this.enemyPlayer) { const enemyHasJam = this.enemyPlayer.cards.findIndex((c: any) => c.id === 'jam'); if (enemyHasJam > -1) { this.enemyPlayer.cards.splice(enemyHasJam, 1); alert(`📡 INTERFERÊNCIA! ${this.enemyPlayer.name} anulou sua carta!`); Game.sendGlobalLog(`📡 ${this.enemyPlayer.name} usou Interferência automática contra ${this.player?.name}!`); const myCardIdx = this.player!.cards.findIndex((c: any) => c.id === cardId); if(myCardIdx > -1) this.player!.cards.splice(myCardIdx, 1); document.getElementById('battle-cards-modal')!.style.display = 'none'; if(Network.isOnline) Network.syncPlayerState(); return; } } Cards.activate(cardId); }
     static openBag() { if (!this.isPlayerTurn || this.processingAction) return; const list = document.getElementById('battle-bag-list')!; list.innerHTML = ''; Object.keys(this.player!.items).forEach(key => { if(this.player!.items[key] > 0) { const item = SHOP_ITEMS.find(i => i.id === key); if(item) { const btn = document.createElement('button'); btn.className = 'btn'; btn.innerHTML = `<img src="/assets/img/Itens/${item.icon}" class="item-icon-mini"> ${item.name} x${this.player!.items[key]}`; btn.onclick = () => this.useItem(key, item); list.appendChild(btn); } } }); document.getElementById('battle-bag')!.style.display = 'block'; }
-    static useItem(key: string, data: ItemData) { const Network = (window as any).Network; document.getElementById('battle-bag')!.style.display = 'none'; if(data.type === 'capture' && (this.isPvP || this.isNPC || this.isGym)) { alert("Não pode capturar pokémons de treinadores!"); return; } this.player!.items[key]--; this.processingAction = true; this.updateButtons(); if(data.type === 'heal') { this.activeMon!.heal(data.val!); this.logBattle("Usou item de cura!"); this.updateUI(); if(Network.isOnline) Network.sendAction('BATTLE_UPDATE', { plyHp: this.activeMon!.currentHp, oppHp: this.opponent!.currentHp, msg: "Usou Cura!" }); setTimeout(() => this.enemyTurn(), 1500); } else if(data.type === 'capture') { this.attemptCapture(data.rate!); } if(Network.isOnline) Network.syncPlayerState(); }
-    static attemptCapture(rate: number) { const Game = (window as any).Game; if(!this.opponent) return; const chance = ((1 - (this.opponent.currentHp/this.opponent.maxHp)) * rate) + 0.2; setTimeout(() => { if(Math.random() < chance) { this.logBattle(`✨ Capturou ${this.opponent!.name}!`); this.activeMon!.gainXp(3, this.player!); if(this.player!.team.length < 6) { this.player!.team.push(this.opponent!); setTimeout(() => this.end(false), 1500); } else { this.pendingCapture = this.opponent; Game.openSwapModal(this.pendingCapture); } } else { this.logBattle("Escapou!"); setTimeout(() => this.enemyTurn(), 1000); } }, 1000); }
     static openCardSelection() { if (!this.isPlayerTurn || this.processingAction) return; const list = document.getElementById('battle-cards-list')!; list.innerHTML = ''; const battleCards = this.player!.cards.filter(c => c.type === 'battle'); if(battleCards.length === 0) { list.innerHTML = "<em>Sem cartas de batalha.</em>"; } else { battleCards.forEach(c => { const d = document.createElement('div'); d.className='card-item'; d.innerHTML = `<div class="card-info"><span class="card-name">${c.icon} ${c.name} <span class="card-type-badge type-battle">BATTLE</span></span><span class="card-desc">${c.desc}</span></div><button class="btn-use-card" onclick="window.Battle.useCard('${c.id}')">USAR</button>`; list.appendChild(d); }); } document.getElementById('battle-cards-modal')!.style.display = 'flex'; }
     static run() { if(this.isPvP || this.isNPC || this.isGym) { alert("Não pode fugir!"); } else { this.activeMon!.gainXp(2, this.player!); this.end(false); } }
+
+    static useItem(key: string, data: ItemData) {
+        // CORREÇÃO: Bloqueia Revive durante a batalha
+        if (data.type === 'revive') {
+            alert("Você não pode reviver Pokémon durante a batalha!");
+            return;
+        }
+
+        const Network = (window as any).Network;
+        document.getElementById('battle-bag')!.style.display = 'none';
+
+        if (data.type === 'capture') {
+            if (this.isPvP || this.isNPC || this.isGym) {
+                alert("Não pode capturar pokémons de treinadores!");
+                return;
+            }
+            this.player!.items[key]--;
+            this.processingAction = true;
+            this.updateButtons();
+            
+            this.attemptCapture(data);
+        } 
+        else if (data.type === 'heal') {
+            if (this.activeMon!.isFainted()) return alert("O Pokémon está desmaiado!");
+            if (this.activeMon!.currentHp >= this.activeMon!.maxHp) return alert("HP já está cheio!");
+            
+            this.player!.items[key]--;
+            this.processingAction = true;
+            this.updateButtons();
+            
+            this.activeMon!.heal(data.val!);
+            this.logBattle(`Usou ${data.name}! Recuperou HP.`);
+            this.updateUI();
+            
+            if (Network.isOnline) Network.sendAction('BATTLE_UPDATE', { plyHp: this.activeMon!.currentHp, oppHp: this.opponent!.currentHp, msg: `Usou ${data.name}!` });
+            
+            setTimeout(() => this.enemyTurn(), 1500);
+        }
+        
+        if (Network.isOnline) Network.syncPlayerState();
+    }
+
+    static attemptCapture(item: ItemData) {
+        if (!this.opponent || !this.activeMon) return;
+        
+        // CORREÇÃO: Variáveis locais para evitar perda de contexto no setTimeout
+        const opponent = this.opponent;
+        const activeMon = this.activeMon;
+
+        this.logBattle(`Jogou ${item.name}...`);
+
+        setTimeout(() => {
+            if (item.id === 'masterball') {
+                this.captureSuccess();
+                return;
+            }
+
+            let chance = item.rate || 10; 
+
+            const hpPercent = (opponent.currentHp / opponent.maxHp) * 100;
+            if (hpPercent < 15) chance += 30;
+            else if (hpPercent < 60) chance += 15;
+
+            if (activeMon.level > opponent.level) chance += 5;
+            else if (activeMon.level < opponent.level) chance -= 5;
+
+            if (opponent.isLegendary) chance -= 20;
+            if (opponent.isShiny) chance -= 10;
+
+            const d20 = Math.floor(Math.random() * 20) + 1;
+            const diceBonus = (d20 - 10);
+            chance += diceBonus;
+
+            chance = Math.max(0, Math.min(100, chance));
+
+            this.logBattle(`(Chance: ${chance}% | Dado: ${d20})`);
+
+            const roll = Math.floor(Math.random() * 100) + 1;
+            
+            if (roll <= chance) {
+                this.captureSuccess();
+            } else {
+                this.logBattle("Aargh! Quase!");
+                setTimeout(() => this.enemyTurn(), 1000);
+            }
+        }, 1500);
+    }
+
+    static captureSuccess() {
+        const Game = (window as any).Game;
+        this.logBattle(`✨ Capturou ${this.opponent!.name}!`);
+        this.activeMon!.gainXp(5, this.player!); 
+
+        if (this.player!.team.length < 6) {
+            this.player!.team.push(this.opponent!);
+            setTimeout(() => this.end(false), 1500);
+        } else {
+            this.pendingCapture = this.opponent;
+            Game.openSwapModal(this.pendingCapture);
+        }
+    }
 }
