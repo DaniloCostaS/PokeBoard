@@ -333,7 +333,7 @@ export class Battle {
     }
 
     static logBattle(msg: string) { 
-        //const Game = (window as any).Game;
+        const Game = (window as any).Game;
         const el = document.getElementById('battle-msg'); 
         if(el) el.innerText = msg; 
         
@@ -342,9 +342,7 @@ export class Battle {
             logContainer.insertAdjacentHTML('afterbegin', `<div style="border-bottom:1px solid #555; padding:2px;">${msg}</div>`);
         }
         
-        // Log local de batalha, não global (para não spamar o chat principal com cada ataque)
-        // Se quiser ver ataque por ataque no chat principal, mude para sendGlobalLog
-        // Game.log(`[Batalha] ${msg}`); 
+        Game.log(`[Batalha] ${msg}`); 
     }
     
     static getHpColor(current: number, max: number) { 
@@ -457,15 +455,25 @@ export class Battle {
                 msg += `Roubou ${gain}G!`; 
             } else { 
                 gain = 100; 
-                this.enemyPlayer.skipTurn = true; 
+                // Apenas marcação local, o sync real acontece abaixo
                 msg += `Inimigo falido (Perde vez)!`; 
             } 
-            this.enemyPlayer.x = 0; 
-            this.enemyPlayer.y = 0; 
-            this.enemyPlayer.team.forEach(p => p.heal(999)); 
-            this.enemyPlayer.skipTurn = true; 
-            Game.sendGlobalLog(`[PvP] ${this.enemyPlayer.name} voltou ao início.`); 
-        } 
+            
+            Game.sendGlobalLog(`[PvP] ${this.enemyPlayer.name} foi derrotado por ${this.player?.name}!`); 
+            
+            // LÓGICA DE PVP:
+            // 1. Eu (Vencedor) atualizo o estado do inimigo na MINHA máquina (dano aplicado durante a simulação)
+            // 2. Eu envio um comando de rede para que o inimigo atualize o estado DELE com o dano que calculei aqui
+            
+            if(Network.isOnline) {
+                Network.sendAction('PVP_SYNC_DAMAGE', { 
+                    targetId: this.enemyPlayer.id,
+                    team: this.oppTeamList, // Envia o time inimigo todo ferrado (desmaiado)
+                    resetPos: true,         // Manda voltar pro inicio
+                    skipTurn: true          // Manda perder a vez
+                });
+            }
+        }
         else if (this.isGym) { 
             gain = 1000; 
             if (!this.player!.badges[this.gymId - 1]) { 
@@ -479,7 +487,7 @@ export class Battle {
         this.player!.gold += gain; 
         this.activeMon!.gainXp(xpGain, this.player!);
         
-        if(Network.isOnline) Network.syncPlayerState();
+        if(Network.isOnline) Network.syncPlayerState(); // Salva meu estado (vencedor)
         
         alert(msg); 
         Game.sendGlobalLog(`${this.player?.name} venceu! ${msg} (${this.activeMon?.name} +${xpGain}XP)`); 
@@ -492,10 +500,16 @@ export class Battle {
 
         let msg = "DERROTA... "; 
         this.player!.gold = Math.max(0, this.player!.gold - 100); 
-        this.player!.team.forEach(p => p.heal(999)); 
+        
+        // Se for NPC/Ginásio, cura tudo. Se for PvP, a lógica do vencedor (PVP_SYNC_DAMAGE) vai sobrescrever isso depois
+        // Mas por segurança, curamos aqui, e se o server mandar desmaiar depois, desmaia.
+        if(!this.isPvP) {
+            this.player!.team.forEach(p => p.heal(999)); 
+        }
+        
         this.player!.x = 0; 
         this.player!.y = 0; 
-        this.player!.skipTurn = true;
+        this.player!.skipTurn = true; // PERDE A VEZ AQUI
         
         let xpGain = 0; 
         if(this.isPvP) xpGain = 5; 
@@ -506,13 +520,14 @@ export class Battle {
         if(this.activeMon) this.activeMon.gainXp(xpGain, this.player!);
         
         if (this.isPvP && this.enemyPlayer) { 
-            this.enemyPlayer.team[0].gainXp(15, this.enemyPlayer); 
+            // O vencedor ganha XP (simulação local, mas idealmente o vencedor processa isso no turno dele)
+            // Aqui é apenas visual para quem perdeu
             msg += ` ${this.enemyPlayer.name} venceu!`; 
         } 
         
         if(Network.isOnline) { 
-            Network.sendAction('PLAYER_SYNC', { id: this.player!.id, x: 0, y: 0, gold: this.player!.gold, team: this.player!.team, items: this.player!.items }); 
-            Network.syncPlayerState(); 
+            // Sync player state garante que o skipTurn=true vá para o banco
+            Network.syncPlayerState();
         }
         
         alert(msg); 
@@ -537,7 +552,6 @@ export class Battle {
         } 
     }
     
-    // ... resto do código igual ...
     static openBag() { 
         if (!this.isPlayerTurn || this.processingAction) return; 
         const list = document.getElementById('battle-bag-list')!; 

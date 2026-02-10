@@ -152,7 +152,10 @@ export class Network {
         const playerArray = Object.values(data.players).map((pd: any) => { 
             const pl = new Player(pd.id, pd.name, pd.avatar, true); 
             pl.x = pd.x; pl.y = pd.y; pl.gold = pd.gold; 
+            // Recupera skipTurn e badges corretamente
+            pl.skipTurn = pd.skipTurn || false;
             pl.badges = pd.badges || [false,false,false,false,false,false,false,false];
+            
             if(pd.team && pd.team.length > 0) { 
                 pl.team = pd.team.map((td: any) => { 
                     const po = new Pokemon(td.id, td.level, td.isShiny); 
@@ -180,10 +183,12 @@ export class Network {
             if(!action || action.type === 'INIT') return; 
             this.handleRemoteAction(action); 
         }); 
+        
         onValue(ref(db, `rooms/${this.currentRoomId}/turn`), (snapshot) => { 
             const turn = snapshot.val(); 
             if(turn !== null) { Game.turn = turn; Game.updateHUD(); Game.checkTurnControl(); } 
         }); 
+        
         onValue(ref(db, `rooms/${this.currentRoomId}/players`), (snapshot) => { 
             const playersData = snapshot.val(); 
             if(!playersData) return; 
@@ -191,6 +196,9 @@ export class Network {
                 const localPlayer = Game.players.find((p: any) => p.id === pd.id); 
                 if(localPlayer) { 
                     localPlayer.x = pd.x; localPlayer.y = pd.y; localPlayer.gold = pd.gold; 
+                    localPlayer.skipTurn = pd.skipTurn || false; // Sync SkipTurn
+                    localPlayer.badges = pd.badges || localPlayer.badges; // Sync Badges
+                    
                     if(pd.items) localPlayer.items = pd.items; 
                     if(pd.team) { 
                         pd.team.forEach((tData: any, idx: number) => { 
@@ -208,16 +216,14 @@ export class Network {
                 } 
             }); 
             Game.updateHUD(); 
-            // CORREÇÃO: Força o redesenho dos bonecos para garantir sync visual (ex: após derrota)
             Game.moveVisuals(); 
         }); 
     }
 
     static handleRemoteAction(action: any) { 
-        // CORREÇÃO: Impede que a própria ação seja re-executada (duplicando log ou animação)
+        const Game = (window as any).Game;
         if (action.playerId === this.myPlayerId) return;
 
-        const Game = (window as any).Game;
         switch(action.type) { 
             case 'ROLL': Game.animateDice(action.payload.result, action.playerId); break; 
             case 'MOVE_ANIMATION': Game.performVisualStep(action.payload.playerId, action.payload.x, action.payload.y); break; 
@@ -225,7 +231,30 @@ export class Network {
             case 'BATTLE_UPDATE': Battle.updateFromNetwork(action.payload); break; 
             case 'BATTLE_END': Battle.end(true); break; 
             case 'LOG': Game.log(action.payload.msg); break; 
-            case 'PLAYER_SYNC': Game.moveVisuals(); Game.updateHUD(); break; 
+            
+            // NOVO: Aplica dano/derrota no jogador que perdeu o PvP (recebido do vencedor)
+            case 'PVP_SYNC_DAMAGE': 
+                const targetP = Game.players.find((p: any) => p.id === action.payload.targetId);
+                if(targetP) {
+                    if(action.payload.team) {
+                        action.payload.team.forEach((remoteMon: any, idx: number) => {
+                            if(targetP.team[idx]) targetP.team[idx].currentHp = remoteMon.currentHp;
+                        });
+                    }
+                    if(action.payload.resetPos) {
+                        targetP.x = 0; targetP.y = 0;
+                    }
+                    if(action.payload.skipTurn) {
+                        targetP.skipTurn = true;
+                    }
+                    // Se eu sou o alvo, salvo meu novo estado no Firebase
+                    if(targetP.id === this.myPlayerId) {
+                        this.syncPlayerState();
+                        Game.moveVisuals();
+                        Game.updateHUD();
+                    }
+                }
+                break;
         } 
     }
 
@@ -239,7 +268,16 @@ export class Network {
         if(!this.isOnline) return; 
         const Game = (window as any).Game;
         const p = Game.players[this.myPlayerId]; 
-        update(ref(db, `rooms/${this.currentRoomId}/players/${this.myPlayerId}`), { x: p.x, y: p.y, gold: p.gold, team: p.team, items: p.items }); 
+        // CORREÇÃO: Enviando skipTurn e badges
+        update(ref(db, `rooms/${this.currentRoomId}/players/${this.myPlayerId}`), { 
+            x: p.x, 
+            y: p.y, 
+            gold: p.gold, 
+            team: p.team, 
+            items: p.items,
+            skipTurn: p.skipTurn,
+            badges: p.badges
+        }); 
     }
 
     static syncTurn(newTurn: number) { 

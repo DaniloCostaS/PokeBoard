@@ -38,11 +38,11 @@ export class Game {
         this.renderDebugPanel(); 
     }
     
-    // Novo: Log Global (XP, Eventos)
+    // ENVIA LOG PARA TODOS (XP, Eventos, Vitórias)
     static sendGlobalLog(msg: string) {
-        this.log(msg);
+        this.log(msg); // Mostra pra mim
         if(Network.isOnline) {
-            Network.sendAction('LOG', { msg: msg });
+            Network.sendAction('LOG', { msg: msg }); // Manda pros outros
         }
     }
 
@@ -104,7 +104,7 @@ export class Game {
     static useBoardCard(cardId: string) { const p = this.getCurrentPlayer(); const cardIndex = p.cards.findIndex(c => c.id === cardId); if (cardIndex === -1) return; const card = p.cards[cardIndex]; if (card.id === 'bike') { p.cards.splice(cardIndex, 1); document.getElementById('board-cards-modal')!.style.display = 'none'; this.log(`${p.name} usou Bicicleta!`); if(Network.isOnline) { Network.sendAction('ROLL', { result: 5 }); return; } this.hasRolled = true; this.animateDice(5, 0); } else if (card.id === 'teleport') { p.cards.splice(cardIndex, 1); document.getElementById('board-cards-modal')!.style.display = 'none'; this.log(`${p.name} usou Teleporte!`); p.x = 0; p.y = 0; this.moveVisuals(); this.handleTile(p); } else { alert("Efeito não implementado na demo."); } if(Network.isOnline) Network.syncPlayerState(); }
     
     // ==========================================
-    // CORREÇÃO CRÍTICA DO ROLL DICE
+    // CORREÇÃO: Envia rede MAS continua localmente
     // ==========================================
     static async rollDice() { 
         if(!this.canAct() || this.hasRolled) return; 
@@ -112,13 +112,11 @@ export class Game {
         this.hasRolled = true; 
         const result = Math.floor(Math.random()*20)+1; 
         
-        // 1. Envia para a rede (se online)
         if(Network.isOnline) { 
             Network.sendAction('ROLL', { result: result }); 
-            // REMOVIDO O 'return' AQUI! O código deve continuar para mover localmente.
+            // REMOVI O RETURN. O código segue para animar na minha tela também.
         } 
         
-        // 2. Executa a animação LOCALMENTE
         const playerId = Network.isOnline ? Network.myPlayerId : this.turn;
         this.animateDice(result, playerId); 
     }
@@ -130,10 +128,8 @@ export class Game {
         for(let i=0;i<5;i++) { die.innerText = `🎲 ${Math.floor(Math.random()*20)+1}`; await new Promise(r=>setTimeout(r,50)); } 
         die.innerText = `🎲 ${result}`; 
         
-        // Log corrigido para evitar duplicação (o log global cuida disso se necessário, ou log local simples)
-        if (!Network.isOnline || playerId === Network.myPlayerId) {
-             this.log(`${this.players[playerId].name} tirou ${result}`);
-        }
+        // Log local apenas
+        this.log(`${this.players[playerId].name} tirou ${result}`); 
 
         const p = this.players[playerId]; 
         if(p.team.length > 0) { 
@@ -152,8 +148,8 @@ export class Game {
             const nextCoord = MapSystem.getCoord(currentIdx); p.x = nextCoord.x; p.y = nextCoord.y;
             this.performVisualStep(pId, p.x, p.y); await new Promise(r => setTimeout(r, 150));
         }
-        
-        // Só processa o tile se for o dono do jogador (para evitar que todos os clients abram batalhas para o mesmo player)
+        // Só dispara eventos de tile se eu sou o dono desse jogador
+        // (Isso evita que todos os navegadores abram batalha ao mesmo tempo pro mesmo cara)
         if (!Network.isOnline || pId === Network.myPlayerId) { 
              this.handleTile(p); 
              if(Network.isOnline) Network.syncPlayerState(); 
