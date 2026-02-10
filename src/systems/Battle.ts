@@ -49,6 +49,7 @@ export class Battle {
             Game.nextTurn();
             return; 
         }
+        
         if(this.isNPC && npcImage) { (this.opponent as any)._npcImage = npcImage; (this.opponent as any)._npcName = _label; }
         this.openSelectionModal("Escolha seu Pokémon para começar!");
     }
@@ -70,43 +71,7 @@ export class Battle {
     static renderTeamIcons(elId: string, list: Pokemon[]) { document.getElementById(elId)!.innerHTML = list.map(p => `<div class="ball-icon ${p.isFainted() ? 'lost' : ''}"></div>`).join(''); }
     static updateFromNetwork(payload: any) { if(!this.activeMon || !this.opponent) return; this.activeMon.currentHp = payload.plyHp; this.opponent.currentHp = payload.oppHp; this.logBattle(payload.msg); this.updateUI(); }
     static win() { const Game = (window as any).Game; const Network = (window as any).Network; const Cards = (window as any).Cards; if(Network.isOnline && Game.turn !== Network.myPlayerId && Network.myPlayerId !== 0) return; this.player!.effects.curse = false; this.player!.team = this.player!.team.filter(p => !(p as any).isTemp); let gain = 0; let xpGain = 0; let msg = "VITÓRIA! "; if(this.isPvP) xpGain = 15; else if(this.isGym) xpGain = 25; else if(this.isNPC) xpGain = 10; else xpGain = 5; if (this.opponent!.level >= this.activeMon!.level + 2) { xpGain += 5; msg += "(+Bônus Desafio) "; } if (this.isPvP && this.enemyPlayer && this.activeEffects.stealBadgeFrom === this.enemyPlayer.id) { const myBadges = this.player!.badges; const enBadges = this.enemyPlayer.badges; for(let i=0; i<8; i++) { if(enBadges[i] && !myBadges[i]) { myBadges[i] = true; enBadges[i] = false; msg += ` Roubou Insígnia ${i+1}!`; break; } } } if (this.activeEffects.destiny) { this.player!.gold += 200; if(Cards) Cards.draw(this.player!); msg += " (Destino Selado: +200G +Carta)"; } if(this.isPvP && this.enemyPlayer) { if(this.enemyPlayer.gold > 0) { gain = Math.floor(this.enemyPlayer.gold * 0.3); this.enemyPlayer.gold -= gain; msg += `Roubou ${gain}G!`; } else { gain = 100; msg += `Inimigo falido (Perde vez)!`; } Game.sendGlobalLog(`[PvP] ${this.enemyPlayer.name} foi derrotado por ${this.player?.name}!`); if(Network.isOnline) { Network.sendAction('PVP_SYNC_DAMAGE', { targetId: this.enemyPlayer.id, team: this.oppTeamList, resetPos: true, skipTurn: true }); } } else if (this.isGym) { gain = 1000; if (!this.player!.badges[this.gymId - 1]) { this.player!.badges[this.gymId - 1] = true; msg += ` Insígnia ${this.gymId}!`; } } else if (this.isNPC) { gain = this.reward; } else { gain = 150; } this.player!.gold += gain; this.activeMon!.gainXp(xpGain, this.player!); if(Network.isOnline) Network.syncPlayerState(); alert(msg); Game.sendGlobalLog(`${this.player?.name} venceu! ${msg} (${this.activeMon?.name} +${xpGain}XP)`); setTimeout(() => this.end(false), 1000); }
-    
-    static lose() {
-        const Game = (window as any).Game;
-        const Network = (window as any).Network;
-        this.player!.effects.curse = false; 
-        this.player!.team = this.player!.team.filter(p => !(p as any).isTemp); 
-
-        let msg = "DERROTA... "; 
-        this.player!.gold = Math.max(0, this.player!.gold - 100); 
-        
-        if (this.player!.isDefeated()) {
-            Game.handleTotalDefeat(this.player!);
-            this.end(false); 
-            return;
-        }
-
-        if (!this.isPvP) { 
-            this.player!.team.forEach(p => p.heal(999)); 
-        }
-        
-        this.player!.x = 0; 
-        this.player!.y = 0; 
-        this.player!.skipTurns = 1; 
-        
-        let xpGain = 0; if(this.isPvP) xpGain = 5; else if(this.isGym) xpGain = 8; else if(this.isNPC) xpGain = 3; else xpGain = 2; 
-        if(this.activeMon) this.activeMon.gainXp(xpGain, this.player!);
-        if (this.isPvP && this.enemyPlayer) { msg += ` ${this.enemyPlayer.name} venceu!`; } 
-        
-        if(Network.isOnline) { 
-            Network.syncPlayerState(); 
-        }
-        
-        alert(msg); 
-        Game.sendGlobalLog(`${this.player?.name} perdeu e voltou ao início! (+${xpGain}XP)`); 
-        setTimeout(() => { this.end(false); Game.moveVisuals(); }, 1500);
-    }
-
+    static lose() { const Game = (window as any).Game; const Network = (window as any).Network; this.player!.effects.curse = false; this.player!.team = this.player!.team.filter(p => !(p as any).isTemp); let msg = "DERROTA... "; this.player!.gold = Math.max(0, this.player!.gold - 100); if (this.player!.isDefeated()) { Game.handleTotalDefeat(this.player!); this.end(false); return; } if (!this.isPvP) { this.player!.team.forEach(p => p.heal(999)); } this.player!.x = 0; this.player!.y = 0; this.player!.skipTurns = 1; let xpGain = 0; if(this.isPvP) xpGain = 5; else if(this.isGym) xpGain = 8; else if(this.isNPC) xpGain = 3; else xpGain = 2; if(this.activeMon) this.activeMon.gainXp(xpGain, this.player!); if (this.isPvP && this.enemyPlayer) { msg += ` ${this.enemyPlayer.name} venceu!`; } if(Network.isOnline) { Network.syncPlayerState(); } alert(msg); Game.sendGlobalLog(`${this.player?.name} perdeu e voltou ao início! (+${xpGain}XP)`); setTimeout(() => { this.end(false); Game.moveVisuals(); }, 1500); }
     static end(isRemote: boolean) { const Game = (window as any).Game; const Network = (window as any).Network; this.active = false; this.opponent = null; document.getElementById('battle-modal')!.style.display = 'none'; if(!isRemote) { if(Network.isOnline) Network.sendAction('BATTLE_END', {}); Game.nextTurn(); } }
     static useCard(cardId: string) { const Network = (window as any).Network; const Game = (window as any).Game; if (this.isPvP && this.enemyPlayer) { const enemyHasJam = this.enemyPlayer.cards.findIndex((c: any) => c.id === 'jam'); if (enemyHasJam > -1) { this.enemyPlayer.cards.splice(enemyHasJam, 1); alert(`📡 INTERFERÊNCIA! ${this.enemyPlayer.name} anulou sua carta!`); Game.sendGlobalLog(`📡 ${this.enemyPlayer.name} usou Interferência automática contra ${this.player?.name}!`); const myCardIdx = this.player!.cards.findIndex((c: any) => c.id === cardId); if(myCardIdx > -1) this.player!.cards.splice(myCardIdx, 1); document.getElementById('battle-cards-modal')!.style.display = 'none'; if(Network.isOnline) Network.syncPlayerState(); return; } } Cards.activate(cardId); }
     static openBag() { if (!this.isPlayerTurn || this.processingAction) return; const list = document.getElementById('battle-bag-list')!; list.innerHTML = ''; Object.keys(this.player!.items).forEach(key => { if(this.player!.items[key] > 0) { const item = SHOP_ITEMS.find(i => i.id === key); if(item) { const btn = document.createElement('button'); btn.className = 'btn'; btn.innerHTML = `<img src="/assets/img/Itens/${item.icon}" class="item-icon-mini"> ${item.name} x${this.player!.items[key]}`; btn.onclick = () => this.useItem(key, item); list.appendChild(btn); } } }); document.getElementById('battle-bag')!.style.display = 'block'; }
@@ -114,7 +79,6 @@ export class Battle {
     static run() { if(this.isPvP || this.isNPC || this.isGym) { alert("Não pode fugir!"); } else { this.activeMon!.gainXp(2, this.player!); this.end(false); } }
 
     static useItem(key: string, data: ItemData) {
-        // CORREÇÃO: Bloqueia Revive durante a batalha
         if (data.type === 'revive') {
             alert("Você não pode reviver Pokémon durante a batalha!");
             return;
@@ -157,7 +121,7 @@ export class Battle {
     static attemptCapture(item: ItemData) {
         if (!this.opponent || !this.activeMon) return;
         
-        // CORREÇÃO: Variáveis locais para evitar perda de contexto no setTimeout
+        // CORREÇÃO: Variáveis locais para evitar perda de contexto
         const opponent = this.opponent;
         const activeMon = this.activeMon;
 
@@ -202,11 +166,18 @@ export class Battle {
 
     static captureSuccess() {
         const Game = (window as any).Game;
-        this.logBattle(`✨ Capturou ${this.opponent!.name}!`);
+        const Network = (window as any).Network;
+
+        // CORREÇÃO: Usa Log Global para notificar todos
+        Game.sendGlobalLog(`✨ ${this.player?.name} capturou um ${this.opponent!.name}!`);
         this.activeMon!.gainXp(5, this.player!); 
 
         if (this.player!.team.length < 6) {
             this.player!.team.push(this.opponent!);
+            
+            // CORREÇÃO CRÍTICA: Sync imediato após captura para aparecer no HUD dos outros
+            if(Network.isOnline) Network.syncPlayerState();
+            
             setTimeout(() => this.end(false), 1500);
         } else {
             this.pendingCapture = this.opponent;
