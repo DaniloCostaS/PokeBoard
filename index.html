@@ -24,6 +24,10 @@
         <div id="menu-phase-1">
             <button class="btn" onclick="window.Setup.showOfflineSetup()">🏠 JOGAR OFFLINE</button>
             <button class="btn" style="background:#8e44ad;" onclick="window.Setup.showOnlineMenu()">🌐 JOGAR ONLINE</button>
+            <div id="reconnect-area" style="display:none; margin-top:10px; padding:10px; background:#e8f8f5; border:1px solid #2ecc71; border-radius:5px;">
+                <p style="margin:0; color:#27ae60;">Sessão anterior encontrada!</p>
+                <button class="btn" style="background:#27ae60; margin-top:5px;" onclick="window.Network.reconnect()">🔄 RECONECTAR</button>
+            </div>
             <div style="margin-top:15px; border-top:1px solid #eee; padding-top:10px;">
                 <p style="font-size:0.8rem; color:#777;">Gerenciamento de Save</p>
                 <button class="btn btn-secondary" onclick="window.Game.exportSave()">💾 Baixar Save (.txt)</button>
@@ -117,6 +121,7 @@
                     <input type="number" id="debug-input" value="1" min="1" max="50" style="width:50px; text-align:center; border:none; padding:5px; border-radius:4px;">
                     <button class="btn" style="width:auto; margin:0; padding:5px 10px;" onclick="window.Game.debugMove()">GO</button>
                 </div>
+                <button class="btn" style="margin-top:5px; background: #e67e22;" onclick="window.Game.exportSave()">💾 DEBUG SAVE</button>
                 <div style="margin-top:5px;"><small id="online-indicator" style="color:cyan;">OFFLINE</small></div>
             </div>
         </div>
@@ -161,29 +166,67 @@
     <div id="battle-modal" class="modal-overlay">
         <div class="modal-box battle-box">
             <h2 id="battle-title">⚔️ Batalha!</h2>
-            <div class="battle-scene">
-                <div class="battler self-end">
-                    <div class="battle-info-box"><span id="ply-name">Você</span> <span id="ply-lvl"></span></div>
-                    <div class="battler-images"><img id="ply-trainer-img" class="trainer-battle-img" src=""><img id="ply-img" class="pokemon-battle-img" src=""></div>
-                    <div class="hp-container"><div id="ply-hp" class="hp-fill"></div></div>
-                    <small id="ply-hp-text" style="text-shadow: 1px 1px 0 #000;">100/100</small>
-                    <div id="ply-team-indicator" class="battle-team-indicator"></div>
+            <div class="battle-wrapper">
+                <div class="battle-main-column">
+                    <div class="battle-scene">
+                        <div class="battler self-end">
+                            <div class="battler-images">
+                                <img id="ply-trainer-img" class="trainer-battle-img" src="">
+                                <img id="ply-img" class="pokemon-battle-img" src="">
+                            </div>
+                            
+                            <div class="hp-container">
+                                <div id="ply-hp" class="hp-fill"></div>
+                                <span id="ply-hp-text" class="hp-overlay-text">100/100</span>
+                            </div>
+
+                            <div class="battle-info-box">
+                                <span id="ply-name" style="font-size: 1.1em; color: #fff;"></span> 
+                                <span id="ply-lvl" style="color:#f1c40f; margin-left: 5px;"></span>
+                                <div id="ply-shiny-tag" class="shiny-tag" style="display:none;">✨ SHINY ✨</div>
+                                <div class="battle-stats" id="ply-stats"></div>
+                            </div>
+                            <div id="ply-team-indicator" class="battle-team-indicator"></div>
+                        </div>
+
+                        <div class="battler self-start">
+                             <div class="battler-images">
+                                <img id="opp-trainer-img" class="trainer-battle-img" src="">
+                                <img id="opp-img" class="pokemon-battle-img" src="">
+                            </div>
+                            
+                            <div class="hp-container">
+                                <div id="opp-hp" class="hp-fill"></div>
+                                <span id="opp-hp-text" class="hp-overlay-text">100/100</span>
+                            </div>
+
+                            <div class="battle-info-box">
+                                <span id="opp-name" style="font-size: 1.1em; color: #fff;"></span> 
+                                <span id="opp-lvl" style="color:#f1c40f; margin-left: 5px;"></span>
+                                <div id="opp-shiny-tag" class="shiny-tag" style="display:none;">✨ SHINY ✨</div>
+                                <div class="battle-stats" id="opp-stats"></div>
+                            </div>
+                            <div id="opp-team-indicator" class="battle-team-indicator"></div>
+                        </div>
+                    </div>
+                    
+                    <div id="battle-msg">...</div>
+                    
+                    <div class="battle-actions">
+                        <button class="btn btn-attack" onclick="window.Battle.attack()">⚔️ Atacar</button>
+                        <button class="btn btn-items" onclick="window.Battle.openBag()">🎒 Itens</button>
+                        <button class="btn btn-cards" onclick="window.Battle.openCardSelection()">🃏 Cartas</button>
+                        <button id="btn-run" class="btn btn-run" onclick="window.Battle.run()">🏃 Fugir</button>
+                    </div>
                 </div>
-                <div class="battler self-start">
-                    <div class="battle-info-box"><span id="opp-name">Rival</span> <span id="opp-lvl"></span></div>
-                    <div class="battler-images"><img id="opp-trainer-img" class="trainer-battle-img" src=""><img id="opp-img" class="pokemon-battle-img" src=""></div>
-                    <div class="hp-container"><div id="opp-hp" class="hp-fill"></div></div>
-                    <small id="opp-hp-text" style="text-shadow: 1px 1px 0 #000;">100/100</small>
-                    <div id="opp-team-indicator" class="battle-team-indicator"></div>
+
+                <div class="battle-log-column">
+                    <div class="panel-header" style="font-size:0.9rem; padding:10px; background: rgba(0,0,0,0.4); border-radius: 5px 5px 0 0;">📜 Histórico</div>
+                    <div id="battle-log-history" class="scroll-list log-history-content">
+                        </div>
                 </div>
             </div>
-            <div id="battle-msg">...</div>
-            <div class="battle-actions">
-                <button class="btn btn-attack" onclick="window.Battle.attack()">⚔️ Atacar</button>
-                <button class="btn btn-items" onclick="window.Battle.openBag()">🎒 Itens</button>
-                <button class="btn btn-cards" onclick="window.Battle.openCardSelection()">🃏 Cartas</button>
-                <button id="btn-run" class="btn btn-run" onclick="window.Battle.run()">🏃 Fugir</button>
-            </div>
+
             <div id="battle-bag" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(44, 62, 80, 0.95); z-index:20; padding:20px; box-sizing:border-box; border-radius:10px;">
                 <h3>Usar Item (Batalha)</h3><div id="battle-bag-list" class="scroll-list"></div><button class="btn btn-secondary mt-15" onclick="document.getElementById('battle-bag').style.display='none'">Cancelar</button>
             </div>

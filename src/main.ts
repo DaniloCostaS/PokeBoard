@@ -1,5 +1,4 @@
 import './style.css'
-// IMPORTAÇÕES DAS CONSTANTES
 import { TILE, NPC_DATA, CARDS_DB, SHOP_ITEMS } from './constants'; 
 import { POKEDEX } from './constants/pokedex';
 import { PLAYER_COLORS } from './constants/playerColors';
@@ -7,14 +6,10 @@ import { TRAINER_IMAGES } from './constants/trainerImages';
 import { TYPE_CHART } from './constants/typeChart';
 import { GYM_DATA } from './constants/gyms';
 import { firebaseConfig } from './constants/connectConfig';
-
 import type { ItemData, CardData, Coord } from './constants';
-
-// FIREBASE IMPORTS
 import { initializeApp } from 'firebase/app';
 import { getDatabase, ref, set, get, onValue, update, Database } from 'firebase/database';
 
-// Inicializa Firebase
 let app, db: Database;
 try {
     app = initializeApp(firebaseConfig);
@@ -38,7 +33,7 @@ declare global {
 }
 
 // ==========================================
-// 1. CLASSES DE DADOS E MAPA (BASE)
+// 1. CLASSES DE DADOS E MAPA
 // ==========================================
 
 class Pokemon {
@@ -134,13 +129,11 @@ class MapSystem {
             const c = allCoords.pop()!;
             this.grid[c.y][c.x] = TILE.CITY;
         }
-
         for(let i=0; i<targetCount; i++) {
             if(allCoords.length === 0) break;
             const c = allCoords.pop()!;
             this.grid[c.y][c.x] = TILE.EVENT;
         }
-
         const npcTypes = [TILE.ROCKET, TILE.BIKER, TILE.YOUNG, TILE.OLD];
         for(let i=0; i<targetCount; i++) {
             if(allCoords.length === 0) break;
@@ -156,440 +149,141 @@ class MapSystem {
 // 2. SETUP
 // ==========================================
 class Setup {
-    static showOfflineSetup() { 
-        document.getElementById('menu-phase-1')!.style.display='none'; 
-        document.getElementById('menu-phase-setup')!.style.display='block'; 
-    }
-
-    static showOnlineMenu() { 
-        document.getElementById('menu-phase-1')!.style.display='none'; 
-        document.getElementById('menu-phase-online')!.style.display='block';
-        
-        const sel = document.getElementById('online-avatar-select') as HTMLSelectElement;
-        if(sel && sel.options.length === 0) {
-            sel.innerHTML = TRAINER_IMAGES.map(img => `<option value="${img.file}">${img.label}</option>`).join('');
-        }
-        // CORREÇÃO 1: Garante que o preview atualiza assim que o menu abre
-        this.updateOnlinePreview();
-    }
-
-    static updateOnlinePreview() {
-        const sel = document.getElementById('online-avatar-select') as HTMLSelectElement;
-        const img = document.getElementById('online-avatar-preview') as HTMLImageElement;
-        if (sel && img && sel.value) {
-            img.src = `/assets/img/Treinadores/${sel.value}`;
-        }
-    }
-
-    static showLobbyUIOnly() {
-        const ctrl = document.getElementById('online-lobby-controls');
-        if(ctrl) ctrl.style.display = 'none';
-        
-        if (!Network.isHost) {
-            const hc = document.getElementById('host-controls');
-            if(hc) hc.style.display = 'none';
-        }
-    }
-
-    static showSetupScreen() { 
-        document.getElementById('menu-phase-online')!.style.display='none'; 
-        document.getElementById('menu-phase-setup')!.style.display='block'; 
-    }
-
-    static updateSlots() {
-        const numInput = document.getElementById('num-players') as HTMLSelectElement;
-        if (!numInput) return; 
-        
-        const n = parseInt(numInput.value);
-        const c = document.getElementById('player-slots-container')!; 
-        c.innerHTML = '';
-        const defs = ["Ash", "Gary", "Misty", "Brock", "May", "Dawn", "Serena", "Goh"];
-        
-        for(let i=0; i<n; i++) {
-            const defImg = TRAINER_IMAGES[i%TRAINER_IMAGES.length].file;
-            const opts = TRAINER_IMAGES.map(img => `<option value="${img.file}" ${img.file===defImg?'selected':''}>${img.label}</option>`).join('');
-            c.innerHTML += `<div class="setup-row"><strong>P${i+1}</strong><input type="text" id="p${i}-name" value="${defs[i]||'Player'}" style="width:100px;"><div class="avatar-selection"><img id="p${i}-preview" src="/assets/img/Treinadores/${defImg}" class="avatar-preview"><select id="p${i}-av" onchange="window.Setup.updatePreview(${i})">${opts}</select></div></div>`;
-        }
-    }
-
-    static updatePreview(i: number) { 
-        (document.getElementById(`p${i}-preview`) as HTMLImageElement).src = `/assets/img/Treinadores/${(document.getElementById(`p${i}-av`) as HTMLSelectElement).value}`; 
-    }
+    static showOfflineSetup() { document.getElementById('menu-phase-1')!.style.display='none'; document.getElementById('menu-phase-setup')!.style.display='block'; }
+    static showOnlineMenu() { document.getElementById('menu-phase-1')!.style.display='none'; document.getElementById('menu-phase-online')!.style.display='block'; const sel = document.getElementById('online-avatar-select') as HTMLSelectElement; if(sel && sel.options.length === 0) { sel.innerHTML = TRAINER_IMAGES.map(img => `<option value="${img.file}">${img.label}</option>`).join(''); } this.updateOnlinePreview(); }
+    static updateOnlinePreview() { const sel = document.getElementById('online-avatar-select') as HTMLSelectElement; const img = document.getElementById('online-avatar-preview') as HTMLImageElement; if (sel && img && sel.value) { img.src = `/assets/img/Treinadores/${sel.value}`; } }
+    static showLobbyUIOnly() { const ctrl = document.getElementById('online-lobby-controls'); if(ctrl) ctrl.style.display = 'none'; if (!Network.isHost) { const hc = document.getElementById('host-controls'); if(hc) hc.style.display = 'none'; } }
+    static showSetupScreen() { document.getElementById('menu-phase-online')!.style.display='none'; document.getElementById('menu-phase-setup')!.style.display='block'; }
+    static updateSlots() { const numInput = document.getElementById('num-players') as HTMLSelectElement; if (!numInput) return; const n = parseInt(numInput.value); const c = document.getElementById('player-slots-container')!; c.innerHTML = ''; const defs = ["Ash", "Gary", "Misty", "Brock", "May", "Dawn", "Serena", "Goh"]; for(let i=0; i<n; i++) { const defImg = TRAINER_IMAGES[i%TRAINER_IMAGES.length].file; const opts = TRAINER_IMAGES.map(img => `<option value="${img.file}" ${img.file===defImg?'selected':''}>${img.label}</option>`).join(''); c.innerHTML += `<div class="setup-row"><strong>P${i+1}</strong><input type="text" id="p${i}-name" value="${defs[i]||'Player'}" style="width:100px;"><div class="avatar-selection"><img id="p${i}-preview" src="/assets/img/Treinadores/${defImg}" class="avatar-preview"><select id="p${i}-av" onchange="window.Setup.updatePreview(${i})">${opts}</select></div></div>`; } }
+    static updatePreview(i: number) { (document.getElementById(`p${i}-preview`) as HTMLImageElement).src = `/assets/img/Treinadores/${(document.getElementById(`p${i}-av`) as HTMLSelectElement).value}`; }
     
     // START OFFLINE
-    static start() {
-        const n = parseInt((document.getElementById('num-players') as HTMLSelectElement).value);
-        const mapSize = parseInt((document.getElementById('map-size') as HTMLSelectElement).value); 
-        const ps = [];
-        for(let i=0; i<n; i++) {
-            ps.push(new Player(i, (document.getElementById(`p${i}-name`) as HTMLInputElement).value, (document.getElementById(`p${i}-av`) as HTMLSelectElement).value, false));
-        }
-        document.getElementById('setup-screen')!.style.display='none';
-        document.getElementById('game-container')!.style.display='flex';
-        Game.init(ps, mapSize);
-    }
-
-    // START ONLINE (Apenas Host)
-    static async startOnlineGame() {
-        if (!Network.isHost) return;
-        
-        const mapSize = parseInt((document.getElementById('online-map-size') as HTMLSelectElement).value);
-        MapSystem.generate(mapSize);
-
-        const updateData = {
-            status: "PLAYING",
-            map: {
-                size: mapSize,
-                grid: MapSystem.grid,
-                gymLocations: MapSystem.gymLocations
-            }
-        };
-
-        if (db) {
-            await update(ref(db, `rooms/${Network.currentRoomId}`), updateData);
-        }
-    }
+    static start() { const n = parseInt((document.getElementById('num-players') as HTMLSelectElement).value); const mapSize = parseInt((document.getElementById('map-size') as HTMLSelectElement).value); const ps = []; for(let i=0; i<n; i++) { ps.push(new Player(i, (document.getElementById(`p${i}-name`) as HTMLInputElement).value, (document.getElementById(`p${i}-av`) as HTMLSelectElement).value, false)); } document.getElementById('setup-screen')!.style.display='none'; document.getElementById('game-container')!.style.display='flex'; Game.init(ps, mapSize); }
+    // START ONLINE (Host)
+    static async startOnlineGame() { if (!Network.isHost) return; const mapSize = parseInt((document.getElementById('online-map-size') as HTMLSelectElement).value); MapSystem.generate(mapSize); const updateData = { status: "PLAYING", map: { size: mapSize, grid: MapSystem.grid, gymLocations: MapSystem.gymLocations } }; if (db) { await update(ref(db, `rooms/${Network.currentRoomId}`), updateData); } }
 }
 
 // ==========================================
 // 3. NETWORK
 // ==========================================
 class Network {
-    static isOnline: boolean = false;
-    static isHost: boolean = false;
-    static myPlayerId: number = -1;
-    static currentRoomId: string = "";
-    static localName: string = "";
-    static localAvatar: string = "";
-    static isListenerActive: boolean = false;
-    
-    static lobbyPlayers: any[] = [];
+    static isOnline: boolean = false; static isHost: boolean = false; static myPlayerId: number = -1; static currentRoomId: string = ""; static localName: string = ""; static localAvatar: string = ""; static isListenerActive: boolean = false; static lobbyPlayers: any[] = [];
 
-    static checkInput(): boolean {
-        const nameInput = document.getElementById('online-player-name') as HTMLInputElement;
-        const avSelect = document.getElementById('online-avatar-select') as HTMLSelectElement;
-        
-        if(!nameInput.value) { alert("Digite seu nome primeiro!"); return false; }
-        
-        this.localName = nameInput.value;
-        this.localAvatar = avSelect.value;
-        return true;
-    }
+    static checkInput(): boolean { const nameInput = document.getElementById('online-player-name') as HTMLInputElement; const avSelect = document.getElementById('online-avatar-select') as HTMLSelectElement; if(!nameInput.value) { alert("Digite seu nome!"); return false; } this.localName = nameInput.value; this.localAvatar = avSelect.value; return true; }
 
-    static async createRoom() {
-        if(!this.checkInput()) return;
-        
-        const roomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
-        this.currentRoomId = roomCode;
-        this.myPlayerId = 0; 
-        this.isHost = true;
-
-        const myPlayerObj = new Player(0, this.localName, this.localAvatar, false);
-
-        const initialData = {
-            status: "LOBBY",
-            turn: 0,
-            mapSize: 20,
-            players: {
-                0: {
-                    name: myPlayerObj.name,
-                    avatar: this.localAvatar, 
-                    id: 0,
-                    x: 0, y: 0,
-                    gold: 500,
-                    items: myPlayerObj.items,
-                    cards: [],
-                    team: myPlayerObj.team,
-                    skipTurn: false,
-                    badges: myPlayerObj.badges
+    static reconnect() {
+        const stored = localStorage.getItem('pkbd_session');
+        if(stored) {
+            const sess = JSON.parse(stored);
+            get(ref(db, `rooms/${sess.roomId}/players/${sess.id}`)).then((snapshot) => {
+                const playerData = snapshot.val();
+                if(playerData) {
+                    this.currentRoomId = sess.roomId;
+                    this.myPlayerId = sess.id;
+                    this.isHost = (sess.id === 0);
+                    this.isOnline = true;
+                    this.localName = playerData.name;
+                    this.localAvatar = playerData.avatar;
+                    
+                    document.getElementById('setup-screen')!.style.display='none';
+                    document.getElementById('game-container')!.style.display='flex';
+                    
+                    this.setupLobbyListener(); 
+                    this.initializeGameFromFirebase(); 
+                } else {
+                    alert("Sessão inválida ou jogo encerrado.");
+                    localStorage.removeItem('pkbd_session');
+                    location.reload();
                 }
-            },
-            lastAction: { type: "INIT", timestamp: Date.now() }
-        };
-
-        await set(ref(db, 'rooms/' + roomCode), initialData);
-        
-        this.isOnline = true;
-        this.setupLobbyListener();
-        
-        document.getElementById('lobby-status')!.style.display = 'block';
-        document.getElementById('lobby-status')!.innerHTML = `Sala Criada: <b>${roomCode}</b><br>Você é o HOST (Player 1)`;
-        document.getElementById('host-controls')!.style.display = 'block';
+            }).catch(() => { alert("Erro ao reconectar."); });
+        }
     }
 
-    static async joinRoom() {
-        if(!this.checkInput()) return;
-        const code = (document.getElementById('room-code-input') as HTMLInputElement).value.toUpperCase();
-        if(!code) return alert("Digite o código!");
+    static async createRoom() { if(!this.checkInput()) return; const roomCode = Math.random().toString(36).substring(2, 6).toUpperCase(); this.currentRoomId = roomCode; this.myPlayerId = 0; this.isHost = true; const myPlayerObj = new Player(0, this.localName, this.localAvatar, false); const initialData = { status: "LOBBY", turn: 0, mapSize: 20, players: { 0: { name: myPlayerObj.name, avatar: this.localAvatar, id: 0, x: 0, y: 0, gold: 500, items: myPlayerObj.items, cards: [], team: myPlayerObj.team, skipTurn: false, badges: myPlayerObj.badges } }, lastAction: { type: "INIT", timestamp: Date.now() } }; await set(ref(db, 'rooms/' + roomCode), initialData); localStorage.setItem('pkbd_session', JSON.stringify({roomId: roomCode, id: 0})); this.isOnline = true; this.setupLobbyListener(); document.getElementById('lobby-status')!.style.display = 'block'; document.getElementById('lobby-status')!.innerHTML = `Sala Criada: <b>${roomCode}</b><br>Você é o HOST`; document.getElementById('host-controls')!.style.display = 'block'; }
+    static async joinRoom() { 
+        if(!this.checkInput()) return; 
+        const code = (document.getElementById('room-code-input') as HTMLInputElement).value.toUpperCase(); 
+        if(!code) return alert("Digite o código!"); 
+        const roomRef = ref(db, 'rooms/' + code); 
+        const snapshot = await get(roomRef); 
+        if(!snapshot.exists()) return alert("Sala não encontrada!"); 
+        const data = snapshot.val(); 
 
-        const roomRef = ref(db, 'rooms/' + code);
-        const snapshot = await get(roomRef);
-
-        if(!snapshot.exists()) return alert("Sala não encontrada!");
-        
-        const data = snapshot.val();
-        if(data.status !== "LOBBY") return alert("Jogo já começou!");
-
-        const players = data.players || {};
-        const currentCount = Object.keys(players).length;
-        if(currentCount >= 8) return alert("Sala cheia!");
-
-        this.myPlayerId = currentCount;
-        this.currentRoomId = code;
-        this.isHost = false;
-
-        const myPlayerObj = new Player(this.myPlayerId, this.localName, this.localAvatar, false);
-
-        const newPlayer = {
-            name: myPlayerObj.name,
-            avatar: this.localAvatar, 
-            id: this.myPlayerId,
-            x: 0, y: 0,
-            gold: 500,
-            items: myPlayerObj.items,
-            cards: [],
-            team: myPlayerObj.team,
-            skipTurn: false,
-            badges: myPlayerObj.badges
-        };
-
-        await set(ref(db, `rooms/${code}/players/${this.myPlayerId}`), newPlayer);
-
-        this.isOnline = true;
-        this.setupLobbyListener();
-
-        document.getElementById('lobby-status')!.style.display = 'block';
-        document.getElementById('lobby-status')!.innerHTML = `Conectado à sala: <b>${code}</b><br>Aguardando Host...`;
-        Setup.showLobbyUIOnly();
-    }
-
-    static setupLobbyListener() {
-        const playersRef = ref(db, `rooms/${this.currentRoomId}/players`);
-        const statusRef = ref(db, `rooms/${this.currentRoomId}/status`);
-
-        onValue(playersRef, (snapshot) => {
-            const players = snapshot.val();
-            if(!players) return;
-            this.lobbyPlayers = Object.values(players);
-            
-            const list = document.getElementById('online-lobby-list')!;
-            list.style.display = 'block';
-            list.innerHTML = this.lobbyPlayers.map((p: any) => `
-                <div class="lobby-player-item">
-                    <img src="/assets/img/Treinadores/${p.avatar}">
-                    <span><b>P${p.id + 1}</b>: ${p.name} ${p.id === 0 ? '(HOST)' : ''}</span>
-                </div>
-            `).join('');
-        });
-
-        onValue(statusRef, (snapshot) => {
-            const status = snapshot.val();
-            if(status === 'PLAYING') {
+        if(data.status === "PLAYING") {
+            const existingPlayers = Object.values(data.players || {});
+            const found = existingPlayers.find((p: any) => p.name === this.localName);
+            if (found) {
+                this.myPlayerId = (found as any).id;
+                this.currentRoomId = code;
+                this.isHost = (this.myPlayerId === 0);
+                localStorage.setItem('pkbd_session', JSON.stringify({roomId: code, id: this.myPlayerId}));
+                this.isOnline = true;
+                this.setupLobbyListener();
                 this.initializeGameFromFirebase();
-            }
-        });
-    }
-
-    static async initializeGameFromFirebase() {
-        const snapshot = await get(ref(db, `rooms/${this.currentRoomId}`));
-        const data = snapshot.val();
-
-        if (data.map) {
-            MapSystem.size = data.map.size;
-            MapSystem.grid = data.map.grid;
-            MapSystem.gymLocations = data.map.gymLocations || {};
-        } else {
-            console.error("ERRO: Mapa não encontrado no Firebase!");
-            return;
+                return;
+            } else { return alert("Jogo já começou e seu nome não está na lista!"); }
         }
 
-        const playerArray = Object.values(data.players).map((pd: any) => {
-            // avatar já é só o nome, Player construtor monta o path
-            const pl = new Player(pd.id, pd.name, pd.avatar, true);
-            
-            if(pd.team && pd.team.length > 0) {
-                pl.team = pd.team.map((td: any) => {
-                    const po = new Pokemon(td.id, td.isShiny);
-                    Object.assign(po, td);
-                    return po;
-                });
-            }
-            // Sincroniza items iniciais
-            if (pd.items) pl.items = pd.items;
-
-            return pl;
-        });
-
-        playerArray.sort((a: Player, b: Player) => a.id - b.id);
-
-        document.getElementById('setup-screen')!.style.display='none';
-        document.getElementById('game-container')!.style.display='flex';
-        
-        Game.init(playerArray, MapSystem.size);
-        this.setupGameLoopListener();
+        const players = data.players || {}; 
+        const currentCount = Object.keys(players).length; 
+        if(currentCount >= 8) return alert("Sala cheia!"); 
+        this.myPlayerId = currentCount; this.currentRoomId = code; this.isHost = false; 
+        const myPlayerObj = new Player(this.myPlayerId, this.localName, this.localAvatar, false); 
+        const newPlayer = { name: myPlayerObj.name, avatar: this.localAvatar, id: this.myPlayerId, x: 0, y: 0, gold: 500, items: myPlayerObj.items, cards: [], team: myPlayerObj.team, skipTurn: false, badges: myPlayerObj.badges }; 
+        await set(ref(db, `rooms/${code}/players/${this.myPlayerId}`), newPlayer); 
+        localStorage.setItem('pkbd_session', JSON.stringify({roomId: code, id: this.myPlayerId})); 
+        this.isOnline = true; this.setupLobbyListener(); 
+        document.getElementById('lobby-status')!.style.display = 'block'; 
+        document.getElementById('lobby-status')!.innerHTML = `Conectado à sala: <b>${code}</b>`; 
+        Setup.showLobbyUIOnly(); 
     }
 
-    static setupGameLoopListener() {
-        if (this.isListenerActive) return;
-        this.isListenerActive = true;
-
-        onValue(ref(db, `rooms/${this.currentRoomId}/lastAction`), (snapshot) => {
-            const action = snapshot.val();
-            if(!action || action.type === 'INIT') return;
-            this.handleRemoteAction(action);
-        });
-
-        onValue(ref(db, `rooms/${this.currentRoomId}/turn`), (snapshot) => {
-            const turn = snapshot.val();
-            if(turn !== null) {
-                Game.turn = turn;
-                Game.updateHUD();
-                Game.checkTurnControl();
-            }
-        });
-
-        onValue(ref(db, `rooms/${this.currentRoomId}/players`), (snapshot) => {
-            const playersData = snapshot.val();
-            if(!playersData) return;
-            Object.values(playersData).forEach((pd: any) => {
-                const localPlayer = Game.players.find(p => p.id === pd.id);
-                if(localPlayer) {
-                    localPlayer.x = pd.x;
-                    localPlayer.y = pd.y;
-                    localPlayer.gold = pd.gold;
-                    
-                    // CORREÇÃO 2: Sincronia de Itens
-                    if(pd.items) localPlayer.items = pd.items;
-
-                    if(pd.team) {
-                        pd.team.forEach((tData: any, idx: number) => {
-                            if(localPlayer.team[idx]) Object.assign(localPlayer.team[idx], tData);
-                        });
-                        if(pd.team.length > localPlayer.team.length) {
-                             for(let i = localPlayer.team.length; i < pd.team.length; i++) {
-                                 const tData = pd.team[i];
-                                 const po = new Pokemon(tData.id, tData.isShiny);
-                                 Object.assign(po, tData);
-                                 localPlayer.team.push(po);
-                             }
-                        }
-                    }
-                }
-            });
-            Game.updateHUD();
-        });
+    static setupLobbyListener() { const playersRef = ref(db, `rooms/${this.currentRoomId}/players`); const statusRef = ref(db, `rooms/${this.currentRoomId}/status`); onValue(playersRef, (snapshot) => { const players = snapshot.val(); if(!players) return; this.lobbyPlayers = Object.values(players); const list = document.getElementById('online-lobby-list')!; list.style.display = 'block'; list.innerHTML = this.lobbyPlayers.map((p: any) => `<div class="lobby-player-item"><img src="/assets/img/Treinadores/${p.avatar}"><span><b>P${p.id + 1}</b>: ${p.name} ${p.id === 0 ? '(HOST)' : ''}</span></div>`).join(''); }); onValue(statusRef, (snapshot) => { const status = snapshot.val(); if(status === 'PLAYING') { this.initializeGameFromFirebase(); } }); }
+    static async initializeGameFromFirebase() { 
+        const snapshot = await get(ref(db, `rooms/${this.currentRoomId}`)); 
+        const data = snapshot.val(); 
+        if (data.map) { MapSystem.size = data.map.size; MapSystem.grid = data.map.grid; MapSystem.gymLocations = data.map.gymLocations || {}; } else { return; } 
+        const playerArray = Object.values(data.players).map((pd: any) => { 
+            const pl = new Player(pd.id, pd.name, pd.avatar, true); 
+            // CORREÇÃO: Copia explicitamente a posição e dados salvos
+            pl.x = pd.x; pl.y = pd.y; pl.gold = pd.gold; 
+            pl.badges = pd.badges || [false,false,false,false,false,false,false,false];
+            if(pd.team && pd.team.length > 0) { pl.team = pd.team.map((td: any) => { const po = new Pokemon(td.id, td.isShiny); Object.assign(po, td); return po; }); } 
+            if (pd.items) pl.items = pd.items; 
+            return pl; 
+        }); 
+        playerArray.sort((a: Player, b: Player) => a.id - b.id); 
+        document.getElementById('setup-screen')!.style.display='none'; 
+        document.getElementById('game-container')!.style.display='flex'; 
+        Game.init(playerArray, MapSystem.size); 
+        this.setupGameLoopListener(); 
     }
-
-    static handleRemoteAction(action: any) {
-        switch(action.type) {
-            case 'ROLL':
-                Game.animateDice(action.payload.result, action.playerId);
-                break;
-            case 'MOVE_ANIMATION':
-                Game.performVisualStep(action.payload.playerId, action.payload.x, action.payload.y);
-                break;
-            case 'BATTLE_START':
-                Battle.startFromNetwork(action.payload);
-                break;
-            case 'BATTLE_UPDATE':
-                Battle.updateFromNetwork(action.payload);
-                break;
-            case 'BATTLE_END':
-                Battle.end(true);
-                break;
-            case 'LOG':
-                Game.log(action.payload.msg);
-                break;
-            case 'PLAYER_SYNC':
-                const p = Game.players[action.payload.id];
-                if (p) {
-                    p.x = action.payload.x;
-                    p.y = action.payload.y;
-                    p.gold = action.payload.gold;
-                    
-                    // CORREÇÃO 3: Atualiza itens no SYNC também
-                    if (action.payload.items) p.items = action.payload.items;
-
-                    if(action.payload.team) {
-                        action.payload.team.forEach((tData:any, idx:number) => {
-                            if(p.team[idx]) Object.assign(p.team[idx], tData);
-                        });
-                        if(action.payload.team.length > p.team.length) {
-                             for(let i = p.team.length; i < action.payload.team.length; i++) {
-                                 const tData = action.payload.team[i];
-                                 const po = new Pokemon(tData.id, tData.isShiny);
-                                 Object.assign(po, tData);
-                                 p.team.push(po);
-                             }
-                        }
-                    }
-                    Game.moveVisuals();
-                    Game.updateHUD();
-                }
-                break;
-        }
-    }
-
-    static sendAction(type: string, payload: any) {
-        if(!this.isOnline) return;
-        const actionData = {
-            type: type,
-            payload: payload,
-            playerId: this.myPlayerId,
-            timestamp: Date.now()
-        };
-        update(ref(db, `rooms/${this.currentRoomId}`), { lastAction: actionData });
-    }
-
-    // CORREÇÃO 4: Envio de Itens no Sync
-    static syncPlayerState() {
-        if(!this.isOnline) return;
-        const p = Game.players[this.myPlayerId];
-        update(ref(db, `rooms/${this.currentRoomId}/players/${this.myPlayerId}`), {
-            x: p.x, y: p.y, gold: p.gold, team: p.team, items: p.items
-        });
-    }
-
-    static syncTurn(newTurn: number) {
-        if(!this.isOnline) return;
-        update(ref(db, `rooms/${this.currentRoomId}`), { turn: newTurn });
-    }
+    static setupGameLoopListener() { if (this.isListenerActive) return; this.isListenerActive = true; onValue(ref(db, `rooms/${this.currentRoomId}/lastAction`), (snapshot) => { const action = snapshot.val(); if(!action || action.type === 'INIT') return; this.handleRemoteAction(action); }); onValue(ref(db, `rooms/${this.currentRoomId}/turn`), (snapshot) => { const turn = snapshot.val(); if(turn !== null) { Game.turn = turn; Game.updateHUD(); Game.checkTurnControl(); } }); onValue(ref(db, `rooms/${this.currentRoomId}/players`), (snapshot) => { const playersData = snapshot.val(); if(!playersData) return; Object.values(playersData).forEach((pd: any) => { const localPlayer = Game.players.find(p => p.id === pd.id); if(localPlayer) { localPlayer.x = pd.x; localPlayer.y = pd.y; localPlayer.gold = pd.gold; if(pd.items) localPlayer.items = pd.items; if(pd.team) { pd.team.forEach((tData: any, idx: number) => { if(localPlayer.team[idx]) Object.assign(localPlayer.team[idx], tData); }); if(pd.team.length > localPlayer.team.length) { for(let i = localPlayer.team.length; i < pd.team.length; i++) { const tData = pd.team[i]; const po = new Pokemon(tData.id, tData.isShiny); Object.assign(po, tData); localPlayer.team.push(po); } } } } }); Game.updateHUD(); }); }
+    static handleRemoteAction(action: any) { switch(action.type) { case 'ROLL': Game.animateDice(action.payload.result, action.playerId); break; case 'MOVE_ANIMATION': Game.performVisualStep(action.payload.playerId, action.payload.x, action.payload.y); break; case 'BATTLE_START': Battle.startFromNetwork(action.payload); break; case 'BATTLE_UPDATE': Battle.updateFromNetwork(action.payload); break; case 'BATTLE_END': Battle.end(true); break; case 'LOG': Game.log(action.payload.msg); break; case 'PLAYER_SYNC': Game.moveVisuals(); Game.updateHUD(); break; } }
+    static sendAction(type: string, payload: any) { if(!this.isOnline) return; const actionData = { type: type, payload: payload, playerId: this.myPlayerId, timestamp: Date.now() }; update(ref(db, `rooms/${this.currentRoomId}`), { lastAction: actionData }); }
+    static syncPlayerState() { if(!this.isOnline) return; const p = Game.players[this.myPlayerId]; update(ref(db, `rooms/${this.currentRoomId}/players/${this.myPlayerId}`), { x: p.x, y: p.y, gold: p.gold, team: p.team, items: p.items }); }
+    static syncTurn(newTurn: number) { if(!this.isOnline) return; update(ref(db, `rooms/${this.currentRoomId}`), { turn: newTurn }); }
 }
 
 // ==========================================
 // 4. BATALHA
 // ==========================================
 class Battle {
-    static active: boolean = false;
-    static player: Player | null = null;
-    static activeMon: Pokemon | null = null; 
-    static opponent: Pokemon | null = null;
-    static enemyPlayer: Player | null = null; 
-    
-    static isPvP: boolean = false;
-    static isNPC: boolean = false; 
-    static isGym: boolean = false;
-    static gymId: number = 0;
-    static activeCard: string | null = null;
-    static reward: number = 0;
+    static active: boolean = false; static player: Player | null = null; static activeMon: Pokemon | null = null; 
+    static opponent: Pokemon | null = null; static enemyPlayer: Player | null = null; 
+    static isPvP: boolean = false; static isNPC: boolean = false; static isGym: boolean = false; static gymId: number = 0; static activeCard: string | null = null; static reward: number = 0;
+    static battleTitle: string = "Batalha!";
+    static plyTeamList: Pokemon[] = []; static oppTeamList: Pokemon[] = []; static pendingCapture: Pokemon | null = null; 
+    static isPlayerTurn: boolean = false; static processingAction: boolean = false; 
 
-    static plyTeamList: Pokemon[] = [];
-    static oppTeamList: Pokemon[] = [];
-    static pendingCapture: Pokemon | null = null; 
-
-    static isPlayerTurn: boolean = false;  
-    static processingAction: boolean = false; 
-
-    static setup(player: Player, enemyMon: Pokemon, isPvP: boolean = false, _label: string = "", reward: number = 0, enemyPlayer: Player | null = null, isGym: boolean = false, gymId: number = 0) {
-        this.player = player; this.isPvP = isPvP; this.isNPC = (reward > 0 && !isPvP); this.isGym = isGym; this.gymId = gymId; this.reward = reward; this.activeCard = null; this.enemyPlayer = enemyPlayer;
-        this.processingAction = false;
+    static setup(player: Player, enemyMon: Pokemon, isPvP: boolean = false, _label: string = "", reward: number = 0, enemyPlayer: Player | null = null, isGym: boolean = false, gymId: number = 0, npcImage: string = "") {
+        this.player = player; this.isPvP = isPvP; this.isNPC = (reward > 0 && !isPvP); this.isGym = isGym; this.gymId = gymId; this.reward = reward; this.activeCard = null; this.enemyPlayer = enemyPlayer; this.processingAction = false;
         
+        this.battleTitle = isPvP ? "Batalha PvP!" : `Batalha contra ${_label}!`;
+
         this.plyTeamList = player.getBattleTeam(isGym).slice(0, isGym ? 6 : 3);
-        
-        if (isPvP && enemyPlayer) {
-            this.oppTeamList = enemyPlayer.getBattleTeam(false);
-            this.opponent = this.oppTeamList[0];
-        } else if (isGym) {
+        if (isPvP && enemyPlayer) { this.oppTeamList = enemyPlayer.getBattleTeam(false); this.opponent = this.oppTeamList[0]; } 
+        else if (isGym) {
             const gymData = GYM_DATA.find(g => g.id === gymId);
             if(gymData) {
                 const allPokemons = Game.players.flatMap(p => p.team);
@@ -597,28 +291,19 @@ class Battle {
                 this.oppTeamList = gymData.teamIds.map(id => { const p = new Pokemon(id); p.forceLevel(avgLvl); return p; });
                 this.opponent = this.oppTeamList[0];
             } else { this.oppTeamList = [enemyMon]; this.opponent = enemyMon; }
-        } else {
-            this.oppTeamList = [enemyMon]; this.opponent = enemyMon;
-        }
-        
+        } else { this.oppTeamList = [enemyMon]; this.opponent = enemyMon; }
+
         if(this.plyTeamList.length === 0) { alert("Você não tem Pokémons vivos!"); Battle.lose(); return; }
+        
+        if(this.isNPC && npcImage) {
+             (this.opponent as any)._npcImage = npcImage;
+             (this.opponent as any)._npcName = _label;
+        }
+
         this.openSelectionModal("Escolha seu Pokémon para começar!");
     }
 
-    static openSelectionModal(title: string) {
-        const modal = document.getElementById('pkmn-select-modal')!;
-        const list = document.getElementById('pkmn-select-list')!;
-        document.getElementById('select-title')!.innerText = title;
-        list.innerHTML = '';
-        this.plyTeamList.forEach((mon) => {
-            const div = document.createElement('div');
-            div.className = `mon-select-item ${mon.isFainted() ? 'disabled' : ''}`;
-            div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>(${mon.currentHp}/${mon.maxHp})</small>`;
-            if(!mon.isFainted()) div.onclick = () => { modal.style.display = 'none'; this.startRound(mon); };
-            list.appendChild(div);
-        });
-        modal.style.display = 'flex';
-    }
+    static openSelectionModal(title: string) { const modal = document.getElementById('pkmn-select-modal')!; const list = document.getElementById('pkmn-select-list')!; document.getElementById('select-title')!.innerText = title; list.innerHTML = ''; this.plyTeamList.forEach((mon) => { const div = document.createElement('div'); div.className = `mon-select-item ${mon.isFainted() ? 'disabled' : ''}`; div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>(${mon.currentHp}/${mon.maxHp})</small>`; if(!mon.isFainted()) div.onclick = () => { modal.style.display = 'none'; this.startRound(mon); }; list.appendChild(div); }); modal.style.display = 'flex'; }
 
     static startRound(selectedMon: Pokemon) {
         document.getElementById('pkmn-select-modal')!.style.display = 'none'; 
@@ -626,53 +311,36 @@ class Battle {
         this.activeMon = selectedMon;
         this.determineTurnOrder();
         this.renderBattleScreen();
-        
         const enemyId = this.enemyPlayer ? this.enemyPlayer.id : -1;
         if(Network.isOnline && this.player!.id === Network.myPlayerId) {
+            const npcImg = (this.opponent as any)._npcImage || "";
+            const npcName = (this.opponent as any)._npcName || "";
             Network.sendAction('BATTLE_START', {
-                pId: this.player!.id, 
-                monIdx: this.player!.team.indexOf(this.activeMon),
-                oppData: this.opponent, 
-                isPvP: this.isPvP, 
-                reward: this.reward, 
-                enemyId, 
-                isGym: this.isGym, 
-                gymId: this.gymId
+                pId: this.player!.id, monIdx: this.player!.team.indexOf(this.activeMon),
+                oppData: this.opponent, isPvP: this.isPvP, reward: this.reward, enemyId, isGym: this.isGym, gymId: this.gymId,
+                npcImage: npcImg, npcName: npcName, battleTitle: this.battleTitle
             });
         }
     }
 
-    static determineTurnOrder() {
-        if (!this.activeMon || !this.opponent) return;
-        let logMsg = ""; let playerGoesFirst = false;
-        if (this.activeMon.speed > this.opponent.speed) { playerGoesFirst = true; logMsg = `💨 ${this.activeMon.name} é mais rápido!`; } 
-        else if (this.activeMon.speed < this.opponent.speed) { playerGoesFirst = false; logMsg = `💨 ${this.opponent.name} é mais rápido!`; } 
-        else { const roll = Math.floor(Math.random() * 20) + 1; if (roll > 10) { playerGoesFirst = true; logMsg = `🎲 Speed Empatado! Ganhou.`; } else { playerGoesFirst = false; logMsg = `🎲 Speed Empatado! Perdeu.`; } }
-        this.isPlayerTurn = playerGoesFirst; this.processingAction = false;
-        this.updateButtons(); this.updateUI(); this.logBattle(logMsg);
-        if (!this.isPlayerTurn) { this.processingAction = true; this.updateButtons(); setTimeout(() => this.enemyTurn(), 2000); }
-    }
-
-    static updateButtons() {
-        const btns = document.querySelectorAll('.battle-actions button');
-        const isMyBattle = Network.isOnline ? (this.player && this.player.id === Network.myPlayerId) : true;
-        const canAct = this.isPlayerTurn && !this.processingAction && isMyBattle;
-        btns.forEach((btn: Element) => { (btn as HTMLButtonElement).disabled = !canAct; });
-        if(this.isPvP || this.isGym) { const runBtn = document.getElementById('btn-run') as HTMLButtonElement; runBtn.disabled = true; runBtn.title = "Bloqueado"; }
-    }
+    static determineTurnOrder() { if (!this.activeMon || !this.opponent) return; let logMsg = ""; let playerGoesFirst = false; if (this.activeMon.speed > this.opponent.speed) { playerGoesFirst = true; logMsg = `💨 ${this.activeMon.name} é mais rápido!`; } else if (this.activeMon.speed < this.opponent.speed) { playerGoesFirst = false; logMsg = `💨 ${this.opponent.name} é mais rápido!`; } else { const roll = Math.floor(Math.random() * 20) + 1; if (roll > 10) { playerGoesFirst = true; logMsg = `🎲 Speed Empatado! Ganhou.`; } else { playerGoesFirst = false; logMsg = `🎲 Speed Empatado! Perdeu.`; } } this.isPlayerTurn = playerGoesFirst; this.processingAction = false; this.updateButtons(); this.updateUI(); this.logBattle(logMsg); if (!this.isPlayerTurn) { this.processingAction = true; this.updateButtons(); setTimeout(() => this.enemyTurn(), 2000); } }
+    static updateButtons() { const btns = document.querySelectorAll('.battle-actions button'); const isMyBattle = Network.isOnline ? (this.player && this.player.id === Network.myPlayerId) : true; const canAct = this.isPlayerTurn && !this.processingAction && isMyBattle; btns.forEach((btn: Element) => { (btn as HTMLButtonElement).disabled = !canAct; }); if(this.isPvP || this.isGym) { const runBtn = document.getElementById('btn-run') as HTMLButtonElement; runBtn.disabled = true; runBtn.title = "Bloqueado"; } }
 
     static startFromNetwork(payload: any) {
         if (!Game.players[payload.pId]) return;
         this.active = true; 
         this.player = Game.players[payload.pId];
         this.activeMon = this.player.team[payload.monIdx];
-        const opp = payload.oppData;
-        this.opponent = new Pokemon(opp.id, opp.isShiny);
-        Object.assign(this.opponent, opp);
+        this.opponent = new Pokemon(payload.oppData.id, payload.oppData.isShiny);
+        Object.assign(this.opponent, payload.oppData);
         this.isPvP = payload.isPvP; 
         this.isGym = payload.isGym; 
         this.gymId = payload.gymId;
+        this.isNPC = (!payload.isPvP && payload.reward > 0);
         if(payload.enemyId >= 0) this.enemyPlayer = Game.players[payload.enemyId];
+        if(payload.npcImage) (this.opponent as any)._npcImage = payload.npcImage;
+        if(payload.npcName) (this.opponent as any)._npcName = payload.npcName;
+        if(payload.battleTitle) this.battleTitle = payload.battleTitle;
         this.renderBattleScreen();
     }
 
@@ -680,6 +348,8 @@ class Battle {
         document.getElementById('pkmn-select-modal')!.style.display = 'none';
         const bm = document.getElementById('battle-modal');
         if (bm) bm.style.display = 'flex';
+        document.getElementById('battle-log-history')!.innerHTML = '';
+        document.getElementById('battle-title')!.innerText = this.battleTitle; 
         this.updateButtons(); 
         this.updateUI(); 
     }
@@ -720,8 +390,14 @@ class Battle {
     }
 
     static checkWinCondition() {
-        const nextOpp = this.oppTeamList.find(p => !p.isFainted());
-        if (nextOpp) { this.opponent = nextOpp; this.logBattle(`Rival enviou ${nextOpp.name}!`); this.determineTurnOrder(); } else { this.win(); }
+        const nextOpp = this.oppTeamList.find(p => !p.isFainted() && p !== this.opponent);
+        if (nextOpp) { 
+            this.opponent = nextOpp; 
+            this.logBattle(`Rival enviou ${nextOpp.name}!`); 
+            this.determineTurnOrder(); 
+        } else { 
+            this.win(); 
+        }
     }
 
     static handleFaint() {
@@ -729,11 +405,24 @@ class Battle {
         if (nextPly) { this.logBattle(`${this.activeMon!.name} desmaiou!`); document.getElementById('battle-modal')!.style.display = 'none'; this.openSelectionModal("Escolha o próximo!"); } else { this.lose(); }
     }
 
-    static logBattle(msg: string) { const el = document.getElementById('battle-msg'); if(el) el.innerText = msg; Game.log(`[Batalha] ${msg}`); }
+    static logBattle(msg: string) { 
+        const el = document.getElementById('battle-msg'); 
+        if(el) el.innerText = msg; 
+        
+        const logContainer = document.getElementById('battle-log-history');
+        if(logContainer) {
+            logContainer.insertAdjacentHTML('afterbegin', `<div style="border-bottom:1px solid #555; padding:2px;">${msg}</div>`);
+        }
+        
+        Game.log(`[Batalha] ${msg}`); 
+    }
+    
     static getHpColor(current: number, max: number) { const pct = (current / max) * 100; if(pct > 50) return 'hp-green'; if(pct > 10) return 'hp-yellow'; return 'hp-red'; }
     
     static updateUI() {
         if(!this.activeMon || !this.opponent) return; if(!this.player) return;
+        
+        // Player UI
         document.getElementById('ply-name')!.innerText = this.activeMon.name;
         document.getElementById('ply-lvl')!.innerText = `Lv.${this.activeMon.level}`;
         (document.getElementById('ply-img') as HTMLImageElement).src = this.activeMon.getSprite();
@@ -741,18 +430,40 @@ class Battle {
         const plyBar = document.getElementById('ply-hp')!; plyBar.style.width = plyPct + "%"; plyBar.className = `hp-fill ${this.getHpColor(this.activeMon.currentHp, this.activeMon.maxHp)}`;
         document.getElementById('ply-hp-text')!.innerText = `${this.activeMon.currentHp}/${this.activeMon.maxHp}`;
         (document.getElementById('ply-trainer-img') as HTMLImageElement).src = this.player.avatar;
+        document.getElementById('ply-shiny-tag')!.style.display = this.activeMon.isShiny ? 'inline-block' : 'none';
+        document.getElementById('ply-stats')!.innerHTML = `<span>⚔️${this.activeMon.atk}</span> <span>🛡️${this.activeMon.def}</span> <span>💨${this.activeMon.speed}</span>`;
 
+        // Opponent UI - NOME É O DO POKEMON, NÃO DO NPC
         document.getElementById('opp-name')!.innerText = this.opponent.name;
         document.getElementById('opp-lvl')!.innerText = `Lv.${this.opponent.level}`;
         (document.getElementById('opp-img') as HTMLImageElement).src = this.opponent.getSprite();
         const oppPct = (this.opponent.currentHp/this.opponent.maxHp)*100;
         const oppBar = document.getElementById('opp-hp')!; oppBar.style.width = oppPct + "%"; oppBar.className = `hp-fill ${this.getHpColor(this.opponent.currentHp, this.opponent.maxHp)}`;
         document.getElementById('opp-hp-text')!.innerText = `${this.opponent.currentHp}/${this.opponent.maxHp}`;
+        document.getElementById('opp-shiny-tag')!.style.display = this.opponent.isShiny ? 'inline-block' : 'none';
+        document.getElementById('opp-stats')!.innerHTML = `<span>⚔️${this.opponent.atk}</span> <span>🛡️${this.opponent.def}</span> <span>💨${this.opponent.speed}</span>`;
         
         const oppTrainer = document.getElementById('opp-trainer-img') as HTMLImageElement;
-        if(this.isPvP && this.enemyPlayer) { oppTrainer.src = this.enemyPlayer.avatar; oppTrainer.style.display = 'block'; } 
-        else if (this.isGym) { const gData = GYM_DATA.find(g => g.id === this.gymId); if(gData) oppTrainer.src = `/assets/img/LideresGym/${gData.leaderImg}`; oppTrainer.style.display = 'block'; }
-        else if (this.isNPC) { oppTrainer.src = '/assets/img/Treinadores/Red.jpg'; oppTrainer.style.display = 'block'; } else { oppTrainer.style.display = 'none'; }
+        
+        if(this.isPvP && this.enemyPlayer) { 
+            oppTrainer.src = this.enemyPlayer.avatar; oppTrainer.style.display = 'block'; 
+        } else if (this.isGym) { 
+            const gData = GYM_DATA.find(g => g.id === this.gymId); 
+            if(gData) oppTrainer.src = `/assets/img/LideresGym/${gData.leaderImg}`; 
+            oppTrainer.style.display = 'block'; 
+        } else if (this.isNPC) { 
+            // CORREÇÃO: Ícone do NPC
+            const npcImg = (this.opponent as any)._npcImage;
+            if (npcImg) {
+                oppTrainer.src = npcImg; 
+                oppTrainer.style.display = 'block'; 
+            } else {
+                oppTrainer.src = '/assets/img/Treinadores/Red.jpg';
+                oppTrainer.style.display = 'block'; 
+            }
+        } else { 
+            oppTrainer.style.display = 'none'; 
+        }
 
         if(!this.isNPC && !this.isGym && !this.isPvP) { document.getElementById('ply-team-indicator')!.innerHTML = ''; document.getElementById('opp-team-indicator')!.innerHTML = ''; } else { this.renderTeamIcons('ply-team-indicator', this.plyTeamList); this.renderTeamIcons('opp-team-indicator', this.oppTeamList); }
     }
@@ -784,41 +495,14 @@ class Battle {
 
     static end(isRemote: boolean) { 
         this.active = false; 
-        this.opponent = null; // Limpa para evitar reuso acidental
+        this.opponent = null; 
         document.getElementById('battle-modal')!.style.display = 'none'; 
         if(!isRemote) { if(Network.isOnline) Network.sendAction('BATTLE_END', {}); Game.nextTurn(); } 
     }
     
     static openBag() { if (!this.isPlayerTurn || this.processingAction) return; const list = document.getElementById('battle-bag-list')!; list.innerHTML = ''; Object.keys(this.player!.items).forEach(key => { if(this.player!.items[key] > 0) { const item = SHOP_ITEMS.find(i => i.id === key); if(item) { const btn = document.createElement('button'); btn.className = 'btn'; btn.innerHTML = `<img src="/assets/img/Itens/${item.icon}" class="item-icon-mini"> ${item.name} x${this.player!.items[key]}`; btn.onclick = () => this.useItem(key, item); list.appendChild(btn); } } }); document.getElementById('battle-bag')!.style.display = 'block'; }
     static useItem(key: string, data: ItemData) { document.getElementById('battle-bag')!.style.display = 'none'; if(data.type === 'capture' && (this.isPvP || this.isNPC || this.isGym)) { alert("Não pode capturar pokémons de treinadores!"); return; } this.player!.items[key]--; this.processingAction = true; this.updateButtons(); if(data.type === 'heal') { this.activeMon!.heal(data.val!); this.logBattle("Usou item de cura!"); this.updateUI(); if(Network.isOnline) Network.sendAction('BATTLE_UPDATE', { plyHp: this.activeMon!.currentHp, oppHp: this.opponent!.currentHp, msg: "Usou Cura!" }); setTimeout(() => this.enemyTurn(), 1500); } else if(data.type === 'capture') { this.attemptCapture(data.rate!); } if(Network.isOnline) Network.syncPlayerState(); }
-
-    static attemptCapture(rate: number) { 
-        if(!this.opponent) return; 
-        const chance = ((1 - (this.opponent.currentHp/this.opponent.maxHp)) * rate) + 0.2; 
-        
-        setTimeout(() => { 
-            if(Math.random() < chance) { 
-                this.logBattle(`✨ Capturou ${this.opponent!.name}!`); 
-                this.activeMon!.gainXp(3, this.player!); 
-                
-                if(this.player!.team.length < 6) { 
-                    this.player!.team.push(this.opponent!); 
-                    
-                    // SYNC IMEDIATO APÓS ADICIONAR AO ARRAY
-                    if(Network.isOnline) Network.syncPlayerState();
-
-                    setTimeout(() => this.end(false), 1500); 
-                } else { 
-                    this.pendingCapture = this.opponent; 
-                    this.openSwapModal(); 
-                } 
-            } else { 
-                this.logBattle("Escapou!"); 
-                setTimeout(() => this.enemyTurn(), 1000); 
-            } 
-        }, 1000); 
-    }
-    
+    static attemptCapture(rate: number) { if(!this.opponent) return; const chance = ((1 - (this.opponent.currentHp/this.opponent.maxHp)) * rate) + 0.2; setTimeout(() => { if(Math.random() < chance) { this.logBattle(`✨ Capturou ${this.opponent!.name}!`); this.activeMon!.gainXp(3, this.player!); if(this.player!.team.length < 6) { this.player!.team.push(this.opponent!); setTimeout(() => this.end(false), 1500); } else { this.pendingCapture = this.opponent; this.openSwapModal(); } } else { this.logBattle("Escapou!"); setTimeout(() => this.enemyTurn(), 1000); } }, 1000); }
     static openSwapModal() { Game.openSwapModal(this.pendingCapture!); }
     static openCardSelection() { if (!this.isPlayerTurn || this.processingAction) return; const list = document.getElementById('battle-cards-list')!; list.innerHTML = ''; const battleCards = this.player!.cards.filter(c => c.type === 'battle'); if(battleCards.length === 0) { list.innerHTML = "<em>Sem cartas de batalha.</em>"; } else { battleCards.forEach(c => { const d = document.createElement('div'); d.className='card-item'; d.innerHTML = `<div class="card-info"><span class="card-name">${c.icon} ${c.name} <span class="card-type-badge type-battle">BATTLE</span></span><span class="card-desc">${c.desc}</span></div><button class="btn-use-card" onclick="window.Battle.useCard('${c.id}')">USAR</button>`; list.appendChild(d); }); } document.getElementById('battle-cards-modal')!.style.display = 'flex'; }
     static useCard(cardId: string) { document.getElementById('battle-cards-modal')!.style.display = 'none'; const cardIndex = this.player!.cards.findIndex(c => c.id === cardId); if(cardIndex === -1) return; const card = this.player!.cards[cardIndex]; if (card.id === 'run') { this.player!.cards.splice(cardIndex, 1); this.logBattle("Usou Carta de Fuga!"); this.activeMon!.gainXp(2, this.player!); this.end(false); } else if (card.id === 'crit') { this.player!.cards.splice(cardIndex, 1); this.activeCard = 'crit'; this.logBattle("Usou Ataque Crítico! Próximo ataque x2."); } else { this.player!.cards.splice(cardIndex, 1); this.activeCard = card.id; this.logBattle(`Usou ${card.name}!`); } if(Network.isOnline) Network.syncPlayerState(); }
@@ -878,6 +562,7 @@ class Game {
                     <input type="number" id="debug-input" value="1" min="1" max="50" style="width:50px; text-align:center; border:none; padding:5px; border-radius:4px;">
                     <button class="btn" style="width:auto; margin:0; padding:5px 10px;" onclick="window.Game.debugMove()">GO</button>
                 </div>
+                <button class="btn" style="margin-top:5px; background: #e67e22;" onclick="window.Game.exportSave()">💾 DEBUG SAVE</button>
                 <div style="margin-top:5px;"><small id="online-indicator" style="color:cyan;">OFFLINE</small></div>
             `;
         }
@@ -913,7 +598,19 @@ class Game {
         
         if(enemy) { const defMon = enemy.team.find(m => !m.isFainted()); if(defMon) { this.log(`⚔️ Conflito! ${p.name} vs ${enemy.name}`); Battle.setup(p, defMon, true, enemy.name, 0, enemy); } else { this.log(`${enemy.name} sem pokemons!`); this.nextTurn(); } return; }
         
-        if(NPC_DATA[type]) { const npc = NPC_DATA[type]; const monId = npc.team[Math.floor(Math.random() * npc.team.length)]; Battle.setup(p, new Pokemon(monId), false, npc.name, npc.gold); return; }
+        if(NPC_DATA[type]) { 
+            const npc = NPC_DATA[type]; 
+            const monId = npc.team[Math.floor(Math.random() * npc.team.length)]; 
+            
+            let npcImg = '/assets/img/Treinadores/Red.jpg'; // Default
+            if (type === TILE.ROCKET) npcImg = '/assets/img/NPCs/Rocket.jpg';
+            else if (type === TILE.BIKER) npcImg = '/assets/img/NPCs/Motoqueiro.jpg';
+            else if (type === TILE.YOUNG) npcImg = '/assets/img/NPCs/Jovem.jpg';
+            else if (type === TILE.OLD) npcImg = '/assets/img/NPCs/Velho.jpg';
+            
+            Battle.setup(p, new Pokemon(monId), false, npc.name, npc.gold, null, false, 0, npcImg); 
+            return; 
+        }
         
         if(type === TILE.CITY) { this.isCityEvent = true; document.getElementById('city-modal')!.style.display='flex'; }
         else if(type === TILE.EVENT) { if(Math.random() < 0.5) { Cards.draw(p); } else { const gift = Math.random() > 0.5 ? 'pokeball' : 'potion'; p.items[gift]++; this.log(`Achou ${gift}!`); this.updateHUD(); if(Network.isOnline) Network.syncPlayerState(); } this.nextTurn(); }

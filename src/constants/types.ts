@@ -6,6 +6,7 @@ export interface PokemonData {
     atk: number;
     def: number;
     spd: number;
+    stage: number;
     nextForm: string | null;
     evoTrigger?: number;
     isLegendary?: boolean;
