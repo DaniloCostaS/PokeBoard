@@ -4,6 +4,7 @@ import { GYM_DATA } from '../constants/gyms';
 import { TYPE_CHART } from '../constants/typeChart';
 import { SHOP_ITEMS } from '../constants';
 import type { ItemData } from '../constants';
+import { Cards } from './Cards';
 
 export class Battle {
     static active: boolean = false; 
@@ -24,6 +25,18 @@ export class Battle {
     static isPlayerTurn: boolean = false; 
     static processingAction: boolean = false; 
 
+    // Estado dos Efeitos da Batalha Atual
+    static activeEffects: {
+        crit?: boolean;
+        guard?: boolean;
+        focus?: boolean;
+        counter?: number; // Contador de turnos
+        stunOpponent?: number; // Contador de turnos
+        destiny?: boolean;
+        new_leader?: number | null; // ID do alvo
+        stealBadgeFrom?: number | null;
+    } = {};
+
     static setup(player: Player, enemyMon: Pokemon, isPvP: boolean = false, _label: string = "", reward: number = 0, enemyPlayer: Player | null = null, isGym: boolean = false, gymId: number = 0, npcImage: string = "") {
         const Game = (window as any).Game;
 
@@ -37,6 +50,9 @@ export class Battle {
         this.enemyPlayer = enemyPlayer; 
         this.processingAction = false;
         
+        // Reset Efeitos
+        this.activeEffects = {};
+
         this.battleTitle = isPvP ? "Batalha PvP!" : `Batalha contra ${_label}!`;
 
         this.plyTeamList = player.getBattleTeam(isGym).slice(0, isGym ? 6 : 3);
@@ -44,6 +60,10 @@ export class Battle {
         if (isPvP && enemyPlayer) { 
             this.oppTeamList = enemyPlayer.getBattleTeam(false); 
             this.opponent = this.oppTeamList[0]; 
+            // Verifica Maldição
+            if (enemyPlayer.effects.curse) {
+                this.logBattle(`☠️ ${enemyPlayer.name} está amaldiçoado! (Dano reduzido)`);
+            }
         } 
         else if (isGym) {
             const gymData = GYM_DATA.find(g => g.id === gymId);
@@ -104,12 +124,12 @@ export class Battle {
         
         const enemyId = this.enemyPlayer ? this.enemyPlayer.id : -1;
         
-        if(Network.isOnline && this.player && this.player.id === Network.myPlayerId) {
+        if(Network.isOnline && this.player!.id === Network.myPlayerId) {
             const npcImg = (this.opponent as any)._npcImage || "";
             const npcName = (this.opponent as any)._npcName || "";
             Network.sendAction('BATTLE_START', {
-                pId: this.player.id, 
-                monIdx: this.player.team.indexOf(this.activeMon),
+                pId: this.player!.id, 
+                monIdx: this.player!.team.indexOf(this.activeMon),
                 oppData: this.opponent, 
                 isPvP: this.isPvP, 
                 reward: this.reward, 
@@ -126,32 +146,29 @@ export class Battle {
     static determineTurnOrder() { 
         if (!this.activeMon || !this.opponent) return; 
         
-        let logMsg = ""; 
-        let playerGoesFirst = false; 
+        // Verifica Stun
+        if (this.activeEffects.stunOpponent && this.activeEffects.stunOpponent > 0) {
+            this.isPlayerTurn = true;
+            this.logBattle(`⚡ Inimigo atordoado! (${this.activeEffects.stunOpponent} turnos)`);
+        } else {
+            let playerGoesFirst = false; 
+            if (this.activeMon.speed > this.opponent.speed) playerGoesFirst = true;
+            else if (this.activeMon.speed < this.opponent.speed) playerGoesFirst = false;
+            else playerGoesFirst = Math.random() > 0.5;
+            
+            this.isPlayerTurn = playerGoesFirst;
+        }
         
-        if (this.activeMon.speed > this.opponent.speed) { 
-            playerGoesFirst = true; 
-            logMsg = `💨 ${this.activeMon.name} é mais rápido!`; 
-        } else if (this.activeMon.speed < this.opponent.speed) { 
-            playerGoesFirst = false; 
-            logMsg = `💨 ${this.opponent.name} é mais rápido!`; 
-        } else { 
-            const roll = Math.floor(Math.random() * 20) + 1; 
-            if (roll > 10) { 
-                playerGoesFirst = true; 
-                logMsg = `🎲 Speed Empatado! Ganhou.`; 
-            } else { 
-                playerGoesFirst = false; 
-                logMsg = `🎲 Speed Empatado! Perdeu.`; 
-            } 
-        } 
-        
-        this.isPlayerTurn = playerGoesFirst; 
         this.processingAction = false; 
         this.updateButtons(); 
         this.updateUI(); 
-        this.logBattle(logMsg); 
         
+        // Log condicional para não poluir
+        if(!this.activeEffects.stunOpponent) {
+             const faster = this.isPlayerTurn ? this.activeMon.name : this.opponent.name;
+             this.logBattle(`💨 ${faster} age primeiro!`);
+        }
+
         if (!this.isPlayerTurn) { 
             this.processingAction = true; 
             this.updateButtons(); 
@@ -209,17 +226,16 @@ export class Battle {
         this.updateUI(); 
     }
 
-    static calculateDamage(attacker: Pokemon, defender: Pokemon): { damage: number, msg: string } {
+    static calculateDamage(attacker: Pokemon, defender: Pokemon, isPlayerAttacking: boolean): { damage: number, msg: string } {
         const d20 = Math.floor(Math.random() * 20) + 1;
         let rollModifier = 0; 
         let isCritical = false;
         
-        if (d20 <= 2) rollModifier = -2; 
-        else if (d20 <= 5) rollModifier = -1; 
-        else if (d20 <= 10) rollModifier = 0; 
-        else if (d20 <= 15) rollModifier = +1; 
-        else if (d20 <= 19) rollModifier = +2; 
-        else { rollModifier = +3; isCritical = true; }
+        if (d20 >= 20) { rollModifier = +3; isCritical = true; }
+        else if (d20 >= 16) rollModifier = +2;
+        else if (d20 >= 11) rollModifier = +1;
+        else if (d20 <= 2) rollModifier = -2;
+        else if (d20 <= 5) rollModifier = -1;
         
         let defenseVal = defender.def; 
         if (isCritical) defenseVal = Math.floor(defenseVal / 2);
@@ -232,17 +248,27 @@ export class Battle {
             rawMulti = (TYPE_CHART[attacker.type] as any)[defender.type]; 
         }
         
-        let finalMulti = 1; 
-        if (rawMulti > 1) finalMulti = 1.5; 
-        else if (rawMulti < 1) finalMulti = 0.75; 
-        
-        const typeDamage = Math.floor(base * finalMulti); 
-        const finalDamage = Math.max(0, typeDamage + rollModifier);
+        const typeDamage = Math.floor(base * (rawMulti > 1 ? 1.5 : (rawMulti < 1 ? 0.75 : 1))); 
+        let finalDamage = Math.max(0, typeDamage + rollModifier);
+
+        // APLICAÇÃO DE EFEITOS
+        if (isPlayerAttacking) {
+            if (this.activeEffects.crit) { finalDamage *= 2; }
+            if (this.activeEffects.focus) { finalDamage *= 4; this.activeEffects.focus = false; }
+            if (this.player?.effects.curse) { finalDamage = Math.floor(finalDamage / 2); }
+        } else {
+            if (this.activeEffects.guard) { finalDamage = Math.floor(finalDamage / 2); }
+            if (this.enemyPlayer && this.enemyPlayer.effects.curse) { finalDamage = Math.floor(finalDamage / 2); }
+        }
         
         let logDetails = `(🎲${d20})`; 
         if (isCritical) logDetails += " 💥!"; 
-        if (finalMulti > 1) logDetails += " 🔥!"; 
-        if (finalMulti < 1) logDetails += " 🛡️.";
+        if (rawMulti > 1) logDetails += " 🔥!"; 
+        else if (rawMulti < 1) logDetails += " 🛡️.";
+        
+        if (this.activeEffects.crit && isPlayerAttacking) logDetails += " [2x]";
+        if (this.activeEffects.focus && isPlayerAttacking) logDetails += " [4x]";
+        if (this.activeEffects.guard && !isPlayerAttacking) logDetails += " [🛡️]";
         
         return { damage: finalDamage, msg: logDetails };
     }
@@ -255,14 +281,8 @@ export class Battle {
         this.processingAction = true; 
         this.updateButtons();
         
-        let calc = this.calculateDamage(this.activeMon, this.opponent); 
+        let calc = this.calculateDamage(this.activeMon, this.opponent, true); 
         let dmg = calc.damage;
-        
-        if(this.activeCard === 'crit') { 
-            dmg *= 2; 
-            this.logBattle("🃏 Crítico (x2)!"); 
-            this.activeCard = null; 
-        } 
         
         this.opponent.currentHp = Math.max(0, this.opponent.currentHp - dmg);
         const logMsg = `${this.activeMon.name} atacou! 💥${dmg} ${calc.msg}`; 
@@ -286,16 +306,37 @@ export class Battle {
         const Network = (window as any).Network;
         if(!this.activeMon || !this.opponent) return; 
         
+        // Verifica Stun
+        if (this.activeEffects.stunOpponent && this.activeEffects.stunOpponent > 0) {
+            this.activeEffects.stunOpponent--;
+            this.logBattle("Inimigo atordoado! Passou a vez.");
+            this.isPlayerTurn = true;
+            this.processingAction = false;
+            this.updateButtons();
+            return;
+        }
+
         this.processingAction = true; 
         this.isPlayerTurn = false; 
         
-        let calc = this.calculateDamage(this.opponent, this.activeMon); 
+        let calc = this.calculateDamage(this.opponent, this.activeMon, false); 
         let dmg = calc.damage;
         
         this.activeMon.currentHp = Math.max(0, this.activeMon.currentHp - dmg);
         const logMsg = `${this.opponent.name} atacou! 💥${dmg} ${calc.msg}`; 
         this.logBattle(logMsg); 
         this.updateUI();
+        
+        // Contra-Ataque
+        if (this.activeEffects.counter && this.activeEffects.counter > 0) {
+            const reflect = Math.floor(dmg * 0.5);
+            if (reflect > 0) {
+                this.opponent.currentHp = Math.max(0, this.opponent.currentHp - reflect);
+                this.logBattle(`🔁 Contra-ataque! Inimigo sofreu ${reflect} de dano.`);
+                this.activeEffects.counter--;
+                this.updateUI(); // Atualiza barra do oponente
+            }
+        }
         
         if(Network.isOnline && this.player && this.player.id === Network.myPlayerId) { 
             Network.sendAction('BATTLE_UPDATE', { plyHp: this.activeMon.currentHp, oppHp: this.opponent.currentHp, msg: logMsg }); 
@@ -364,6 +405,8 @@ export class Battle {
         const plyPct = (this.activeMon.currentHp/this.activeMon.maxHp)*100;
         const plyBar = document.getElementById('ply-hp')!; 
         plyBar.style.width = plyPct + "%"; 
+        
+        // CORREÇÃO: Aplicando a classe de cor corretamente
         plyBar.className = `hp-fill ${this.getHpColor(this.activeMon.currentHp, this.activeMon.maxHp)}`;
         
         document.getElementById('ply-hp-text')!.innerText = `${this.activeMon.currentHp}/${this.activeMon.maxHp}`;
@@ -379,6 +422,8 @@ export class Battle {
         const oppPct = (this.opponent.currentHp/this.opponent.maxHp)*100;
         const oppBar = document.getElementById('opp-hp')!; 
         oppBar.style.width = oppPct + "%"; 
+        
+        // CORREÇÃO: Aplicando a classe de cor corretamente
         oppBar.className = `hp-fill ${this.getHpColor(this.opponent.currentHp, this.opponent.maxHp)}`;
         
         document.getElementById('opp-hp-text')!.innerText = `${this.opponent.currentHp}/${this.opponent.maxHp}`;
@@ -400,7 +445,7 @@ export class Battle {
                 oppTrainer.src = npcImg; 
                 oppTrainer.style.display = 'block'; 
             } else {
-                oppTrainer.src = '/assets/img/Treinadores/Red.jpg';
+                oppTrainer.src = '/assets/img/Treinadores/Red.jpg'; 
                 oppTrainer.style.display = 'block'; 
             }
         } else { 
@@ -431,48 +476,40 @@ export class Battle {
     static win() {
         const Game = (window as any).Game;
         const Network = (window as any).Network;
+        const Cards = (window as any).Cards;
 
         if(Network.isOnline && Game.turn !== Network.myPlayerId && Network.myPlayerId !== 0) return;
         
-        let gain = 0; 
-        let xpGain = 0; 
-        let msg = "VITÓRIA! ";
+        this.player!.effects.curse = false;
+        this.player!.team = this.player!.team.filter(p => !(p as any).isTemp);
+
+        let gain = 0; let xpGain = 0; let msg = "VITÓRIA! ";
+        if(this.isPvP) xpGain = 15; else if(this.isGym) xpGain = 25; else if(this.isNPC) xpGain = 10; else xpGain = 5; 
+        if (this.opponent!.level >= this.activeMon!.level + 2) { xpGain += 5; msg += "(+Bônus Desafio) "; }
         
-        if(this.isPvP) xpGain = 15; 
-        else if(this.isGym) xpGain = 25; 
-        else if(this.isNPC) xpGain = 10; 
-        else xpGain = 5; 
-        
-        if (this.opponent!.level >= this.activeMon!.level + 2) { 
-            xpGain += 5; 
-            msg += "(+Bônus Desafio) "; 
-        }
-        
-        if(this.isPvP && this.enemyPlayer) { 
-            if(this.enemyPlayer.gold > 0) { 
-                gain = Math.floor(this.enemyPlayer.gold * 0.3); 
-                this.enemyPlayer.gold -= gain; 
-                msg += `Roubou ${gain}G!`; 
-            } else { 
-                gain = 100; 
-                // Apenas marcação local, o sync real acontece abaixo
-                msg += `Inimigo falido (Perde vez)!`; 
-            } 
-            
-            Game.sendGlobalLog(`[PvP] ${this.enemyPlayer.name} foi derrotado por ${this.player?.name}!`); 
-            
-            // LÓGICA DE PVP:
-            // 1. Eu (Vencedor) atualizo o estado do inimigo na MINHA máquina (dano aplicado durante a simulação)
-            // 2. Eu envio um comando de rede para que o inimigo atualize o estado DELE com o dano que calculei aqui
-            
-            if(Network.isOnline) {
-                Network.sendAction('PVP_SYNC_DAMAGE', { 
-                    targetId: this.enemyPlayer.id,
-                    team: this.oppTeamList, // Envia o time inimigo todo ferrado (desmaiado)
-                    resetPos: true,         // Manda voltar pro inicio
-                    skipTurn: true          // Manda perder a vez
-                });
+        if (this.isPvP && this.enemyPlayer && this.activeEffects.stealBadgeFrom === this.enemyPlayer.id) {
+            const myBadges = this.player!.badges;
+            const enBadges = this.enemyPlayer.badges;
+            for(let i=0; i<8; i++) {
+                if(enBadges[i] && !myBadges[i]) {
+                    myBadges[i] = true;
+                    enBadges[i] = false; 
+                    msg += ` Roubou Insígnia ${i+1}!`;
+                    break;
+                }
             }
+        }
+
+        if (this.activeEffects.destiny) {
+            this.player!.gold += 200;
+            if(Cards) Cards.draw(this.player!);
+            msg += " (Destino Selado: +200G +Carta)";
+        }
+
+        if(this.isPvP && this.enemyPlayer) { 
+            if(this.enemyPlayer.gold > 0) { gain = Math.floor(this.enemyPlayer.gold * 0.3); this.enemyPlayer.gold -= gain; msg += `Roubou ${gain}G!`; } else { gain = 100; msg += `Inimigo falido (Perde vez)!`; } 
+            Game.sendGlobalLog(`[PvP] ${this.enemyPlayer.name} foi derrotado por ${this.player?.name}!`); 
+            if(Network.isOnline) { Network.sendAction('PVP_SYNC_DAMAGE', { targetId: this.enemyPlayer.id, team: this.oppTeamList, resetPos: true, skipTurn: true }); }
         }
         else if (this.isGym) { 
             gain = 1000; 
@@ -481,204 +518,64 @@ export class Battle {
                 msg += ` Insígnia ${this.gymId}!`; 
             } 
         }
-        else if (this.isNPC) { gain = this.reward; } 
-        else { gain = 150; }
+        else if (this.isNPC) { gain = this.reward; } else { gain = 150; }
         
         this.player!.gold += gain; 
         this.activeMon!.gainXp(xpGain, this.player!);
-        
-        if(Network.isOnline) Network.syncPlayerState(); // Salva meu estado (vencedor)
-        
-        alert(msg); 
-        Game.sendGlobalLog(`${this.player?.name} venceu! ${msg} (${this.activeMon?.name} +${xpGain}XP)`); 
+        if(Network.isOnline) Network.syncPlayerState();
+        alert(msg); Game.sendGlobalLog(`${this.player?.name} venceu! ${msg} (${this.activeMon?.name} +${xpGain}XP)`); 
         setTimeout(() => this.end(false), 1000);
     }
 
     static lose() {
         const Game = (window as any).Game;
         const Network = (window as any).Network;
+        this.player!.effects.curse = false; 
+        this.player!.team = this.player!.team.filter(p => !(p as any).isTemp); 
 
-        let msg = "DERROTA... "; 
-        this.player!.gold = Math.max(0, this.player!.gold - 100); 
-        
-        // Se for NPC/Ginásio, cura tudo. Se for PvP, a lógica do vencedor (PVP_SYNC_DAMAGE) vai sobrescrever isso depois
-        // Mas por segurança, curamos aqui, e se o server mandar desmaiar depois, desmaia.
-        if(!this.isPvP) {
-            this.player!.team.forEach(p => p.heal(999)); 
-        }
-        
-        this.player!.x = 0; 
-        this.player!.y = 0; 
-        this.player!.skipTurn = true; // PERDE A VEZ AQUI
-        
-        let xpGain = 0; 
-        if(this.isPvP) xpGain = 5; 
-        else if(this.isGym) xpGain = 8; 
-        else if(this.isNPC) xpGain = 3; 
-        else xpGain = 2; 
-        
+        let msg = "DERROTA... "; this.player!.gold = Math.max(0, this.player!.gold - 100); 
+        if(!this.isPvP) { this.player!.team.forEach(p => p.heal(999)); }
+        this.player!.x = 0; this.player!.y = 0; this.player!.skipTurn = true; 
+        let xpGain = 0; if(this.isPvP) xpGain = 5; else if(this.isGym) xpGain = 8; else if(this.isNPC) xpGain = 3; else xpGain = 2; 
         if(this.activeMon) this.activeMon.gainXp(xpGain, this.player!);
-        
-        if (this.isPvP && this.enemyPlayer) { 
-            // O vencedor ganha XP (simulação local, mas idealmente o vencedor processa isso no turno dele)
-            // Aqui é apenas visual para quem perdeu
-            msg += ` ${this.enemyPlayer.name} venceu!`; 
-        } 
-        
-        if(Network.isOnline) { 
-            // Sync player state garante que o skipTurn=true vá para o banco
-            Network.syncPlayerState();
-        }
-        
-        alert(msg); 
-        Game.sendGlobalLog(`${this.player?.name} perdeu e voltou ao início! (+${xpGain}XP)`); 
-        setTimeout(() => { 
-            this.end(false); 
-            Game.moveVisuals(); 
-        }, 1500);
+        if (this.isPvP && this.enemyPlayer) { msg += ` ${this.enemyPlayer.name} venceu!`; } 
+        if(Network.isOnline) { Network.syncPlayerState(); }
+        alert(msg); Game.sendGlobalLog(`${this.player?.name} perdeu e voltou ao início! (+${xpGain}XP)`); 
+        setTimeout(() => { this.end(false); Game.moveVisuals(); }, 1500);
     }
 
     static end(isRemote: boolean) { 
         const Game = (window as any).Game;
         const Network = (window as any).Network;
-
-        this.active = false; 
-        this.opponent = null; 
+        this.active = false; this.opponent = null; 
         document.getElementById('battle-modal')!.style.display = 'none'; 
-        
-        if(!isRemote) { 
-            if(Network.isOnline) Network.sendAction('BATTLE_END', {}); 
-            Game.nextTurn(); 
-        } 
+        if(!isRemote) { if(Network.isOnline) Network.sendAction('BATTLE_END', {}); Game.nextTurn(); } 
     }
     
-    static openBag() { 
-        if (!this.isPlayerTurn || this.processingAction) return; 
-        const list = document.getElementById('battle-bag-list')!; 
-        list.innerHTML = ''; 
-        
-        Object.keys(this.player!.items).forEach(key => { 
-            if(this.player!.items[key] > 0) { 
-                const item = SHOP_ITEMS.find(i => i.id === key); 
-                if(item) { 
-                    const btn = document.createElement('button'); 
-                    btn.className = 'btn'; 
-                    btn.innerHTML = `<img src="/assets/img/Itens/${item.icon}" class="item-icon-mini"> ${item.name} x${this.player!.items[key]}`; 
-                    btn.onclick = () => this.useItem(key, item); 
-                    list.appendChild(btn); 
-                } 
-            } 
-        }); 
-        document.getElementById('battle-bag')!.style.display = 'block'; 
-    }
-
-    static useItem(key: string, data: ItemData) { 
-        const Network = (window as any).Network;
-        document.getElementById('battle-bag')!.style.display = 'none'; 
-        
-        if(data.type === 'capture' && (this.isPvP || this.isNPC || this.isGym)) { 
-            alert("Não pode capturar pokémons de treinadores!"); 
-            return; 
-        } 
-        
-        this.player!.items[key]--; 
-        this.processingAction = true; 
-        this.updateButtons(); 
-        
-        if(data.type === 'heal') { 
-            this.activeMon!.heal(data.val!); 
-            this.logBattle("Usou item de cura!"); 
-            this.updateUI(); 
-            if(Network.isOnline) Network.sendAction('BATTLE_UPDATE', { plyHp: this.activeMon!.currentHp, oppHp: this.opponent!.currentHp, msg: "Usou Cura!" }); 
-            setTimeout(() => this.enemyTurn(), 1500); 
-        } else if(data.type === 'capture') { 
-            this.attemptCapture(data.rate!); 
-        } 
-        
-        if(Network.isOnline) Network.syncPlayerState(); 
-    }
-
-    static attemptCapture(rate: number) { 
-        const Game = (window as any).Game;
-        if(!this.opponent) return; 
-        const chance = ((1 - (this.opponent.currentHp/this.opponent.maxHp)) * rate) + 0.2; 
-        
-        setTimeout(() => { 
-            if(Math.random() < chance) { 
-                this.logBattle(`✨ Capturou ${this.opponent!.name}!`); 
-                this.activeMon!.gainXp(3, this.player!); 
-                if(this.player!.team.length < 6) { 
-                    this.player!.team.push(this.opponent!); 
-                    setTimeout(() => this.end(false), 1500); 
-                } else { 
-                    this.pendingCapture = this.opponent; 
-                    Game.openSwapModal(this.pendingCapture); 
-                } 
-            } else { 
-                this.logBattle("Escapou!"); 
-                setTimeout(() => this.enemyTurn(), 1000); 
-            } 
-        }, 1000); 
-    }
-
-    static openSwapModal() { 
-        const Game = (window as any).Game;
-        Game.openSwapModal(this.pendingCapture!); 
-    }
-
-    static openCardSelection() { 
-        if (!this.isPlayerTurn || this.processingAction) return; 
-        const list = document.getElementById('battle-cards-list')!; 
-        list.innerHTML = ''; 
-        
-        const battleCards = this.player!.cards.filter(c => c.type === 'battle'); 
-        
-        if(battleCards.length === 0) { 
-            list.innerHTML = "<em>Sem cartas de batalha.</em>"; 
-        } else { 
-            battleCards.forEach(c => { 
-                const d = document.createElement('div'); 
-                d.className='card-item'; 
-                d.innerHTML = `<div class="card-info"><span class="card-name">${c.icon} ${c.name} <span class="card-type-badge type-battle">BATTLE</span></span><span class="card-desc">${c.desc}</span></div><button class="btn-use-card" onclick="window.Battle.useCard('${c.id}')">USAR</button>`; 
-                list.appendChild(d); 
-            }); 
-        } 
-        document.getElementById('battle-cards-modal')!.style.display = 'flex'; 
-    }
-
+    // ... (restante dos métodos: useCard, openBag, useItem, attemptCapture, openCardSelection, run) ...
     static useCard(cardId: string) { 
         const Network = (window as any).Network;
-        document.getElementById('battle-cards-modal')!.style.display = 'none'; 
+        const Game = (window as any).Game;
         
-        const cardIndex = this.player!.cards.findIndex(c => c.id === cardId); 
-        if(cardIndex === -1) return; 
-        
-        const card = this.player!.cards[cardIndex]; 
-        
-        if (card.id === 'run') { 
-            this.player!.cards.splice(cardIndex, 1); 
-            this.logBattle("Usou Carta de Fuga!"); 
-            this.activeMon!.gainXp(2, this.player!); 
-            this.end(false); 
-        } else if (card.id === 'crit') { 
-            this.player!.cards.splice(cardIndex, 1); 
-            this.activeCard = 'crit'; 
-            this.logBattle("Usou Ataque Crítico! Próximo ataque x2."); 
-        } else { 
-            this.player!.cards.splice(cardIndex, 1); 
-            this.activeCard = card.id; 
-            this.logBattle(`Usou ${card.name}!`); 
-        } 
-        
-        if(Network.isOnline) Network.syncPlayerState(); 
+        if (this.isPvP && this.enemyPlayer) {
+            const enemyHasJam = this.enemyPlayer.cards.findIndex((c: any) => c.id === 'jam');
+            if (enemyHasJam > -1) {
+                this.enemyPlayer.cards.splice(enemyHasJam, 1);
+                alert(`📡 INTERFERÊNCIA! ${this.enemyPlayer.name} anulou sua carta!`);
+                Game.sendGlobalLog(`📡 ${this.enemyPlayer.name} usou Interferência automática contra ${this.player?.name}!`);
+                const myCardIdx = this.player!.cards.findIndex((c: any) => c.id === cardId);
+                if(myCardIdx > -1) this.player!.cards.splice(myCardIdx, 1);
+                document.getElementById('battle-cards-modal')!.style.display = 'none';
+                if(Network.isOnline) Network.syncPlayerState(); 
+                return;
+            }
+        }
+        Cards.activate(cardId);
     }
 
-    static run() { 
-        if(this.isPvP || this.isNPC || this.isGym) { 
-            alert("Não pode fugir!"); 
-        } else { 
-            this.activeMon!.gainXp(2, this.player!); 
-            this.end(false); 
-        } 
-    }
+    static openBag() { if (!this.isPlayerTurn || this.processingAction) return; const list = document.getElementById('battle-bag-list')!; list.innerHTML = ''; Object.keys(this.player!.items).forEach(key => { if(this.player!.items[key] > 0) { const item = SHOP_ITEMS.find(i => i.id === key); if(item) { const btn = document.createElement('button'); btn.className = 'btn'; btn.innerHTML = `<img src="/assets/img/Itens/${item.icon}" class="item-icon-mini"> ${item.name} x${this.player!.items[key]}`; btn.onclick = () => this.useItem(key, item); list.appendChild(btn); } } }); document.getElementById('battle-bag')!.style.display = 'block'; }
+    static useItem(key: string, data: ItemData) { const Network = (window as any).Network; document.getElementById('battle-bag')!.style.display = 'none'; if(data.type === 'capture' && (this.isPvP || this.isNPC || this.isGym)) { alert("Não pode capturar pokémons de treinadores!"); return; } this.player!.items[key]--; this.processingAction = true; this.updateButtons(); if(data.type === 'heal') { this.activeMon!.heal(data.val!); this.logBattle("Usou item de cura!"); this.updateUI(); if(Network.isOnline) Network.sendAction('BATTLE_UPDATE', { plyHp: this.activeMon!.currentHp, oppHp: this.opponent!.currentHp, msg: "Usou Cura!" }); setTimeout(() => this.enemyTurn(), 1500); } else if(data.type === 'capture') { this.attemptCapture(data.rate!); } if(Network.isOnline) Network.syncPlayerState(); }
+    static attemptCapture(rate: number) { const Game = (window as any).Game; if(!this.opponent) return; const chance = ((1 - (this.opponent.currentHp/this.opponent.maxHp)) * rate) + 0.2; setTimeout(() => { if(Math.random() < chance) { this.logBattle(`✨ Capturou ${this.opponent!.name}!`); this.activeMon!.gainXp(3, this.player!); if(this.player!.team.length < 6) { this.player!.team.push(this.opponent!); setTimeout(() => this.end(false), 1500); } else { this.pendingCapture = this.opponent; Game.openSwapModal(this.pendingCapture); } } else { this.logBattle("Escapou!"); setTimeout(() => this.enemyTurn(), 1000); } }, 1000); }
+    static openCardSelection() { if (!this.isPlayerTurn || this.processingAction) return; const list = document.getElementById('battle-cards-list')!; list.innerHTML = ''; const battleCards = this.player!.cards.filter(c => c.type === 'battle'); if(battleCards.length === 0) { list.innerHTML = "<em>Sem cartas de batalha.</em>"; } else { battleCards.forEach(c => { const d = document.createElement('div'); d.className='card-item'; d.innerHTML = `<div class="card-info"><span class="card-name">${c.icon} ${c.name} <span class="card-type-badge type-battle">BATTLE</span></span><span class="card-desc">${c.desc}</span></div><button class="btn-use-card" onclick="window.Battle.useCard('${c.id}')">USAR</button>`; list.appendChild(d); }); } document.getElementById('battle-cards-modal')!.style.display = 'flex'; }
+    static run() { if(this.isPvP || this.isNPC || this.isGym) { alert("Não pode fugir!"); } else { this.activeMon!.gainXp(2, this.player!); this.end(false); } }
 }
