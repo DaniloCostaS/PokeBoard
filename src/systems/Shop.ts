@@ -2,7 +2,6 @@ import { SHOP_ITEMS } from '../constants';
 
 export class Shop {
     static open() { 
-        // Acesso via window para evitar import circular
         const Game = (window as any).Game;
         const p = Game.getCurrentPlayer(); 
         
@@ -20,16 +19,18 @@ export class Shop {
     
     static buy(id: string, price: number) { 
         const Game = (window as any).Game;
-        const Network = (window as any).Network;
         const p = Game.getCurrentPlayer(); 
         
         if(p.gold >= price) { 
             p.gold -= price; 
-            p.items[id]++; 
+            // CORREÇÃO: Usa a função centralizada para garantir adição correta
+            Game.addItem(p, id, 1);
+            
             this.open(); 
-            Game.updateHUD(); 
-            if(Network.isOnline) Network.syncPlayerState(); 
-        } 
+            // Não precisa chamar updateHUD/sync aqui pois o addItem já faz
+        } else {
+            alert("Ouro insuficiente!");
+        }
     }
     
     static close() { 

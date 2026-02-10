@@ -8,17 +8,21 @@ export class Player {
     x: number = 0; 
     y: number = 0; 
     gold: number = 500;
-    items: {[key:string]:number} = {'pokeball':6, 'potion':1};
+    // Garante que items seja inicializado, mas a lógica de adição segura será no Game.addItem
+    items: {[key:string]:number} = {'pokeball': 6, 'potion': 1};
     cards: CardData[] = []; 
     team: Pokemon[] = [];
-    skipTurn: boolean = false; 
+    
+    // ALTERADO: De boolean para number para suportar múltiplas rodadas de penalidade
+    skipTurns: number = 0; 
+    
     badges: boolean[] = [false,false,false,false,false,false,false,false];
 
-    // Novos controles de efeitos
+    // Controles de efeitos
     effects: { 
-        slow?: number; // Quantos turnos restam de 1d6
-        curse?: boolean; // Se causa metade do dano na proxima batalha
-        extraTurn?: boolean; // Se joga novamente
+        slow?: number; 
+        curse?: boolean; 
+        extraTurn?: boolean; 
     } = {};
 
     constructor(id: number, name: string, avatarFile: string, isLoadMode: boolean) {
@@ -28,7 +32,9 @@ export class Player {
         if(!isLoadMode && name !== "_LOAD_") {
             const starters = [1, 4, 7, 25]; 
             const randomStarterId = starters[Math.floor(Math.random() * starters.length)];
-            this.team.push(new Pokemon(randomStarterId, 1, null)); 
+            // 20% de chance de shiny no inicial (Regra customizada)
+            const isStarterShiny = Math.random() < 0.2;
+            this.team.push(new Pokemon(randomStarterId, 1, isStarterShiny)); 
         }
     }
     

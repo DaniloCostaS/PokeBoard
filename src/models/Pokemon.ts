@@ -83,15 +83,25 @@ export class Pokemon {
     }
 
     getSprite() { return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${this.isShiny ? 'shiny/' : ''}${this.id}.png`; }
+    
     isFainted() { return this.currentHp <= 0; }
-    heal(amt: number) { this.currentHp = Math.min(this.maxHp, this.currentHp + amt); }
+    
+    // Atualizado: Cura e garante limite
+    heal(amt: number) { 
+        if (this.isFainted()) return; // Não cura mortos
+        this.currentHp = Math.min(this.maxHp, this.currentHp + amt); 
+    }
+
+    // Novo: Reviver com porcentagem
+    revive(percentage: number) {
+        if (!this.isFainted()) return; // Só revive mortos
+        const healAmount = Math.floor(this.maxHp * (percentage / 100));
+        this.currentHp = Math.max(1, healAmount); // Pelo menos 1 HP
+    }
     
     gainXp(amount: number, player: Player) { 
         if(this.level >= 15) return; 
-        
-        // Log global de XP para todos verem
         (window as any).Game.sendGlobalLog(`${this.name} ganhou ${amount} XP!`);
-
         this.currentXp += amount; 
         if(this.currentXp >= this.maxXp && !this.leveledUpThisTurn) { 
             this.currentXp -= this.maxXp; 
@@ -104,7 +114,6 @@ export class Pokemon {
         this.level++; 
         this.maxXp = this.level * 20; 
         this.recalculateStats(false);
-        
         if(player) {
              const Game = (window as any).Game;
              Game.sendGlobalLog(`🎉 ${this.name} subiu para o Nível ${this.level}! (+2 Status)`); 
@@ -119,7 +128,6 @@ export class Pokemon {
         do {
             evolved = this.checkEvolution(null, true); 
         } while (evolved);
-        
         this.recalculateStats(true); 
     }
 
@@ -138,7 +146,6 @@ export class Pokemon {
                 if(player && !silent) { 
                     const Game = (window as any).Game;
                     const Cards = (window as any).Cards;
-
                     Game.sendGlobalLog(`✨ ${oldName} evoluiu para ${this.name}! (HP Restaurado)`); 
                     if (this.level === 8) { 
                         if(Cards) { Cards.draw(player); Cards.draw(player); }

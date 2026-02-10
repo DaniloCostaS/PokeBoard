@@ -116,6 +116,7 @@
             <div class="panel-box extra-space">
                 <button class="btn btn-secondary" onclick="window.Game.openCardLibrary()">📖 Ver Todas as Cartas</button>
                 <button class="btn btn-secondary" style="background: #27ae60;" onclick="window.Game.openXpRules()">📘 Regras de XP</button>
+                <button class="btn btn-secondary" style="background: #e67e22;" onclick="window.Game.openCaptureRules()">🦅 Regras de Captura</button>
                 <div style="margin-top:10px; font-size:0.7rem; color:#aaa;">DEBUG MOVE</div>
                 <div style="display:flex; gap:5px; justify-content:center;">
                     <input type="number" id="debug-input" value="1" min="1" max="50" style="width:50px; text-align:center; border:none; padding:5px; border-radius:4px;">
@@ -154,6 +155,28 @@
     </div>
 
     <div id="xp-rules-modal" class="modal-overlay"><div class="modal-box" style="text-align: left;"><h3 style="text-align:center; color: var(--gold);">⭐ Regras de XP & Nível</h3><ul style="font-size: 0.9rem; line-height: 1.5;"><li><strong>Nível Máximo:</strong> 15 (Max 1 level por turno)</li><li><strong>Volta no Mapa:</strong> +200G e +1 Carta</li><hr style="border-color:#eee; margin: 5px 0;"><li><strong>Movimento:</strong> +1 XP (Aleatório no time)</li><li><strong>PvP:</strong> Vitória +15 XP | Derrota +5 XP</li><li><strong>NPC:</strong> Vitória +10 XP | Derrota +3 XP</li><li><strong>Ginásio:</strong> Vitória +25 XP | Derrota +8 XP</li><li><strong>Selvagem:</strong> Vitória +5 XP | Fuga +2 XP | Captura +3 XP Bônus</li><hr style="border-color:#eee; margin: 5px 0;"><li><strong>Bônus Desafio:</strong> +5 XP ao vencer oponente 2+ níveis acima.</li></ul><button class="btn btn-secondary mt-15" onclick="document.getElementById('xp-rules-modal').style.display='none'">Fechar</button></div></div>
+    
+    <div id="capture-rules-modal" class="modal-overlay">
+        <div class="modal-box" style="text-align: left;">
+            <h3 style="text-align:center; color: #e67e22;">🦅 Regras de Captura</h3>
+            <ul style="font-size: 0.9rem; line-height: 1.5;">
+                <li><strong>Base:</strong> Pokébola (10%), Great (20%), Ultra (30%)</li>
+                <hr style="border-color:#eee; margin: 5px 0;">
+                <li><strong>HP &lt; 60%:</strong> +15% Chance</li>
+                <li><strong>HP &lt; 15%:</strong> +30% Chance</li>
+                <hr style="border-color:#eee; margin: 5px 0;">
+                <li><strong>Seu Nível > Selvagem:</strong> +5%</li>
+                <li><strong>Seu Nível &lt; Selvagem:</strong> -5%</li>
+                <hr style="border-color:#eee; margin: 5px 0;">
+                <li><strong>Lendário:</strong> -20% | <strong>Shiny:</strong> -10%</li>
+                <li><strong>Sorte (Dado):</strong> Pode variar de -9% a +10%</li>
+                <hr style="border-color:#eee; margin: 5px 0;">
+                <li><strong>Master Ball:</strong> 100% Garantido</li>
+            </ul>
+            <button class="btn btn-secondary mt-15" onclick="document.getElementById('capture-rules-modal').style.display='none'">Fechar</button>
+        </div>
+    </div>
+
     <div id="city-modal" class="modal-overlay"><div class="modal-box"><h2 style="color: #3498db;">🏙️ Centro Pokémon</h2><p>O que deseja fazer?</p><div style="display:flex; gap:10px; justify-content:center; margin-top:20px;"><button class="btn" style="background:#2ecc71;" onclick="window.Game.handleCityChoice('heal')">❤️ Curar</button><button class="btn btn-shop" onclick="window.Game.handleCityChoice('shop')">🛒 Loja</button></div></div></div>
     <div id="shop-modal" class="modal-overlay"><div class="modal-box"><h2 class="text-highlight">🛒 PokéMart</h2><p>Saldo: <span id="shop-gold" class="gold-text">0</span> G</p><div id="shop-items-list" class="scroll-list"></div><br><button class="btn btn-secondary" onclick="window.Shop.close()">Fechar</button></div></div>
     <div id="board-inventory-modal" class="modal-overlay"><div class="modal-box"><h3>🎒 Mochila</h3><div id="board-inventory-list" class="scroll-list"></div><button class="btn btn-secondary mt-15" onclick="document.getElementById('board-inventory-modal').style.display='none'">Fechar</button></div></div>
