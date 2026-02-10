@@ -40,31 +40,160 @@ class Pokemon {
     id: number; name: string; type: string;
     maxHp: number; currentHp: number; atk: number; def: number; speed: number;
     level: number; currentXp: number; maxXp: number;
-    isShiny: boolean; isLegendary: boolean; wins: number; evoData: any; leveledUpThisTurn: boolean = false;
+    isShiny: boolean; isLegendary: boolean; wins: number; 
+    evoData: any; 
+    leveledUpThisTurn: boolean = false;
+    
+    // Armazena a variância (IVs) e Status Base para recálculos
+    ivs: { hp: number, atk: number, def: number, spd: number };
+    baseStats: { hp: number, atk: number, def: number, spd: number };
 
-    constructor(templateId: number, isShiny: boolean = false) {
-        const template = POKEDEX.find(p => p.id === templateId) || POKEDEX[0];
-        this.id = template.id; this.name = template.name; this.isShiny = isShiny;
-        this.type = template.type; this.isLegendary = !!template.isLegendary;
-        this.level = 1; this.currentXp = 0; this.maxXp = 20;
-        const bonus = isShiny ? 1.2 : 1.0;
-        this.maxHp = Math.floor((template.hp + 20) * bonus); this.currentHp = this.maxHp;
-        this.atk = Math.floor((template.atk + 5) * bonus);
-        this.def = Math.floor((template.atk * 0.8) * bonus); 
-        this.speed = Math.floor((template.atk * 0.9) * bonus);
-        this.wins = 0; 
+    constructor(templateId: number, targetLevel: number = 1, forceShiny: boolean | null = null) {
+        // Regra 3: Auto-Evolução na criação (recursivo/iterativo)
+        let template = POKEDEX.find(p => p.id === templateId) || POKEDEX[0];
+        
+        // Verifica se nasce evoluído baseada no targetLevel
+        while (template.nextForm && template.evoTrigger && targetLevel >= template.evoTrigger) {
+            const next = POKEDEX.find(p => p.name === template.nextForm);
+            if (next) template = next;
+            else break;
+        }
+
+        this.id = template.id; 
+        this.name = template.name; 
+        this.type = template.type; 
+        this.isLegendary = !!template.isLegendary;
+        
+        // Regra 1: Chance de Shiny (3%) se não for forçado
+        if (forceShiny !== null) {
+            this.isShiny = forceShiny;
+        } else {
+            this.isShiny = Math.random() < 0.03;
+        }
+
+        this.level = targetLevel; 
+        this.currentXp = 0; 
+        this.maxXp = this.level * 20;
+        this.wins = 0;
         this.evoData = { 
             next: template.nextForm || null, 
             trigger: template.evoTrigger || null 
         };
+
+        // Regra 2: Status Base + Variância (0 a 5)
+        this.baseStats = {
+            hp: template.hp,
+            atk: template.atk,
+            def: template.def,
+            spd: template.spd
+        };
+
+        this.ivs = {
+            hp: Math.floor(Math.random() * 6),  // 0 a 5
+            atk: Math.floor(Math.random() * 6),
+            def: Math.floor(Math.random() * 6),
+            spd: Math.floor(Math.random() * 6)
+        };
+
+        // Inicializa status calculados
+        this.maxHp = 0; this.currentHp = 0; this.atk = 0; this.def = 0; this.speed = 0;
+        this.recalculateStats(true); // true = full heal on init
     }
+
+    // Regra 2 e 4: Cálculo de Status
+    // Base + Variância + Bônus Shiny + (Level-1)*2
+    recalculateStats(resetHp: boolean = false) {
+        const shinyBonus = this.isShiny ? 1.1 : 1.0; // Pequeno bônus fixo para shiny (opcional, ajustado para 10%)
+        const levelBonus = (this.level - 1) * 2; // Regra 4: +2 por level
+
+        const calc = (base: number, iv: number) => Math.floor((base + iv + levelBonus) * shinyBonus);
+
+        const oldMaxHp = this.maxHp;
+        
+        // Tirei o + 20 do HP
+        this.maxHp = calc(this.baseStats.hp, this.ivs.hp) ; // +20 base health boost para o jogo não ser hit-kill
+        this.atk = calc(this.baseStats.atk, this.ivs.atk);
+        this.def = calc(this.baseStats.def, this.ivs.def);
+        this.speed = calc(this.baseStats.spd, this.ivs.spd);
+
+        if (resetHp) {
+            this.currentHp = this.maxHp;
+        } else {
+            // Mantém o dano proporcional ou aumenta o HP atual pela diferença do MaxHP ganho
+            this.currentHp += (this.maxHp - oldMaxHp);
+        }
+    }
+
     getSprite() { return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${this.isShiny ? 'shiny/' : ''}${this.id}.png`; }
     isFainted() { return this.currentHp <= 0; }
     heal(amt: number) { this.currentHp = Math.min(this.maxHp, this.currentHp + amt); }
-    gainXp(amount: number, player: Player) { if(this.level >= 15) return; this.currentXp += amount; if(this.currentXp >= this.maxXp && !this.leveledUpThisTurn) { this.currentXp -= this.maxXp; this.levelUp(player); this.leveledUpThisTurn = true; } }
-    levelUp(player: Player | null) { this.level++; this.maxHp += 5; this.currentHp = this.maxHp; this.atk += 2; this.def += 1; this.maxXp = this.level * 20; if(player) Game.log(`${this.name} subiu para o Nível ${this.level}!`); this.checkEvolution(player); }
-    forceLevel(targetLevel: number) { while(this.level < targetLevel) { this.levelUp(null); } this.currentHp = this.maxHp; }
-    checkEvolution(player: Player | null): boolean { if (this.evoData.next && this.level >= (this.evoData.trigger || 999)) { const next = POKEDEX.find(p => p.name === this.evoData.next); if (next) { const oldName = this.name; this.id = next.id; this.name = next.name; this.type = next.type; this.maxHp += 30; this.currentHp = this.maxHp; this.atk += 10; this.def += 5; this.evoData = { next: next.nextForm, trigger: next.evoTrigger }; if(player) { Game.log(`✨ ${oldName} evoluiu para ${this.name}! (HP Restaurado)`); if (this.level === 8) { Cards.draw(player); Cards.draw(player); Game.log("Bônus Evolução: Ganhou 2 Cartas!"); } else if (this.level === 5 || this.level === 10) { Cards.draw(player); Game.log("Bônus Evolução: Ganhou 1 Carta!"); } } return true; } } return false; }
+    
+    gainXp(amount: number, player: Player) { 
+        if(this.level >= 15) return; 
+        this.currentXp += amount; 
+        if(this.currentXp >= this.maxXp && !this.leveledUpThisTurn) { 
+            this.currentXp -= this.maxXp; 
+            this.levelUp(player); 
+            this.leveledUpThisTurn = true; 
+        } 
+    }
+
+    levelUp(player: Player | null) { 
+        this.level++; 
+        this.maxXp = this.level * 20; 
+        this.recalculateStats(false); // Regra 4 aplicada no recalculo
+        
+        if(player) Game.log(`${this.name} subiu para o Nível ${this.level}! (+2 Status)`); 
+        this.checkEvolution(player); 
+    }
+
+    forceLevel(targetLevel: number) { 
+        this.level = targetLevel;
+        this.maxXp = this.level * 20;
+        // Verifica se precisa evoluir devido ao force level
+        let evolved = false;
+        do {
+            evolved = this.checkEvolution(null, true); // true = silent logic check without logs
+        } while (evolved);
+        
+        this.recalculateStats(true); 
+    }
+
+    checkEvolution(player: Player | null, silent: boolean = false): boolean { 
+        if (this.evoData.next && this.level >= (this.evoData.trigger || 999)) { 
+            const next = POKEDEX.find(p => p.name === this.evoData.next); 
+            if (next) { 
+                const oldName = this.name; 
+                this.id = next.id; 
+                this.name = next.name; 
+                this.type = next.type; 
+                
+                // Regra 3: Assume novos status base e aplica variância novamente
+                this.baseStats = { hp: next.hp, atk: next.atk, def: next.def, spd: next.spd };
+                // Opcional: Rerolar IVs na evolução? O prompt diz "pode vir com até +5". 
+                // Vamos manter os IVs originais (genética) ou rerolar? 
+                // A regra diz "Cada status da evolução também pode vir com até +5", sugere reroll ou manter a lógica.
+                // Vamos manter os IVs para simular "mesmo pokemon crescendo", mas aplicar sobre a nova base.
+                
+                this.evoData = { next: next.nextForm, trigger: next.evoTrigger }; 
+                
+                this.recalculateStats(true); // Regra 3: Evoluir cura (Reset HP)
+
+                if(player && !silent) { 
+                    Game.log(`✨ ${oldName} evoluiu para ${this.name}! (HP Restaurado)`); 
+                    if (this.level === 8) { 
+                        Cards.draw(player); Cards.draw(player); 
+                        Game.log("Bônus Evolução: Ganhou 2 Cartas!"); 
+                    } else if (this.level === 5 || this.level === 10) { 
+                        Cards.draw(player); 
+                        Game.log("Bônus Evolução: Ganhou 1 Carta!"); 
+                    } 
+                } 
+                return true; 
+            } 
+        } 
+        return false; 
+    }
 }
 
 class Player {
@@ -78,10 +207,10 @@ class Player {
         this.avatar = `/assets/img/Treinadores/${avatarFile}`;
         
         if(!isLoadMode && name !== "_LOAD_") {
+            // Iniciais também seguem regra de stats (Level 1)
             const starters = [1, 4, 7, 25]; 
             const randomStarterId = starters[Math.floor(Math.random() * starters.length)];
-            const isShiny = Math.random() < 0.05;
-            this.team.push(new Pokemon(randomStarterId, isShiny));
+            this.team.push(new Pokemon(randomStarterId, 1, null)); 
         }
     }
     isDefeated() { return this.getBattleTeam(false).length === 0 || this.getBattleTeam(false).every(p => p.isFainted()); }
@@ -245,10 +374,15 @@ class Network {
         if (data.map) { MapSystem.size = data.map.size; MapSystem.grid = data.map.grid; MapSystem.gymLocations = data.map.gymLocations || {}; } else { return; } 
         const playerArray = Object.values(data.players).map((pd: any) => { 
             const pl = new Player(pd.id, pd.name, pd.avatar, true); 
-            // CORREÇÃO: Copia explicitamente a posição e dados salvos
             pl.x = pd.x; pl.y = pd.y; pl.gold = pd.gold; 
             pl.badges = pd.badges || [false,false,false,false,false,false,false,false];
-            if(pd.team && pd.team.length > 0) { pl.team = pd.team.map((td: any) => { const po = new Pokemon(td.id, td.isShiny); Object.assign(po, td); return po; }); } 
+            if(pd.team && pd.team.length > 0) { 
+                pl.team = pd.team.map((td: any) => { 
+                    const po = new Pokemon(td.id, td.level, td.isShiny); 
+                    Object.assign(po, td); 
+                    return po; 
+                }); 
+            } 
             if (pd.items) pl.items = pd.items; 
             return pl; 
         }); 
@@ -258,7 +392,7 @@ class Network {
         Game.init(playerArray, MapSystem.size); 
         this.setupGameLoopListener(); 
     }
-    static setupGameLoopListener() { if (this.isListenerActive) return; this.isListenerActive = true; onValue(ref(db, `rooms/${this.currentRoomId}/lastAction`), (snapshot) => { const action = snapshot.val(); if(!action || action.type === 'INIT') return; this.handleRemoteAction(action); }); onValue(ref(db, `rooms/${this.currentRoomId}/turn`), (snapshot) => { const turn = snapshot.val(); if(turn !== null) { Game.turn = turn; Game.updateHUD(); Game.checkTurnControl(); } }); onValue(ref(db, `rooms/${this.currentRoomId}/players`), (snapshot) => { const playersData = snapshot.val(); if(!playersData) return; Object.values(playersData).forEach((pd: any) => { const localPlayer = Game.players.find(p => p.id === pd.id); if(localPlayer) { localPlayer.x = pd.x; localPlayer.y = pd.y; localPlayer.gold = pd.gold; if(pd.items) localPlayer.items = pd.items; if(pd.team) { pd.team.forEach((tData: any, idx: number) => { if(localPlayer.team[idx]) Object.assign(localPlayer.team[idx], tData); }); if(pd.team.length > localPlayer.team.length) { for(let i = localPlayer.team.length; i < pd.team.length; i++) { const tData = pd.team[i]; const po = new Pokemon(tData.id, tData.isShiny); Object.assign(po, tData); localPlayer.team.push(po); } } } } }); Game.updateHUD(); }); }
+    static setupGameLoopListener() { if (this.isListenerActive) return; this.isListenerActive = true; onValue(ref(db, `rooms/${this.currentRoomId}/lastAction`), (snapshot) => { const action = snapshot.val(); if(!action || action.type === 'INIT') return; this.handleRemoteAction(action); }); onValue(ref(db, `rooms/${this.currentRoomId}/turn`), (snapshot) => { const turn = snapshot.val(); if(turn !== null) { Game.turn = turn; Game.updateHUD(); Game.checkTurnControl(); } }); onValue(ref(db, `rooms/${this.currentRoomId}/players`), (snapshot) => { const playersData = snapshot.val(); if(!playersData) return; Object.values(playersData).forEach((pd: any) => { const localPlayer = Game.players.find(p => p.id === pd.id); if(localPlayer) { localPlayer.x = pd.x; localPlayer.y = pd.y; localPlayer.gold = pd.gold; if(pd.items) localPlayer.items = pd.items; if(pd.team) { pd.team.forEach((tData: any, idx: number) => { if(localPlayer.team[idx]) Object.assign(localPlayer.team[idx], tData); }); if(pd.team.length > localPlayer.team.length) { for(let i = localPlayer.team.length; i < pd.team.length; i++) { const tData = pd.team[i]; const po = new Pokemon(tData.id, tData.level, tData.isShiny); Object.assign(po, tData); localPlayer.team.push(po); } } } } }); Game.updateHUD(); }); }
     static handleRemoteAction(action: any) { switch(action.type) { case 'ROLL': Game.animateDice(action.payload.result, action.playerId); break; case 'MOVE_ANIMATION': Game.performVisualStep(action.payload.playerId, action.payload.x, action.payload.y); break; case 'BATTLE_START': Battle.startFromNetwork(action.payload); break; case 'BATTLE_UPDATE': Battle.updateFromNetwork(action.payload); break; case 'BATTLE_END': Battle.end(true); break; case 'LOG': Game.log(action.payload.msg); break; case 'PLAYER_SYNC': Game.moveVisuals(); Game.updateHUD(); break; } }
     static sendAction(type: string, payload: any) { if(!this.isOnline) return; const actionData = { type: type, payload: payload, playerId: this.myPlayerId, timestamp: Date.now() }; update(ref(db, `rooms/${this.currentRoomId}`), { lastAction: actionData }); }
     static syncPlayerState() { if(!this.isOnline) return; const p = Game.players[this.myPlayerId]; update(ref(db, `rooms/${this.currentRoomId}/players/${this.myPlayerId}`), { x: p.x, y: p.y, gold: p.gold, team: p.team, items: p.items }); }
@@ -282,16 +416,25 @@ class Battle {
         this.battleTitle = isPvP ? "Batalha PvP!" : `Batalha contra ${_label}!`;
 
         this.plyTeamList = player.getBattleTeam(isGym).slice(0, isGym ? 6 : 3);
-        if (isPvP && enemyPlayer) { this.oppTeamList = enemyPlayer.getBattleTeam(false); this.opponent = this.oppTeamList[0]; } 
+        if (isPvP && enemyPlayer) { 
+            this.oppTeamList = enemyPlayer.getBattleTeam(false); 
+            this.opponent = this.oppTeamList[0]; 
+        } 
         else if (isGym) {
+            // Se for ginásio, cria o time baseado na data do ginásio, mas com nível ajustado
             const gymData = GYM_DATA.find(g => g.id === gymId);
+            const globalAvg = Game.getGlobalAverageLevel();
+            const gymLevel = globalAvg + 1; // Regra 5: Média + 1
+            
             if(gymData) {
-                const allPokemons = Game.players.flatMap(p => p.team);
-                const avgLvl = Math.floor(allPokemons.reduce((sum, p) => sum + p.level, 0) / allPokemons.length) + 1;
-                this.oppTeamList = gymData.teamIds.map(id => { const p = new Pokemon(id); p.forceLevel(avgLvl); return p; });
+                this.oppTeamList = gymData.teamIds.map(id => new Pokemon(id, gymLevel, false));
                 this.opponent = this.oppTeamList[0];
-            } else { this.oppTeamList = [enemyMon]; this.opponent = enemyMon; }
-        } else { this.oppTeamList = [enemyMon]; this.opponent = enemyMon; }
+            } else { 
+                this.oppTeamList = [enemyMon]; this.opponent = enemyMon; 
+            }
+        } else { 
+            this.oppTeamList = [enemyMon]; this.opponent = enemyMon; 
+        }
 
         if(this.plyTeamList.length === 0) { alert("Você não tem Pokémons vivos!"); Battle.lose(); return; }
         
@@ -331,7 +474,7 @@ class Battle {
         this.active = true; 
         this.player = Game.players[payload.pId];
         this.activeMon = this.player.team[payload.monIdx];
-        this.opponent = new Pokemon(payload.oppData.id, payload.oppData.isShiny);
+        this.opponent = new Pokemon(payload.oppData.id, payload.oppData.level, payload.oppData.isShiny);
         Object.assign(this.opponent, payload.oppData);
         this.isPvP = payload.isPvP; 
         this.isGym = payload.isGym; 
@@ -433,7 +576,7 @@ class Battle {
         document.getElementById('ply-shiny-tag')!.style.display = this.activeMon.isShiny ? 'inline-block' : 'none';
         document.getElementById('ply-stats')!.innerHTML = `<span>⚔️${this.activeMon.atk}</span> <span>🛡️${this.activeMon.def}</span> <span>💨${this.activeMon.speed}</span>`;
 
-        // Opponent UI - NOME É O DO POKEMON, NÃO DO NPC
+        // Opponent UI
         document.getElementById('opp-name')!.innerText = this.opponent.name;
         document.getElementById('opp-lvl')!.innerText = `Lv.${this.opponent.level}`;
         (document.getElementById('opp-img') as HTMLImageElement).src = this.opponent.getSprite();
@@ -452,7 +595,6 @@ class Battle {
             if(gData) oppTrainer.src = `/assets/img/LideresGym/${gData.leaderImg}`; 
             oppTrainer.style.display = 'block'; 
         } else if (this.isNPC) { 
-            // CORREÇÃO: Ícone do NPC
             const npcImg = (this.opponent as any)._npcImage;
             if (npcImg) {
                 oppTrainer.src = npcImg; 
@@ -528,7 +670,6 @@ class Game {
     static turn: number = 0; 
     static isCityEvent: boolean = false; 
     static hasRolled: boolean = false; 
-    static globalGymLevel: number = 1; 
 
     static init(players: Player[], mapSize: number) {
         this.players = players;
@@ -551,6 +692,47 @@ class Game {
         this.renderDebugPanel(); 
     }
     
+    // Regra 5: Média de nível Global
+    static getGlobalAverageLevel(): number {
+        if (!this.players || this.players.length === 0) return 1;
+        let totalLevels = 0;
+        let totalMons = 0;
+        
+        this.players.forEach(p => {
+            p.team.forEach(m => {
+                totalLevels += m.level;
+                totalMons++;
+            });
+        });
+
+        if (totalMons === 0) return 1;
+        return Math.floor(totalLevels / totalMons);
+    }
+    
+    // Regra 1: Geração de Selvagens (Stage 1, Lendários 2%, Shiny 3%)
+    static generateWildPokemon(): Pokemon {
+        // Filtra Pokedex apenas Stage 1
+        const stage1Mons = POKEDEX.filter(p => p.stage === 1);
+        const legendaries = stage1Mons.filter(p => p.isLegendary);
+        const regulars = stage1Mons.filter(p => !p.isLegendary);
+
+        let chosenTemplate;
+        
+        // Chance de Lendário 2%
+        if (Math.random() < 0.02 && legendaries.length > 0) {
+            chosenTemplate = legendaries[Math.floor(Math.random() * legendaries.length)];
+        } else {
+            chosenTemplate = regulars[Math.floor(Math.random() * regulars.length)];
+        }
+        
+        // Regra 5: Nível médio global
+        let level = this.getGlobalAverageLevel();
+        // Garante mínimo level 1
+        if (level < 1) level = 1;
+
+        return new Pokemon(chosenTemplate.id, level, null); // null = rola shiny 3% na classe
+    }
+
     static renderDebugPanel() {
         const container = document.querySelector('.extra-space');
         if(container) {
@@ -591,7 +773,7 @@ class Game {
     static performVisualStep(pId: number, x: number, y: number) { const p = this.players[pId]; if(!p) return; p.x = x; p.y = y; const tile = document.getElementById(`tile-${x}-${y}`); if(tile) { tile.classList.add('step-highlight'); this.moveVisuals(); setTimeout(() => tile.classList.remove('step-highlight'), 300); } }
     
     static handleTile(p: Player) {
-        if (Battle.active) return; // CORREÇÃO BUG 2: Impede nova batalha se já houver uma
+        if (Battle.active) return; 
 
         const type = MapSystem.grid[p.y][p.x];
         const enemy = this.players.find(o => o !== p && o.x === p.x && o.y === p.y);
@@ -608,15 +790,28 @@ class Game {
             else if (type === TILE.YOUNG) npcImg = '/assets/img/NPCs/Jovem.jpg';
             else if (type === TILE.OLD) npcImg = '/assets/img/NPCs/Velho.jpg';
             
-            Battle.setup(p, new Pokemon(monId), false, npc.name, npc.gold, null, false, 0, npcImg); 
+            // Regra 5: Nível NPC = Média Global
+            const npcLevel = this.getGlobalAverageLevel();
+            
+            Battle.setup(p, new Pokemon(monId, npcLevel, null), false, npc.name, npc.gold, null, false, 0, npcImg); 
             return; 
         }
         
         if(type === TILE.CITY) { this.isCityEvent = true; document.getElementById('city-modal')!.style.display='flex'; }
         else if(type === TILE.EVENT) { if(Math.random() < 0.5) { Cards.draw(p); } else { const gift = Math.random() > 0.5 ? 'pokeball' : 'potion'; p.items[gift]++; this.log(`Achou ${gift}!`); this.updateHUD(); if(Network.isOnline) Network.syncPlayerState(); } this.nextTurn(); }
-        else if(type === TILE.GYM) { const gymId = MapSystem.gymLocations[`${p.x},${p.y}`] || 1; if (!p.badges[gymId-1]) { const boss = new Pokemon(150, true); Battle.setup(p, boss, false, "Líder de Ginásio", 1000, null, true, gymId); } else { this.log("Você já venceu este ginásio!"); this.nextTurn(); } }
-        else if([TILE.GRASS, TILE.WATER, TILE.GROUND].includes(type) && Math.random() < 0.8) { // AJUSTE 3: Taxa 80% (0.8)
-            let possibleMons = [1, 4, 7, 25]; if(type === TILE.GROUND) possibleMons = [74, 95]; const id = possibleMons[Math.floor(Math.random()*possibleMons.length)]; Battle.setup(p, new Pokemon(id, Math.random()<0.1), false, "Selvagem"); 
+        else if(type === TILE.GYM) { 
+            const gymId = MapSystem.gymLocations[`${p.x},${p.y}`] || 1; 
+            if (!p.badges[gymId-1]) { 
+                // A lógica de criação do time do ginásio agora está dentro de Battle.setup para pegar a média atualizada
+                Battle.setup(p, new Pokemon(150, 1, false), false, "Líder de Ginásio", 1000, null, true, gymId); 
+            } else { 
+                this.log("Você já venceu este ginásio!"); this.nextTurn(); 
+            } 
+        }
+        else if([TILE.GRASS, TILE.WATER, TILE.GROUND].includes(type) && Math.random() < 0.8) { 
+            // Regra 1: Usa o gerador de selvagens
+            const wildMon = this.generateWildPokemon();
+            Battle.setup(p, wildMon, false, "Selvagem"); 
         } 
         else { this.nextTurn(); }
     }
@@ -635,7 +830,7 @@ class Game {
     static loadGame() { const json=localStorage.getItem('pk_save'); if(json) this.loadGameFromData(JSON.parse(json)); }
     static loadGameFromData(d: any) { 
         MapSystem.size=d.mapSize; MapSystem.grid=d.grid; MapSystem.gymLocations=d.gymLoc || {};
-        this.players = d.players.map((pd:any) => { const file = pd.avatar.split('/').pop(); const pl = new Player(pd.id, pd.name, file, true); Object.assign(pl, pd); pl.avatar = `/assets/img/Treinadores/${file}`; pl.team = pd.team.map((td:any) => { const po=new Pokemon(td.id, td.isShiny); Object.assign(po, td); return po; }); return pl; });
+        this.players = d.players.map((pd:any) => { const file = pd.avatar.split('/').pop(); const pl = new Player(pd.id, pd.name, file, true); Object.assign(pl, pd); pl.avatar = `/assets/img/Treinadores/${file}`; pl.team = pd.team.map((td:any) => { const po=new Pokemon(td.id, td.level, td.isShiny); Object.assign(po, td); return po; }); return pl; });
         this.turn = d.turn; document.getElementById('setup-screen')!.style.display='none'; document.getElementById('game-container')!.style.display='flex';
         Game.init(this.players, d.mapSize);
     }
@@ -651,7 +846,7 @@ class Game {
     static log(m: string) { document.getElementById('log-container')!.insertAdjacentHTML('afterbegin', `<div class="log-entry">${m}</div>`); }
 }
 
-// BINDING GLOBAL ATUALIZADO E SEGURO
+// BINDING GLOBAL
 window.openInventory = (id) => Game.openInventoryModal(id);
 window.openCards = (id) => { if(Network.isOnline && id !== Network.myPlayerId) return alert("Privado!"); Cards.showPlayerCards(id); };
 window.openCardLibrary = () => Game.openCardLibrary();
@@ -662,11 +857,9 @@ window.Shop = Shop;
 window.Battle = Battle; 
 window.Network = Network;
 
-// Inicia os slots apenas se o DOM estiver pronto
 document.addEventListener('DOMContentLoaded', () => {
     Setup.updateSlots();
 });
-// Fallback
 if (document.readyState === "complete" || document.readyState === "interactive") {
     Setup.updateSlots();
 }
