@@ -76,14 +76,14 @@ export class Game {
     }
     static handleCityChoice(c: string) { if(c==='heal') { this.getCurrentPlayer().team.forEach(p=>p.heal(999)); this.isCityEvent=false; if(Network.isOnline) Network.syncPlayerState(); this.nextTurn(); } else Shop.open(); document.getElementById('city-modal')!.style.display='none'; }
 
-    // ===============================================
-    // NOVA LOGICA DE TURNO (ONLINE SAFE)
-    // ===============================================
     static nextTurn() {
         this.saveGame(); 
         
         const currentP = this.getCurrentPlayer();
-        // Turno Extra
+        
+        // CORREÇÃO CRÍTICA: Reseta a flag de nível para o próximo turno
+        currentP.resetTurnFlags();
+
         if (currentP.effects.extraTurn) {
             currentP.effects.extraTurn = false;
             this.hasRolled = false;
@@ -93,16 +93,12 @@ export class Game {
             return;
         }
 
-        // Avança o turno
         this.turn = (this.turn+1)%this.players.length; 
         this.hasRolled = false; 
         
         if(Network.isOnline) { 
-            // Apenas atualiza o ponteiro do turno no banco.
-            // O jogador que RECEBER o turno cuidará de verificar se está punido (em checkTurnControl)
             Network.syncTurn(this.turn); 
         } else {
-            // Modo Offline: Mantém a lógica recursiva
             const nextP = this.players[this.turn];
             if(nextP.skipTurns > 0) { 
                 nextP.skipTurns--; 
@@ -118,9 +114,6 @@ export class Game {
         this.checkTurnControl();
     }
     
-    // ===============================================
-    // CONTROLE DE TURNO (AUTO-PUNIÇÃO ONLINE)
-    // ===============================================
     static checkTurnControl() { 
         const btn = document.getElementById('roll-btn') as HTMLButtonElement; 
         const me = Network.myPlayerId; 
@@ -129,25 +122,21 @@ export class Game {
         if(Network.isOnline) { 
             if(ind) ind.innerText = "FIREBASE"; 
             if (this.turn === me) { 
-                // É MINHA VEZ. VERIFICO SE ESTOU PUNIDO.
                 const myPlayer = this.players[me];
                 
                 if (myPlayer.skipTurns > 0) {
-                    // Estou punido. Eu mesmo aplico a punição e passo a vez.
                     btn.disabled = true;
                     btn.innerText = `Pulando vez... (${myPlayer.skipTurns})`;
                     
-                    // Delay para feedback visual
                     setTimeout(() => {
                          myPlayer.skipTurns--;
                          this.sendGlobalLog(`${myPlayer.name} perdeu a vez! (Restam: ${myPlayer.skipTurns})`);
-                         Network.syncPlayerState(); // Salva que diminuí a punição
-                         this.nextTurn(); // Passo a vez pro próximo
+                         Network.syncPlayerState();
+                         this.nextTurn(); 
                     }, 2000);
                     return;
                 }
 
-                // Não estou punido. Posso jogar.
                 btn.disabled = false; 
                 btn.innerText = "ROLAR"; 
             } else { 
@@ -185,7 +174,6 @@ export class Game {
         document.getElementById('swap-modal')!.style.display = 'none'; 
         Game.updateHUD(); 
         
-        // CORREÇÃO: Sync após troca
         if(Network.isOnline) Network.syncPlayerState();
         
         setTimeout(() => Battle.end(false), 500); 

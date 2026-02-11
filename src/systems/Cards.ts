@@ -11,6 +11,7 @@ export class Cards {
         player.cards.push(card); 
         Game.sendGlobalLog(`🃏 ${player.name} ganhou a carta: ${card.icon} ${card.name}`); 
         Game.updateHUD(); 
+        
         if(Network.isOnline) Network.syncPlayerState(); 
     }
     
@@ -66,8 +67,10 @@ export class Cards {
                     Game.moveVisuals();
                     Game.sendGlobalLog(`🔀 ${player.name} trocou de lugar com ${target.name}!`);
                     
-                    // CORREÇÃO: Sync do alvo também
-                    if(Network.isOnline) Network.syncSpecificPlayer(targetId);
+                    if(Network.isOnline) {
+                        Network.syncPlayerState();
+                        Network.syncSpecificPlayer(target.id); // Sincroniza o alvo também
+                    }
                 } else { this.openTargetSelection(cardId); consumed = false; }
                 break;
 
@@ -76,7 +79,7 @@ export class Cards {
                     const target = Game.players[targetId];
                     target.effects.slow = 3;
                     Game.sendGlobalLog(`🕸️ ${target.name} está lento por 3 turnos!`);
-                    if(Network.isOnline) Network.syncSpecificPlayer(targetId);
+                    if(Network.isOnline) Network.syncSpecificPlayer(target.id);
                 } else { this.openTargetSelection(cardId); consumed = false; }
                 break;
 
@@ -88,7 +91,11 @@ export class Cards {
                         const stolenCard = target.cards.splice(stolenIdx, 1)[0];
                         player.cards.push(stolenCard);
                         Game.sendGlobalLog(`🚀 ${player.name} roubou ${stolenCard.name} de ${target.name}!`);
-                        if(Network.isOnline) Network.syncSpecificPlayer(targetId);
+                        
+                        if(Network.isOnline) {
+                            Network.syncPlayerState();
+                            Network.syncSpecificPlayer(target.id);
+                        }
                     } else { Game.log("O alvo não tinha cartas!"); }
                 } else { this.openTargetSelection(cardId); consumed = false; }
                 break;
@@ -98,16 +105,16 @@ export class Cards {
                     const target = Game.players[targetId];
                     target.effects.curse = true; 
                     Game.sendGlobalLog(`☠️ ${target.name} foi amaldiçoado!`);
-                    if(Network.isOnline) Network.syncSpecificPlayer(targetId);
+                    if(Network.isOnline) Network.syncSpecificPlayer(target.id);
                 } else { this.openTargetSelection(cardId); consumed = false; }
                 break;
 
             case 'trade_fail': 
                 if (targetId !== null) {
                     const target = Game.players[targetId];
-                    target.skipTurns = 1; // Corrigido para skipTurns
+                    target.skipTurns = 1; 
                     Game.sendGlobalLog(`❌ ${target.name} perdeu a próxima vez!`);
-                    if(Network.isOnline) Network.syncSpecificPlayer(targetId);
+                    if(Network.isOnline) Network.syncSpecificPlayer(target.id);
                 } else { this.openTargetSelection(cardId); consumed = false; }
                 break;
 
@@ -123,7 +130,7 @@ export class Cards {
             // BATTLE CARDS
             case 'crit': Battle.activeEffects.crit = true; Battle.logBattle("💥 Dano Dobrado ativado!"); break;
             case 'master': 
-                if (player.items['pokeball'] > 0) { Battle.attemptCapture(CARDS_DB.find(c=>c.id==='master')); } // Usa item dummy master
+                if (player.items['pokeball'] > 0) { Battle.attemptCapture(CARDS_DB.find(c=>c.id==='master')); } 
                 else { alert("Você precisa de uma Pokébola!"); consumed = false; }
                 break;
             case 'run': Battle.logBattle("💨 Fugiu com estilo!"); Battle.end(false); break;
@@ -155,6 +162,7 @@ export class Cards {
             document.getElementById('board-cards-modal')!.style.display = 'none';
             document.getElementById('battle-cards-modal')!.style.display = 'none';
 
+            // Sync padrão para quem usou a carta
             if (Network.isOnline) {
                 Network.syncPlayerState();
                 Network.sendAction('LOG', { msg: `${player.name} usou ${cardData.name}!` });

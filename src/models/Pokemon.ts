@@ -86,27 +86,27 @@ export class Pokemon {
     
     isFainted() { return this.currentHp <= 0; }
     
-    // Atualizado: Cura e garante limite
     heal(amt: number) { 
-        if (this.isFainted()) return; // Não cura mortos
+        if (this.isFainted()) return; 
         this.currentHp = Math.min(this.maxHp, this.currentHp + amt); 
     }
 
-    // Novo: Reviver com porcentagem
     revive(percentage: number) {
-        if (!this.isFainted()) return; // Só revive mortos
+        if (!this.isFainted()) return; 
         const healAmount = Math.floor(this.maxHp * (percentage / 100));
-        this.currentHp = Math.max(1, healAmount); // Pelo menos 1 HP
+        this.currentHp = Math.max(1, healAmount); 
     }
     
     gainXp(amount: number, player: Player) { 
         if(this.level >= 15) return; 
         (window as any).Game.sendGlobalLog(`${this.name} ganhou ${amount} XP!`);
         this.currentXp += amount; 
+        
+        // CORREÇÃO: Respeita a flag de nível por turno
         if(this.currentXp >= this.maxXp && !this.leveledUpThisTurn) { 
             this.currentXp -= this.maxXp; 
             this.levelUp(player); 
-            this.leveledUpThisTurn = true; 
+            this.leveledUpThisTurn = true; // Impede múltiplos níveis no mesmo turno
         } 
     }
 

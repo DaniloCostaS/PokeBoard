@@ -19,15 +19,16 @@ export class Shop {
     
     static buy(id: string, price: number) { 
         const Game = (window as any).Game;
+        const Network = (window as any).Network;
         const p = Game.getCurrentPlayer(); 
         
         if(p.gold >= price) { 
             p.gold -= price; 
-            // CORREÇÃO: Usa a função centralizada para garantir adição correta
             Game.addItem(p, id, 1);
-            
             this.open(); 
-            // Não precisa chamar updateHUD/sync aqui pois o addItem já faz
+            
+            if(Network.isOnline) Network.syncPlayerState();
+
         } else {
             alert("Ouro insuficiente!");
         }

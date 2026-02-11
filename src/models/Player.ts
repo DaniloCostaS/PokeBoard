@@ -1,4 +1,5 @@
 import type { CardData } from '../constants';
+import { CARDS_DB } from '../constants'; // Import necessário para o sorteio
 import { Pokemon } from './Pokemon';
 
 export class Player {
@@ -8,14 +9,11 @@ export class Player {
     x: number = 0; 
     y: number = 0; 
     gold: number = 1000;
-    // Garante que items seja inicializado, mas a lógica de adição segura será no Game.addItem
-    items: {[key:string]:number} = {'pokeball': 6, 'potion': 1};
+    items: {[key:string]:number} = {};
     cards: CardData[] = []; 
     team: Pokemon[] = [];
     
-    // ALTERADO: De boolean para number para suportar múltiplas rodadas de penalidade
     skipTurns: number = 0; 
-    
     badges: boolean[] = [false,false,false,false,false,false,false,false];
 
     // Controles de efeitos
@@ -30,9 +28,24 @@ export class Player {
         this.avatar = `/assets/img/Treinadores/${avatarFile}`;
         
         if(!isLoadMode && name !== "_LOAD_") {
+            // 1. Recursos Iniciais
+            this.gold = 1000;
+            this.items = {
+                'pokeball': 6, 
+                'potion': 6,
+                'revive': 3
+            };
+
+            // 2. Sorteio de 3 Cartas (Exceto Master Ball)
+            const validCards = CARDS_DB.filter(c => c.id !== 'master');
+            for(let i=0; i<3; i++) {
+                const randomCard = validCards[Math.floor(Math.random() * validCards.length)];
+                this.cards.push(randomCard);
+            }
+
+            // 3. Pokemon Inicial (com chance de Shiny)
             const starters = [1, 4, 7, 25]; 
             const randomStarterId = starters[Math.floor(Math.random() * starters.length)];
-            // 20% de chance de shiny no inicial (Regra customizada)
             const isStarterShiny = Math.random() < 0.02;
             this.team.push(new Pokemon(randomStarterId, 1, isStarterShiny)); 
         }
@@ -40,5 +53,7 @@ export class Player {
     
     isDefeated() { return this.getBattleTeam(false).length === 0 || this.getBattleTeam(false).every(p => p.isFainted()); }
     getBattleTeam(isGymLimit: boolean) { const limit = isGymLimit ? 6 : 3; return this.team.filter(p => !p.isFainted()).slice(0, limit); }
+    
+    // CORREÇÃO: Reseta a flag de nível para permitir upar no próximo turno
     resetTurnFlags() { this.team.forEach(p => p.leveledUpThisTurn = false); }
 }
