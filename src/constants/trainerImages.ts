@@ -1,11 +1,11 @@
 export const TRAINER_IMAGES = [
-    { label: "Red", file: "Red.jpg" },
-    { label: "Blue", file: "Blue.jpg" },
-    { label: "Lucas", file: "Lucas.jpg"},
-    { label: "Dawn", file: "Dawn.jpg" },
-    { label: "Barry", file: "Barry.jpg" },
-    { label: "Brendan", file: "Brendan.jpg"},
-    { label: "May", file: "May.jpg" },
-    { label: "Ethan", file: "Ethan.jpg" },
-    { label: "OAK", file: "OAK.jpg" }
+    { label: "Red", file: "Red.png" },
+    { label: "Blue", file: "Blue.png" },
+    { label: "Lucas", file: "Lucas.png"},
+    { label: "Dawn", file: "Dawn.png" },
+    { label: "Barry", file: "Barry.png" },
+    { label: "Brendan", file: "Brendan.png"},
+    { label: "May", file: "May.png" },
+    { label: "Ethan", file: "Ethan.png" },
+    { label: "OAK", file: "Oak.png" }
 ];
