@@ -15,8 +15,8 @@ export const SHOP_ITEMS: ItemData[] = [
     { id: 'ultramaxrevive', name: 'Ultra Max Revive', icon: 'UltraMaxRevive.png', price: 3000, type: 'revive', val: 100 },
     
     // --- CAPTURA (CAPTURE) ---
-    { id: 'pokeball', name: 'Pokébola', icon: 'pokeball.png', price: 200, type: 'capture', rate: 10 },
-    { id: 'greatball', name: 'Great Ball', icon: 'greatBall.png', price: 500, type: 'capture', rate: 20 },
-    { id: 'ultraball', name: 'Ultra Ball', icon: 'ultraBall.png', price: 1000, type: 'capture', rate: 30 },
+    { id: 'pokeball', name: 'Pokébola', icon: 'pokeball.png', price: 200, type: 'capture', rate: 15 },
+    { id: 'greatball', name: 'Great Ball', icon: 'greatBall.png', price: 500, type: 'capture', rate: 30 },
+    { id: 'ultraball', name: 'Ultra Ball', icon: 'ultraBall.png', price: 1000, type: 'capture', rate: 50 },
     { id: 'masterball', name: 'Master Ball', icon: 'masterBall.png', price: 5000, type: 'capture', rate: 100 }
 ];

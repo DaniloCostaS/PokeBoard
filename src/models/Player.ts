@@ -7,7 +7,7 @@ export class Player {
     avatar: string; 
     x: number = 0; 
     y: number = 0; 
-    gold: number = 500;
+    gold: number = 1000;
     // Garante que items seja inicializado, mas a lógica de adição segura será no Game.addItem
     items: {[key:string]:number} = {'pokeball': 6, 'potion': 1};
     cards: CardData[] = []; 
@@ -33,7 +33,7 @@ export class Player {
             const starters = [1, 4, 7, 25]; 
             const randomStarterId = starters[Math.floor(Math.random() * starters.length)];
             // 20% de chance de shiny no inicial (Regra customizada)
-            const isStarterShiny = Math.random() < 0.2;
+            const isStarterShiny = Math.random() < 0.02;
             this.team.push(new Pokemon(randomStarterId, 1, isStarterShiny)); 
         }
     }
