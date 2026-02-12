@@ -24,14 +24,17 @@ export class Battle {
     static isPlayerTurn: boolean = false; 
     static processingAction: boolean = false; 
     static activeEffects: any = {};
+    static currentTerrain: number = 0;
 
-    static setup(player: Player, enemyMon: Pokemon, isPvP: boolean = false, _label: string = "", reward: number = 0, enemyPlayer: Player | null = null, isGym: boolean = false, gymId: number = 0, npcImage: string = "") {
+    static setup(player: Player, enemyMon: Pokemon, isPvP: boolean = false, _label: string = "", reward: number = 0, enemyPlayer: Player | null = null, isGym: boolean = false, gymId: number = 0, npcImage: string = "", terrainTile: number = 1) {
         const Game = (window as any).Game;
         this.player = player; this.isPvP = isPvP; this.isNPC = (reward > 0 && !isPvP); this.isGym = isGym; this.gymId = gymId; this.reward = reward; this.enemyPlayer = enemyPlayer; this.processingAction = false;
         this.activeEffects = {};
         this.battleTitle = isPvP ? "Batalha PvP!" : `Batalha contra ${_label}!`;
         this.plyTeamList = player.getBattleTeam(isGym).slice(0, isGym ? 6 : 3);
-        
+        // GUARDA O TERRENO ATUAL
+        this.currentTerrain = terrainTile;
+
         if (isPvP && enemyPlayer) { 
             this.oppTeamList = enemyPlayer.getBattleTeam(false); 
             this.opponent = this.oppTeamList[0]; 
@@ -188,8 +191,42 @@ export class Battle {
         this.updateUI();
     }
 
-    static renderBattleScreen() { document.getElementById('pkmn-select-modal')!.style.display = 'none'; document.getElementById('battle-modal')!.style.display = 'flex'; document.getElementById('battle-log-history')!.innerHTML = ''; document.getElementById('battle-title')!.innerText = this.battleTitle; this.updateButtons(); this.updateUI(); }
-    
+    //static renderBattleScreen() { document.getElementById('pkmn-select-modal')!.style.display = 'none'; document.getElementById('battle-modal')!.style.display = 'flex'; document.getElementById('battle-log-history')!.innerHTML = ''; document.getElementById('battle-title')!.innerText = this.battleTitle; this.updateButtons(); this.updateUI(); }
+    static renderBattleScreen() {
+        document.getElementById('pkmn-select-modal')!.style.display = 'none';
+        document.getElementById('battle-modal')!.style.display = 'flex';
+        document.getElementById('battle-log-history')!.innerHTML = '';
+        document.getElementById('battle-title')!.innerText = this.battleTitle;
+        
+        this.updateButtons();
+        this.updateUI();
+
+        // === LÓGICA DO BACKGROUND DINÂMICO ===
+        const scene = document.querySelector('.battle-scene') as HTMLElement;
+        
+        // Mapeamento: ID do Tile -> Nome da Imagem na pasta assets/img/Background/
+        // (Certifique-se que as imagens existem ou ajuste os nomes)
+        let bgImage = 'Default.jpg'; // Imagem padrão
+        
+        // Importe TILE se necessário ou use os números diretos: 
+        // 1:Grama, 2:Agua, 3:Areia, 5:Ginasio
+        switch(this.currentTerrain) {
+            case 1: bgImage = 'BatalhaTerrenoGrama.png'; break; // TILE.GRASS
+            case 2: bgImage = 'BatalhaTerrenoAgua.png'; break;   // TILE.WATER
+            case 3: bgImage = 'BatalhaTerrenoAreia.png'; break;  // TILE.GROUND
+            case 5: bgImage = 'BatalhaTerrenoGrama.png'; break; // TILE.GYM
+            default: bgImage = 'BatalhaTerrenoGrama.png'; break;    // Outros
+        }
+
+        // Se for Ginásio, podemos forçar uma arena específica
+       // if(this.isGym) bgImage = 'ArenaGym.jpg';
+
+        // Aplica a imagem
+        scene.style.backgroundImage = `url('/assets/img/Background/${bgImage}')`;
+        scene.style.backgroundSize = 'cover';
+        scene.style.backgroundPosition = 'center';
+    }
+
     static calculateDamage(attacker: Pokemon, defender: Pokemon, isPlayerAttacking: boolean): { damage: number, msg: string } { const d20 = Math.floor(Math.random() * 20) + 1; let rollModifier = 0; let isCritical = false; if (d20 >= 20) { rollModifier = +3; isCritical = true; } else if (d20 >= 16) rollModifier = +2; else if (d20 >= 11) rollModifier = +1; else if (d20 <= 2) rollModifier = -2; else if (d20 <= 5) rollModifier = -1; let defenseVal = defender.def; if (isCritical) defenseVal = Math.floor(defenseVal / 2); let base = Math.floor((attacker.atk / 5) - (defenseVal / 20)); base = Math.max(1, base); let rawMulti = 1; if (TYPE_CHART[attacker.type] && (TYPE_CHART[attacker.type] as any)[defender.type] !== undefined) { rawMulti = (TYPE_CHART[attacker.type] as any)[defender.type]; } const typeDamage = Math.floor(base * (rawMulti > 1 ? 1.5 : (rawMulti < 1 ? 0.75 : 1))); let finalDamage = Math.max(0, typeDamage + rollModifier); if (isPlayerAttacking) { if (this.activeEffects.crit) { finalDamage *= 2; } if (this.activeEffects.focus) { finalDamage *= 4; this.activeEffects.focus = false; } if (this.player?.effects.curse) { finalDamage = Math.floor(finalDamage / 2); } } else { if (this.activeEffects.guard) { finalDamage = Math.floor(finalDamage / 2); } if (this.enemyPlayer && this.enemyPlayer.effects.curse) { finalDamage = Math.floor(finalDamage / 2); } } let logDetails = `(🎲${d20})`; if (isCritical) logDetails += " 💥!"; if (rawMulti > 1) logDetails += " 🔥!"; else if (rawMulti < 1) logDetails += " 🛡️."; if (this.activeEffects.crit && isPlayerAttacking) logDetails += " [2x]"; if (this.activeEffects.focus && isPlayerAttacking) logDetails += " [4x]"; if (this.activeEffects.guard && !isPlayerAttacking) logDetails += " [🛡️]"; return { damage: finalDamage, msg: logDetails }; }
     
     static attack() { 

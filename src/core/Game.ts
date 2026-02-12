@@ -59,7 +59,7 @@ export class Game {
             const defMon = enemy.team.find(m => !m.isFainted()); 
             if(defMon) { 
                 this.sendGlobalLog(`⚔️ Conflito! ${p.name} vs ${enemy.name}`); 
-                Battle.setup(p, defMon, true, enemy.name, 0, enemy); 
+                Battle.setup(p, defMon, true, enemy.name, 0, enemy, false, 0, "", type); 
             } else { 
                 this.log(`${enemy.name} sem pokemons!`); 
                 this.nextTurn(); 
@@ -67,11 +67,33 @@ export class Game {
             return; 
         }
         
-        if(NPC_DATA[type]) { const npc = NPC_DATA[type]; const monId = npc.team[Math.floor(Math.random() * npc.team.length)]; let npcImg = '/assets/img/Treinadores/Red.jpg'; if (type === TILE.ROCKET) npcImg = '/assets/img/NPCs/Rocket.jpg'; else if (type === TILE.BIKER) npcImg = '/assets/img/NPCs/Motoqueiro.jpg'; else if (type === TILE.YOUNG) npcImg = '/assets/img/NPCs/Jovem.jpg'; else if (type === TILE.OLD) npcImg = '/assets/img/NPCs/Velho.jpg'; const npcLevel = this.getGlobalAverageLevel(); Battle.setup(p, new Pokemon(monId, npcLevel, null), false, npc.name, npc.gold, null, false, 0, npcImg); return; }
-        if(type === TILE.CITY) { this.isCityEvent = true; document.getElementById('city-modal')!.style.display='flex'; }
+        if(NPC_DATA[type]) { 
+            const npc = NPC_DATA[type]; 
+            const monId = npc.team[Math.floor(Math.random() * npc.team.length)]; 
+            let npcImg = '/assets/img/Treinadores/Red.jpg'; 
+            if (type === TILE.ROCKET) npcImg = '/assets/img/NPCs/Rocket.jpg'; 
+            else if (type === TILE.BIKER) npcImg = '/assets/img/NPCs/Motoqueiro.jpg'; 
+            else if (type === TILE.YOUNG) npcImg = '/assets/img/NPCs/Jovem.jpg'; 
+            else if (type === TILE.OLD) npcImg = '/assets/img/NPCs/Velho.jpg'; 
+            const npcLevel = this.getGlobalAverageLevel(); 
+            Battle.setup(p, new Pokemon(monId, npcLevel, null), false, npc.name, npc.gold, null, false, 0, npcImg, type); 
+            return; 
+        }
+        
+        if(type === TILE.CITY) { 
+            this.isCityEvent = true; 
+            document.getElementById('city-modal')!.style.display='flex'; 
+        }
         else if(type === TILE.EVENT) { if(Math.random() < 0.5) { Cards.draw(p); } else { const gift = Math.random() > 0.5 ? 'pokeball' : 'potion'; this.addItem(p, gift, 1); this.sendGlobalLog(`${p.name} achou ${gift}!`); } this.nextTurn(); }
-        else if(type === TILE.GYM) { const gymId = MapSystem.gymLocations[`${p.x},${p.y}`] || 1; if (!p.badges[gymId-1]) { Battle.setup(p, new Pokemon(150, 1, false), false, "Líder de Ginásio", 1000, null, true, gymId); } else { this.log("Você já venceu este ginásio!"); this.nextTurn(); } }
-        else if([TILE.GRASS, TILE.WATER, TILE.GROUND].includes(type)) { if (Math.random() < 0.8) { const wildMon = this.generateWildPokemon(); Battle.setup(p, wildMon, false, "Selvagem"); } else { const messages = [ "Você procurou, mas nenhum Pokémon selvagem apareceu dessa vez!", "O mato se mexeu... mas era só o vento 😅", "Nada de Pokémon por aqui... talvez na próxima!", "Está tudo muito quieto...", "Um Pidgey voou longe, você não alcançou." ]; const msg = messages[Math.floor(Math.random() * messages.length)]; this.log(msg); alert(msg); this.nextTurn(); } } 
+        else if(type === TILE.GYM) { 
+            const gymId = MapSystem.gymLocations[`${p.x},${p.y}`] || 1; 
+            if (!p.badges[gymId-1]) { Battle.setup(p, new Pokemon(150, 1, false), false, "Líder de Ginásio", 1000, null, true, gymId, "", type); } 
+            else { this.log("Você já venceu este ginásio!"); this.nextTurn(); } 
+        }
+        else if([TILE.GRASS, TILE.WATER, TILE.GROUND].includes(type)) { 
+            if (Math.random() < 0.8) { const wildMon = this.generateWildPokemon(); Battle.setup(p, wildMon, false, "Selvagem", 0, null, false, 0, "", type); } 
+            else { const messages = [ "Você procurou, mas nenhum Pokémon selvagem apareceu dessa vez!", "O mato se mexeu... mas era só o vento 😅", "Nada de Pokémon por aqui... talvez na próxima!", "Está tudo muito quieto...", "Um Pidgey voou longe, você não alcançou." ]; 
+                const msg = messages[Math.floor(Math.random() * messages.length)]; this.log(msg); alert(msg); this.nextTurn(); } } 
         else { this.nextTurn(); }
     }
     static handleCityChoice(c: string) { if(c==='heal') { this.getCurrentPlayer().team.forEach(p=>p.heal(999)); this.isCityEvent=false; if(Network.isOnline) Network.syncPlayerState(); this.nextTurn(); } else Shop.open(); document.getElementById('city-modal')!.style.display='none'; }
