@@ -69,16 +69,15 @@ export class Battle {
         this.renderBattleScreen(); 
         
         // 2. Define estado inicial dos botões
-        // Em PvE, o jogador SEMPRE começa podendo escolher a ação (ataque/item/fuga)
-        // A velocidade só será checada dentro da ação de Ataque.
-        // Em PvP, mantemos a lógica de quem começa baseado na sorte/velocidade inicial para definir o turno.
+        // CORREÇÃO: PvP agora se comporta como PvE para o atacante.
+        // O jogador ativo (que caiu na casa) SEMPRE tem o controle inicial.
+        this.isPlayerTurn = true; 
+        this.processingAction = false;
+        this.updateButtons();
         
         if (this.isPvP) {
-            this.determinePvPTurnOrder();
+             this.logBattle(`PvP Iniciado! Você desafiou ${this.enemyPlayer?.name || 'Inimigo'}.`);
         } else {
-            this.isPlayerTurn = true; // PvE: Jogador sempre tem o painel liberado no início
-            this.processingAction = false;
-            this.updateButtons();
             this.logBattle(`O que ${this.activeMon.name} fará?`);
         }
         
@@ -89,7 +88,8 @@ export class Battle {
             const npcName = (this.opponent as any)._npcName || ""; 
             
             // Avisa quem começa para sincronizar os clientes
-            const startingId = this.isPlayerTurn ? this.player!.id : (this.enemyPlayer ? this.enemyPlayer.id : -1);
+            // No modo automático, o 'startingTurnId' é sempre o do jogador ativo
+            const startingId = this.player!.id;
 
             Network.sendAction('BATTLE_START', { 
                 pId: this.player!.id, 
@@ -107,29 +107,13 @@ export class Battle {
             }); 
         } 
     }
-
-    // Usado APENAS para PvP para definir quem clica primeiro
-    static determinePvPTurnOrder() { 
-        if (!this.activeMon || !this.opponent) return; 
-        
-        let playerGoesFirst = false; 
-        if (this.activeMon.speed > this.opponent.speed) playerGoesFirst = true; 
-        else if (this.activeMon.speed < this.opponent.speed) playerGoesFirst = false; 
-        else playerGoesFirst = Math.random() > 0.5; 
-        
-        this.isPlayerTurn = playerGoesFirst;
-        this.processingAction = false; 
-        this.updateButtons(); 
-        
-        const faster = this.isPlayerTurn ? this.activeMon.name : this.opponent.name; 
-        this.logBattle(`PvP Iniciado! ${faster} tem a iniciativa.`); 
-    }
     
     static updateButtons() { 
         const Network = (window as any).Network; 
         const btns = document.querySelectorAll('.battle-actions button'); 
         
         // Regra: Só habilita se for MEU turno, não estiver processando E for minha sessão
+        // Se eu sou o jogador passivo (defensor no PvP), isMyBattle será false, pois this.player é o atacante.
         const isMyBattle = Network.isOnline ? (this.player && this.player.id === Network.myPlayerId) : true;
         const canAct = this.isPlayerTurn && !this.processingAction && isMyBattle; 
         
@@ -161,7 +145,7 @@ export class Battle {
         if(payload.npcName) (this.opponent as any)._npcName = payload.npcName; 
         if(payload.battleTitle) this.battleTitle = payload.battleTitle; 
         
-        // Sincroniza quem começa
+        // Sincroniza quem tem o controle (geralmente o atacante)
         if (payload.startingTurnId !== undefined) {
             this.isPlayerTurn = (payload.startingTurnId === Network.myPlayerId);
         } else {
@@ -179,11 +163,12 @@ export class Battle {
         
         if(payload.msg) this.logBattle(payload.msg);
         
-        // Se recebeu flag de troca de turno, libera os controles
+        // No PvP Automático, o passivo nunca recebe o turno de volta para clicar
+        // Ele apenas assiste.
         if (payload.turnChange) {
-            this.isPlayerTurn = true;
-            this.processingAction = false;
-            this.updateButtons();
+            // Se fosse PvP manual antigo, habilitaria aqui.
+            // Agora mantemos o controle com a lógica local do atacante.
+            // Apenas atualiza UI.
         }
         
         this.updateUI();
@@ -235,34 +220,20 @@ export class Battle {
     }
     
     // =========================================================================================
-    // NOVA LÓGICA DE BATALHA - PVE COM TROCA DE TURNOS NA MESMA RODADA
+    // LÓGICA UNIFICADA DE BATALHA (PvE e PvP Automático)
     // =========================================================================================
 
     static attack() { 
+        // Se eu não sou o jogador ativo (ex: sou o passivo assistindo), não faço nada
         const Network = (window as any).Network; 
+        if(Network.isOnline && this.player && this.player.id !== Network.myPlayerId) return;
+
         if(!this.activeMon || !this.opponent) return; 
 
         this.processingAction = true; 
         this.updateButtons(); 
 
-        // Se for PvP Online, mantém a lógica de turnos separados (para não quebrar a sincronia de rede)
-        if (this.isPvP && Network.isOnline) {
-            this.performPlayerAttack(() => {
-                // Envia atualização e passa a vez
-                Network.sendAction('BATTLE_UPDATE', { 
-                    plyHp: this.activeMon!.currentHp, 
-                    oppHp: this.opponent!.currentHp, 
-                    msg: "Ataque realizado!",
-                    turnChange: true 
-                });
-                this.isPlayerTurn = false;
-                this.updateButtons();
-            });
-            return;
-        }
-
-        // LÓGICA PvE (Selvagem, Gym, NPC)
-        // 1. Verifica Velocidade
+        // 1. Verifica Velocidade (Igual para PvE e PvP agora)
         const playerSpeed = this.activeMon.speed;
         const enemySpeed = this.opponent.speed;
         
@@ -278,7 +249,7 @@ export class Battle {
             // JOGADOR ATACA PRIMEIRO
             this.logBattle(`💨 ${this.activeMon.name} é mais rápido!`);
             this.performPlayerAttack(() => {
-                // Se o inimigo sobreviveu, ele ataca de volta
+                // Se o inimigo sobreviveu, ele ataca de volta automaticamente (Simulando NPC)
                 if (this.opponent && this.opponent.currentHp > 0) {
                     setTimeout(() => {
                         this.performEnemyAttack(() => {
@@ -288,7 +259,7 @@ export class Battle {
                         });
                     }, 1000);
                 } else {
-                    // Inimigo morreu, vitória já tratada no performPlayerAttack
+                    // Inimigo morreu, vitória já tratada
                     this.processingAction = false;
                 }
             });
@@ -306,7 +277,7 @@ export class Battle {
                         });
                     }, 1000);
                 } else {
-                    // Jogador morreu, derrota já tratada no performEnemyAttack
+                    // Jogador morreu, derrota já tratada
                     this.processingAction = false;
                 }
             });
@@ -315,6 +286,7 @@ export class Battle {
 
     // Ação isolada de ataque do Jogador
     static performPlayerAttack(callback?: () => void) {
+        const Network = (window as any).Network;
         if(!this.activeMon || !this.opponent) return;
 
         let calc = this.calculateDamage(this.activeMon, this.opponent, true); 
@@ -325,6 +297,16 @@ export class Battle {
         this.logBattle(logMsg); 
         this.updateUI(); 
 
+        // Envia atualização visual para o oponente (se estiver online)
+        // Mas NÃO passa a vez. O controle continua local.
+        if (Network.isOnline) {
+             Network.sendAction('BATTLE_UPDATE', { 
+                plyHp: this.activeMon.currentHp, 
+                oppHp: this.opponent.currentHp, 
+                msg: logMsg
+            });
+        }
+
         if(this.opponent.currentHp <= 0) { 
             setTimeout(() => { this.checkWinCondition(); }, 1000); 
         } else {
@@ -332,7 +314,7 @@ export class Battle {
         }
     }
     
-    // Ação isolada de ataque do Inimigo
+    // Ação isolada de ataque do Inimigo (Controlado automaticamente pelo Cliente do Jogador Ativo)
     static performEnemyAttack(callback?: () => void) {
         if(!this.activeMon || !this.opponent) return;
         const Network = (window as any).Network;
@@ -364,8 +346,8 @@ export class Battle {
             } 
         } 
         
-        // Sincronia de dano no inimigo (se for NPC online)
-        if(Network.isOnline && !this.isPvP) { 
+        // Envia atualização visual para o oponente
+        if(Network.isOnline) { 
             Network.sendAction('BATTLE_UPDATE', { plyHp: this.activeMon.currentHp, oppHp: this.opponent.currentHp, msg: logMsg }); 
         } 
         
@@ -500,7 +482,8 @@ export class Battle {
     // =========================================================================================
 
     static run() { 
-        // 1. Onde a fuga é permitida: Só contra selvagem (Regra mantida)
+        // 1. Onde a fuga é permitida: Só contra selvagem
+        // Em PvP, Gym e NPC, fuga só por carta.
         if(this.isPvP || this.isNPC || this.isGym) { 
             alert("Não pode fugir de treinadores!"); 
             return;
@@ -544,7 +527,7 @@ export class Battle {
     }
 
     // =========================================================================================
-    // USO DE ITEM COM PENALIDADE DE TURNO
+    // USO DE ITEM COM PENALIDADE DE TURNO (AGORA PARA PVP E PVE)
     // =========================================================================================
 
     static useItem(key: string, data: ItemData) {
@@ -579,29 +562,23 @@ export class Battle {
             this.logBattle(`💊 Usou ${data.name}! Recuperou HP.`);
             this.updateUI();
             
-            if (Network.isOnline && this.isPvP) {
-                // PvP: Envia update e passa o turno
+            // Sincroniza uso de item
+            if (Network.isOnline) {
                 Network.sendAction('BATTLE_UPDATE', { 
                     plyHp: this.activeMon!.currentHp, 
                     oppHp: this.opponent!.currentHp, 
-                    msg: `Usou ${data.name}!`,
-                    turnChange: true 
+                    msg: `Usou ${data.name}!`
                 });
-                this.isPlayerTurn = false;
-                this.updateButtons();
-            } else if(Network.isOnline) {
-                Network.sendAction('BATTLE_UPDATE', { plyHp: this.activeMon!.currentHp, oppHp: this.opponent!.currentHp, msg: `Usou ${data.name}!` });
             }
             
-            // Regra PvE: Usar item gasta turno -> Inimigo ataca
-            if(!this.isPvP) {
-                 setTimeout(() => {
-                    this.performEnemyAttack(() => {
-                        this.processingAction = false;
-                        this.updateButtons();
-                    });
-                }, 1500);
-            }
+            // Regra Geral: Usar item gasta turno -> Inimigo ataca
+            // No PvP agora funciona igual PvE
+             setTimeout(() => {
+                this.performEnemyAttack(() => {
+                    this.processingAction = false;
+                    this.updateButtons();
+                });
+            }, 1500);
         }
         
         if (Network.isOnline) Network.syncPlayerState();
