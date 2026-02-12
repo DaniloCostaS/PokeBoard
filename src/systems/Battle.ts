@@ -475,37 +475,61 @@ export class Battle {
 
         this.logBattle(`Jogou ${item.name}...`);
 
+        // Simula o tempo da animação da bola balançando
         setTimeout(() => {
+            // REGRA: Master Ball é 100% garantido
             if (item.id === 'masterball') {
                 this.captureSuccess();
                 return;
             }
 
-            let chance = item.rate || 10; 
+            // 1. Taxa Base da Pokébola
+            // (Vem do items.ts: Pokébola=15, Great=30, Ultra=50)
+            let chance = item.rate || 0;
+
+            // 2. Bônus de HP (Não cumulativo, pega o melhor caso)
             const hpPercent = (opponent.currentHp / opponent.maxHp) * 100;
-            if (hpPercent < 15) chance += 30;
-            else if (hpPercent < 60) chance += 15;
+            
+            if (hpPercent < 15) {
+                chance += 50; // HP Crítico (< 15%)
+            } else if (hpPercent < 60) {
+                chance += 25; // HP Baixo (< 60%)
+            }
 
-            if (activeMon.level > opponent.level) chance += 5;
-            else if (activeMon.level < opponent.level) chance -= 5;
+            // 3. Modificador de Nível
+            if (activeMon.level > opponent.level) {
+                chance += 5; // Vantagem de nível
+            } else if (activeMon.level < opponent.level) {
+                chance -= 5; // Desvantagem de nível
+            }
 
+            // 4. Penalidades de Raridade
             if (opponent.isLegendary) chance -= 20;
             if (opponent.isShiny) chance -= 10;
 
+            // 5. Fator Sorte (Dado D20)
+            // Rola 1 a 20. Subtrai 10.
+            // Resultado varia de -9 (Azar extremo) a +10 (Sorte extrema)
             const d20 = Math.floor(Math.random() * 20) + 1;
-            const diceBonus = (d20 - 10);
+            const diceBonus = d20 - 10;
             chance += diceBonus;
 
-            chance = Math.max(0, Math.min(100, chance));
+            // 6. Aplicação dos Limites (Cap)
+            // Máximo de 95% para qualquer bola que não seja Master Ball
+            // Mínimo de 1% para sempre haver uma chance (ou frustração)
+            chance = Math.max(1, Math.min(95, chance));
 
-            this.logBattle(`(Chance: ${chance}% | Dado: ${d20})`);
+            // Log para debug visual do jogador
+            // Mostra a chance final calculada e o "modificador de sorte" que caiu no dado
+            this.logBattle(`(Chance Final: ${chance}% | Sorte: ${diceBonus > 0 ? '+' : ''}${diceBonus}%)`);
 
+            // Rola o destino (1 a 100)
             const roll = Math.floor(Math.random() * 100) + 1;
-            
+
             if (roll <= chance) {
                 this.captureSuccess();
             } else {
-                this.logBattle("Aargh! Quase!");
+                this.logBattle("Aargh! Quase! O Pokémon escapou!");
                 setTimeout(() => this.enemyTurn(), 1000);
             }
         }, 1500);
