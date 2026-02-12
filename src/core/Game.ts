@@ -26,7 +26,79 @@ export class Game {
     static addItem(player: Player, itemId: string, amount: number = 1) { if (!player.items[itemId]) { player.items[itemId] = 0; } player.items[itemId] += amount; this.updateHUD(); if(Network.isOnline) Network.syncPlayerState(); }
     static sendGlobalLog(msg: string) { this.log(msg); if(Network.isOnline) { Network.sendAction('LOG', { msg: msg }); } }
     static getGlobalAverageLevel(): number { if (!this.players || this.players.length === 0) return 1; let totalLevels = 0; let totalMons = 0; this.players.forEach(p => { p.team.forEach(m => { totalLevels += m.level; totalMons++; }); }); if (totalMons === 0) return 1; return Math.floor(totalLevels / totalMons); }
-    static generateWildPokemon(): Pokemon { const stage1Mons = POKEDEX.filter(p => p.stage === 1); const legendaries = stage1Mons.filter(p => p.isLegendary); const regulars = stage1Mons.filter(p => !p.isLegendary); let chosenTemplate; if (Math.random() < 0.02 && legendaries.length > 0) { chosenTemplate = legendaries[Math.floor(Math.random() * legendaries.length)]; } else { chosenTemplate = regulars[Math.floor(Math.random() * regulars.length)]; } let level = this.getGlobalAverageLevel(); if (level < 1) level = 1; return new Pokemon(chosenTemplate.id, level, null); }
+    
+    //static generateWildPokemon(): Pokemon { const stage1Mons = POKEDEX.filter(p => p.stage === 1); const legendaries = stage1Mons.filter(p => p.isLegendary); const regulars = stage1Mons.filter(p => !p.isLegendary); let chosenTemplate; if (Math.random() < 0.02 && legendaries.length > 0) { chosenTemplate = legendaries[Math.floor(Math.random() * legendaries.length)]; } else { chosenTemplate = regulars[Math.floor(Math.random() * regulars.length)]; } let level = this.getGlobalAverageLevel(); if (level < 1) level = 1; return new Pokemon(chosenTemplate.id, level, null); }
+    
+    static generateWildPokemon(tileType: number): Pokemon {
+        
+        // 1. Definição das regras de Spawn por Terreno
+        let allowedTypes: string[] = [];
+
+        switch (tileType) {
+            case TILE.GRASS:
+                allowedTypes = ['Grama', 'Inseto', 'Normal', 'Veneno', 'Voador', 'Fada'];
+                break;
+            case TILE.WATER:
+                allowedTypes = ['Água', 'Gelo', 'Dragão'];
+                break;
+            case TILE.GROUND:
+                allowedTypes = ['Terra', 'Pedra', 'Fogo', 'Lutador', 'Elétrico', 'Psíquico', 'Fantasma'];
+                break;
+            default:
+                allowedTypes = ['Normal'];
+                break;
+        }
+
+        // 2. Lógica de Progressão por Nível Médio
+        const globalAvg = this.getGlobalAverageLevel();
+        
+        let allowedStages = [1];       // Padrão: Só Stage 1
+        let allowLegendaries = false;  // Padrão: Sem lendários
+
+        if (globalAvg < 5) {
+            // Regra: Média < 5 -> Só Stage 1, Sem Lendários
+            allowedStages = [1];
+            allowLegendaries = false;
+        } 
+        else if (globalAvg >= 5 && globalAvg < 10) {
+            // Regra: 5 <= Média < 10 -> Stage 1 e 2, Com Lendários
+            allowedStages = [1, 2];
+            allowLegendaries = true;
+        } 
+        else {
+            // Regra: Média >= 10 -> Stage 1, 2 e 3, Com Lendários
+            allowedStages = [1, 2, 3];
+            allowLegendaries = true;
+        }
+
+        // 3. Filtra a Pokedex
+        const possibleSpawns = POKEDEX.filter(p => {
+            // Checa o Tipo do terreno
+            if (!allowedTypes.includes(p.type)) return false;
+
+            // Checa o Estágio de Evolução
+            if (!allowedStages.includes(p.stage)) return false;
+
+            // Checa se é Lendário (Se for lendário e não estiver permitido, remove)
+            if (p.isLegendary && !allowLegendaries) return false;
+
+            return true;
+        });
+
+        // 4. Fallback de Segurança
+        if (possibleSpawns.length === 0) {
+            console.warn(`Nenhum Pokémon encontrado para terreno ${tileType} com média ${globalAvg}.`);
+            return new Pokemon(16, globalAvg); // Pidgey de emergência
+        }
+
+        // 5. Sorteio
+        const chosenTemplate = possibleSpawns[Math.floor(Math.random() * possibleSpawns.length)];
+
+        // O Shiny é calculado aleatoriamente dentro do construtor da classe Pokemon
+        // ao passar 'null' no terceiro argumento.
+        return new Pokemon(chosenTemplate.id, globalAvg, null);
+    }
+    
     static handleTotalDefeat(p: Player) { alert(`🚑 ${p.name} não tem mais Pokémons!\nSerá levado ao início para recuperação emergencial.`); p.x = 0; p.y = 0; p.team.forEach(mon => { mon.currentHp = mon.maxHp; }); p.skipTurns = 2; p.effects = {}; this.sendGlobalLog(`🚑 ${p.name} foi resgatado! Voltou ao início recuperado, mas perderá 2 turnos.`); this.moveVisuals(); this.updateHUD(); if(Network.isOnline) Network.syncPlayerState(); }
     static renderDebugPanel() { const container = document.querySelector('.extra-space'); if(container) { container.innerHTML = ` <button class="btn btn-secondary" onclick="window.Game.openCardLibrary()">📖 Ver Todas as Cartas</button> <button class="btn btn-secondary" style="background: #27ae60;" onclick="window.Game.openXpRules()">📘 Regras de XP</button> <button class="btn btn-secondary" style="background: #e67e22;" onclick="window.Game.openCaptureRules()">🦅 Regras de Captura</button> <div style="margin-top:10px; font-size:0.7rem; color:#aaa;">DEBUG MOVE</div> <div style="display:flex; gap:5px; justify-content:center;"> <input type="number" id="debug-input" value="1" min="1" max="50" style="width:50px; text-align:center; border:none; padding:5px; border-radius:4px;"> <button class="btn" style="width:auto; margin:0; padding:5px 10px;" onclick="window.Game.debugMove()">GO</button> </div> <button class="btn" style="margin-top:5px; background: #e67e22;" onclick="window.Game.exportSave()">💾 DEBUG SAVE</button> <div style="margin-top:5px;"><small id="online-indicator" style="color:cyan;">OFFLINE</small></div> `; } }
     static openCardLibrary() { const list = document.getElementById('library-list')!; list.innerHTML = ''; import('../constants').then(({CARDS_DB}) => { CARDS_DB.forEach(c => { const d = document.createElement('div'); d.className = 'card-item'; const typeClass = c.type === 'move' ? 'type-move' : 'type-battle'; const typeLabel = c.type === 'move' ? 'MOVE' : 'BATTLE'; d.innerHTML = `<div class="card-info"><span class="card-name">${c.icon} ${c.name} <span class="card-type-badge ${typeClass}">${typeLabel}</span></span><span class="card-desc">${c.desc}</span></div>`; list.appendChild(d); }); }); document.getElementById('library-modal')!.style.display = 'flex'; }
@@ -91,8 +163,12 @@ export class Game {
             else { this.log("Você já venceu este ginásio!"); this.nextTurn(); } 
         }
         else if([TILE.GRASS, TILE.WATER, TILE.GROUND].includes(type)) { 
-            if (Math.random() < 0.8) { const wildMon = this.generateWildPokemon(); Battle.setup(p, wildMon, false, "Selvagem", 0, null, false, 0, "", type); } 
-            else { const messages = [ "Você procurou, mas nenhum Pokémon selvagem apareceu dessa vez!", "O mato se mexeu... mas era só o vento 😅", "Nada de Pokémon por aqui... talvez na próxima!", "Está tudo muito quieto...", "Um Pidgey voou longe, você não alcançou." ]; 
+            if (Math.random() < 0.8) { 
+                //const wildMon = this.generateWildPokemon(); 
+                const wildMon = this.generateWildPokemon(type);
+                Battle.setup(p, wildMon, false, "Selvagem", 0, null, false, 0, "", type); } 
+            else { 
+                const messages = [ "Você procurou, mas nenhum Pokémon selvagem apareceu dessa vez!", "O mato se mexeu... mas era só o vento 😅", "Nada de Pokémon por aqui... talvez na próxima!", "Está tudo muito quieto...", "Um Pidgey voou longe, você não alcançou." ]; 
                 const msg = messages[Math.floor(Math.random() * messages.length)]; this.log(msg); alert(msg); this.nextTurn(); } } 
         else { this.nextTurn(); }
     }
