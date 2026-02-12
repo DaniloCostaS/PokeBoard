@@ -27,6 +27,43 @@ export class Game {
     static sendGlobalLog(msg: string) { this.log(msg); if(Network.isOnline) { Network.sendAction('LOG', { msg: msg }); } }
     static getGlobalAverageLevel(): number { if (!this.players || this.players.length === 0) return 1; let totalLevels = 0; let totalMons = 0; this.players.forEach(p => { p.team.forEach(m => { totalLevels += m.level; totalMons++; }); }); if (totalMons === 0) return 1; return Math.floor(totalLevels / totalMons); }
     
+    static triggerVictory(winnerId: number) {
+        const winner = this.players.find(p => p.id === winnerId);
+        if (!winner) return;
+
+        // 1. Preencher Perfil
+        document.getElementById('win-avatar')!.setAttribute('src', winner.avatar);
+        document.getElementById('win-name')!.innerText = winner.name;
+
+        // 2. Preencher Time (Hall da Fama)
+        const teamContainer = document.getElementById('win-team-container')!;
+        teamContainer.innerHTML = winner.team.map(mon => `
+            <div class="win-mon-card">
+                <img src="${mon.getSprite()}">
+                <div style="font-size:0.7rem; font-weight:bold;">${mon.name}</div>
+                <div style="font-size:0.6rem;">Lv.${mon.level}</div>
+            </div>
+        `).join('');
+
+        // 3. Preencher Insígnias
+        const badgeContainer = document.getElementById('win-badges-container')!;
+        badgeContainer.innerHTML = '';
+        
+        // Renderiza as 8 insígnias (se ele ganhou, ele tem todas)
+        GYM_DATA.forEach(gym => {
+            const img = document.createElement('img');
+            img.src = `/assets/img/Insignias/${gym.badgeImg}`;
+            img.className = 'win-badge-img';
+            img.title = `Insígnia ${gym.type}`;
+            badgeContainer.appendChild(img);
+        });
+
+        // 4. Mostrar Tela
+        document.getElementById('victory-modal')!.style.display = 'flex';
+        
+        // Efeito Sonoro ou Confete (Opcional, log por enquanto)
+        console.log("GAME OVER - VITORIA!");
+    }
     //static generateWildPokemon(): Pokemon { const stage1Mons = POKEDEX.filter(p => p.stage === 1); const legendaries = stage1Mons.filter(p => p.isLegendary); const regulars = stage1Mons.filter(p => !p.isLegendary); let chosenTemplate; if (Math.random() < 0.02 && legendaries.length > 0) { chosenTemplate = legendaries[Math.floor(Math.random() * legendaries.length)]; } else { chosenTemplate = regulars[Math.floor(Math.random() * regulars.length)]; } let level = this.getGlobalAverageLevel(); if (level < 1) level = 1; return new Pokemon(chosenTemplate.id, level, null); }
     
     static generateWildPokemon(tileType: number): Pokemon {

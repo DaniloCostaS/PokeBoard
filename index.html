@@ -256,7 +256,26 @@
             </div>
         </div>
     </div>
+    <div id="victory-modal" class="modal-overlay" style="z-index: 2000; background: rgba(0,0,0,0.95);">
+        <div class="modal-box victory-box">
+            <h1 class="victory-title">🏆 CAMPEÃO DA LIGA! 🏆</h1>
+            
+            <div class="winner-profile">
+                <img id="win-avatar" src="" alt="Avatar">
+                <h2 id="win-name">Nome do Jogador</h2>
+            </div>
 
+            <h3>👑 Hall da Fama</h3>
+            <div id="win-team-container" class="win-team-grid">
+                </div>
+
+            <h3>🏅 Insígnias Conquistadas</h3>
+            <div id="win-badges-container" class="win-badges-grid">
+                </div>
+
+            <button class="btn btn-shop" style="margin-top:20px;" onclick="location.reload()">🔄 Jogar Novamente</button>
+        </div>
+    </div>
     <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

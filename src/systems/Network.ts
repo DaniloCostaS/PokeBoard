@@ -187,7 +187,10 @@ export class Network {
             case 'BATTLE_UPDATE': Battle.updateFromNetwork(action.payload); break; 
             case 'BATTLE_END': Battle.end(true); break; 
             case 'LOG': Game.log(action.payload.msg); break; 
-            
+            case 'GAME_WIN':
+                // Recebeu aviso que alguém ganhou!
+                Game.triggerVictory(action.payload.winnerId);
+                break;
             case 'PVP_SYNC_DAMAGE': 
                 const targetP = Game.players.find((p: any) => p.id === action.payload.targetId);
                 if(targetP) {
