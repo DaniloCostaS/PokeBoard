@@ -214,7 +214,7 @@ export class Battle {
             case 1: bgImage = 'BatalhaTerrenoGrama.png'; break; // TILE.GRASS
             case 2: bgImage = 'BatalhaTerrenoAgua.png'; break;   // TILE.WATER
             case 3: bgImage = 'BatalhaTerrenoAreia.png'; break;  // TILE.GROUND
-            case 5: bgImage = 'BatalhaTerrenoGrama.png'; break; // TILE.GYM
+            case 5: bgImage = 'BatalhaTerrenoGym.png'; break; // TILE.GYM
             default: bgImage = 'BatalhaTerrenoGrama.png'; break;    // Outros
         }
 
@@ -227,7 +227,23 @@ export class Battle {
         scene.style.backgroundPosition = 'center';
     }
 
-    static calculateDamage(attacker: Pokemon, defender: Pokemon, isPlayerAttacking: boolean): { damage: number, msg: string } { const d20 = Math.floor(Math.random() * 20) + 1; let rollModifier = 0; let isCritical = false; if (d20 >= 20) { rollModifier = +3; isCritical = true; } else if (d20 >= 16) rollModifier = +2; else if (d20 >= 11) rollModifier = +1; else if (d20 <= 2) rollModifier = -2; else if (d20 <= 5) rollModifier = -1; let defenseVal = defender.def; if (isCritical) defenseVal = Math.floor(defenseVal / 2); let base = Math.floor((attacker.atk / 5) - (defenseVal / 20)); base = Math.max(1, base); let rawMulti = 1; if (TYPE_CHART[attacker.type] && (TYPE_CHART[attacker.type] as any)[defender.type] !== undefined) { rawMulti = (TYPE_CHART[attacker.type] as any)[defender.type]; } const typeDamage = Math.floor(base * (rawMulti > 1 ? 1.5 : (rawMulti < 1 ? 0.75 : 1))); let finalDamage = Math.max(0, typeDamage + rollModifier); if (isPlayerAttacking) { if (this.activeEffects.crit) { finalDamage *= 2; } if (this.activeEffects.focus) { finalDamage *= 4; this.activeEffects.focus = false; } if (this.player?.effects.curse) { finalDamage = Math.floor(finalDamage / 2); } } else { if (this.activeEffects.guard) { finalDamage = Math.floor(finalDamage / 2); } if (this.enemyPlayer && this.enemyPlayer.effects.curse) { finalDamage = Math.floor(finalDamage / 2); } } let logDetails = `(🎲${d20})`; if (isCritical) logDetails += " 💥!"; if (rawMulti > 1) logDetails += " 🔥!"; else if (rawMulti < 1) logDetails += " 🛡️."; if (this.activeEffects.crit && isPlayerAttacking) logDetails += " [2x]"; if (this.activeEffects.focus && isPlayerAttacking) logDetails += " [4x]"; if (this.activeEffects.guard && !isPlayerAttacking) logDetails += " [🛡️]"; return { damage: finalDamage, msg: logDetails }; }
+    static calculateDamage(attacker: Pokemon, defender: Pokemon, isPlayerAttacking: boolean): { damage: number, msg: string } { 
+        const d20 = Math.floor(Math.random() * 20) + 1; 
+        let rollModifier = 0; 
+        let isCritical = false; 
+        if (d20 >= 20) { rollModifier = +5; isCritical = true; } 
+        else if (d20 >= 16) rollModifier = +3; 
+        else if (d20 >= 11) rollModifier = +2; 
+        else if (d20 <= 2) rollModifier = -2; 
+        else if (d20 <= 5) rollModifier = -1; 
+        let defenseVal = defender.def; 
+        if (isCritical) defenseVal = Math.floor(defenseVal / 2); 
+        let base = Math.floor((attacker.atk / 5) - (defenseVal / 20)); 
+        base = Math.max(1, base); let rawMulti = 1; 
+        if (TYPE_CHART[attacker.type] && (TYPE_CHART[attacker.type] as any)[defender.type] !== undefined) { rawMulti = (TYPE_CHART[attacker.type] as any)[defender.type]; } 
+        const typeDamage = Math.floor(base * (rawMulti > 1 ? 1.75 : (rawMulti < 1 ? 0.75 : 1))); 
+        let finalDamage = Math.max(0, typeDamage + rollModifier); 
+        if (isPlayerAttacking) { if (this.activeEffects.crit) { finalDamage *= 2; } if (this.activeEffects.focus) { finalDamage *= 4; this.activeEffects.focus = false; } if (this.player?.effects.curse) { finalDamage = Math.floor(finalDamage / 2); } } else { if (this.activeEffects.guard) { finalDamage = Math.floor(finalDamage / 2); } if (this.enemyPlayer && this.enemyPlayer.effects.curse) { finalDamage = Math.floor(finalDamage / 2); } } let logDetails = `(🎲${d20})`; if (isCritical) logDetails += " 💥!"; if (rawMulti > 1) logDetails += " 🔥!"; else if (rawMulti < 1) logDetails += " 🛡️."; if (this.activeEffects.crit && isPlayerAttacking) logDetails += " [2x]"; if (this.activeEffects.focus && isPlayerAttacking) logDetails += " [4x]"; if (this.activeEffects.guard && !isPlayerAttacking) logDetails += " [🛡️]"; return { damage: finalDamage, msg: logDetails }; }
     
     static attack() { 
         const Network = (window as any).Network; 
