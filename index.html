@@ -146,8 +146,8 @@
                 <h4>⚔️ Regras de Dano</h4>
                 <ul>
                     <li><strong>Base:</strong> (atk / 5) - (def / 20)</li>
-                    <li><strong>Multiplicador:</strong> Vantagem: ×1.5,Normal: ×1,Desvantagem: ×0.75</li>
-                    <li><strong>Dado:</strong> 1:-2, 2–5:-1, 6–10:0, 11–15:+1, 16–19:+2, 20:+3 (Crítico)</li>
+                    <li><strong>Multiplicador:</strong> Vantagem: ×1.75,Normal: ×1,Desvantagem: ×0.75</li>
+                    <li><strong>Dado:</strong> 1-2:-2, 3–5:-1, 6–10:0, 11–15:+2, 16–19:+3, 20:+5 (Crítico)</li>
                     <li><small>O Pokémon com maior atributo spd ataca primeiro. Empare Rolar 1d20, se o resultado for maior que 10, ataca primeiro</small></li>
                 </ul>
             </div>
@@ -178,7 +178,16 @@
         </div>
     </div>
 
-    <div id="city-modal" class="modal-overlay"><div class="modal-box"><h2 style="color: #3498db;">🏙️ Centro Pokémon</h2><p>O que deseja fazer?</p><div style="display:flex; gap:10px; justify-content:center; margin-top:20px;"><button class="btn" style="background:#2ecc71;" onclick="window.Game.handleCityChoice('heal')">❤️ Curar</button><button class="btn btn-shop" onclick="window.Game.handleCityChoice('shop')">🛒 Loja</button></div></div></div>
+    <div id="city-modal" class="modal-overlay">
+        <div class="modal-box">
+            <h2 style="color: #3498db;">🏙️ Centro Pokémon</h2>
+            <p>O que deseja fazer?</p>
+            <div style="display:flex; gap:10px; justify-content:center; margin-top:20px;">
+                <button class="btn" style="background:#2ecc71;" onclick="window.Game.handleCityChoice('heal')">❤️ Curar</button>
+                <button class="btn btn-shop" onclick="window.Game.handleCityChoice('shop')">🛒 Loja</button>
+            </div>
+        </div>
+    </div>
     <div id="shop-modal" class="modal-overlay"><div class="modal-box"><h2 class="text-highlight">🛒 PokéMart</h2><p>Saldo: <span id="shop-gold" class="gold-text">0</span> G</p><div id="shop-items-list" class="scroll-list"></div><br><button class="btn btn-secondary" onclick="window.Shop.close()">Fechar</button></div></div>
     <div id="board-inventory-modal" class="modal-overlay"><div class="modal-box"><h3>🎒 Mochila</h3><div id="board-inventory-list" class="scroll-list"></div><button class="btn btn-secondary mt-15" onclick="document.getElementById('board-inventory-modal').style.display='none'">Fechar</button></div></div>
     <div id="board-cards-modal" class="modal-overlay"><div class="modal-box"><h3>🃏 Minhas Cartas (Tabuleiro)</h3><p style="font-size:0.8rem; color:#666;">Apenas cartas do tipo <b>Move</b> podem ser usadas aqui.</p><div id="board-cards-list" class="scroll-list"></div><button class="btn btn-secondary mt-15" onclick="document.getElementById('board-cards-modal').style.display='none'">Fechar</button></div></div>

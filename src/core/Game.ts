@@ -209,7 +209,33 @@ export class Game {
                 const msg = messages[Math.floor(Math.random() * messages.length)]; this.log(msg); alert(msg); this.nextTurn(); } } 
         else { this.nextTurn(); }
     }
-    static handleCityChoice(c: string) { if(c==='heal') { this.getCurrentPlayer().team.forEach(p=>p.heal(999)); this.isCityEvent=false; if(Network.isOnline) Network.syncPlayerState(); this.nextTurn(); } else Shop.open(); document.getElementById('city-modal')!.style.display='none'; }
+    
+    // =========================================================================================
+    // CORREÇÃO: Lógica de Cura Completa (Revive + Heal All)
+    // =========================================================================================
+    static handleCityChoice(c: string) { 
+        if(c==='heal') { 
+            const player = this.getCurrentPlayer();
+            
+            // Itera sobre todos os Pokémon e força HP = MaxHP
+            // Isso garante que desmaiados (HP=0) revivam e todos curem 100%
+            player.team.forEach(p => { 
+                p.currentHp = p.maxHp; 
+            }); 
+            
+            this.sendGlobalLog(`🏥 ${player.name} recuperou seu time no Centro Pokémon!`);
+            
+            this.updateHUD(); // Atualiza a UI imediatamente para refletir a cura
+            this.isCityEvent = false; 
+            
+            if(Network.isOnline) Network.syncPlayerState(); 
+            
+            this.nextTurn(); 
+        } else { 
+            Shop.open(); 
+        } 
+        document.getElementById('city-modal')!.style.display='none'; 
+    }
 
     static nextTurn() {
         this.saveGame(); 
