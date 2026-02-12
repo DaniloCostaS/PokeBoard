@@ -197,8 +197,8 @@ body {
 .tile { position: relative; outline: 1px solid rgba(0,0,0,0.05); display: flex; justify-content: center; align-items: center; font-size: 10px; }
 /* Caminhos absolutos */
 .tile.grass { background-image: url('/assets/img/Terrenos/Grama.jpg'); background-size: 100% 100%; image-rendering: pixelated; }
-.tile.water { background-image: url('/assets/img/Terrenos/Agua.jpg'); background-size: 100% 100%; image-rendering: pixelated; }
-.tile.ground { background-image: url('/assets/img/Terrenos/Areia.jpg'); background-size: 100% 100%; image-rendering: pixelated; }
+.tile.water { background-image: url('/assets/img/Terrenos/AguaReal.png'); background-size: 100% 100%; image-rendering: pixelated; }
+.tile.ground { background-image: url('/assets/img/Terrenos/AreiaReal.png'); background-size: 100% 100%; image-rendering: pixelated; }
 .tile.city { background-image: url('/assets/img/PCMart.jpg'); background-size: 100% 100%; image-rendering: pixelated; }
 .tile.event { background-image: url('/assets/img/PokeBolaItem.jpg'); background-size: 100% 100%; image-rendering: pixelated; }
 
@@ -322,7 +322,9 @@ body {
 }
 
 .battle-scene { 
-    background: linear-gradient(180deg, #70c5ce 0%, #70c5ce 60%, #5a9e5a 60%, #5a9e5a 100%); 
+    /*background: linear-gradient(180deg, #70c5ce 0%, #70c5ce 60%, #5a9e5a 60%, #5a9e5a 100%); */
+    background-image: url('/assets/img/Background/BatalhaTerrenoGrama.png'); background-size: 100% 100%;
+
     border-radius: 10px; padding: 20px; margin-bottom: 15px; position: relative; height: 260px; /* Mais altura */
     display: flex; justify-content: space-between; align-items: flex-end; overflow: hidden; 
     border: 4px solid #fff; box-shadow: inset 0 0 20px rgba(0,0,0,0.2); 

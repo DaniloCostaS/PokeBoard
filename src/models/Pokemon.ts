@@ -8,6 +8,7 @@ export class Pokemon {
     isShiny: boolean; isLegendary: boolean; wins: number; 
     evoData: any; 
     leveledUpThisTurn: boolean = false;
+    stage: number; // Nova propriedade para controlar o estágio
     
     ivs: { hp: number, atk: number, def: number, spd: number };
     baseStats: { hp: number, atk: number, def: number, spd: number };
@@ -15,6 +16,7 @@ export class Pokemon {
     constructor(templateId: number, targetLevel: number = 1, forceShiny: boolean | null = null) {
         let template = POKEDEX.find(p => p.id === templateId) || POKEDEX[0];
         
+        // Ajusta o template se for um pokemon selvagem de nível alto (já evoluído)
         while (template.nextForm && template.evoTrigger && targetLevel >= template.evoTrigger) {
             const next = POKEDEX.find(p => p.name === template.nextForm);
             if (next) template = next;
@@ -25,7 +27,8 @@ export class Pokemon {
         this.name = template.name; 
         this.type = template.type; 
         this.isLegendary = !!template.isLegendary;
-        
+        this.stage = template.stage; // Inicializa o estágio
+
         if (forceShiny !== null) {
             this.isShiny = forceShiny;
         } else {
@@ -34,7 +37,6 @@ export class Pokemon {
 
         this.level = targetLevel; 
         this.currentXp = 0; 
-        this.maxXp = this.level * 20;
         this.wins = 0;
         this.evoData = { 
             next: template.nextForm || null, 
@@ -56,7 +58,42 @@ export class Pokemon {
         };
 
         this.maxHp = 0; this.currentHp = 0; this.atk = 0; this.def = 0; this.speed = 0;
+        
+        // Calcula o XP necessário com base na nova lógica
+        this.maxXp = this.calculateMaxXp();
+        
         this.recalculateStats(true);
+    }
+
+    // Nova lógica de cálculo de XP baseada na planilha
+    calculateMaxXp(): number {
+        let multiplier = 10; // Padrão Stage 1
+
+        if (this.isShiny) {
+            multiplier = 50;
+        } else if (this.isLegendary) {
+            multiplier = 40;
+        } else {
+            // Lógica de Estágios
+            if (this.stage === 1) {
+                // Se não tem próxima forma, é Single Stage (ex: Tauros) -> Usa lógica Stage 3 (30x)
+                // Se tem próxima forma, é Stage 1 padrão -> Usa lógica Stage 1 (10x)
+                if (!this.evoData.next) multiplier = 30;
+                else multiplier = 10;
+            } 
+            else if (this.stage === 2) {
+                // Se não tem próxima forma, é final de linha de 2 estágios (ex: Fearow) -> Usa lógica Stage 3 (30x)
+                // Se tem próxima forma, é meio de linha de 3 estágios (ex: Ivysaur) -> Usa lógica Stage 2 (20x)
+                if (!this.evoData.next) multiplier = 30;
+                else multiplier = 20;
+            } 
+            else if (this.stage === 3) {
+                // Stage 3 sempre 30x
+                multiplier = 30;
+            }
+        }
+        
+        return this.level * multiplier;
     }
 
     recalculateStats(resetHp: boolean = false) {
@@ -98,21 +135,23 @@ export class Pokemon {
     }
     
     gainXp(amount: number, player: Player) { 
-        if(this.level >= 15) return; 
+        if(this.level >= 100) return; // Cap no nível 100 por segurança
         (window as any).Game.sendGlobalLog(`${this.name} ganhou ${amount} XP!`);
         this.currentXp += amount; 
         
-        // CORREÇÃO: Respeita a flag de nível por turno
         if(this.currentXp >= this.maxXp && !this.leveledUpThisTurn) { 
             this.currentXp -= this.maxXp; 
             this.levelUp(player); 
-            this.leveledUpThisTurn = true; // Impede múltiplos níveis no mesmo turno
+            this.leveledUpThisTurn = true; 
         } 
     }
 
     levelUp(player: Player | null) { 
         this.level++; 
-        this.maxXp = this.level * 20; 
+        
+        // Recalcula o XP necessário para o próximo nível (agora que o nível aumentou)
+        this.maxXp = this.calculateMaxXp();
+        
         this.recalculateStats(false);
         if(player) {
              const Game = (window as any).Game;
@@ -123,7 +162,7 @@ export class Pokemon {
 
     forceLevel(targetLevel: number) { 
         this.level = targetLevel;
-        this.maxXp = this.level * 20;
+        this.maxXp = this.calculateMaxXp(); // Atualiza XP necessário
         let evolved = false;
         do {
             evolved = this.checkEvolution(null, true); 
@@ -139,8 +178,13 @@ export class Pokemon {
                 this.id = next.id; 
                 this.name = next.name; 
                 this.type = next.type; 
+                this.stage = next.stage; // Atualiza o estágio
                 this.baseStats = { hp: next.hp, atk: next.atk, def: next.def, spd: next.spd };
                 this.evoData = { next: next.nextForm, trigger: next.evoTrigger }; 
+                
+                // Recalcula o XP Maximo pois mudou de estágio (ex: Stage 1 -> Stage 2)
+                this.maxXp = this.calculateMaxXp();
+
                 this.recalculateStats(true); 
 
                 if(player && !silent) { 
