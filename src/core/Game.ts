@@ -148,20 +148,43 @@ export class Game {
         return new Pokemon(chosenTemplate.id, globalAvg, null);
     }
     
+    // --- NOVA FUNÇÃO DE CHECKPOINT ---
+    static getLastCityCoord(p: Player): {x: number, y: number} {
+        // Pega o número da casa atual onde o jogador está
+        let currentIdx = MapSystem.getIndex(p.x, p.y);
+        
+        // Vai olhando casa por casa para trás até achar uma cidade
+        while (currentIdx >= 0) {
+            const coord = MapSystem.getCoord(currentIdx);
+            if (MapSystem.grid[coord.y][coord.x] === TILE.CITY) {
+                return coord; // Achou! Retorna a posição dessa cidade.
+            }
+            currentIdx--;
+        }
+        // Se por algum motivo não achar, volta pro início garantido.
+        return {x: 0, y: 0}; 
+    }
+
     static handleTotalDefeat(p: Player) { 
-        alert(`🚑 ${p.name} não tem mais Pokémons!\nSerá levado ao início para recuperação emergencial.`); 
-        p.x = 0; 
-        p.y = 0; 
+        alert(`🚑 ${p.name} não tem mais Pokémons!\nSerá levado ao último Centro Pokémon para recuperação emergencial.`); 
+        
+        // Pega a posição da última cidade e envia o jogador pra lá
+        const city = this.getLastCityCoord(p);
+        p.x = city.x; 
+        p.y = city.y; 
+        
+        // Cura total e pune com 2 turnos sem jogar
         p.team.forEach(mon => { mon.currentHp = mon.maxHp; }); 
         p.skipTurns = 2; 
         p.effects = {}; 
-        this.sendGlobalLog(`🚑 ${p.name} foi resgatado! Voltou ao início recuperado, mas perderá 2 turnos.`); 
+        
+        this.sendGlobalLog(`🚑 ${p.name} foi resgatado! Voltou ao último Centro Pokémon recuperado, mas perderá 2 turnos.`); 
         this.moveVisuals(); 
         this.updateHUD(); 
-        // MELHORIA: Só sincroniza se o jogador derrotado for EU MESMO.
-        // Se for outro jogador, esperamos que o cliente dele faça o sync.
+        
+        const Network = (window as any).Network;
         if(Network.isOnline && p.id === Network.myPlayerId) {
-            Network.syncPlayerState(); 
+             Network.syncPlayerState(); 
         }
     }
     

@@ -555,20 +555,34 @@ export class Battle {
         let msg = "DERROTA... "; 
         this.player!.gold = Math.max(0, this.player!.gold - 100); 
         
+        // Se perdeu tudo, chama o defeat que já atualizamos
         if (this.player!.isDefeated()) { Game.handleTotalDefeat(this.player!); this.end(false); return; } 
+        
         if (!this.isPvP) { this.player!.team.forEach(p => p.heal(999)); } 
         
-        this.player!.x = 0; 
-        this.player!.y = 0; 
+        // --- MUDANÇA: Retorno para a Última Cidade ---
+        const city = Game.getLastCityCoord(this.player!);
+        this.player!.x = city.x; 
+        this.player!.y = city.y; 
+        // ---------------------------------------------
+        
         this.player!.skipTurns = 1; 
+        let xpGain = 0; 
         
-        // LÓGICA DE XP REMOVIDA DAQUI
+        if(this.isPvP) xpGain = 5; 
+        else if(this.isGym) xpGain = 8; 
+        else if(this.isNPC) xpGain = 3; 
+        else xpGain = 2; 
         
+        if(this.activeMon) this.activeMon.gainXp(xpGain, this.player!); 
         if (this.isPvP && this.enemyPlayer) { msg += ` ${this.enemyPlayer.name} venceu!`; } 
-        if(Network.isOnline) Network.syncPlayerState(); 
+        
+        if(Network.isOnline) { 
+            Network.syncPlayerState(); 
+        } 
         
         alert(msg); 
-        Game.sendGlobalLog(`${this.player?.name} perdeu e voltou ao início!`); 
+        Game.sendGlobalLog(`${this.player?.name} perdeu e recuou para o último Centro Pokémon! (+${xpGain}XP)`); 
         setTimeout(() => { this.end(false); Game.moveVisuals(); }, 1500); 
     }
     
