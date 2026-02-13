@@ -38,7 +38,7 @@ export class Battle {
         if (isPvP && enemyPlayer) { 
             this.oppTeamList = enemyPlayer.getBattleTeam(false); 
             this.opponent = this.oppTeamList[0]; 
-            if (enemyPlayer.effects.curse) { this.logBattle(`☠️ ${enemyPlayer.name} está amaldiçoado! (Dano reduzido)`); }
+            if (enemyPlayer.effects.curse) { this.logBattle(`☠️ ${enemyPlayer.name} está amaldiçoado! (Dano reduzido)`, true); }
         } else if (isGym) {
             const gymData = GYM_DATA.find(g => g.id === gymId);
             const globalAvg = Game.getGlobalAverageLevel();
@@ -76,9 +76,9 @@ export class Battle {
         this.updateButtons();
         
         if (this.isPvP) {
-             this.logBattle(`PvP Iniciado! Você desafiou ${this.enemyPlayer?.name || 'Inimigo'}.`);
+             this.logBattle(`PvP Iniciado! Você desafiou ${this.enemyPlayer?.name || 'Inimigo'}.`, true);
         } else {
-            this.logBattle(`O que ${this.activeMon.name} fará?`);
+            this.logBattle(`O que ${this.activeMon.name} fará?`, true);
         }
         
         const enemyId = this.enemyPlayer ? this.enemyPlayer.id : -1; 
@@ -159,18 +159,12 @@ export class Battle {
     static updateFromNetwork(payload: any) {
         if(!this.activeMon || !this.opponent) return;
         
-        this.activeMon.currentHp = payload.plyHp;
-        this.opponent.currentHp = payload.oppHp;
+        // CORREÇÃO CRÍTICA: Só atualiza o HP se ele vier no payload.
+        // Isso impede que o HP zere/bugue quando enviamos apenas um log de texto!
+        if (payload.plyHp !== undefined) this.activeMon.currentHp = payload.plyHp;
+        if (payload.oppHp !== undefined) this.opponent.currentHp = payload.oppHp;
         
         if(payload.msg) this.logBattle(payload.msg);
-        
-        // No PvP Automático, o passivo nunca recebe o turno de volta para clicar
-        // Ele apenas assiste.
-        if (payload.turnChange) {
-            // Se fosse PvP manual antigo, habilitaria aqui.
-            // Agora mantemos o controle com a lógica local do atacante.
-            // Apenas atualiza UI.
-        }
         
         this.updateUI();
     }
@@ -270,11 +264,11 @@ export class Battle {
         else if (enemySpeed > playerSpeed) playerGoesFirst = false;
         else playerGoesFirst = Math.random() > 0.5; // Empate
 
-        this.logBattle(`Velocidade: ${this.activeMon.name}(${playerSpeed}) vs ${this.opponent.name}(${enemySpeed})`);
+        this.logBattle(`Velocidade: ${this.activeMon.name}(${playerSpeed}) vs ${this.opponent.name}(${enemySpeed})`, true);
 
         if (playerGoesFirst) {
             // JOGADOR ATACA PRIMEIRO
-            this.logBattle(`💨 ${this.activeMon.name} é mais rápido!`);
+            this.logBattle(`💨 ${this.activeMon.name} é mais rápido!`, true);
             this.performPlayerAttack(() => {
                 // Se o inimigo sobreviveu, ele ataca de volta automaticamente (Simulando NPC)
                 if (this.opponent && this.opponent.currentHp > 0) {
@@ -292,7 +286,7 @@ export class Battle {
             });
         } else {
             // INIMIGO ATACA PRIMEIRO
-            this.logBattle(`💨 ${this.opponent.name} é mais rápido!`);
+            this.logBattle(`💨 ${this.opponent.name} é mais rápido!`, true);
             this.performEnemyAttack(() => {
                 // Se o jogador sobreviveu, ele ataca de volta
                 if (this.activeMon && this.activeMon.currentHp > 0) {
@@ -349,7 +343,7 @@ export class Battle {
         // Verifica Stun
         if (this.activeEffects.stunOpponent && this.activeEffects.stunOpponent > 0) { 
             this.activeEffects.stunOpponent--; 
-            this.logBattle("⚡ Inimigo atordoado! Não conseguiu atacar."); 
+            this.logBattle("⚡ Inimigo atordoado! Não conseguiu atacar.", true); 
             if(callback) callback();
             return; 
         } 
@@ -367,7 +361,7 @@ export class Battle {
             const reflect = Math.floor(dmg * 0.5); 
             if (reflect > 0) { 
                 this.opponent.currentHp = Math.max(0, this.opponent.currentHp - reflect); 
-                this.logBattle(`🔁 Contra-ataque! Inimigo sofreu ${reflect} de dano.`); 
+                this.logBattle(`🔁 Contra-ataque! Inimigo sofreu ${reflect} de dano.`, true); 
                 this.activeEffects.counter--; 
                 this.updateUI(); 
             } 
@@ -385,9 +379,26 @@ export class Battle {
         } 
     }
     
-    static checkWinCondition() { const nextOpp = this.oppTeamList.find(p => !p.isFainted() && p !== this.opponent); if (nextOpp) { this.opponent = nextOpp; this.logBattle(`Rival enviou ${nextOpp.name}!`); this.updateUI(); this.processingAction = false; this.updateButtons(); } else { this.win(); } }
-    static handleFaint() { const nextPly = this.plyTeamList.find(p => !p.isFainted()); if (nextPly) { this.logBattle(`${this.activeMon!.name} desmaiou!`); document.getElementById('battle-modal')!.style.display = 'none'; this.openSelectionModal("Escolha o próximo!"); } else { this.lose(); } }
-    static logBattle(msg: string) { const Game = (window as any).Game; const el = document.getElementById('battle-msg'); if(el) el.innerText = msg; const logContainer = document.getElementById('battle-log-history'); if(logContainer) logContainer.insertAdjacentHTML('afterbegin', `<div style="border-bottom:1px solid #555; padding:2px;">${msg}</div>`); Game.log(`[Batalha] ${msg}`); }
+    static checkWinCondition() { const nextOpp = this.oppTeamList.find(p => !p.isFainted() && p !== this.opponent); if (nextOpp) { this.opponent = nextOpp; this.logBattle(`Rival enviou ${nextOpp.name}!`, true); this.updateUI(); this.processingAction = false; this.updateButtons(); } else { this.win(); } }
+    static handleFaint() { const nextPly = this.plyTeamList.find(p => !p.isFainted()); if (nextPly) { this.logBattle(`${this.activeMon!.name} desmaiou!`, true); document.getElementById('battle-modal')!.style.display = 'none'; this.openSelectionModal("Escolha o próximo!"); } else { this.lose(); } }
+    
+    static logBattle(msg: string, sync: boolean = false) { 
+        const Game = (window as any).Game; 
+        const el = document.getElementById('battle-msg'); 
+        if(el) el.innerText = msg; 
+        const logContainer = document.getElementById('battle-log-history'); 
+        if(logContainer) logContainer.insertAdjacentHTML('afterbegin', `<div style="border-bottom:1px solid #555; padding:2px;">${msg}</div>`); 
+        Game.log(`[Batalha] ${msg}`); 
+
+        // Se passarmos "true", ele espelha o texto para a rede!
+        if (sync) {
+            const Network = (window as any).Network;
+            if (Network.isOnline && this.player && this.player.id === Network.myPlayerId) {
+                Network.sendAction('BATTLE_UPDATE', { msg: msg });
+            }
+        }
+    }
+
     static getHpColor(current: number, max: number) { const pct = (current / max) * 100; if(pct > 50) return 'hp-green'; if(pct > 10) return 'hp-yellow'; return 'hp-red'; }
     static updateUI() { if(!this.activeMon || !this.opponent) return; if(!this.player) return; document.getElementById('ply-name')!.innerText = this.activeMon.name; document.getElementById('ply-lvl')!.innerText = `Lv.${this.activeMon.level}`; (document.getElementById('ply-img') as HTMLImageElement).src = this.activeMon.getSprite(); const plyPct = (this.activeMon.currentHp/this.activeMon.maxHp)*100; const plyBar = document.getElementById('ply-hp')!; plyBar.style.width = plyPct + "%"; plyBar.className = `hp-fill ${this.getHpColor(this.activeMon.currentHp, this.activeMon.maxHp)}`; document.getElementById('ply-hp-text')!.innerText = `${this.activeMon.currentHp}/${this.activeMon.maxHp}`; (document.getElementById('ply-trainer-img') as HTMLImageElement).src = this.player.avatar; document.getElementById('ply-shiny-tag')!.style.display = this.activeMon.isShiny ? 'inline-block' : 'none'; document.getElementById('ply-stats')!.innerHTML = `<span>⚔️${this.activeMon.atk}</span> <span>🛡️${this.activeMon.def}</span> <span>💨${this.activeMon.speed}</span>`; document.getElementById('opp-name')!.innerText = this.opponent.name; document.getElementById('opp-lvl')!.innerText = `Lv.${this.opponent.level}`; (document.getElementById('opp-img') as HTMLImageElement).src = this.opponent.getSprite(); const oppPct = (this.opponent.currentHp/this.opponent.maxHp)*100; const oppBar = document.getElementById('opp-hp')!; oppBar.style.width = oppPct + "%"; oppBar.className = `hp-fill ${this.getHpColor(this.opponent.currentHp, this.opponent.maxHp)}`; document.getElementById('opp-hp-text')!.innerText = `${this.opponent.currentHp}/${this.opponent.maxHp}`; document.getElementById('opp-shiny-tag')!.style.display = this.opponent.isShiny ? 'inline-block' : 'none'; document.getElementById('opp-stats')!.innerHTML = `<span>⚔️${this.opponent.atk}</span> <span>🛡️${this.opponent.def}</span> <span>💨${this.opponent.speed}</span>`; const oppTrainer = document.getElementById('opp-trainer-img') as HTMLImageElement; if(this.isPvP && this.enemyPlayer) { oppTrainer.src = this.enemyPlayer.avatar; oppTrainer.style.display = 'block'; } else if (this.isGym) { const gData = GYM_DATA.find(g => g.id === this.gymId); if(gData) oppTrainer.src = `/assets/img/LideresGym/${gData.leaderImg}`; oppTrainer.style.display = 'block'; } else if (this.isNPC) { const npcImg = (this.opponent as any)._npcImage; if (npcImg) { oppTrainer.src = npcImg; oppTrainer.style.display = 'block'; } else { oppTrainer.src = '/assets/img/Treinadores/Red.jpg'; oppTrainer.style.display = 'block'; } } else { oppTrainer.style.display = 'none'; } if(!this.isNPC && !this.isGym && !this.isPvP) { document.getElementById('ply-team-indicator')!.innerHTML = ''; document.getElementById('opp-team-indicator')!.innerHTML = ''; } else { this.renderTeamIcons('ply-team-indicator', this.plyTeamList); this.renderTeamIcons('opp-team-indicator', this.oppTeamList); } }
     static renderTeamIcons(elId: string, list: Pokemon[]) { document.getElementById(elId)!.innerHTML = list.map(p => `<div class="ball-icon ${p.isFainted() ? 'lost' : ''}"></div>`).join(''); }
@@ -528,19 +539,19 @@ export class Battle {
         // Limites (sempre haverá 5% de chance de erro ou acerto crítico extremo)
         finalChance = Math.max(5, Math.min(95, finalChance));
 
-        this.logBattle(`Tentando fugir... (🎲${d20}) Chance: ${finalChance}%`);
+        this.logBattle(`Tentando fugir... (🎲${d20}) Chance: ${finalChance}%`, true);
 
         setTimeout(() => {
             const roll = Math.floor(Math.random() * 100) + 1;
 
             if (roll <= finalChance) {
                 // SUCESSO
-                this.logBattle("🏃 Escapou com sucesso!");
+                this.logBattle("🏃 Escapou com sucesso!", true);
                 this.activeMon!.gainXp(2, this.player!); 
                 setTimeout(() => this.end(false), 1000);
             } else {
                 // FALHA NA FUGA
-                this.logBattle("🚫 Falha na fuga! O inimigo vai atacar.");
+                this.logBattle("🚫 Falha na fuga! O inimigo vai atacar.", true);
                 
                 // 3. Inimigo ataca imediatamente
                 setTimeout(() => {
@@ -586,7 +597,7 @@ export class Battle {
             this.updateButtons();
             
             this.activeMon!.heal(data.val!);
-            this.logBattle(`💊 Usou ${data.name}! Recuperou HP.`);
+            this.logBattle(`💊 Usou ${data.name}! Recuperou HP.`, true);
             this.updateUI();
             
             // Sincroniza uso de item
@@ -616,7 +627,7 @@ export class Battle {
         const opponent = this.opponent;
         const activeMon = this.activeMon;
 
-        this.logBattle(`Jogou ${item.name}...`);
+        this.logBattle(`Jogou ${item.name}...`, true);
 
         setTimeout(() => {
             if (item.id === 'masterball') {
@@ -636,13 +647,13 @@ export class Battle {
             chance += diceBonus;
             chance = Math.max(1, Math.min(95, chance));
 
-            this.logBattle(`(Chance Final: ${chance}% | Sorte: ${diceBonus > 0 ? '+' : ''}${diceBonus}%)`);
+            this.logBattle(`(Chance Final: ${chance}% | Sorte: ${diceBonus > 0 ? '+' : ''}${diceBonus}%)`, true);
             const roll = Math.floor(Math.random() * 100) + 1;
 
             if (roll <= chance) {
                 this.captureSuccess();
             } else {
-                this.logBattle("Aargh! Quase! O Pokémon escapou!");
+                this.logBattle("Aargh! Quase! O Pokémon escapou!", true);
                 
                 // Se falhar a captura, o inimigo ataca!
                 setTimeout(() => {

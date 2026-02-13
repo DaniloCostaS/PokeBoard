@@ -164,7 +164,28 @@ export class Game {
     static async rollDice() { if(!this.canAct() || this.hasRolled) return; this.hasRolled = true; let result = 0; if (this.forcedDiceValue > 0) { result = this.forcedDiceValue; this.forcedDiceValue = 0; this.log("🔮 Dado Mágico usado!"); } else { const p = this.getCurrentPlayer(); if (p.effects.slow && p.effects.slow > 0) { result = Math.floor(Math.random()*6)+1; p.effects.slow--; this.log("🕸️ Lentidão! Rolou apenas 1d6."); } else { result = Math.floor(Math.random()*20)+1; } } if(Network.isOnline) { Network.sendAction('ROLL', { result: result }); } const playerId = Network.isOnline ? Network.myPlayerId : this.turn; this.animateDice(result, playerId); }
     static debugMove() { if(!this.canAct()) return; const input = document.getElementById('debug-input') as HTMLInputElement; const result = parseInt(input.value) || 1; this.log(`[DEBUG] Forçando ${result} passos.`); if(Network.isOnline) { Network.sendAction('ROLL', { result: result }); return; } this.animateDice(result, 0); }
     static moveVisuals() { this.players.forEach((p, idx) => { const currentTile = document.getElementById(`tile-${p.x}-${p.y}`); if(!currentTile) return; let token = document.getElementById(`p-token-${idx}`); if (token && token.parentElement === currentTile) { if(idx === this.turn) token.classList.add('active-token'); else token.classList.remove('active-token'); return; } if (token) token.remove(); const t = document.createElement('div'); t.id = `p-token-${idx}`; t.className = `player-token ${idx===this.turn?'active-token':''}`; t.style.backgroundImage = `url('${p.avatar}')`; t.style.borderColor = PLAYER_COLORS[idx % PLAYER_COLORS.length]; if(MapSystem.size >= 30) { t.style.width = '90%'; t.style.height = '90%'; } currentTile.appendChild(t); if(idx===this.turn) currentTile.scrollIntoView({block:'center',inline:'center',behavior:'smooth'}); }); }
-    static async animateDice(result: number, playerId: number) { const die = document.getElementById('d20-display')!; for(let i=0;i<5;i++) { die.innerText = `🎲 ${Math.floor(Math.random()*20)+1}`; await new Promise(r=>setTimeout(r,50)); } die.innerText = `🎲 ${result}`; if (!Network.isOnline || playerId === Network.myPlayerId) { this.log(`${this.players[playerId].name} tirou ${result}`); } const p = this.players[playerId]; if(p.team.length > 0) { const luckyMon = p.team[Math.floor(Math.random() * p.team.length)]; luckyMon.gainXp(1, p); } this.movePlayerLogic(result, playerId); }
+    
+    static async animateDice(result: number, playerId: number) { 
+        const die = document.getElementById('d20-display')!; 
+        for(let i=0;i<5;i++) { 
+            die.innerText = `🎲 ${Math.floor(Math.random()*20)+1}`; 
+            await new Promise(r=>setTimeout(r,50)); 
+        }
+
+        die.innerText = `🎲 ${result}`; 
+        // CORREÇÃO: Removido o IF que bloqueava o texto. 
+        // Agora todos na sala registram o log do dado localmente!
+        //if (!Network.isOnline || playerId === Network.myPlayerId) { 
+            this.log(`${this.players[playerId].name} tirou ${result}`); 
+        //} 
+        const p = this.players[playerId]; 
+        if(p.team.length > 0) { 
+            const luckyMon = p.team[Math.floor(Math.random() * p.team.length)]; 
+            luckyMon.gainXp(1, p); 
+        } 
+        this.movePlayerLogic(result, playerId); 
+    }
+    
     static async movePlayerLogic(steps: number, pId: number) { const p = this.players[pId]; const totalTiles = MapSystem.size * MapSystem.size; if (this.bonusMovement > 0) { steps += this.bonusMovement; this.bonusMovement = 0; this.log("👟 Bônus de movimento aplicado!"); } for(let i=0; i<steps; i++) { let currentIdx = MapSystem.getIndex(p.x, p.y); currentIdx++; if (currentIdx >= totalTiles) { currentIdx = 0; p.gold += 200; Cards.draw(p); this.sendGlobalLog(`🚩 ${p.name} completou uma volta! Ganhou 200G e 1 Carta!`); } const nextCoord = MapSystem.getCoord(currentIdx); p.x = nextCoord.x; p.y = nextCoord.y; this.performVisualStep(pId, p.x, p.y); await new Promise(r => setTimeout(r, 150)); const trapIdx = this.traps.findIndex(t => t.x === p.x && t.y === p.y && t.ownerId !== p.id); if (trapIdx > -1) { this.sendGlobalLog(`🪤 ${p.name} caiu numa armadilha! Perdeu o próximo turno.`); p.skipTurns = 1; this.traps.splice(trapIdx, 1); const tile = document.getElementById(`tile-${p.x}-${p.y}`); if(tile) tile.style.border = "none"; break; } } if (!Network.isOnline || pId === Network.myPlayerId) { this.handleTile(p); if(Network.isOnline) Network.syncPlayerState(); } }
     static performVisualStep(pId: number, x: number, y: number) { const p = this.players[pId]; if(!p) return; p.x = x; p.y = y; const tile = document.getElementById(`tile-${x}-${y}`); if(tile) { tile.classList.add('step-highlight'); this.moveVisuals(); setTimeout(() => tile.classList.remove('step-highlight'), 300); } }
     
