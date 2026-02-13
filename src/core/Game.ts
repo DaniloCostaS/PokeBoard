@@ -16,6 +16,7 @@ export class Game {
     static players: Player[] = []; 
     static turn: number = 0; 
     static round: number = 1;
+    static alertEndsTurn: boolean = true;
     static isCityEvent: boolean = false; 
     static hasRolled: boolean = false; 
     static forcedDiceValue: number = 0;
@@ -680,10 +681,11 @@ export class Game {
     // =======================================================================
     // SISTEMA DE ALERTA GLOBAL SINCRONIZADO
     // =======================================================================
-    static showGlobalAlert(msg: string, playerName: string, isMyTurn: boolean) {
-        let modal = document.getElementById('custom-global-alert');
+    // Atualizado para receber o parâmetro "endsTurn" (por padrão é true)
+    static showGlobalAlert(msg: string, playerName: string, isMyTurn: boolean, endsTurn: boolean = true) {
+        this.alertEndsTurn = endsTurn; // Salva se deve pular a vez
         
-        // Se o modal não existir no HTML, cria ele dinamicamente
+        let modal = document.getElementById('custom-global-alert');
         if (!modal) {
             modal = document.createElement('div');
             modal.id = 'custom-global-alert';
@@ -698,11 +700,9 @@ export class Game {
             document.body.appendChild(modal);
         }
 
-        // Atualiza a mensagem
         document.getElementById('cga-msg')!.innerText = msg;
         const controls = document.getElementById('cga-controls')!;
 
-        // Se for o meu turno, mostra o botão OK. Se não, mostra aguardando.
         if (isMyTurn) {
             controls.innerHTML = `<button class="btn" style="background-color:#ef233c; padding:10px 30px; font-size:1.1rem; margin:0;" onclick="window.Game.confirmGlobalAlert()">OK</button>`;
         } else {
@@ -716,13 +716,14 @@ export class Game {
         const Network = (window as any).Network;
         this.closeGlobalAlert();
         
-        // Avisa os espectadores para fecharem o aviso deles também
         if (Network.isOnline) {
             Network.sendAction('CLOSE_ALERT', {});
         }
         
-        // Segue o jogo!
-        this.nextTurn();
+        // Só passa o turno se a carta/evento mandar!
+        if (this.alertEndsTurn) {
+            this.nextTurn();
+        }
     }
 
     static closeGlobalAlert() {

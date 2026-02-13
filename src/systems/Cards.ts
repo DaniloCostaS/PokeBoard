@@ -182,15 +182,28 @@ export class Cards {
                 logMsg = `🃏 ${player.name} usou a carta ${cardData.name} contra ${targetName}!`;
             }
 
-            Game.sendGlobalLog(logMsg);
-            
-            // 2. O TEXTO COM O EFEITO DA CARTA (Ligeiro atraso para o log ficar ordenado e emocionante)
+            // 2. Junta as mensagens para a Pop-up
+            let fullMsg = logMsg;
             if (effectLog) {
-                setTimeout(() => Game.sendGlobalLog(effectLog), 50);
+                fullMsg += `\n\n${effectLog}`;
             }
+
+            // 3. Coloca no cantinho do Log (localmente)
+            Game.log(logMsg);
+            if (effectLog) Game.log(effectLog);
+
+            // 4. CHAMA A TELA DE AVISO (Passando "false" no final para NÃO passar a vez!)
+            Game.showGlobalAlert(fullMsg, player.name, true, false);
 
             if (Network.isOnline) {
                 Network.syncPlayerState();
+                
+                // Envia a ordem para os amigos exibirem a Pop-up também
+                Network.sendAction('SHOW_ALERT', { 
+                    msg: fullMsg, 
+                    playerName: player.name, 
+                    endsTurn: false // Avisa que não é pra pular a vez
+                });
             }
         }
     }
