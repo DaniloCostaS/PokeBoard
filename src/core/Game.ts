@@ -170,23 +170,90 @@ export class Game {
         for(let i=0;i<5;i++) { 
             die.innerText = `🎲 ${Math.floor(Math.random()*20)+1}`; 
             await new Promise(r=>setTimeout(r,50)); 
-        }
-
-        die.innerText = `🎲 ${result}`; 
-        // CORREÇÃO: Removido o IF que bloqueava o texto. 
-        // Agora todos na sala registram o log do dado localmente!
-        //if (!Network.isOnline || playerId === Network.myPlayerId) { 
-            this.log(`${this.players[playerId].name} tirou ${result}`); 
-        //} 
-        const p = this.players[playerId]; 
-        if(p.team.length > 0) { 
-            const luckyMon = p.team[Math.floor(Math.random() * p.team.length)]; 
-            luckyMon.gainXp(1, p); 
         } 
+        die.innerText = `🎲 ${result}`; 
+        
+        // Mantemos o log local para todos verem o resultado do dado
+        this.log(`${this.players[playerId].name} tirou ${result}`); 
+        
+        // --- TRAVA DE REDE E NOVA LÓGICA DE XP ---
+        const Network = (window as any).Network;
+        if (!Network.isOnline || playerId === Network.myPlayerId) {
+            const p = this.players[playerId]; 
+            
+            // 1. Filtra para pegar apenas os Pokémons vivos da equipe
+            const aliveTeam = p.team.filter(m => !m.isFainted());
+            
+            // 2. Calcula o XP: Resultado dividido por 3 (arredondado para baixo)
+            // O Math.max(1, ...) garante que o ganho mínimo seja sempre 1 de XP
+            const xpGain = Math.max(1, Math.floor(result / 3));
+            
+            // 3. Se tiver alguém vivo na equipe, sorteia e dá o XP!
+            if (aliveTeam.length > 0) { 
+                const luckyMon = aliveTeam[Math.floor(Math.random() * aliveTeam.length)]; 
+                luckyMon.gainXp(xpGain, p); 
+            } 
+        }
+        // -----------------------------------------
+
         this.movePlayerLogic(result, playerId); 
     }
     
-    static async movePlayerLogic(steps: number, pId: number) { const p = this.players[pId]; const totalTiles = MapSystem.size * MapSystem.size; if (this.bonusMovement > 0) { steps += this.bonusMovement; this.bonusMovement = 0; this.log("👟 Bônus de movimento aplicado!"); } for(let i=0; i<steps; i++) { let currentIdx = MapSystem.getIndex(p.x, p.y); currentIdx++; if (currentIdx >= totalTiles) { currentIdx = 0; p.gold += 200; Cards.draw(p); this.sendGlobalLog(`🚩 ${p.name} completou uma volta! Ganhou 200G e 1 Carta!`); } const nextCoord = MapSystem.getCoord(currentIdx); p.x = nextCoord.x; p.y = nextCoord.y; this.performVisualStep(pId, p.x, p.y); await new Promise(r => setTimeout(r, 150)); const trapIdx = this.traps.findIndex(t => t.x === p.x && t.y === p.y && t.ownerId !== p.id); if (trapIdx > -1) { this.sendGlobalLog(`🪤 ${p.name} caiu numa armadilha! Perdeu o próximo turno.`); p.skipTurns = 1; this.traps.splice(trapIdx, 1); const tile = document.getElementById(`tile-${p.x}-${p.y}`); if(tile) tile.style.border = "none"; break; } } if (!Network.isOnline || pId === Network.myPlayerId) { this.handleTile(p); if(Network.isOnline) Network.syncPlayerState(); } }
+    static async movePlayerLogic(steps: number, pId: number) { 
+        const p = this.players[pId]; 
+        const totalTiles = MapSystem.size * MapSystem.size; 
+        const Network = (window as any).Network;
+        
+        if (this.bonusMovement > 0) { 
+            steps += this.bonusMovement; 
+            this.bonusMovement = 0; 
+            this.log("👟 Bônus de movimento aplicado!"); 
+        } 
+        
+        for(let i=0; i<steps; i++) { 
+            let currentIdx = MapSystem.getIndex(p.x, p.y); 
+            currentIdx++; 
+            
+            if (currentIdx >= totalTiles) { 
+                currentIdx = 0; 
+                
+                // --- CORREÇÃO: TRAVA DA VOLTA ---
+                // Somente o dono do turno ganha o ouro, a carta e envia o Log!
+                if (!Network.isOnline || pId === Network.myPlayerId) {
+                    p.gold += 200; 
+                    Cards.draw(p); 
+                    this.sendGlobalLog(`🚩 ${p.name} completou uma volta! Ganhou 200G e 1 Carta!`); 
+                }
+            } 
+            
+            const nextCoord = MapSystem.getCoord(currentIdx); 
+            p.x = nextCoord.x; 
+            p.y = nextCoord.y; 
+            this.performVisualStep(pId, p.x, p.y); 
+            await new Promise(r => setTimeout(r, 150)); 
+            
+            const trapIdx = this.traps.findIndex(t => t.x === p.x && t.y === p.y && t.ownerId !== p.id); 
+            if (trapIdx > -1) { 
+                
+                // --- CORREÇÃO: TRAVA DA ARMADILHA ---
+                if (!Network.isOnline || pId === Network.myPlayerId) {
+                    this.sendGlobalLog(`🪤 ${p.name} caiu numa armadilha! Perdeu o próximo turno.`); 
+                }
+                
+                p.skipTurns = 1; 
+                this.traps.splice(trapIdx, 1); 
+                const tile = document.getElementById(`tile-${p.x}-${p.y}`); 
+                if(tile) tile.style.border = "none"; 
+                break; 
+            } 
+        } 
+        
+        if (!Network.isOnline || pId === Network.myPlayerId) { 
+            this.handleTile(p); 
+            if(Network.isOnline) Network.syncPlayerState(); 
+        } 
+    }
+
     static performVisualStep(pId: number, x: number, y: number) { const p = this.players[pId]; if(!p) return; p.x = x; p.y = y; const tile = document.getElementById(`tile-${x}-${y}`); if(tile) { tile.classList.add('step-highlight'); this.moveVisuals(); setTimeout(() => tile.classList.remove('step-highlight'), 300); } }
     
     static handleTile(p: Player) {
