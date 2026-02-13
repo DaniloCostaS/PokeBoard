@@ -15,6 +15,7 @@ import type { ItemData } from '../constants';
 export class Game {
     static players: Player[] = []; 
     static turn: number = 0; 
+    static round: number = 1;
     static isCityEvent: boolean = false; 
     static hasRolled: boolean = false; 
     static forcedDiceValue: number = 0;
@@ -374,7 +375,7 @@ export class Game {
             // Repare que NÃO tem o this.nextTurn() aqui! 
             // O turno passará quando clicar no "OK" da pop-up.
         }
-        
+
         else if(type === TILE.GYM) { 
             const gymId = MapSystem.gymLocations[`${p.x},${p.y}`] || 1; 
             if (!p.badges[gymId-1]) { Battle.setup(p, new Pokemon(150, 1, false), false, "Líder de Ginásio", 1000, null, true, gymId, "", type); } 
@@ -435,10 +436,7 @@ export class Game {
 
     static nextTurn() {
         this.saveGame(); 
-        
         const currentP = this.getCurrentPlayer();
-        
-        // CORREÇÃO CRÍTICA: Reseta a flag de nível para o próximo turno
         currentP.resetTurnFlags();
 
         if (currentP.effects.extraTurn) {
@@ -450,11 +448,16 @@ export class Game {
             return;
         }
 
-        this.turn = (this.turn+1)%this.players.length; 
+        // --- NOVA LÓGICA DE RODADA ---
+        const nextTurnIdx = (this.turn + 1) % this.players.length; 
+        if (nextTurnIdx === 0) {
+            this.round++; // Completou um ciclo inteiro, aumenta a rodada!
+        }
+        this.turn = nextTurnIdx; 
         this.hasRolled = false; 
         
         if(Network.isOnline) { 
-            Network.syncTurn(this.turn); 
+            Network.syncTurn(this.turn, this.round); // Agora envia a rodada junto!
         } else {
             const nextP = this.players[this.turn];
             if(nextP.skipTurns > 0) { 
@@ -585,8 +588,30 @@ export class Game {
                 <button class="btn btn-secondary btn-mini" onclick="window.openCards(${i})">🃏 ${totalCards}</button>
             </div>`; 
             if(i < Math.ceil(this.players.length/2)) left.appendChild(d); 
-            else right.appendChild(d); }); const turnPlayer = this.players[this.turn]; 
+            else right.appendChild(d); }); 
+            const turnPlayer = this.players[this.turn]; 
             if (turnPlayer) document.getElementById('turn-indicator')!.innerText = turnPlayer.name; 
+
+            // --- NOVO: ATUALIZAR PAINEL DE INFORMAÇÕES GLOBAIS ---
+            const elRound = document.getElementById('round-indicator');
+            if (elRound) elRound.innerText = this.round.toString();
+            
+            const avgLvl = this.getGlobalAverageLevel();
+            const elAvg = document.getElementById('avg-lvl-indicator');
+            if (elAvg) elAvg.innerText = `Lv.${avgLvl}`;
+            
+            const elGym = document.getElementById('gym-lvl-indicator');
+            if (elGym) elGym.innerText = `Lv.${avgLvl + 1}`;
+            
+            // Calcula Média de Pokémons da Equipe de forma rápida
+            let totalMons = 0;
+            this.players.forEach(p => totalMons += p.team.length);
+            const avgTeam = Math.max(1, Math.min(6, Math.round(totalMons / Math.max(1, this.players.length))));
+            
+            const elTeam = document.getElementById('npc-team-indicator');
+            if (elTeam) elTeam.innerText = avgTeam.toString();
+            // -----------------------------------------------------
+    
         }
     
     static renderBoard() { 

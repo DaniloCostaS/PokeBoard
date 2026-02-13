@@ -42,6 +42,7 @@ export class Network {
         const initialData = { 
             status: "LOBBY", 
             turn: 0, 
+            round: 1,
             mapSize: 20, 
             players: { 
                 0: { 
@@ -120,6 +121,7 @@ export class Network {
         const Game = (window as any).Game; 
         const snapshot = await get(ref(db, `rooms/${this.currentRoomId}`)); 
         const data = snapshot.val(); 
+        Game.round = data.round || 1;
         if (data.map) { MapSystem.size = data.map.size; MapSystem.grid = data.map.grid; MapSystem.gymLocations = data.map.gymLocations || {}; } else { return; } 
         const playerArray = Object.values(data.players).map((pd: any) => { 
             const pl = new Player(pd.id, pd.name, pd.avatar, true); 
@@ -153,7 +155,10 @@ export class Network {
         
         onValue(ref(db, `rooms/${this.currentRoomId}/lastAction`), (snapshot) => { const action = snapshot.val(); if(!action || action.type === 'INIT') return; this.handleRemoteAction(action); }); 
         onValue(ref(db, `rooms/${this.currentRoomId}/turn`), (snapshot) => { const turn = snapshot.val(); if(turn !== null) { Game.turn = turn; Game.updateHUD(); Game.checkTurnControl(); } }); 
-        
+        onValue(ref(db, `rooms/${this.currentRoomId}/round`), (snapshot) => { 
+            const round = snapshot.val(); 
+            if(round !== null) { Game.round = round; Game.updateHUD(); } 
+        });
         onValue(ref(db, `rooms/${this.currentRoomId}/players`), (snapshot) => { 
             const playersData = snapshot.val(); 
             if(!playersData) return; 
@@ -364,7 +369,10 @@ export class Network {
         });
     }
 
-    static syncTurn(newTurn: number) { if(!this.isOnline) return; update(ref(db, `rooms/${this.currentRoomId}`), { turn: newTurn }); }
+    static syncTurn(newTurn: number, newRound: number = 1) { 
+        if(!this.isOnline) return; 
+        update(ref(db, `rooms/${this.currentRoomId}`), { turn: newTurn, round: newRound }); 
+    }
 }
 
 // Garante acesso global

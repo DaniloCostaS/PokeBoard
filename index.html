@@ -108,6 +108,15 @@
                 <small>TURNO ATUAL</small>
                 <h2 id="turn-indicator">-</h2>
             </div>
+
+            <div class="panel-box info-section" style="font-size: 0.85rem; text-align: left; line-height: 1.6;">
+                <div style="color: var(--gold); font-weight: bold; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.2); margin-bottom: 5px; padding-bottom: 5px;">🌍 Status do Mundo</div>
+                <div>🔄 Rodada: <b id="round-indicator" style="color:#fff;">1</b></div>
+                <div>📊 NPC / Selvagem: <b id="avg-lvl-indicator" style="color:#fff;">Lv.1</b></div>
+                <div>🏛️ Líder Ginásio: <b id="gym-lvl-indicator" style="color:#fff;">Lv.2</b></div>
+                <div>👥 Time Inimigo: <b id="npc-team-indicator" style="color:#fff;">1</b> PKMN</div>
+            </div>
+            
             <div class="panel-box dice-section">
                 <div id="d20-display">🎲 20</div>
                 <button id="roll-btn" class="btn btn-roll" onclick="window.Game.rollDice()">ROLAR</button>

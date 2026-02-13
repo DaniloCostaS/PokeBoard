@@ -59,18 +59,19 @@ export class Cards {
         if (cardData.type === 'battle' && !Battle.active) return alert("Cartas BATTLE só podem ser usadas em batalha!");
 
         let consumed = true; 
+        let effectLog = ""; // Variável para o texto do efeito visual
 
         switch (cardId) {
             case 'dice': 
                 const val = prompt("Escolha o valor do dado (1-20):");
                 const num = parseInt(val || "0");
-                if (num >= 1 && num <= 20) { Game.forceDice(num); } 
+                if (num >= 1 && num <= 20) { Game.forceDice(num); effectLog = `🎲 O dado foi forçado para cair ${num}!`; } 
                 else { alert("Valor inválido."); consumed = false; }
                 break;
 
-            case 'reroll': Game.log("🔄 Re-Roll ativado! Rolando novamente..."); Game.rollDice(); break;
-            case 'boost': Game.log("👟 Tênis ativados! +6 casas."); Game.bonusMovement = 6; break;
-            case 'trap': Game.placeTrap(player.x, player.y, player.id); Game.sendGlobalLog(`🪤 ${player.name} colocou uma armadilha!`); break;
+            case 'reroll': effectLog = "🔄 Re-Roll ativado! O dado será rolado novamente."; Game.rollDice(); break;
+            case 'boost': effectLog = "👟 Tênis ativados! Andará +6 casas no próximo turno."; Game.bonusMovement = 6; break;
+            case 'trap': Game.placeTrap(player.x, player.y, player.id); effectLog = `🪤 Uma armadilha foi montada no chão!`; break;
 
             case 'swap': 
                 if (targetId !== null) {
@@ -79,12 +80,8 @@ export class Cards {
                     player.x = target.x; player.y = target.y;
                     target.x = tempX; target.y = tempY;
                     Game.moveVisuals();
-                    Game.sendGlobalLog(`🔀 ${player.name} trocou de lugar com ${target.name}!`);
-                    
-                    if(Network.isOnline) {
-                        Network.syncPlayerState();
-                        Network.syncSpecificPlayer(target.id); // Sincroniza o alvo também
-                    }
+                    effectLog = `🔀 A posição deles foi invertida!`;
+                    if(Network.isOnline) Network.syncSpecificPlayer(target.id);
                 } else { this.openTargetSelection(cardId); consumed = false; }
                 break;
 
@@ -92,7 +89,7 @@ export class Cards {
                 if (targetId !== null) {
                     const target = Game.players[targetId];
                     target.effects.slow = 3;
-                    Game.sendGlobalLog(`🕸️ ${target.name} está lento por 3 turnos!`);
+                    effectLog = `🕸️ ${target.name} não consegue correr! Está lento por 3 turnos.`;
                     if(Network.isOnline) Network.syncSpecificPlayer(target.id);
                 } else { this.openTargetSelection(cardId); consumed = false; }
                 break;
@@ -104,13 +101,9 @@ export class Cards {
                         const stolenIdx = Math.floor(Math.random() * target.cards.length);
                         const stolenCard = target.cards.splice(stolenIdx, 1)[0];
                         player.cards.push(stolenCard);
-                        Game.sendGlobalLog(`🚀 ${player.name} roubou ${stolenCard.name} de ${target.name}!`);
-                        
-                        if(Network.isOnline) {
-                            Network.syncPlayerState();
-                            Network.syncSpecificPlayer(target.id);
-                        }
-                    } else { Game.log("O alvo não tinha cartas!"); }
+                        effectLog = `🚀 BINGO! Uma carta foi roubada e foi parar na mão de ${player.name}!`;
+                        if(Network.isOnline) Network.syncSpecificPlayer(target.id);
+                    } else { alert("O alvo não tem cartas!"); consumed = false; }
                 } else { this.openTargetSelection(cardId); consumed = false; }
                 break;
 
@@ -118,7 +111,7 @@ export class Cards {
                 if (targetId !== null) {
                     const target = Game.players[targetId];
                     target.effects.curse = true; 
-                    Game.sendGlobalLog(`☠️ ${target.name} foi amaldiçoado!`);
+                    effectLog = `☠️ O ataque de ${target.name} foi reduzido pela metade!`;
                     if(Network.isOnline) Network.syncSpecificPlayer(target.id);
                 } else { this.openTargetSelection(cardId); consumed = false; }
                 break;
@@ -127,17 +120,17 @@ export class Cards {
                 if (targetId !== null) {
                     const target = Game.players[targetId];
                     target.skipTurns = 1; 
-                    Game.sendGlobalLog(`❌ ${target.name} perdeu a próxima vez!`);
+                    effectLog = `❌ Sabotagem feita com sucesso! ${target.name} perde a próxima rodada.`;
                     if(Network.isOnline) Network.syncSpecificPlayer(target.id);
                 } else { this.openTargetSelection(cardId); consumed = false; }
                 break;
 
-            case 'time': player.effects.extraTurn = true; Game.log("⏳ Você jogará novamente após este turno."); break;
+            case 'time': player.effects.extraTurn = true; effectLog = "⏳ O tempo congelou! O jogador terá mais um turno imediato."; break;
             
             case 'new_leader': 
                 if(targetId !== null) {
                     Battle.activeEffects.stealBadgeFrom = targetId; 
-                    Game.log("⚔️ Vença a batalha para roubar uma insígnia!");
+                    effectLog = `⚔️ Um duelo até a morte! Se o desafiante vencer, ele rouba uma Insígnia!`;
                 } else { this.openTargetSelection(cardId); consumed = false; }
                 break;
 
@@ -176,10 +169,28 @@ export class Cards {
             document.getElementById('board-cards-modal')!.style.display = 'none';
             document.getElementById('battle-cards-modal')!.style.display = 'none';
 
-            // Sync padrão para quem usou a carta
+            // 1. ANÚNCIO GERAL NOMINAL (Fulano usou em Ciclano)
+            let targetName = "";
+            if (targetId !== null && Game.players[targetId]) {
+                targetName = Game.players[targetId].name;
+            } else if (cardData.type === 'battle' && Battle.isPvP && Battle.enemyPlayer) {
+                targetName = Battle.enemyPlayer.name;
+            }
+
+            let logMsg = `🃏 ${player.name} usou a carta ${cardData.name}!`;
+            if (targetName) {
+                logMsg = `🃏 ${player.name} usou a carta ${cardData.name} contra ${targetName}!`;
+            }
+
+            Game.sendGlobalLog(logMsg);
+            
+            // 2. O TEXTO COM O EFEITO DA CARTA (Ligeiro atraso para o log ficar ordenado e emocionante)
+            if (effectLog) {
+                setTimeout(() => Game.sendGlobalLog(effectLog), 50);
+            }
+
             if (Network.isOnline) {
                 Network.syncPlayerState();
-                Network.sendAction('LOG', { msg: `${player.name} usou ${cardData.name}!` });
             }
         }
     }
