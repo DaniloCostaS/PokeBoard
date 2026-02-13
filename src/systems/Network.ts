@@ -238,6 +238,19 @@ export class Network {
             case 'ROLL': Game.animateDice(action.payload.result, action.playerId); break; 
             case 'MOVE_ANIMATION': Game.performVisualStep(action.payload.playerId, action.payload.x, action.payload.y); break; 
             case 'BATTLE_START': Battle.startFromNetwork(action.payload); break; 
+            // --- ADICIONE ESTE BLOCO ---
+            case 'BATTLE_OPP_SWITCH': 
+                const BattleObj = (window as any).Battle;
+                if (!BattleObj.active) return;
+                
+                const PokemonClass = (window as any).Pokemon || Game.players[0].team[0].constructor;
+                const newOpp = new PokemonClass(action.payload.nextOpp.id, action.payload.nextOpp.level, action.payload.nextOpp.isShiny);
+                Object.assign(newOpp, action.payload.nextOpp);
+                
+                BattleObj.opponent = newOpp;
+                BattleObj.updateUI();
+                break;
+            // ---------------------------
             case 'BATTLE_UPDATE': Battle.updateFromNetwork(action.payload); break; 
             case 'BATTLE_END': Battle.end(true); break; 
             case 'LOG': Game.log(action.payload.msg); break; 

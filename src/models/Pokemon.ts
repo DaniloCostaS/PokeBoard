@@ -97,7 +97,8 @@ export class Pokemon {
     }
 
     recalculateStats(resetHp: boolean = false) {
-        const shinyBonus = this.isShiny ? 1.1 : 1.0; 
+        // --- ALTERAÇÃO: Mudando o bônus de 1.1 (10%) para 1.3 (30%) ---
+        const shinyBonus = this.isShiny ? 1.3 : 1.0; 
         const levelBonus = (this.level - 1) * 2;
 
         const calc = (base: number, iv: number) => Math.floor((base + iv + levelBonus) * shinyBonus);

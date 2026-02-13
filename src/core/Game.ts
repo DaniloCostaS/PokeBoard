@@ -27,6 +27,18 @@ export class Game {
     static sendGlobalLog(msg: string) { this.log(msg); if(Network.isOnline) { Network.sendAction('LOG', { msg: msg }); } }
     static getGlobalAverageLevel(): number { if (!this.players || this.players.length === 0) return 1; let totalLevels = 0; let totalMons = 0; this.players.forEach(p => { p.team.forEach(m => { totalLevels += m.level; totalMons++; }); }); if (totalMons === 0) return 1; return Math.floor(totalLevels / totalMons); }
     
+    static getGlobalAverageTeamSize(): number {
+        if (!this.players || this.players.length === 0) return 1;
+        let totalMons = 0;
+        this.players.forEach(p => { totalMons += p.team.length; });
+        
+        // Calcula a média e arredonda
+        const avg = Math.round(totalMons / this.players.length);
+        
+        // Garante que o NPC terá pelo menos 1 e no máximo 6 pokémons
+        return Math.min(6, Math.max(1, avg)); 
+    }
+
     static triggerVictory(winnerId: number) {
         const winner = this.players.find(p => p.id === winnerId);
         if (!winner) return;
@@ -282,14 +294,24 @@ export class Game {
         
         if(NPC_DATA[type]) { 
             const npc = NPC_DATA[type]; 
-            const monId = npc.team[Math.floor(Math.random() * npc.team.length)]; 
             let npcImg = '/assets/img/Treinadores/Red.jpg'; 
             if (type === TILE.ROCKET) npcImg = '/assets/img/NPCs/Rocket.jpg'; 
             else if (type === TILE.BIKER) npcImg = '/assets/img/NPCs/Motoqueiro.jpg'; 
             else if (type === TILE.YOUNG) npcImg = '/assets/img/NPCs/Jovem.jpg'; 
             else if (type === TILE.OLD) npcImg = '/assets/img/NPCs/Velho.jpg'; 
+            
             const npcLevel = this.getGlobalAverageLevel(); 
-            Battle.setup(p, new Pokemon(monId, npcLevel, null), false, npc.name, npc.gold, null, false, 0, npcImg, type); 
+            const teamSize = this.getGlobalAverageTeamSize();
+            const npcTeam: Pokemon[] = [];
+            
+            // Sorteia os Pokémons até preencher a quantidade média
+            for(let i = 0; i < teamSize; i++) {
+                const monId = npc.team[Math.floor(Math.random() * npc.team.length)]; 
+                npcTeam.push(new Pokemon(monId, npcLevel, null));
+            }
+
+            // Repare que agora passamos 'npcTeam as any' em vez de um único Pokémon
+            Battle.setup(p, npcTeam as any, false, npc.name, npc.gold, null, false, 0, npcImg, type); 
             return; 
         }
         

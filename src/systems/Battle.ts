@@ -26,26 +26,31 @@ export class Battle {
     static activeEffects: any = {};
     static currentTerrain: number = 0;
 
-    static setup(player: Player, enemyMon: Pokemon, isPvP: boolean = false, _label: string = "", reward: number = 0, enemyPlayer: Player | null = null, isGym: boolean = false, gymId: number = 0, npcImage: string = "", terrainTile: number = 1) {
+    static setup(player: Player, enemyMon: any, isPvP: boolean = false, _label: string = "", reward: number = 0, enemyPlayer: Player | null = null, isGym: boolean = false, gymId: number = 0, npcImage: string = "", terrainTile: number = 1) {
         const Game = (window as any).Game;
         this.player = player; this.isPvP = isPvP; this.isNPC = (reward > 0 && !isPvP); this.isGym = isGym; this.gymId = gymId; this.reward = reward; this.enemyPlayer = enemyPlayer; this.processingAction = false;
         this.activeEffects = {};
         this.battleTitle = isPvP ? "Batalha PvP!" : `Batalha contra ${_label}!`;
-        this.plyTeamList = player.getBattleTeam(isGym).slice(0, isGym ? 6 : 3);
-        // GUARDA O TERRENO ATUAL
+        
+        // Pega o time todo (já limitamos a 6 no Player.ts)
+        this.plyTeamList = player.getBattleTeam(true); 
         this.currentTerrain = terrainTile;
 
         if (isPvP && enemyPlayer) { 
             this.oppTeamList = enemyPlayer.getBattleTeam(false); 
             this.opponent = this.oppTeamList[0]; 
-            if (enemyPlayer.effects.curse) { this.logBattle(`☠️ ${enemyPlayer.name} está amaldiçoado! (Dano reduzido)`, true); }
+            if (enemyPlayer.effects.curse) { this.logBattle(`☠️ ${enemyPlayer.name} está amaldiçoado! (Dano reduzido)`); }
         } else if (isGym) {
             const gymData = GYM_DATA.find(g => g.id === gymId);
             const globalAvg = Game.getGlobalAverageLevel();
             const gymLevel = globalAvg + 1; 
             if(gymData) { this.oppTeamList = gymData.teamIds.map((id: number) => new Pokemon(id, gymLevel, false)); this.opponent = this.oppTeamList[0]; } 
-            else { this.oppTeamList = [enemyMon]; this.opponent = enemyMon; }
-        } else { this.oppTeamList = [enemyMon]; this.opponent = enemyMon; }
+            else { this.oppTeamList = Array.isArray(enemyMon) ? enemyMon : [enemyMon]; this.opponent = this.oppTeamList[0]; }
+        } else { 
+            // Agora aceita tanto um Pokémon único (Selvagem) quanto o Time inteiro do NPC (Array)
+            this.oppTeamList = Array.isArray(enemyMon) ? enemyMon : [enemyMon]; 
+            this.opponent = this.oppTeamList[0]; 
+        }
 
         if(this.plyTeamList.length === 0) { 
             Game.handleTotalDefeat(player);
@@ -94,7 +99,7 @@ export class Battle {
             Network.sendAction('BATTLE_START', { 
                 pId: this.player!.id, 
                 monIdx: this.player!.team.indexOf(this.activeMon), 
-                oppData: this.opponent, 
+                oppTeam: this.oppTeamList, // Enviando a lista inteira!
                 isPvP: this.isPvP, 
                 reward: this.reward, 
                 enemyId, 
@@ -104,8 +109,8 @@ export class Battle {
                 npcName: npcName, 
                 battleTitle: this.battleTitle,
                 startingTurnId: startingId,
-                currentTerrain: this.currentTerrain
-            }); 
+                currentTerrain: this.currentTerrain 
+            });
         } 
     }
     
@@ -134,8 +139,24 @@ export class Battle {
         this.active = true; 
         this.player = p; 
         this.activeMon = p.team[payload.monIdx]; 
-        this.opponent = new Pokemon(payload.oppData.id, payload.oppData.level, payload.oppData.isShiny); 
-        Object.assign(this.opponent, payload.oppData); 
+
+        // --- NOVO: Lê a lista inteira do oponente ---
+        if (payload.oppTeam && payload.oppTeam.length > 0) {
+            const PokemonClass = (window as any).Pokemon || p.team[0].constructor;
+            this.oppTeamList = payload.oppTeam.map((td: any) => {
+                 const po = new PokemonClass(td.id, td.level, td.isShiny);
+                 Object.assign(po, td);
+                 return po;
+            });
+            this.opponent = this.oppTeamList[0];
+        } else {
+            // Fallback caso seja um inimigo antigo
+            this.opponent = new Pokemon(payload.oppData.id, payload.oppData.level, payload.oppData.isShiny); 
+            Object.assign(this.opponent, payload.oppData); 
+            this.oppTeamList = [this.opponent];
+        }
+        // --------------------------------------------
+
         this.isPvP = payload.isPvP; 
         this.isGym = payload.isGym; 
         this.gymId = payload.gymId; 
@@ -379,7 +400,25 @@ export class Battle {
         } 
     }
     
-    static checkWinCondition() { const nextOpp = this.oppTeamList.find(p => !p.isFainted() && p !== this.opponent); if (nextOpp) { this.opponent = nextOpp; this.logBattle(`Rival enviou ${nextOpp.name}!`, true); this.updateUI(); this.processingAction = false; this.updateButtons(); } else { this.win(); } }
+    static checkWinCondition() { 
+        const nextOpp = this.oppTeamList.find(p => !p.isFainted() && p !== this.opponent); 
+        if (nextOpp) { 
+            this.opponent = nextOpp; 
+            this.logBattle(`Rival enviou ${nextOpp.name}!`, true); 
+            this.updateUI(); 
+            this.processingAction = false; 
+            this.updateButtons(); 
+            
+            // --- NOVA SINCRONIZAÇÃO: Avisa a sala que o oponente trocou de Pokémon! ---
+            const Network = (window as any).Network;
+            if(Network.isOnline && this.player && this.player.id === Network.myPlayerId) {
+                 Network.sendAction('BATTLE_OPP_SWITCH', { nextOpp: nextOpp });
+            }
+        } else { 
+            this.win(); 
+        } 
+    }
+
     static handleFaint() { const nextPly = this.plyTeamList.find(p => !p.isFainted()); if (nextPly) { this.logBattle(`${this.activeMon!.name} desmaiou!`, true); document.getElementById('battle-modal')!.style.display = 'none'; this.openSelectionModal("Escolha o próximo!"); } else { this.lose(); } }
     
     static logBattle(msg: string, sync: boolean = false) { 

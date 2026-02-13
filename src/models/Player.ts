@@ -52,8 +52,13 @@ export class Player {
     }
     
     isDefeated() { return this.getBattleTeam(false).length === 0 || this.getBattleTeam(false).every(p => p.isFainted()); }
-    getBattleTeam(isGymLimit: boolean) { const limit = isGymLimit ? 6 : 3; return this.team.filter(p => !p.isFainted()).slice(0, limit); }
     
+    // confirmar
+    getBattleTeam(_isGymLimit: boolean) { 
+        // Removemos o limite de 3! Agora retorna todos os vivos (até 6)
+        return this.team.filter(p => !p.isFainted()).slice(0, 6); 
+    }
+
     // CORREÇÃO: Reseta a flag de nível para permitir upar no próximo turno
     resetTurnFlags() { this.team.forEach(p => p.leveledUpThisTurn = false); }
 }
