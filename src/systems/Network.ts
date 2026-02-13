@@ -243,11 +243,23 @@ export class Network {
                 const BattleObj = (window as any).Battle;
                 if (!BattleObj.active) return;
                 
-                const PokemonClass = (window as any).Pokemon || Game.players[0].team[0].constructor;
-                const newOpp = new PokemonClass(action.payload.nextOpp.id, action.payload.nextOpp.level, action.payload.nextOpp.isShiny);
-                Object.assign(newOpp, action.payload.nextOpp);
+                // Pega o próximo Pokémon da lista já existente para não quebrar o indicador de bolinhas!
+                const nextInList = BattleObj.oppTeamList.find((p: any) => p.id === action.payload.nextOpp.id && !p.isFainted());
                 
-                BattleObj.opponent = newOpp;
+                if (nextInList) {
+                    BattleObj.opponent = nextInList;
+                } else {
+                    // Fallback se não achar
+                    const PokemonClass = (window as any).Pokemon || Game.players[0].team[0].constructor;
+                    const newOpp = new PokemonClass(action.payload.nextOpp.id, action.payload.nextOpp.level, action.payload.nextOpp.isShiny);
+                    Object.assign(newOpp, action.payload.nextOpp);
+                    
+                    if ((BattleObj.opponent as any)._npcImage) (newOpp as any)._npcImage = (BattleObj.opponent as any)._npcImage;
+                    if ((BattleObj.opponent as any)._npcName) (newOpp as any)._npcName = (BattleObj.opponent as any)._npcName;
+                    
+                    BattleObj.opponent = newOpp;
+                }
+                
                 BattleObj.updateUI();
                 break;
             // ---------------------------

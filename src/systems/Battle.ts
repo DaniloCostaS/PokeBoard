@@ -140,6 +140,10 @@ export class Battle {
         this.player = p; 
         this.activeMon = p.team[payload.monIdx]; 
 
+        // --- CORREÇÃO 2: Carregar a lista de pokémons do jogador para as bolinhas ---
+        this.plyTeamList = p.getBattleTeam(payload.isGym).slice(0, payload.isGym ? 6 : 3);
+        // ----------------------------------------------------------------------------
+
         // --- NOVO: Lê a lista inteira do oponente ---
         if (payload.oppTeam && payload.oppTeam.length > 0) {
             const PokemonClass = (window as any).Pokemon || p.team[0].constructor;
@@ -445,14 +449,23 @@ export class Battle {
     
     static checkWinCondition() { 
         const nextOpp = this.oppTeamList.find(p => !p.isFainted() && p !== this.opponent); 
+        
         if (nextOpp) { 
+            // --- CORREÇÃO 1: Preserva a imagem e nome do NPC ---
+            const oldImg = (this.opponent as any)._npcImage;
+            const oldName = (this.opponent as any)._npcName;
+            
             this.opponent = nextOpp; 
+            
+            if(oldImg) (this.opponent as any)._npcImage = oldImg;
+            if(oldName) (this.opponent as any)._npcName = oldName;
+            // ---------------------------------------------------
+
             this.logBattle(`Rival enviou ${nextOpp.name}!`, true); 
             this.updateUI(); 
             this.processingAction = false; 
             this.updateButtons(); 
             
-            // --- NOVA SINCRONIZAÇÃO: Avisa a sala que o oponente trocou de Pokémon! ---
             const Network = (window as any).Network;
             if(Network.isOnline && this.player && this.player.id === Network.myPlayerId) {
                  Network.sendAction('BATTLE_OPP_SWITCH', { nextOpp: nextOpp });
