@@ -350,6 +350,25 @@ export class Battle {
         }
 
         if(this.opponent.currentHp <= 0) { 
+            const Network = (window as any).Network;
+            
+            // --- NOVA LÓGICA DE XP: POR POKÉMON DERROTADO ---
+            let xpGain = 0;
+            if(this.isPvP) xpGain = 15;
+            else if(this.isGym) xpGain = 25;
+            else if(this.isNPC) xpGain = 10;
+            else xpGain = 5; // Selvagem
+
+            if (this.opponent.level >= this.activeMon.level + 2) { 
+                xpGain += 5; 
+                this.logBattle(`Bônus de Desafio! (+5 XP)`); 
+            }
+            
+            this.activeMon.gainXp(xpGain, this.player!);
+            this.updateUI(); // Se evoluir, a imagem e status mudam na hora!
+            if (Network.isOnline) Network.syncPlayerState();
+            // -------------------------------------------------
+
             setTimeout(() => { this.checkWinCondition(); }, 1000); 
         } else {
             if(callback) callback();
@@ -394,10 +413,34 @@ export class Battle {
         } 
         
         if(this.activeMon.currentHp <= 0) { 
+            const Network = (window as any).Network;
+            
+            // --- NOVA LÓGICA DE XP: CONSOLAÇÃO E PVP ---
+            let xpGain = 0;
+            if(this.isPvP) xpGain = 5;
+            else if(this.isGym) xpGain = 8;
+            else if(this.isNPC) xpGain = 3;
+            else xpGain = 2; // Selvagem
+            
+            this.activeMon.gainXp(xpGain, this.player!);
+
+            // Se for PvP, o Oponente que acabou de te derrotar ganha o XP cheio!
+            if (this.isPvP && this.enemyPlayer) {
+                let oppXpGain = 15;
+                if (this.activeMon.level >= this.opponent.level + 2) oppXpGain += 5;
+                
+                this.opponent.gainXp(oppXpGain, this.enemyPlayer);
+                if (Network.isOnline) Network.syncSpecificPlayer(this.enemyPlayer.id);
+            }
+
+            this.updateUI(); 
+            if (Network.isOnline) Network.syncPlayerState();
+            // -------------------------------------------
+
             setTimeout(() => { this.handleFaint(); }, 1000); 
         } else { 
             if(callback) callback();
-        } 
+        }
     }
     
     static checkWinCondition() { 
@@ -451,21 +494,15 @@ export class Battle {
 
         this.player!.effects.curse = false; 
         this.player!.team = this.player!.team.filter(p => !(p as any).isTemp); 
-        let gain = 0; let xpGain = 0; let msg = "VITÓRIA! "; 
+        let gain = 0; let msg = "VITÓRIA! "; 
         
-        if(this.isPvP) xpGain = 15; else if(this.isGym) xpGain = 25; else if(this.isNPC) xpGain = 10; else xpGain = 5; 
-        if (this.opponent!.level >= this.activeMon!.level + 2) { xpGain += 5; msg += "(+Bônus Desafio) "; } 
-        
-        // Lógica de Roubo de Insígnia (Carta New Leader)
         if (this.isPvP && this.enemyPlayer && this.activeEffects.stealBadgeFrom === this.enemyPlayer.id) { 
             const myBadges = this.player!.badges; 
             const enBadges = this.enemyPlayer.badges; 
             for(let i=0; i<8; i++) { 
                 if(enBadges[i] && !myBadges[i]) { 
-                    myBadges[i] = true; 
-                    enBadges[i] = false; 
-                    msg += ` Roubou Insígnia ${i+1}!`; 
-                    break; 
+                    myBadges[i] = true; enBadges[i] = false; 
+                    msg += ` Roubou Insígnia ${i+1}!`; break; 
                 } 
             } 
         } 
@@ -478,46 +515,35 @@ export class Battle {
                 this.enemyPlayer.gold -= gain; 
                 msg += `Roubou ${gain}G!`; 
             } else { 
-                gain = 100; 
-                msg += `Inimigo falido (Perde vez)!`; 
+                gain = 100; msg += `Inimigo falido (Perde vez)!`; 
             } 
             Game.sendGlobalLog(`[PvP] ${this.enemyPlayer.name} foi derrotado por ${this.player?.name}!`); 
-            
-            if(Network.isOnline) { 
-                Network.sendAction('PVP_SYNC_DAMAGE', { targetId: this.enemyPlayer.id, team: this.oppTeamList, resetPos: true, skipTurn: true }); 
-            } 
+            if(Network.isOnline) Network.sendAction('PVP_SYNC_DAMAGE', { targetId: this.enemyPlayer.id, team: this.oppTeamList, resetPos: true, skipTurn: true }); 
         } else if (this.isGym) { 
             gain = 1000; 
             if (!this.player!.badges[this.gymId - 1]) { 
                 this.player!.badges[this.gymId - 1] = true; 
                 msg += ` Insígnia ${this.gymId}!`; 
             } 
-        } else if (this.isNPC) { 
-            gain = this.reward; 
-        } else { 
-            gain = 150; 
-        } 
+        } else if (this.isNPC) { gain = this.reward; } 
+        else { gain = 150; } 
         
         this.player!.gold += gain; 
-        this.activeMon!.gainXp(xpGain, this.player!); 
+        // LÓGICA DE XP REMOVIDA DAQUI
         
         if(Network.isOnline) Network.syncPlayerState(); 
-        
         const hasAllBadges = this.player!.badges.every(b => b === true);
         
         if (hasAllBadges) {
             document.getElementById('battle-modal')!.style.display = 'none';
             this.active = false;
             Game.triggerVictory(this.player!.id);
-            if(Network.isOnline) {
-                Network.sendAction('GAME_WIN', { winnerId: this.player!.id });
-            }
+            if(Network.isOnline) Network.sendAction('GAME_WIN', { winnerId: this.player!.id });
             return; 
         }
 
         alert(msg); 
-        Game.sendGlobalLog(`${this.player?.name} venceu! ${msg} (${this.activeMon?.name} +${xpGain}XP)`); 
-        
+        Game.sendGlobalLog(`${this.player?.name} venceu! ${msg}`); 
         setTimeout(() => this.end(false), 1000); 
     }
 
@@ -528,24 +554,21 @@ export class Battle {
         this.player!.team = this.player!.team.filter(p => !(p as any).isTemp); 
         let msg = "DERROTA... "; 
         this.player!.gold = Math.max(0, this.player!.gold - 100); 
+        
         if (this.player!.isDefeated()) { Game.handleTotalDefeat(this.player!); this.end(false); return; } 
-        if (!this.isPvP) { this.player!.team.forEach(p => p.heal(999)); } this.player!.x = 0; 
+        if (!this.isPvP) { this.player!.team.forEach(p => p.heal(999)); } 
+        
+        this.player!.x = 0; 
         this.player!.y = 0; 
         this.player!.skipTurns = 1; 
-        let xpGain = 0; 
         
-        if(this.isPvP) xpGain = 5; 
-        else if(this.isGym) xpGain = 8; 
-        else if(this.isNPC) xpGain = 3; 
-        else xpGain = 2; 
+        // LÓGICA DE XP REMOVIDA DAQUI
         
-        if(this.activeMon) this.activeMon.gainXp(xpGain, this.player!); 
         if (this.isPvP && this.enemyPlayer) { msg += ` ${this.enemyPlayer.name} venceu!`; } 
-        if(Network.isOnline) { 
-            Network.syncPlayerState(); 
-        } 
+        if(Network.isOnline) Network.syncPlayerState(); 
+        
         alert(msg); 
-        Game.sendGlobalLog(`${this.player?.name} perdeu e voltou ao início! (+${xpGain}XP)`); 
+        Game.sendGlobalLog(`${this.player?.name} perdeu e voltou ao início!`); 
         setTimeout(() => { this.end(false); Game.moveVisuals(); }, 1500); 
     }
     
