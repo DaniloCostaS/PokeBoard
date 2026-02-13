@@ -241,6 +241,8 @@ export class Network {
             case 'BATTLE_UPDATE': Battle.updateFromNetwork(action.payload); break; 
             case 'BATTLE_END': Battle.end(true); break; 
             case 'LOG': Game.log(action.payload.msg); break; 
+            case 'SHOW_ALERT': Game.showGlobalAlert(action.payload.msg, action.payload.playerName, false); break;
+            case 'CLOSE_ALERT': Game.closeGlobalAlert(); break;
             case 'GAME_WIN':
                 // Recebeu aviso que alguém ganhou!
                 Game.triggerVictory(action.payload.winnerId);

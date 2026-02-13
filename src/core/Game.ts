@@ -219,10 +219,25 @@ export class Game {
             if (Math.random() < 0.8) { 
                 //const wildMon = this.generateWildPokemon(); 
                 const wildMon = this.generateWildPokemon(type);
-                Battle.setup(p, wildMon, false, "Selvagem", 0, null, false, 0, "", type); } 
+                Battle.setup(p, wildMon, false, "Selvagem", 0, null, false, 0, "", type); 
+            } 
             else { 
                 const messages = [ "Você procurou, mas nenhum Pokémon selvagem apareceu dessa vez!", "O mato se mexeu... mas era só o vento 😅", "Nada de Pokémon por aqui... talvez na próxima!", "Está tudo muito quieto...", "Um Pidgey voou longe, você não alcançou." ]; 
-                const msg = messages[Math.floor(Math.random() * messages.length)]; this.log(msg); alert(msg); this.nextTurn(); } } 
+                const msg = messages[Math.floor(Math.random() * messages.length)]; 
+                
+                this.log(msg); 
+                
+                // --- NOVA LÓGICA DO ALERTA ---
+                this.showGlobalAlert(msg, p.name, true);
+                
+                const Network = (window as any).Network;
+                if(Network.isOnline) {
+                    Network.sendAction('SHOW_ALERT', { msg: msg, playerName: p.name });
+                }
+                // ATENÇÃO: O this.nextTurn() foi removido daqui! 
+                // O turno agora só passa quando o jogador clicar no botão "OK".
+            } 
+        } 
         else { this.nextTurn(); }
     }
     
@@ -391,4 +406,57 @@ export class Game {
     static renderBoard() { const area = document.getElementById('board-area')!; area.innerHTML = ''; area.style.gridTemplateColumns = `repeat(${MapSystem.size}, 1fr)`; area.style.gridTemplateRows = `repeat(${MapSystem.size}, 1fr)`; for(let y=0; y<MapSystem.size; y++) { for(let x=0; x<MapSystem.size; x++) { const d = document.createElement('div'); let c = 'path'; const t = MapSystem.grid[y][x]; if(t===TILE.GRASS)c='grass'; else if(t===TILE.WATER)c='water'; else if(t===TILE.GROUND)c='ground'; else if(t===TILE.CITY)c='city'; else if(t===TILE.GYM)c='gym'; else if(t===TILE.EVENT)c='event'; else if(t===TILE.ROCKET)c='rocket'; else if(t===TILE.BIKER)c='biker'; else if(t===TILE.YOUNG)c='young'; else if(t===TILE.OLD)c='old'; d.className = `tile ${c}`; d.id = `tile-${x}-${y}`; if(MapSystem.size>=30)d.style.fontSize='8px'; if(t===TILE.GYM) { const gid = MapSystem.gymLocations[`${x},${y}`]; if(gid) { const gData = GYM_DATA.find(g => g.id === gid); if(gData) { d.style.backgroundImage = `url('/assets/img/Ginasios/${gData.gymImg}')`; d.style.backgroundSize = '100% 100%'; d.style.backgroundRepeat = 'no-repeat'; d.title = `Ginásio ${gData.type} - Líder ${gData.leaderName}`; } d.innerText = ""; } } area.appendChild(d); } } }
     static getCurrentPlayer() { return this.players[this.turn]; }
     static log(m: string) { document.getElementById('log-container')!.insertAdjacentHTML('afterbegin', `<div class="log-entry">${m}</div>`); }
+    
+    // =======================================================================
+    // SISTEMA DE ALERTA GLOBAL SINCRONIZADO
+    // =======================================================================
+    static showGlobalAlert(msg: string, playerName: string, isMyTurn: boolean) {
+        let modal = document.getElementById('custom-global-alert');
+        
+        // Se o modal não existir no HTML, cria ele dinamicamente
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'custom-global-alert';
+            modal.style.cssText = "position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.85); display:flex; justify-content:center; align-items:center; z-index:9999;";
+            modal.innerHTML = `
+                <div style="background:#2b2d42; border:3px solid #8d99ae; border-radius:12px; padding:25px; color:white; text-align:center; min-width:300px; max-width:500px; box-shadow:0 10px 25px rgba(0,0,0,0.8);">
+                    <h3 style="margin-top:0; color:#edf2f4; font-size:1.5rem; border-bottom:1px solid #8d99ae; padding-bottom:10px;">Aviso do Tabuleiro</h3>
+                    <p id="cga-msg" style="margin:25px 0; font-size:1.2rem; color:#edf2f4;"></p>
+                    <div id="cga-controls"></div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        // Atualiza a mensagem
+        document.getElementById('cga-msg')!.innerText = msg;
+        const controls = document.getElementById('cga-controls')!;
+
+        // Se for o meu turno, mostra o botão OK. Se não, mostra aguardando.
+        if (isMyTurn) {
+            controls.innerHTML = `<button class="btn" style="background-color:#ef233c; padding:10px 30px; font-size:1.1rem; margin:0;" onclick="window.Game.confirmGlobalAlert()">OK</button>`;
+        } else {
+            controls.innerHTML = `<span style="color:#8d99ae; font-style:italic; font-size:1rem;">⏳ Aguardando ${playerName} confirmar...</span>`;
+        }
+
+        modal.style.display = 'flex';
+    }
+
+    static confirmGlobalAlert() {
+        const Network = (window as any).Network;
+        this.closeGlobalAlert();
+        
+        // Avisa os espectadores para fecharem o aviso deles também
+        if (Network.isOnline) {
+            Network.sendAction('CLOSE_ALERT', {});
+        }
+        
+        // Segue o jogo!
+        this.nextTurn();
+    }
+
+    static closeGlobalAlert() {
+        const modal = document.getElementById('custom-global-alert');
+        if (modal) modal.style.display = 'none';
+    }
 }
