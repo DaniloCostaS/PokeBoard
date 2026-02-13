@@ -136,7 +136,23 @@ export class Game {
         return new Pokemon(chosenTemplate.id, globalAvg, null);
     }
     
-    static handleTotalDefeat(p: Player) { alert(`🚑 ${p.name} não tem mais Pokémons!\nSerá levado ao início para recuperação emergencial.`); p.x = 0; p.y = 0; p.team.forEach(mon => { mon.currentHp = mon.maxHp; }); p.skipTurns = 2; p.effects = {}; this.sendGlobalLog(`🚑 ${p.name} foi resgatado! Voltou ao início recuperado, mas perderá 2 turnos.`); this.moveVisuals(); this.updateHUD(); if(Network.isOnline) Network.syncPlayerState(); }
+    static handleTotalDefeat(p: Player) { 
+        alert(`🚑 ${p.name} não tem mais Pokémons!\nSerá levado ao início para recuperação emergencial.`); 
+        p.x = 0; 
+        p.y = 0; 
+        p.team.forEach(mon => { mon.currentHp = mon.maxHp; }); 
+        p.skipTurns = 2; 
+        p.effects = {}; 
+        this.sendGlobalLog(`🚑 ${p.name} foi resgatado! Voltou ao início recuperado, mas perderá 2 turnos.`); 
+        this.moveVisuals(); 
+        this.updateHUD(); 
+        // MELHORIA: Só sincroniza se o jogador derrotado for EU MESMO.
+        // Se for outro jogador, esperamos que o cliente dele faça o sync.
+        if(Network.isOnline && p.id === Network.myPlayerId) {
+            Network.syncPlayerState(); 
+        }
+    }
+    
     static renderDebugPanel() { const container = document.querySelector('.extra-space'); if(container) { container.innerHTML = ` <button class="btn btn-secondary" onclick="window.Game.openCardLibrary()">📖 Ver Todas as Cartas</button> <button class="btn btn-secondary" style="background: #27ae60;" onclick="window.Game.openXpRules()">📘 Regras de XP</button> <button class="btn btn-secondary" style="background: #e67e22;" onclick="window.Game.openCaptureRules()">🦅 Regras de Captura</button> <div style="margin-top:10px; font-size:0.7rem; color:#aaa;">DEBUG MOVE</div> <div style="display:flex; gap:5px; justify-content:center;"> <input type="number" id="debug-input" value="1" min="1" max="50" style="width:50px; text-align:center; border:none; padding:5px; border-radius:4px;"> <button class="btn" style="width:auto; margin:0; padding:5px 10px;" onclick="window.Game.debugMove()">GO</button> </div> <button class="btn" style="margin-top:5px; background: #e67e22;" onclick="window.Game.exportSave()">💾 DEBUG SAVE</button> <div style="margin-top:5px;"><small id="online-indicator" style="color:cyan;">OFFLINE</small></div> `; } }
     static openCardLibrary() { const list = document.getElementById('library-list')!; list.innerHTML = ''; import('../constants').then(({CARDS_DB}) => { CARDS_DB.forEach(c => { const d = document.createElement('div'); d.className = 'card-item'; const typeClass = c.type === 'move' ? 'type-move' : 'type-battle'; const typeLabel = c.type === 'move' ? 'MOVE' : 'BATTLE'; d.innerHTML = `<div class="card-info"><span class="card-name">${c.icon} ${c.name} <span class="card-type-badge ${typeClass}">${typeLabel}</span></span><span class="card-desc">${c.desc}</span></div>`; list.appendChild(d); }); }); document.getElementById('library-modal')!.style.display = 'flex'; }
     static openXpRules() { document.getElementById('xp-rules-modal')!.style.display = 'flex'; }

@@ -157,20 +157,74 @@ export class Network {
         onValue(ref(db, `rooms/${this.currentRoomId}/players`), (snapshot) => { 
             const playersData = snapshot.val(); 
             if(!playersData) return; 
+            
             Object.values(playersData).forEach((pd: any) => { 
-                const localPlayer = Game.players.find((p: any) => p.id === pd.id); 
+                const localPlayer = Game.players.find((p: any) => p.id == pd.id); // Use == para evitar erro de string/number
                 if(localPlayer) { 
-                    localPlayer.x = pd.x; localPlayer.y = pd.y; localPlayer.gold = pd.gold; 
+                    localPlayer.x = pd.x; 
+                    localPlayer.y = pd.y; 
+                    localPlayer.gold = pd.gold; 
                     localPlayer.skipTurns = pd.skipTurns || 0; 
                     localPlayer.badges = pd.badges || localPlayer.badges; 
-                    
                     localPlayer.cards = pd.cards || [];
                     localPlayer.effects = pd.effects || {};
 
                     if(pd.items) localPlayer.items = pd.items; 
-                    if(pd.team) { localPlayer.team.forEach((tData: any, idx: number) => { if(localPlayer.team[idx]) Object.assign(localPlayer.team[idx], tData); }); if(pd.team.length > localPlayer.team.length) { for(let i = localPlayer.team.length; i < pd.team.length; i++) { const tData = pd.team[i]; const po = new Pokemon(tData.id, tData.level, tData.isShiny); Object.assign(po, tData); localPlayer.team.push(po); } } } 
+                    
+                    // --- CORREÇÃO AQUI: ATUALIZAÇÃO DO TIME MAIS ROBUSTA ---
+                    if(pd.team) { 
+                        // Transforma em array caso o Firebase devolva como Objeto {0:..., 1:...}
+                        const remoteTeam = Array.isArray(pd.team) ? pd.team : Object.values(pd.team);
+                        
+                        remoteTeam.forEach((remoteMon: any, idx: number) => { 
+                            if(localPlayer.team[idx]) {
+                                // 1. Tenta pegar currentHp, se não existir tenta pegar hp (fix legado)
+                                let newHp = remoteMon.currentHp;
+                                if (newHp === undefined) newHp = remoteMon.hp;
+
+                                // 2. Força a atualização se tiver valor válido
+                                if (newHp !== undefined) {
+                                    localPlayer.team[idx].currentHp = Number(newHp);
+                                    
+                                    // LOG DE DEBUG (Abra o console F12 para ver se aparece isso ao curar)
+                                    if(localPlayer.id !== this.myPlayerId && newHp > 0) {
+                                        console.log(`[SYNC] Atualizando HP de ${localPlayer.name} (Mon: ${localPlayer.team[idx].name}) para ${newHp}`);
+                                    }
+                                }
+
+                                // 3. Atualiza MaxHP e XP
+                                if (remoteMon.maxHp) localPlayer.team[idx].maxHp = Number(remoteMon.maxHp);
+                                if (remoteMon.currentXp !== undefined) localPlayer.team[idx].currentXp = Number(remoteMon.currentXp);
+                                if (remoteMon.level) localPlayer.team[idx].level = Number(remoteMon.level);
+
+                                // 4. Copia o resto
+                                Object.assign(localPlayer.team[idx], remoteMon);
+                                
+                                // Redundância: Garante que o assign não sobrescreveu o HP com zero/undefined
+                                if (newHp !== undefined) localPlayer.team[idx].currentHp = Number(newHp);
+                            }
+                        }); 
+                        
+                        // Adiciona pokemons novos se houver (captura)
+                        if(remoteTeam.length > localPlayer.team.length) { 
+                            const Pokemon = (window as any).Pokemon ||  localPlayer.team[0].constructor; // Hack para pegar construtor
+                            for(let i = localPlayer.team.length; i < remoteTeam.length; i++) { 
+                                const tData = remoteTeam[i]; 
+                                // Tenta instanciar, se falhar usa objeto simples
+                                try {
+                                    const po = new Pokemon(tData.id, tData.level, tData.isShiny); 
+                                    Object.assign(po, tData); 
+                                    if(tData.currentHp !== undefined) po.currentHp = Number(tData.currentHp);
+                                    localPlayer.team.push(po); 
+                                } catch(e) {
+                                    localPlayer.team.push(tData);
+                                }
+                            } 
+                        } 
+                    } 
+                    // --------------------------------------------------------
                 } 
-            }); 
+            });
             Game.updateHUD(); 
             Game.moveVisuals(); 
         }); 
@@ -224,11 +278,37 @@ export class Network {
         const Game = (window as any).Game; 
         const p = Game.players[this.myPlayerId]; 
         
+        // CORREÇÃO: Mapeia manualmente para garantir que currentHp seja enviado corretamente
+        // e limpa qualquer "sujeira" de dados antigos.
+        const teamSanitized = p.team.map((mon: any) => {
+            return {
+                id: mon.id,
+                name: mon.name,
+                type: mon.type,
+                // O MAIS IMPORTANTE: Força o envio do currentHp
+                currentHp: mon.currentHp, 
+                maxHp: mon.maxHp,
+                level: mon.level,
+                currentXp: mon.currentXp,
+                maxXp: mon.maxXp,
+                isShiny: mon.isShiny,
+                isLegendary: mon.isLegendary,
+                atk: mon.atk,
+                def: mon.def,
+                speed: mon.speed,
+                stage: mon.stage || 1,
+                // Mantém dados de evolução se existirem
+                evoData: mon.evoData || null,
+                // Garante envio de imagem customizada de NPC (se houver)
+                _npcImage: mon._npcImage || null
+            };
+        });
+
         update(ref(db, `rooms/${this.currentRoomId}/players/${this.myPlayerId}`), { 
             x: p.x, 
             y: p.y, 
             gold: p.gold, 
-            team: p.team, 
+            team: teamSanitized, // <--- Usa o array sanitizado
             items: p.items, 
             skipTurns: p.skipTurns, 
             badges: p.badges,
