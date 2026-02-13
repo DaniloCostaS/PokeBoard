@@ -3,16 +3,30 @@ import type { Player } from '../models/Player';
 import { Pokemon } from '../models/Pokemon';
 
 export class Cards {
-    static draw(player: Player) { 
+    
+    static draw(player: Player, silentLog: boolean = false) { 
         const Game = (window as any).Game;
         const Network = (window as any).Network;
 
         const card = CARDS_DB[Math.floor(Math.random()*CARDS_DB.length)]; 
         player.cards.push(card); 
-        Game.sendGlobalLog(`🃏 ${player.name} ganhou a carta: ${card.icon} ${card.name}`); 
-        Game.updateHUD(); 
         
+        // Se não for modo silencioso, avisa no log
+        if (!silentLog) {
+             const isMe = !Network.isOnline || player.id === Network.myPlayerId;
+             if (isMe) {
+                 Game.log(`🃏 Você obteve a carta: ${card.icon} ${card.name}`);
+                 if (Network.isOnline) {
+                     // Manda log mascarado pros amigos!
+                     Network.sendAction('LOG', { msg: `🃏 ${player.name} obteve uma Carta Misteriosa!` });
+                 }
+             }
+        }
+        
+        Game.updateHUD(); 
         if(Network.isOnline) Network.syncPlayerState(); 
+        
+        return card; // Retorna a carta para o Evento poder ver qual foi!
     }
     
     static showPlayerCards(playerId: number) { const Game = (window as any).Game; Game.openBoardCards(playerId); }

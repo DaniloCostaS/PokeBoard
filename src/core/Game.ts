@@ -189,10 +189,12 @@ export class Game {
     }
     
     static renderDebugPanel() { const container = document.querySelector('.extra-space'); if(container) { container.innerHTML = ` <button class="btn btn-secondary" onclick="window.Game.openCardLibrary()">📖 Ver Todas as Cartas</button> <button class="btn btn-secondary" style="background: #27ae60;" onclick="window.Game.openXpRules()">📘 Regras de XP</button> <button class="btn btn-secondary" style="background: #e67e22;" onclick="window.Game.openCaptureRules()">🦅 Regras de Captura</button> <div style="margin-top:10px; font-size:0.7rem; color:#aaa;">DEBUG MOVE</div> <div style="display:flex; gap:5px; justify-content:center;"> <input type="number" id="debug-input" value="1" min="1" max="50" style="width:50px; text-align:center; border:none; padding:5px; border-radius:4px;"> <button class="btn" style="width:auto; margin:0; padding:5px 10px;" onclick="window.Game.debugMove()">GO</button> </div> <button class="btn" style="margin-top:5px; background: #e67e22;" onclick="window.Game.exportSave()">💾 DEBUG SAVE</button> <div style="margin-top:5px;"><small id="online-indicator" style="color:cyan;">OFFLINE</small></div> `; } }
-    static openCardLibrary() { const list = document.getElementById('library-list')!; list.innerHTML = ''; import('../constants').then(({CARDS_DB}) => { CARDS_DB.forEach(c => { const d = document.createElement('div'); d.className = 'card-item'; const typeClass = c.type === 'move' ? 'type-move' : 'type-battle'; const typeLabel = c.type === 'move' ? 'MOVE' : 'BATTLE'; d.innerHTML = `<div class="card-info"><span class="card-name">${c.icon} ${c.name} <span class="card-type-badge ${typeClass}">${typeLabel}</span></span><span class="card-desc">${c.desc}</span></div>`; list.appendChild(d); }); }); document.getElementById('library-modal')!.style.display = 'flex'; }
+    static openCardLibrary() { const list = document.getElementById('library-list')!; list.innerHTML = ''; import('../constants').then(({CARDS_DB}) => { CARDS_DB.forEach(c => { const d = document.createElement('div'); d.className = 'card-item'; const typeClass = c.type === 'move' ? 'type-move' : 'type-battle'; const typeLabel = c.type === 'move' ? 'MOVE' : 'BATTLE'; 
+        d.innerHTML = `<div class="card-info"><span class="card-name">${c.icon} ${c.name} <span class="card-type-badge ${typeClass}">${typeLabel}</span></span><span class="card-desc">${c.desc}</span></div>`; list.appendChild(d); }); }); document.getElementById('library-modal')!.style.display = 'flex'; }
     static openXpRules() { document.getElementById('xp-rules-modal')!.style.display = 'flex'; }
     static openCaptureRules() { const modal = document.getElementById('capture-rules-modal'); if (modal) modal.style.display = 'flex'; }
-    static openBoardCards(pId: number) { if(Network.isOnline && pId !== Network.myPlayerId) return alert("Privado!"); const p = this.players[pId]; const list = document.getElementById('board-cards-list')!; list.innerHTML = ''; if(p.cards.length === 0) list.innerHTML = "<em>Sem cartas.</em>"; const isMyTurn = this.canAct() && this.turn === pId; const canUseMove = isMyTurn && !this.hasRolled; p.cards.forEach(c => { const d = document.createElement('div'); d.className = 'card-item'; const typeClass = c.type === 'move' ? 'type-move' : 'type-battle'; const typeLabel = c.type === 'move' ? 'MOVE' : 'BATTLE'; let actionBtn = ''; if (c.type === 'move') { if (canUseMove) actionBtn = `<button class="btn-use-card" onclick="window.Cards.activate('${c.id}')">USAR</button>`; else actionBtn = `<button class="btn-use-card" disabled title="Só antes de rolar">USAR</button>`; } else { actionBtn = `<button class="btn-use-card" disabled style="background:#555" title="Só em batalha">BATTLE</button>`; } d.innerHTML = `<div class="card-info"><span class="card-name">${c.icon} ${c.name} <span class="card-type-badge ${typeClass}">${typeLabel}</span></span><span class="card-desc">${c.desc}</span></div>${actionBtn}`; list.appendChild(d); }); document.getElementById('board-cards-modal')!.style.display = 'flex'; }
+    static openBoardCards(pId: number) { if(Network.isOnline && pId !== Network.myPlayerId) return alert("Privado!"); const p = this.players[pId]; const list = document.getElementById('board-cards-list')!; list.innerHTML = ''; if(p.cards.length === 0) list.innerHTML = "<em>Sem cartas.</em>"; const isMyTurn = this.canAct() && this.turn === pId; const canUseMove = isMyTurn && !this.hasRolled; p.cards.forEach(c => { const d = document.createElement('div'); d.className = 'card-item'; const typeClass = c.type === 'move' ? 'type-move' : 'type-battle'; const typeLabel = c.type === 'move' ? 'MOVE' : 'BATTLE'; let actionBtn = ''; if (c.type === 'move') { if (canUseMove) actionBtn = `<button class="btn-use-card" onclick="window.Cards.activate('${c.id}')">USAR</button>`; else actionBtn = `<button class="btn-use-card" disabled title="Só antes de rolar">USAR</button>`; } else { actionBtn = `<button class="btn-use-card" disabled style="background:#555" title="Só em batalha">BATTLE</button>`; } 
+    d.innerHTML = `<div class="card-info"><span class="card-name">${c.icon} ${c.name} <span class="card-type-badge ${typeClass}">${typeLabel}</span></span><span class="card-desc">${c.desc}</span></div>${actionBtn}`; list.appendChild(d); }); document.getElementById('board-cards-modal')!.style.display = 'flex'; }
     static useBoardCard(cardId: string) { const p = this.getCurrentPlayer(); const cardIndex = p.cards.findIndex(c => c.id === cardId); if (cardIndex === -1) return; const card = p.cards[cardIndex]; if (card.id === 'bike') { p.cards.splice(cardIndex, 1); document.getElementById('board-cards-modal')!.style.display = 'none'; this.log(`${p.name} usou Bicicleta!`); if(Network.isOnline) { Network.sendAction('ROLL', { result: 5 }); return; } this.hasRolled = true; this.animateDice(5, 0); } else if (card.id === 'teleport') { p.cards.splice(cardIndex, 1); document.getElementById('board-cards-modal')!.style.display = 'none'; this.log(`${p.name} usou Teleporte!`); p.x = 0; p.y = 0; this.moveVisuals(); this.handleTile(p); } else { alert("Efeito não implementado na demo."); } if(Network.isOnline) Network.syncPlayerState(); }
     static forceDice(val: number) { this.forcedDiceValue = val; this.rollDice(); }
     static placeTrap(x: number, y: number, ownerId: number) { this.traps.push({x, y, ownerId}); const tile = document.getElementById(`tile-${x}-${y}`); if(tile) tile.style.border = "2px dashed red"; }
@@ -342,7 +344,37 @@ export class Game {
             this.isCityEvent = true; 
             document.getElementById('city-modal')!.style.display='flex'; 
         }
-        else if(type === TILE.EVENT) { if(Math.random() < 0.5) { Cards.draw(p); } else { const gift = Math.random() > 0.5 ? 'pokeball' : 'potion'; this.addItem(p, gift, 1); this.sendGlobalLog(`${p.name} achou ${gift}!`); } this.nextTurn(); }
+        
+        else if(type === TILE.EVENT) { 
+            let localMsg = "";
+            let remoteMsg = "";
+
+            if(Math.random() < 0.5) { 
+                const card = Cards.draw(p, true); // true = Log silencioso
+                localMsg = `Você explorou o evento e encontrou uma carta:\n\n${card.icon} ${card.name}`;
+                remoteMsg = `🌟 ${p.name} explorou o evento e encontrou uma Carta Misteriosa!`;
+            } else { 
+                const gift = Math.random() > 0.5 ? 'pokeball' : 'potion'; 
+                const itemName = gift === 'pokeball' ? 'Pokébola' : 'Poção';
+                this.addItem(p, gift, 1); 
+                localMsg = `Você explorou o evento e encontrou um item:\n\n🎒 ${itemName}`;
+                remoteMsg = `🌟 ${p.name} explorou o evento e encontrou: ${itemName}!`;
+            } 
+            
+            this.log(localMsg.replace(/\n\n/g, ' ')); 
+            
+            // Abre a Pop-up Bonita!
+            this.showGlobalAlert(localMsg, p.name, true);
+
+            const Network = (window as any).Network;
+            if(Network.isOnline) {
+                Network.sendAction('LOG', { msg: remoteMsg });
+                Network.sendAction('SHOW_ALERT', { msg: remoteMsg, playerName: p.name });
+            }
+            // Repare que NÃO tem o this.nextTurn() aqui! 
+            // O turno passará quando clicar no "OK" da pop-up.
+        }
+        
         else if(type === TILE.GYM) { 
             const gymId = MapSystem.gymLocations[`${p.x},${p.y}`] || 1; 
             if (!p.badges[gymId-1]) { Battle.setup(p, new Pokemon(150, 1, false), false, "Líder de Ginásio", 1000, null, true, gymId, "", type); } 
@@ -535,8 +567,88 @@ export class Game {
                         <div class="stat-item">💨${m.speed}</div> 
                     </div> 
             </div> </div>`; }).join(''); 
-            d.innerHTML = ` <div class="hud-header"><div class="hud-name-group"><img src="${p.avatar}" class="hud-avatar-img"><span>${p.name}</span></div><div>💰${p.gold}</div></div> ${badgeHTML} <div class="hud-team">${th}</div> <div class="hud-actions"><button class="btn btn-secondary btn-mini" onclick="window.openInventory(${i})">🎒</button><button class="btn btn-secondary btn-mini" onclick="window.openCards(${i})">🃏</button></div>`; if(i < Math.ceil(this.players.length/2)) left.appendChild(d); else right.appendChild(d); }); const turnPlayer = this.players[this.turn]; if (turnPlayer) document.getElementById('turn-indicator')!.innerText = turnPlayer.name; }
-    static renderBoard() { const area = document.getElementById('board-area')!; area.innerHTML = ''; area.style.gridTemplateColumns = `repeat(${MapSystem.size}, 1fr)`; area.style.gridTemplateRows = `repeat(${MapSystem.size}, 1fr)`; for(let y=0; y<MapSystem.size; y++) { for(let x=0; x<MapSystem.size; x++) { const d = document.createElement('div'); let c = 'path'; const t = MapSystem.grid[y][x]; if(t===TILE.GRASS)c='grass'; else if(t===TILE.WATER)c='water'; else if(t===TILE.GROUND)c='ground'; else if(t===TILE.CITY)c='city'; else if(t===TILE.GYM)c='gym'; else if(t===TILE.EVENT)c='event'; else if(t===TILE.ROCKET)c='rocket'; else if(t===TILE.BIKER)c='biker'; else if(t===TILE.YOUNG)c='young'; else if(t===TILE.OLD)c='old'; d.className = `tile ${c}`; d.id = `tile-${x}-${y}`; if(MapSystem.size>=30)d.style.fontSize='8px'; if(t===TILE.GYM) { const gid = MapSystem.gymLocations[`${x},${y}`]; if(gid) { const gData = GYM_DATA.find(g => g.id === gid); if(gData) { d.style.backgroundImage = `url('/assets/img/Ginasios/${gData.gymImg}')`; d.style.backgroundSize = '100% 100%'; d.style.backgroundRepeat = 'no-repeat'; d.title = `Ginásio ${gData.type} - Líder ${gData.leaderName}`; } d.innerText = ""; } } area.appendChild(d); } } }
+            
+            // --- NOVA LÓGICA DE CONTADORES ---
+            // Calcula o total de itens (soma as quantidades) e o total de cartas
+            const totalItems = Object.values(p.items).reduce((sum, val) => sum + val, 0);
+            const totalCards = p.cards.length;
+
+            d.innerHTML = ` 
+            <div class="hud-header">
+                <div class="hud-name-group"><img src="${p.avatar}" class="hud-avatar-img"><span>${p.name}</span></div>
+                <div>💰${p.gold}</div>
+            </div> 
+            ${badgeHTML} 
+            <div class="hud-team">${th}</div> 
+            <div class="hud-actions">
+                <button class="btn btn-secondary btn-mini" onclick="window.openInventory(${i})">🎒 ${totalItems}</button>
+                <button class="btn btn-secondary btn-mini" onclick="window.openCards(${i})">🃏 ${totalCards}</button>
+            </div>`; 
+            if(i < Math.ceil(this.players.length/2)) left.appendChild(d); 
+            else right.appendChild(d); }); const turnPlayer = this.players[this.turn]; 
+            if (turnPlayer) document.getElementById('turn-indicator')!.innerText = turnPlayer.name; 
+        }
+    
+    static renderBoard() { 
+        const area = document.getElementById('board-area')!; 
+        area.innerHTML = ''; 
+        area.style.gridTemplateColumns = `repeat(${MapSystem.size}, 1fr)`; 
+        area.style.gridTemplateRows = `repeat(${MapSystem.size}, 1fr)`; 
+        
+        for(let y=0; y<MapSystem.size; y++) { 
+            for(let x=0; x<MapSystem.size; x++) { 
+                const d = document.createElement('div'); 
+                let c = 'path'; 
+                let tooltip = ""; // Variável para a nossa dica de tela
+                const t = MapSystem.grid[y][x]; 
+                
+                // --- NOVA LÓGICA DE TOOLTIPS ---
+                if(t===TILE.GRASS) {
+                    c='grass';
+                    tooltip = "Terreno: Grama\nTipos: Grama, Inseto, Normal, Veneno, Voador, Fada";
+                }
+                else if(t===TILE.WATER) {
+                    c='water';
+                    tooltip = "Terreno: Água\nTipos: Água, Gelo, Dragão";
+                }
+                else if(t===TILE.GROUND) {
+                    c='ground';
+                    tooltip = "Terreno: Terra/Pedra\nTipos: Terra, Pedra, Fogo, Lutador, Elétrico, Psíquico, Fantasma";
+                }
+                // -------------------------------
+                else if(t===TILE.CITY) c='city'; 
+                else if(t===TILE.GYM) c='gym'; 
+                else if(t===TILE.EVENT) c='event'; 
+                else if(t===TILE.ROCKET) c='rocket'; 
+                else if(t===TILE.BIKER) c='biker'; 
+                else if(t===TILE.YOUNG) c='young'; 
+                else if(t===TILE.OLD) c='old'; 
+                
+                d.className = `tile ${c}`; 
+                d.id = `tile-${x}-${y}`; 
+                if(MapSystem.size>=30) d.style.fontSize='8px'; 
+                
+                // Aplica o tooltip genérico do terreno (se existir)
+                if (tooltip) d.title = tooltip;
+                
+                if(t===TILE.GYM) { 
+                    const gid = MapSystem.gymLocations[`${x},${y}`]; 
+                    if(gid) { 
+                        const gData = GYM_DATA.find(g => g.id === gid); 
+                        if(gData) { 
+                            d.style.backgroundImage = `url('/assets/img/Ginasios/${gData.gymImg}')`; 
+                            d.style.backgroundSize = '100% 100%'; 
+                            d.style.backgroundRepeat = 'no-repeat'; 
+                            d.title = `Ginásio ${gData.type} - Líder ${gData.leaderName}`; // Sobrescreve com o do Ginásio
+                        } 
+                        d.innerText = ""; 
+                    } 
+                } 
+                area.appendChild(d); 
+            } 
+        } 
+    }
+
     static getCurrentPlayer() { return this.players[this.turn]; }
     static log(m: string) { document.getElementById('log-container')!.insertAdjacentHTML('afterbegin', `<div class="log-entry">${m}</div>`); }
     

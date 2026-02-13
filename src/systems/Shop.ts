@@ -25,10 +25,16 @@ export class Shop {
         if(p.gold >= price) { 
             p.gold -= price; 
             Game.addItem(p, id, 1);
-            this.open(); 
             
-            if(Network.isOnline) Network.syncPlayerState();
+            // --- NOVO: Enviar Log Global de Compra ---
+            const itemData = SHOP_ITEMS.find((i: any) => i.id === id);
+            if (itemData) {
+                Game.sendGlobalLog(`🛒 ${p.name} comprou: ${itemData.name}!`);
+            }
+            // ------------------------------------------
 
+            this.open(); 
+            if(Network.isOnline) Network.syncPlayerState();
         } else {
             alert("Ouro insuficiente!");
         }
