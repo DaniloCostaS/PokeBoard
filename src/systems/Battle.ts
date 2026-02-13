@@ -103,7 +103,8 @@ export class Battle {
                 npcImage: npcImg, 
                 npcName: npcName, 
                 battleTitle: this.battleTitle,
-                startingTurnId: startingId 
+                startingTurnId: startingId,
+                currentTerrain: this.currentTerrain
             }); 
         } 
     }
@@ -144,7 +145,7 @@ export class Battle {
         if(payload.npcImage) (this.opponent as any)._npcImage = payload.npcImage; 
         if(payload.npcName) (this.opponent as any)._npcName = payload.npcName; 
         if(payload.battleTitle) this.battleTitle = payload.battleTitle; 
-        
+        this.currentTerrain = payload.currentTerrain || 1;
         // Sincroniza quem tem o controle (geralmente o atacante)
         if (payload.startingTurnId !== undefined) {
             this.isPlayerTurn = (payload.startingTurnId === Network.myPlayerId);
@@ -175,10 +176,36 @@ export class Battle {
     }
 
     static renderBattleScreen() {
+        const Network = (window as any).Network; 
+        
         document.getElementById('pkmn-select-modal')!.style.display = 'none';
         document.getElementById('battle-modal')!.style.display = 'flex';
         document.getElementById('battle-log-history')!.innerHTML = '';
-        document.getElementById('battle-title')!.innerText = this.battleTitle;
+        
+        // --- LÓGICA DE TÍTULO DE ESPECTADOR ---
+        const titleEl = document.getElementById('battle-title')!;
+        
+        if (Network.isOnline && this.player && this.player.id !== Network.myPlayerId) {
+            
+            // Descobre qual é o tipo de oponente para mostrar no título
+            let oppName = "Selvagem"; // Padrão
+            
+            if (this.isPvP && this.enemyPlayer) {
+                oppName = this.enemyPlayer.name; // Luta contra outro jogador
+            } else if (this.isGym) {
+                oppName = "Líder de Ginásio"; // Luta no ginásio
+            } else if (this.isNPC && (this.opponent as any)._npcName) {
+                oppName = (this.opponent as any)._npcName; // Luta contra NPC (ex: Rocket, Jovem, etc)
+            }
+
+            // Exibe: "👁️ Assistindo Danilo contra Selvagem"
+            titleEl.innerHTML = `👁️ <span style="color:#ffd700;">Assistindo ${this.player.name} contra ${oppName}</span>`;
+            
+        } else {
+            // Título normal para quem está jogando
+            titleEl.innerText = this.battleTitle;
+        }
+        // ---------------------------------------
         
         this.updateButtons();
         this.updateUI();
@@ -190,7 +217,7 @@ export class Battle {
         switch(this.currentTerrain) {
             case 1: bgImage = 'BatalhaTerrenoGrama.png'; break;
             case 2: bgImage = 'BatalhaTerrenoAgua.png'; break;
-            case 3: bgImage = 'BatalhaTerrenoAreia.png'; break;
+            case 3: bgImage = 'BatalhaTerrenoAreia.png'; break; 
             case 5: bgImage = 'BatalhaTerrenoGym.png'; break;
             default: bgImage = 'BatalhaTerrenoGrama.png'; break;
         }
