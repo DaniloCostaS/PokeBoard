@@ -482,7 +482,33 @@ export class Battle {
         } 
     }
 
-    static handleFaint() { const nextPly = this.plyTeamList.find(p => !p.isFainted()); if (nextPly) { this.logBattle(`${this.activeMon!.name} desmaiou!`, true); document.getElementById('battle-modal')!.style.display = 'none'; this.openSelectionModal("Escolha o próximo!"); } else { this.lose(); } }
+    static handleFaint() { 
+        // --- SE O MEW MORRER NO MEIO DA LUTA ---
+        if (this.activeMon && (this.activeMon as any).isTemp) {
+            this.logBattle("🧬 O DNA de Mew se esgotou e o Pokémon original retornou!");
+            this.revertMew();
+            this.updateUI();
+            
+            // Se o original já estava morto antes do Mew entrar, continua o desmaio normal
+            if (this.activeMon.currentHp <= 0) {
+                // (O código vai seguir para pedir pra você escolher outro Pokémon da bolsa)
+            } else {
+                // Se o original tem vida, a batalha continua normalmente!
+                this.processingAction = false;
+                this.updateButtons();
+                const Network = (window as any).Network;
+                if(Network.isOnline) Network.syncPlayerState();
+                return; // Interrompe o processo de morte aqui!
+            }
+        }
+        const nextPly = this.plyTeamList.find(p => !p.isFainted()); 
+        if (nextPly) { 
+            this.logBattle(`${this.activeMon!.name} desmaiou!`, true); 
+            document.getElementById('battle-modal')!.style.display = 'none'; 
+            this.openSelectionModal("Escolha o próximo!"); 
+        } 
+        else { this.lose(); } 
+    }
     
     static logBattle(msg: string, sync: boolean = false) { 
         const Game = (window as any).Game; 
@@ -505,6 +531,38 @@ export class Battle {
     static updateUI() { if(!this.activeMon || !this.opponent) return; if(!this.player) return; document.getElementById('ply-name')!.innerText = this.activeMon.name; document.getElementById('ply-lvl')!.innerText = `Lv.${this.activeMon.level}`; (document.getElementById('ply-img') as HTMLImageElement).src = this.activeMon.getSprite(); const plyPct = (this.activeMon.currentHp/this.activeMon.maxHp)*100; const plyBar = document.getElementById('ply-hp')!; plyBar.style.width = plyPct + "%"; plyBar.className = `hp-fill ${this.getHpColor(this.activeMon.currentHp, this.activeMon.maxHp)}`; document.getElementById('ply-hp-text')!.innerText = `${this.activeMon.currentHp}/${this.activeMon.maxHp}`; (document.getElementById('ply-trainer-img') as HTMLImageElement).src = this.player.avatar; document.getElementById('ply-shiny-tag')!.style.display = this.activeMon.isShiny ? 'inline-block' : 'none'; document.getElementById('ply-stats')!.innerHTML = `<span>⚔️${this.activeMon.atk}</span> <span>🛡️${this.activeMon.def}</span> <span>💨${this.activeMon.speed}</span>`; document.getElementById('opp-name')!.innerText = this.opponent.name; document.getElementById('opp-lvl')!.innerText = `Lv.${this.opponent.level}`; (document.getElementById('opp-img') as HTMLImageElement).src = this.opponent.getSprite(); const oppPct = (this.opponent.currentHp/this.opponent.maxHp)*100; const oppBar = document.getElementById('opp-hp')!; oppBar.style.width = oppPct + "%"; oppBar.className = `hp-fill ${this.getHpColor(this.opponent.currentHp, this.opponent.maxHp)}`; document.getElementById('opp-hp-text')!.innerText = `${this.opponent.currentHp}/${this.opponent.maxHp}`; document.getElementById('opp-shiny-tag')!.style.display = this.opponent.isShiny ? 'inline-block' : 'none'; document.getElementById('opp-stats')!.innerHTML = `<span>⚔️${this.opponent.atk}</span> <span>🛡️${this.opponent.def}</span> <span>💨${this.opponent.speed}</span>`; const oppTrainer = document.getElementById('opp-trainer-img') as HTMLImageElement; if(this.isPvP && this.enemyPlayer) { oppTrainer.src = this.enemyPlayer.avatar; oppTrainer.style.display = 'block'; } else if (this.isGym) { const gData = GYM_DATA.find(g => g.id === this.gymId); if(gData) oppTrainer.src = `/assets/img/LideresGym/${gData.leaderImg}`; oppTrainer.style.display = 'block'; } else if (this.isNPC) { const npcImg = (this.opponent as any)._npcImage; if (npcImg) { oppTrainer.src = npcImg; oppTrainer.style.display = 'block'; } else { oppTrainer.src = '/assets/img/Treinadores/Red.jpg'; oppTrainer.style.display = 'block'; } } else { oppTrainer.style.display = 'none'; } if(!this.isNPC && !this.isGym && !this.isPvP) { document.getElementById('ply-team-indicator')!.innerHTML = ''; document.getElementById('opp-team-indicator')!.innerHTML = ''; } else { this.renderTeamIcons('ply-team-indicator', this.plyTeamList); this.renderTeamIcons('opp-team-indicator', this.oppTeamList); } }
     static renderTeamIcons(elId: string, list: Pokemon[]) { document.getElementById(elId)!.innerHTML = list.map(p => `<div class="ball-icon ${p.isFainted() ? 'lost' : ''}"></div>`).join(''); }
     
+    static revertMew() {
+        if (this.activeEffects && this.activeEffects.mewOriginal && this.player) {
+            // Acha onde o Mew está escondido na equipe
+            const mewIndex = this.player.team.findIndex(p => (p as any).isTemp);
+            
+            // Devolve o Pokémon original para a vaga exata
+            if (mewIndex !== -1) {
+                this.player.team[mewIndex] = this.activeEffects.mewOriginal;
+            } else if (this.activeEffects.mewIndex !== undefined) {
+                this.player.team[this.activeEffects.mewIndex] = this.activeEffects.mewOriginal;
+            }
+            
+            // Devolve o original para as bolinhas do HUD
+            const plyIdx = this.plyTeamList.findIndex(p => (p as any).isTemp);
+            if (plyIdx !== -1) {
+                this.plyTeamList[plyIdx] = this.activeEffects.mewOriginal;
+            }
+            
+            // Garante que o jogador volte a controlar o original
+            if (this.activeMon && (this.activeMon as any).isTemp) {
+                this.activeMon = this.activeEffects.mewOriginal;
+            }
+            
+            this.activeEffects.mewOriginal = null;
+        }
+        
+        // Limpeza de segurança
+        if (this.player) {
+            this.player.team = this.player.team.filter(p => !(p as any).isTemp);
+        }
+    }
+
     static win() { 
         const Game = (window as any).Game; 
         const Network = (window as any).Network; 
@@ -513,7 +571,7 @@ export class Battle {
         if(Network.isOnline && this.isPvP && Network.myPlayerId === this.enemyPlayer?.id) return;
 
         this.player!.effects.curse = false; 
-        this.player!.team = this.player!.team.filter(p => !(p as any).isTemp); 
+        this.revertMew();
         let gain = 0; let msg = "VITÓRIA! "; 
         
         if (this.isPvP && this.enemyPlayer && this.activeEffects.stealBadgeFrom === this.enemyPlayer.id) { 
@@ -564,7 +622,7 @@ export class Battle {
         const Game = (window as any).Game; 
         const Network = (window as any).Network; 
         this.player!.effects.curse = false; 
-        this.player!.team = this.player!.team.filter(p => !(p as any).isTemp); 
+        this.revertMew();
         let msg = "DERROTA... "; 
         this.player!.gold = Math.max(0, this.player!.gold - 100); 
         
@@ -573,7 +631,7 @@ export class Battle {
             this.end(false); 
             return; 
         }
-        
+
         if (!this.isPvP) { this.player!.team.forEach(p => p.heal(999)); } 
         
         const city = Game.getLastCityCoord(this.player!);
@@ -595,7 +653,18 @@ export class Battle {
         setTimeout(() => { this.end(false); Game.moveVisuals(); }, 1500); 
     }
     
-    static end(isRemote: boolean) { const Game = (window as any).Game; const Network = (window as any).Network; this.active = false; this.opponent = null; document.getElementById('battle-modal')!.style.display = 'none'; if(!isRemote) { if(Network.isOnline) Network.sendAction('BATTLE_END', {}); Game.nextTurn(); } }
+    static end(isRemote: boolean) { 
+        this.revertMew();
+        const Game = (window as any).Game; 
+        const Network = (window as any).Network; 
+        this.active = false; 
+        this.opponent = null; 
+        document.getElementById('battle-modal')!.style.display = 'none'; 
+        if(!isRemote) { 
+            if(Network.isOnline) Network.sendAction('BATTLE_END', {}); Game.nextTurn(); 
+        } 
+    }
+    
     static useCard(cardId: string) { const Network = (window as any).Network; const Game = (window as any).Game; if (this.isPvP && this.enemyPlayer) { const enemyHasJam = this.enemyPlayer.cards.findIndex((c: any) => c.id === 'jam'); if (enemyHasJam > -1) { this.enemyPlayer.cards.splice(enemyHasJam, 1); alert(`📡 INTERFERÊNCIA! ${this.enemyPlayer.name} anulou sua carta!`); Game.sendGlobalLog(`📡 ${this.enemyPlayer.name} usou Interferência automática contra ${this.player?.name}!`); const myCardIdx = this.player!.cards.findIndex((c: any) => c.id === cardId); if(myCardIdx > -1) this.player!.cards.splice(myCardIdx, 1); document.getElementById('battle-cards-modal')!.style.display = 'none'; if(Network.isOnline) Network.syncPlayerState(); return; } } Cards.activate(cardId); }
     static openBag() { if (!this.isPlayerTurn || this.processingAction) return; const list = document.getElementById('battle-bag-list')!; list.innerHTML = ''; Object.keys(this.player!.items).forEach(key => { if(this.player!.items[key] > 0) { const item = SHOP_ITEMS.find(i => i.id === key); if(item) { const btn = document.createElement('button'); btn.className = 'btn'; btn.innerHTML = `<img src="/assets/img/Itens/${item.icon}" class="item-icon-mini"> ${item.name} x${this.player!.items[key]}`; btn.onclick = () => this.useItem(key, item); list.appendChild(btn); } } }); document.getElementById('battle-bag')!.style.display = 'block'; }
     static openCardSelection() { if (!this.isPlayerTurn || this.processingAction) return; const list = document.getElementById('battle-cards-list')!; list.innerHTML = ''; const battleCards = this.player!.cards.filter(c => c.type === 'battle'); if(battleCards.length === 0) { list.innerHTML = "<em>Sem cartas de batalha.</em>"; } else { battleCards.forEach(c => { const d = document.createElement('div'); d.className='card-item'; d.innerHTML = `<div class="card-info"><span class="card-name">${c.icon} ${c.name} <span class="card-type-badge type-battle">BATTLE</span></span><span class="card-desc">${c.desc}</span></div><button class="btn-use-card" onclick="window.Battle.useCard('${c.id}')">USAR</button>`; list.appendChild(d); }); } document.getElementById('battle-cards-modal')!.style.display = 'flex'; }

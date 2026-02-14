@@ -1,6 +1,5 @@
 import { CARDS_DB } from '../constants';
 import type { Player } from '../models/Player';
-import { Pokemon } from '../models/Pokemon';
 
 export class Cards {
     
@@ -198,16 +197,32 @@ export class Cards {
             case 'status': Battle.activeEffects.stunOpponent = 2; Battle.logBattle("⚡ Inimigo atordoado por 2 turnos!"); break;
             case 'heal': Battle.activeMon.heal(9999); Battle.updateUI(); Battle.logBattle("💊 HP Totalmente recuperado!"); break;
             case 'counter': Battle.activeEffects.counter = 3; Battle.logBattle("🔁 Contra-ataque preparado (3 turnos)!"); break;
+            
             case 'mew': 
-                const mew = new Pokemon(151, Battle.activeMon.level, false);
+                const PokemonClass = (window as any).Pokemon || Game.players[0].team[0].constructor;
+                const mew = new PokemonClass(151, Battle.activeMon.level, false);
                 mew.name = "Mew (Aliado)";
-                player.team.push(mew);
+                mew.heal(9999); // Garante HP cheio
+                (mew as any).isTemp = true; 
+                
+                // 1. Salva o Pokémon atual e a posição dele na equipe
+                const originalIndex = player.team.indexOf(Battle.activeMon);
+                Battle.activeEffects.mewOriginal = Battle.activeMon;
+                Battle.activeEffects.mewIndex = originalIndex;
+                
+                // 2. Substitui o Pokémon original pelo Mew no time principal
+                if(originalIndex !== -1) player.team[originalIndex] = mew;
+                
+                // 3. Substitui também na HUD visual da Batalha
+                const plyIdx = Battle.plyTeamList.indexOf(Battle.activeMon);
+                if (plyIdx !== -1) Battle.plyTeamList[plyIdx] = mew;
+                
                 Battle.activeMon = mew;
                 Battle.updateUI();
-                Battle.logBattle("🧬 Mew entrou na batalha!");
-                (mew as any).isTemp = true; 
+                Battle.logBattle("🧬 DNA Reagiu! Mew assumiu o lugar do seu Pokémon!");
                 break;
-            case 'destiny': Battle.activeEffects.destiny = true; Battle.logBattle("🌠 Recompensas dobradas se vencer!"); break;
+            
+                case 'destiny': Battle.activeEffects.destiny = true; Battle.logBattle("🌠 Recompensas dobradas se vencer!"); break;
             case 'jam': Battle.logBattle("📡 Interferência ativada!"); break;
 
             default: consumed = false;
