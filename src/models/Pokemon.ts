@@ -140,11 +140,13 @@ export class Pokemon {
         (window as any).Game.sendGlobalLog(`${this.name} ganhou ${amount} XP!`);
         this.currentXp += amount; 
         
-        if(this.currentXp >= this.maxXp && !this.leveledUpThisTurn) { 
+        // --- CORREÇÃO BUG 2: WHILE LOOP ---
+        // Agora o Pokémon upa quantas vezes for necessário, sem travas!
+        while(this.currentXp >= this.maxXp && this.level < 100) { 
             this.currentXp -= this.maxXp; 
             this.levelUp(player); 
-            this.leveledUpThisTurn = true; 
         } 
+        // ----------------------------------
     }
 
     levelUp(player: Player | null) { 

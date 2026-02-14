@@ -35,14 +35,19 @@ export class Cards {
         const Game = (window as any).Game;
         const targets = Game.players.filter((p: Player) => p.id !== Game.turn);
         if (targets.length === 0) return alert("Sem alvos disponíveis.");
-        let list = "Escolha o alvo:\n";
-        targets.forEach((p: Player) => list += `${p.id}: ${p.name}\n`);
-        const choice = prompt(list + "Digite o ID do jogador:");
-        if (choice !== null) {
+        
+        let list = "Escolha o alvo pelo NÚMERO (ID):\n\n";
+        targets.forEach((p: Player) => list += `ID: ${p.id} -> ${p.name}\n`);
+        
+        const choice = prompt(list + "\nDigite o ID do jogador alvo:");
+        if (choice !== null && choice.trim() !== "") {
             const targetId = parseInt(choice);
-            if (Game.players[targetId] && targetId !== Game.turn) {
+            const target = Game.players.find((p: any) => p.id === targetId);
+            if (target && targetId !== Game.turn) {
                 this.activate(cardId, targetId);
-            } else { alert("Alvo inválido."); }
+            } else { 
+                alert("ID inválido! Digite exatamente o número do jogador da lista."); 
+            }
         }
     }
 
@@ -59,7 +64,7 @@ export class Cards {
         if (cardData.type === 'battle' && !Battle.active) return alert("Cartas BATTLE só podem ser usadas em batalha!");
 
         let consumed = true; 
-        let effectLog = ""; // Variável para o texto do efeito visual
+        let effectLog = ""; 
 
         switch (cardId) {
             case 'dice': 
@@ -69,59 +74,85 @@ export class Cards {
                 else { alert("Valor inválido."); consumed = false; }
                 break;
 
-            case 'reroll': effectLog = "🔄 Re-Roll ativado! O dado será rolado novamente."; Game.rollDice(); break;
+            case 'reroll': 
+                if (Game.hasRolled) {
+                    alert("Você já rolou o dado este turno! A carta Re-Roll deve ser usada ANTES de se mover.");
+                    consumed = false;
+                } else {
+                    const r1 = Math.floor(Math.random() * 20) + 1;
+                    const r2 = Math.floor(Math.random() * 20) + 1;
+                    Game.showDiceChoice(r1, r2);
+                    effectLog = `🎲 Re-Roll ativado! ${player.name} rasgou o tecido do tempo e está escolhendo entre dois destinos...`;
+                }
+                break;
+
             case 'boost': effectLog = "👟 Tênis ativados! Andará +6 casas no próximo turno."; Game.bonusMovement = 6; break;
             case 'trap': Game.placeTrap(player.x, player.y, player.id); effectLog = `🪤 Uma armadilha foi montada no chão!`; break;
 
             case 'swap': 
                 if (targetId !== null) {
-                    const target = Game.players[targetId];
-                    const tempX = player.x; const tempY = player.y;
-                    player.x = target.x; player.y = target.y;
-                    target.x = tempX; target.y = tempY;
-                    Game.moveVisuals();
-                    effectLog = `🔀 A posição deles foi invertida!`;
-                    if(Network.isOnline) Network.syncSpecificPlayer(target.id);
+                    const target = Game.players.find((p:any) => p.id === targetId);
+                    if (target) {
+                        const tempX = player.x; const tempY = player.y;
+                        player.x = target.x; player.y = target.y;
+                        target.x = tempX; target.y = tempY;
+                        Game.moveVisuals();
+                        effectLog = `🔀 A magia aconteceu! A posição de ${player.name} e ${target.name} foi invertida!`;
+                        if(Network.isOnline) Network.syncSpecificPlayer(target.id);
+                        
+                        // --- MELHORIA: ACIONA O EVENTO DA NOVA CASA ---
+                        Game.hasRolled = true; // Impede o jogador de rolar o dado
+                        Game.pendingTileEvent = true; // Avisa o pop-up para ler o mapa ao fechar!
+                        // ----------------------------------------------
+                    } else { consumed = false; }
                 } else { this.openTargetSelection(cardId); consumed = false; }
                 break;
 
             case 'slow': 
                 if (targetId !== null) {
-                    const target = Game.players[targetId];
-                    target.effects.slow = 3;
-                    effectLog = `🕸️ ${target.name} não consegue correr! Está lento por 3 turnos.`;
-                    if(Network.isOnline) Network.syncSpecificPlayer(target.id);
+                    const target = Game.players.find((p:any) => p.id === targetId);
+                    if (target) {
+                        target.effects.slow = 3;
+                        effectLog = `🕸️ ${target.name} não consegue correr! Está lento por 3 turnos.`;
+                        if(Network.isOnline) Network.syncSpecificPlayer(target.id);
+                    }
                 } else { this.openTargetSelection(cardId); consumed = false; }
                 break;
 
             case 'rocket': 
                 if (targetId !== null) {
-                    const target = Game.players[targetId];
-                    if (target.cards.length > 0) {
-                        const stolenIdx = Math.floor(Math.random() * target.cards.length);
-                        const stolenCard = target.cards.splice(stolenIdx, 1)[0];
-                        player.cards.push(stolenCard);
-                        effectLog = `🚀 BINGO! Uma carta foi roubada e foi parar na mão de ${player.name}!`;
-                        if(Network.isOnline) Network.syncSpecificPlayer(target.id);
-                    } else { alert("O alvo não tem cartas!"); consumed = false; }
+                    const target = Game.players.find((p:any) => p.id === targetId);
+                    if (target) {
+                        if (target.cards.length > 0) {
+                            const stolenIdx = Math.floor(Math.random() * target.cards.length);
+                            const stolenCard = target.cards.splice(stolenIdx, 1)[0];
+                            player.cards.push(stolenCard);
+                            effectLog = `🚀 BINGO! Uma carta foi roubada e foi parar na mão de ${player.name}!`;
+                            if(Network.isOnline) Network.syncSpecificPlayer(target.id);
+                        } else { alert("O alvo não tem cartas!"); consumed = false; }
+                    }
                 } else { this.openTargetSelection(cardId); consumed = false; }
                 break;
 
             case 'curse': 
                 if (targetId !== null) {
-                    const target = Game.players[targetId];
-                    target.effects.curse = true; 
-                    effectLog = `☠️ O ataque de ${target.name} foi reduzido pela metade!`;
-                    if(Network.isOnline) Network.syncSpecificPlayer(target.id);
+                    const target = Game.players.find((p:any) => p.id === targetId);
+                    if(target) {
+                        target.effects.curse = true; 
+                        effectLog = `☠️ O ataque de ${target.name} foi reduzido pela metade!`;
+                        if(Network.isOnline) Network.syncSpecificPlayer(target.id);
+                    }
                 } else { this.openTargetSelection(cardId); consumed = false; }
                 break;
 
             case 'trade_fail': 
                 if (targetId !== null) {
-                    const target = Game.players[targetId];
-                    target.skipTurns = 1; 
-                    effectLog = `❌ Sabotagem feita com sucesso! ${target.name} perde a próxima rodada.`;
-                    if(Network.isOnline) Network.syncSpecificPlayer(target.id);
+                    const target = Game.players.find((p:any) => p.id === targetId);
+                    if(target) {
+                        target.skipTurns = 1; 
+                        effectLog = `❌ Sabotagem feita com sucesso! ${target.name} perde a próxima rodada.`;
+                        if(Network.isOnline) Network.syncSpecificPlayer(target.id);
+                    }
                 } else { this.openTargetSelection(cardId); consumed = false; }
                 break;
 
@@ -129,15 +160,36 @@ export class Cards {
             
             case 'new_leader': 
                 if(targetId !== null) {
-                    Battle.activeEffects.stealBadgeFrom = targetId; 
-                    effectLog = `⚔️ Um duelo até a morte! Se o desafiante vencer, ele rouba uma Insígnia!`;
+                    const target = Game.players.find((p:any) => p.id === targetId);
+                    if (!target) { consumed = false; break; }
+
+                    const hasBadge = target.badges.some((b: boolean) => b === true);
+                    if (!hasBadge) {
+                        alert(`O jogador ${target.name} não possui nenhuma Insígnia para você roubar!`);
+                        consumed = false;
+                        break;
+                    }
+                    
+                    const targetTeam = target.getBattleTeam(false);
+                    if (targetTeam.length === 0) {
+                        alert(`O jogador ${target.name} está sem Pokémons vivos! Tente mais tarde.`);
+                        consumed = false;
+                        break;
+                    }
+
+                    Battle.activeEffects.stealBadgeFrom = target.id; 
+                    effectLog = `⚔️ UM DUELO FOI DECLARADO! ${player.name} desafiou ${target.name} para roubar uma de suas Insígnias!`;
+                    
+                    // Inicia a Batalha Imediatamente!
+                    Battle.setup(player, targetTeam[0], true, target.name, 0, target, false, 0, "", 1);
+
                 } else { this.openTargetSelection(cardId); consumed = false; }
                 break;
 
             // BATTLE CARDS
             case 'crit': Battle.activeEffects.crit = true; Battle.logBattle("💥 Dano Dobrado ativado!"); break;
             case 'master': 
-                if (player.items['pokeball'] > 0) { Battle.attemptCapture(CARDS_DB.find(c=>c.id==='master')); } 
+                if (player.items['pokeball'] > 0) { Battle.attemptCapture(CARDS_DB.find((c:any)=>c.id==='master')); } 
                 else { alert("Você precisa de uma Pokébola!"); consumed = false; }
                 break;
             case 'run': Battle.logBattle("💨 Fugiu com estilo!"); Battle.end(false); break;
@@ -169,41 +221,46 @@ export class Cards {
             document.getElementById('board-cards-modal')!.style.display = 'none';
             document.getElementById('battle-cards-modal')!.style.display = 'none';
 
-            // 1. ANÚNCIO GERAL NOMINAL (Fulano usou em Ciclano)
+            // 1. ANÚNCIO GERAL NOMINAL
             let targetName = "";
-            if (targetId !== null && Game.players[targetId]) {
-                targetName = Game.players[targetId].name;
+            if (targetId !== null) {
+                const targetObj = Game.players.find((p:any) => p.id === targetId);
+                if (targetObj) targetName = targetObj.name;
             } else if (cardData.type === 'battle' && Battle.isPvP && Battle.enemyPlayer) {
                 targetName = Battle.enemyPlayer.name;
             }
 
-            let logMsg = `🃏 ${player.name} usou a carta ${cardData.name}!`;
+            let logMsg = `🃏 ${player.name} ativou a carta: [${cardData.name}]!`;
             if (targetName) {
-                logMsg = `🃏 ${player.name} usou a carta ${cardData.name} contra ${targetName}!`;
+                logMsg = `🃏 ${player.name} usou a carta [${cardData.name}] contra ${targetName}!`;
             }
 
-            // 2. Junta as mensagens para a Pop-up
+            // Junta as mensagens para o Alerta na Tela
             let fullMsg = logMsg;
-            if (effectLog) {
-                fullMsg += `\n\n${effectLog}`;
-            }
+            if (effectLog) fullMsg += `\n\n${effectLog}`;
 
-            // 3. Coloca no cantinho do Log (localmente)
             Game.log(logMsg);
             if (effectLog) Game.log(effectLog);
 
-            // 4. CHAMA A TELA DE AVISO (Passando "false" no final para NÃO passar a vez!)
-            Game.showGlobalAlert(fullMsg, player.name, true, false);
+            // Abre a pop-up na tela (Exceto no New Leader, pois ele já abre a tela de Batalha!)
+            if (cardId !== 'new_leader') {
+                Game.showGlobalAlert(fullMsg, player.name, true, false);
+            }
 
             if (Network.isOnline) {
                 Network.syncPlayerState();
                 
-                // Envia a ordem para os amigos exibirem a Pop-up também
-                Network.sendAction('SHOW_ALERT', { 
-                    msg: fullMsg, 
-                    playerName: player.name, 
-                    endsTurn: false // Avisa que não é pra pular a vez
-                });
+                if (cardId !== 'new_leader') {
+                    Network.sendAction('SHOW_ALERT', { 
+                        msg: fullMsg, 
+                        playerName: player.name, 
+                        endsTurn: false 
+                    });
+                } else {
+                    // Para o Novo Líder no Online, só manda os logs laterais para não encavalar com a batalha
+                    Network.sendAction('LOG', { msg: logMsg });
+                    Network.sendAction('LOG', { msg: effectLog });
+                }
             }
         }
     }

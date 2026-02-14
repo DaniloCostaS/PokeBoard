@@ -17,6 +17,7 @@ export class Game {
     static turn: number = 0; 
     static round: number = 1;
     static alertEndsTurn: boolean = true;
+    static pendingTileEvent: boolean = false;
     static isCityEvent: boolean = false; 
     static hasRolled: boolean = false; 
     static forcedDiceValue: number = 0;
@@ -168,22 +169,26 @@ export class Game {
     }
 
     static handleTotalDefeat(p: Player) { 
-        alert(`🚑 ${p.name} não tem mais Pokémons!\nSerá levado ao último Centro Pokémon para recuperação emergencial.`); 
+        alert(`🚑 ${p.name} sofreu uma derrota total!\nSerá levado ao último Centro Pokémon para recuperação emergencial.`); 
         
-        // Pega a posição da última cidade e envia o jogador pra lá
+        // Passo 2: Move para a última cidade
         const city = this.getLastCityCoord(p);
         p.x = city.x; 
         p.y = city.y; 
         
-        // Cura total e pune com 2 turnos sem jogar
-        p.team.forEach(mon => { mon.currentHp = mon.maxHp; }); 
+        // Passo 3: Marca a penalidade
         p.skipTurns = 2; 
         p.effects = {}; 
         
-        this.sendGlobalLog(`🚑 ${p.name} foi resgatado! Voltou ao último Centro Pokémon recuperado, mas perderá 2 turnos.`); 
+        // Passo 4: Revive e cura todos os pokémons
+        p.team.forEach(mon => { mon.currentHp = mon.maxHp; }); 
+        
+        this.sendGlobalLog(`🚑 ${p.name} foi resgatado! Equipe totalmente curada no Centro Pokémon, mas perderá 2 turnos.`); 
+        
         this.moveVisuals(); 
         this.updateHUD(); 
         
+        // Passo 5: Salva todas as informações (Posição, Punição e Cura) de uma vez no Firebase
         const Network = (window as any).Network;
         if(Network.isOnline && p.id === Network.myPlayerId) {
              Network.syncPlayerState(); 
@@ -201,7 +206,23 @@ export class Game {
     static forceDice(val: number) { this.forcedDiceValue = val; this.rollDice(); }
     static placeTrap(x: number, y: number, ownerId: number) { this.traps.push({x, y, ownerId}); const tile = document.getElementById(`tile-${x}-${y}`); if(tile) tile.style.border = "2px dashed red"; }
     static async rollDice() { if(!this.canAct() || this.hasRolled) return; this.hasRolled = true; let result = 0; if (this.forcedDiceValue > 0) { result = this.forcedDiceValue; this.forcedDiceValue = 0; this.log("🔮 Dado Mágico usado!"); } else { const p = this.getCurrentPlayer(); if (p.effects.slow && p.effects.slow > 0) { result = Math.floor(Math.random()*6)+1; p.effects.slow--; this.log("🕸️ Lentidão! Rolou apenas 1d6."); } else { result = Math.floor(Math.random()*20)+1; } } if(Network.isOnline) { Network.sendAction('ROLL', { result: result }); } const playerId = Network.isOnline ? Network.myPlayerId : this.turn; this.animateDice(result, playerId); }
-    static debugMove() { if(!this.canAct()) return; const input = document.getElementById('debug-input') as HTMLInputElement; const result = parseInt(input.value) || 1; this.log(`[DEBUG] Forçando ${result} passos.`); if(Network.isOnline) { Network.sendAction('ROLL', { result: result }); return; } this.animateDice(result, 0); }
+    
+    static debugMove() { 
+        if(!this.canAct()) return; 
+        const input = document.getElementById('debug-input') as HTMLInputElement; 
+        const result = parseInt(input.value) || 1; 
+        this.log(`[DEBUG] Forçando ${result} passos.`); 
+        
+        if(Network.isOnline) { 
+            Network.sendAction('ROLL', { result: result }); 
+            // CORREÇÃO: Faltava o seu próprio personagem andar na sua tela!
+            this.animateDice(result, Network.myPlayerId); 
+            return; 
+        } 
+        
+        this.animateDice(result, 0); 
+    }
+
     static moveVisuals() { this.players.forEach((p, idx) => { const currentTile = document.getElementById(`tile-${p.x}-${p.y}`); if(!currentTile) return; let token = document.getElementById(`p-token-${idx}`); if (token && token.parentElement === currentTile) { if(idx === this.turn) token.classList.add('active-token'); else token.classList.remove('active-token'); return; } if (token) token.remove(); const t = document.createElement('div'); t.id = `p-token-${idx}`; t.className = `player-token ${idx===this.turn?'active-token':''}`; t.style.backgroundImage = `url('${p.avatar}')`; t.style.borderColor = PLAYER_COLORS[idx % PLAYER_COLORS.length]; if(MapSystem.size >= 30) { t.style.width = '90%'; t.style.height = '90%'; } currentTile.appendChild(t); if(idx===this.turn) currentTile.scrollIntoView({block:'center',inline:'center',behavior:'smooth'}); }); }
     
     static async animateDice(result: number, playerId: number) { 
@@ -677,7 +698,42 @@ export class Game {
 
     static getCurrentPlayer() { return this.players[this.turn]; }
     static log(m: string) { document.getElementById('log-container')!.insertAdjacentHTML('afterbegin', `<div class="log-entry">${m}</div>`); }
-    
+    // --- LÓGICA DO RE-ROLL ---
+    static showDiceChoice(r1: number, r2: number) {
+        let modal = document.getElementById('dice-choice-modal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'dice-choice-modal';
+            modal.style.cssText = "position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.85); display:flex; justify-content:center; align-items:center; z-index:9999;";
+            document.body.appendChild(modal);
+        }
+        modal.innerHTML = `
+            <div style="background:#2b2d42; border:3px solid #8d99ae; border-radius:12px; padding:25px; color:white; text-align:center; box-shadow:0 10px 25px rgba(0,0,0,0.8);">
+                <h3 style="margin-top:0; color:#edf2f4; border-bottom:1px solid #8d99ae; padding-bottom:10px;">Re-Roll: O Destino em suas Mãos</h3>
+                <p>Escolha qual dos dois resultados você deseja usar:</p>
+                <div style="display:flex; gap:20px; justify-content:center; margin-top:20px;">
+                    <button class="btn" style="font-size:1.5rem; padding:15px 30px; background:#2ecc71;" onclick="window.Game.chooseDice(${r1})">🎲 ${r1}</button>
+                    <button class="btn" style="font-size:1.5rem; padding:15px 30px; background:#3498db;" onclick="window.Game.chooseDice(${r2})">🎲 ${r2}</button>
+                </div>
+            </div>
+        `;
+        modal.style.display = 'flex';
+    }
+
+    static chooseDice(val: number) {
+        document.getElementById('dice-choice-modal')!.style.display = 'none';
+        
+        // Avisa a todos da escolha e força o dado
+        const Network = (window as any).Network;
+        const msg = `🎲 ${this.getCurrentPlayer().name} decidiu usar o resultado: ${val}!`;
+        this.log(msg);
+        if(Network.isOnline) {
+             Network.sendAction('LOG', { msg: msg });
+        }
+        
+        this.forceDice(val);
+    }
+    // -------------------------
     // =======================================================================
     // SISTEMA DE ALERTA GLOBAL SINCRONIZADO
     // =======================================================================
@@ -720,7 +776,15 @@ export class Game {
             Network.sendAction('CLOSE_ALERT', {});
         }
         
-        // Só passa o turno se a carta/evento mandar!
+        // --- NOVA LÓGICA DE EVENTO PENDENTE (Para a Troca Rápida) ---
+        if (this.pendingTileEvent) {
+            this.pendingTileEvent = false;
+            // Aciona o evento da casa em que o jogador parou!
+            this.handleTile(this.getCurrentPlayer());
+            return; // Sai para não pular a vez ainda
+        }
+        // ------------------------------------------------------------
+        
         if (this.alertEndsTurn) {
             this.nextTurn();
         }

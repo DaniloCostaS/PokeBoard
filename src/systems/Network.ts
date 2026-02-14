@@ -277,22 +277,22 @@ export class Network {
                 // Recebeu aviso que alguém ganhou!
                 Game.triggerVictory(action.payload.winnerId);
                 break;
+
             case 'PVP_SYNC_DAMAGE': 
                 const targetP = Game.players.find((p: any) => p.id === action.payload.targetId);
                 if(targetP) {
+                    // Atualiza o HP de acordo com os índices exatos do time
                     if(action.payload.team) {
                         action.payload.team.forEach((remoteMon: any, idx: number) => {
                             if(targetP.team[idx]) targetP.team[idx].currentHp = remoteMon.currentHp;
                         });
                     }
-                    if(action.payload.resetPos) { targetP.x = 0; targetP.y = 0; }
-                    if(action.payload.skipTurn) { targetP.skipTurns = 2; } 
                     
                     Game.updateHUD();
-                    Game.moveVisuals();
                     
                     if(targetP.id === this.myPlayerId) {
                         if (action.payload.resetPos) {
+                            // Manda para o hospital SEM CURAR (passando false)
                             Game.handleTotalDefeat(targetP); 
                         } else {
                             this.syncPlayerState();
@@ -305,42 +305,37 @@ export class Network {
 
     static sendAction(type: string, payload: any) { if(!this.isOnline) return; const actionData = { type: type, payload: payload, playerId: this.myPlayerId, timestamp: Date.now() }; update(ref(db, `rooms/${this.currentRoomId}`), { lastAction: actionData }); }
     
+    // --- FUNÇÃO AUXILIAR PARA BLINDAR A REDE ---
+    static getSanitizedTeam(team: any[]) {
+        return team.map((mon: any) => ({
+            id: mon.id,
+            name: mon.name,
+            type: mon.type,
+            currentHp: mon.currentHp, // O MAIS IMPORTANTE: Garante o envio do HP atual
+            maxHp: mon.maxHp,
+            level: mon.level,
+            currentXp: mon.currentXp,
+            maxXp: mon.maxXp,
+            isShiny: mon.isShiny,
+            isLegendary: mon.isLegendary,
+            atk: mon.atk,
+            def: mon.def,
+            speed: mon.speed,
+            stage: mon.stage || 1,
+            evoData: mon.evoData || null
+        }));
+    }
+
     static syncPlayerState() { 
         if(!this.isOnline) return; 
         const Game = (window as any).Game; 
         const p = Game.players[this.myPlayerId]; 
         
-        // CORREÇÃO: Mapeia manualmente para garantir que currentHp seja enviado corretamente
-        // e limpa qualquer "sujeira" de dados antigos.
-        const teamSanitized = p.team.map((mon: any) => {
-            return {
-                id: mon.id,
-                name: mon.name,
-                type: mon.type,
-                // O MAIS IMPORTANTE: Força o envio do currentHp
-                currentHp: mon.currentHp, 
-                maxHp: mon.maxHp,
-                level: mon.level,
-                currentXp: mon.currentXp,
-                maxXp: mon.maxXp,
-                isShiny: mon.isShiny,
-                isLegendary: mon.isLegendary,
-                atk: mon.atk,
-                def: mon.def,
-                speed: mon.speed,
-                stage: mon.stage || 1,
-                // Mantém dados de evolução se existirem
-                evoData: mon.evoData || null,
-                // Garante envio de imagem customizada de NPC (se houver)
-                _npcImage: mon._npcImage || null
-            };
-        });
-
         update(ref(db, `rooms/${this.currentRoomId}/players/${this.myPlayerId}`), { 
             x: p.x, 
             y: p.y, 
             gold: p.gold, 
-            team: teamSanitized, // <--- Usa o array sanitizado
+            team: this.getSanitizedTeam(p.team), // Usa a função blindada
             items: p.items, 
             skipTurns: p.skipTurns, 
             badges: p.badges,
@@ -363,6 +358,9 @@ export class Network {
             x: p.x, 
             y: p.y, 
             gold: p.gold, 
+            team: this.getSanitizedTeam(p.team), // AQUI ESTAVA O BUG! Faltava o 'team'.
+            items: p.items,
+            badges: p.badges,
             cards: p.cards, 
             skipTurns: p.skipTurns, 
             effects: p.effects 
