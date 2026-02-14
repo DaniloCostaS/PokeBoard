@@ -42,9 +42,12 @@ export class Player {
                 const randomCard = validCards[Math.floor(Math.random() * validCards.length)];
                 this.cards.push(randomCard);
             }
+            
+            // remover depois, começar con todas as cartas.
+            this.cards = JSON.parse(JSON.stringify(CARDS_DB));
 
             // 3. Pokemon Inicial (com chance de Shiny)
-            const starters = [1, 4, 7, 25]; 
+            const starters = [1, 4, 7, 25, 152, 155, 158]; 
             const randomStarterId = starters[Math.floor(Math.random() * starters.length)];
             const isStarterShiny = Math.random() < 0.02;
             this.team.push(new Pokemon(randomStarterId, 1, isStarterShiny)); 
