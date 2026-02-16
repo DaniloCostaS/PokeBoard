@@ -50,6 +50,86 @@ export class Cards {
         }
     }
 
+    static showBallChoice(balls: any[]) {
+        let modal = document.getElementById('ball-choice-modal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'ball-choice-modal';
+            modal.style.cssText = "position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.85); display:flex; justify-content:center; align-items:center; z-index:9999;";
+            document.body.appendChild(modal);
+        }
+        
+        let buttonsHTML = '';
+        balls.forEach(b => {
+            buttonsHTML += `<button class="btn" style="margin:5px; padding:15px 30px; background:#e74c3c;" onclick="window.Cards.executeMasterCard('${b.id}')">🎒 ${b.name} (x${b.count})</button>`;
+        });
+        
+        buttonsHTML += `<button class="btn btn-secondary" style="margin-top:15px;" onclick="document.getElementById('ball-choice-modal').style.display='none'">Cancelar</button>`;
+
+        modal.innerHTML = `
+            <div style="background:#2b2d42; border:3px solid #8d99ae; border-radius:12px; padding:25px; color:white; text-align:center; box-shadow:0 10px 25px rgba(0,0,0,0.8);">
+                <h3 style="margin-top:0; color:#edf2f4; border-bottom:1px solid #8d99ae; padding-bottom:10px;">Infundir Pokébola</h3>
+                <p>A magia da carta Master Ball garantirá 100% de captura.<br>Qual bola deseja sacrificar?</p>
+                <div style="display:flex; flex-direction:column; gap:10px; margin-top:20px; align-items:center;">
+                    ${buttonsHTML}
+                </div>
+            </div>
+        `;
+        modal.style.display = 'flex';
+    }
+
+    static executeMasterCard(ballId: string) {
+        const Game = (window as any).Game;
+        const Battle = (window as any).Battle;
+        const Network = (window as any).Network;
+        const player = Game.getCurrentPlayer();
+
+        const cardData = CARDS_DB.find((c: any) => c.id === 'master');
+        
+        if (!cardData) return;
+        
+        // 1. Remove a bola escolhida do inventário
+        player.items[ballId]--;
+        
+        // 2. Remove a carta Master da mão do jogador
+        const idx = player.cards.findIndex((c:any) => c.id === 'master');
+        if (idx > -1) player.cards.splice(idx, 1);
+        
+        // 3. Esconde todos os modais da tela
+        document.getElementById('ball-choice-modal')!.style.display = 'none';
+        document.getElementById('board-cards-modal')!.style.display = 'none';
+        document.getElementById('battle-cards-modal')!.style.display = 'none';
+        
+        Game.updateHUD(); 
+
+        // 4. Cria e envia os logs globais bonitos
+        const logMsg = `🃏 ${player.name} ativou a carta: [${cardData.name}]!`;
+        const effectLog = `🌟 A magia infundiu a Pokébola! Captura garantida!`;
+        const fullMsg = `${logMsg}\n\n${effectLog}`;
+
+        Game.log(logMsg);
+        Game.log(effectLog);
+        
+        Game.showGlobalAlert(fullMsg, player.name, true, false);
+
+        if (Network.isOnline) {
+            Network.syncPlayerState();
+            Network.sendAction('SHOW_ALERT', { 
+                msg: fullMsg, 
+                playerName: player.name, 
+                endsTurn: false 
+            });
+            Network.sendAction('LOG', { msg: logMsg });
+            Network.sendAction('LOG', { msg: effectLog });
+        }
+        
+        // 5. Aciona o final da batalha com o sucesso absoluto da captura
+        Battle.logBattle(`Lançou a Pokébola com precisão mágica!`, true);
+        setTimeout(() => {
+            Battle.captureSuccess();
+        }, 1500);
+    }
+
     static activate(cardId: string, targetId: number | null = null) {
         const Game = (window as any).Game;
         const Battle = (window as any).Battle;
@@ -188,9 +268,32 @@ export class Cards {
             // BATTLE CARDS
             case 'crit': Battle.activeEffects.crit = true; Battle.logBattle("💥 Dano Dobrado ativado!"); break;
             case 'master': 
-                if (player.items['pokeball'] > 0) { Battle.attemptCapture(CARDS_DB.find((c:any)=>c.id==='master')); } 
-                else { alert("Você precisa de uma Pokébola!"); consumed = false; }
+                // Impede o uso contra outros jogadores, NPCs ou Ginásios
+                if (Battle.isPvP || Battle.isNPC || Battle.isGym) {
+                    alert("A carta Master Ball só pode ser usada contra Pokémons Selvagens!");
+                    consumed = false;
+                    break;
+                }
+                
+                // Mapeia todas as bolas disponíveis na bolsa do jogador
+                const balls = [];
+                if (player.items['pokeball'] > 0) balls.push({id: 'pokeball', name: 'Pokébola', count: player.items['pokeball']});
+                if (player.items['greatball'] > 0) balls.push({id: 'greatball', name: 'Greatball', count: player.items['greatball']});
+                if (player.items['ultraball'] > 0) balls.push({id: 'ultraball', name: 'Ultraball', count: player.items['ultraball']});
+                
+                // Se não tiver nenhuma bola, bloqueia a carta
+                if (balls.length === 0) { 
+                    alert("Você precisa ter pelo menos uma Pokébola na mochila para usar a magia desta carta!"); 
+                    consumed = false; 
+                    break; 
+                }
+                
+                // Chama a nossa nova telinha e pausa o uso (consumed = false)
+                // A carta só será apagada da mão DEPOIS que ele clicar em uma bola
+                this.showBallChoice(balls);
+                consumed = false; 
                 break;
+            
             case 'run': Battle.logBattle("💨 Fugiu com estilo!"); Battle.end(false); break;
             case 'guard': Battle.activeEffects.guard = true; Battle.logBattle("🛡️ Escudo ativado! (-50% dano recebido)"); break;
             case 'focus': Battle.activeEffects.focus = true; Battle.logBattle("🎯 Foco Total! Próximo ataque 4x dano."); break;

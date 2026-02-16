@@ -31,7 +31,8 @@ export class Player {
             // 1. Recursos Iniciais
             this.gold = 1000;
             this.items = {
-                'pokeball': 6, 
+                'pokeball': 6,
+                'ultraball':1,
                 'potion': 6,
                 'revive': 3
             };
