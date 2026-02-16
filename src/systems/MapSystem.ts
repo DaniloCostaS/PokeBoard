@@ -53,6 +53,14 @@ export class MapSystem {
             this.grid[c.y][c.x] = npcTypes[Math.floor(Math.random() * npcTypes.length)];
         }
     }
-    static getCoord(i: number): Coord { const y=Math.floor(i/this.size); let x=i%this.size; if(y%2!==0) x=(this.size-1)-x; return {x,y}; }
-    static getIndex(x: number, y: number): number { let realX = x; if(y % 2 !== 0) realX = (this.size - 1) - x; return (y * this.size) + realX; }
+    
+    static getCoord(i: number): Coord { 
+        const y = Math.floor(i / this.size); 
+        const x = i % this.size; 
+        return { x, y }; 
+    }
+    
+    static getIndex(x: number, y: number): number { 
+        return (y * this.size) + x; 
+    }
 }

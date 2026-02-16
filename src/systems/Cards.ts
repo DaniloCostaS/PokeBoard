@@ -205,8 +205,9 @@ export class Cards {
                     alert("Você já rolou o dado este turno! A carta Re-Roll deve ser usada ANTES de se mover.");
                     consumed = false;
                 } else {
-                    const r1 = Math.floor(Math.random() * 20) + 1;
-                    const r2 = Math.floor(Math.random() * 20) + 1;
+                    // Trocado de 20 para 6
+                    const r1 = Math.floor(Math.random() * 6) + 1;
+                    const r2 = Math.floor(Math.random() * 6) + 1;
                     Game.showDiceChoice(r1, r2);
                     effectLog = `🎲 Re-Roll ativado! ${player.name} rasgou o tecido do tempo e está escolhendo entre dois destinos...`;
                 }
@@ -268,7 +269,16 @@ export class Cards {
                             const stolenCard = target.cards.splice(stolenIdx, 1)[0];
                             player.cards.push(stolenCard);
                             effectLog = `🚀 BINGO! Uma carta foi roubada e foi parar na mão de ${player.name}!`;
-                            if(Network.isOnline) Network.syncSpecificPlayer(target.id);
+                            
+                            // CORREÇÃO: Sincronização atômica para não perder a carta localmente!
+                            if(Network.isOnline) {
+                                if ((Network as any).syncPlayers) {
+                                    (Network as any).syncPlayers([player.id, target.id]);
+                                } else {
+                                    Network.syncSpecificPlayer(target.id);
+                                    Network.syncPlayerState();
+                                }
+                            }
                         } else { alert("O alvo não tem cartas!"); consumed = false; }
                     }
                 } else { this.openTargetSelection(cardId); consumed = false; }

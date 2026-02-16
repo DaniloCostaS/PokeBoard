@@ -69,9 +69,10 @@ export class Pokemon {
     calculateMaxXp(): number {
         let multiplier = 10; // Padrão Stage 1
 
-        if (this.isShiny) {
+        /* if (this.isShiny) {
             multiplier = 50;
-        } else if (this.isLegendary) {
+        } else /*/
+        if (this.isLegendary) {
             multiplier = 40;
         } else {
             // Lógica de Estágios
@@ -97,8 +98,8 @@ export class Pokemon {
     }
 
     recalculateStats(resetHp: boolean = false) {
-        // --- ALTERAÇÃO: Mudando o bônus de 1.1 (10%) para 1.3 (30%) ---
-        const shinyBonus = this.isShiny ? 1.3 : 1.0; 
+        // --- ALTERAÇÃO: Mudando o bônus de 1.1 (10%) para 1.15 (15%) para 1.3 (30%) ---
+        const shinyBonus = this.isShiny ? 1.15 : 1.0; 
         const levelBonus = (this.level - 1) * 2;
 
         const calc = (base: number, iv: number) => Math.floor((base + iv + levelBonus) * shinyBonus);

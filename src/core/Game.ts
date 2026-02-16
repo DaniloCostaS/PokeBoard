@@ -288,8 +288,36 @@ export class Game {
             if(tile) tile.style.border = "2px dashed red"; 
         });
     }
-    static async rollDice() { if(!this.canAct() || this.hasRolled) return; this.hasRolled = true; let result = 0; if (this.forcedDiceValue > 0) { result = this.forcedDiceValue; this.forcedDiceValue = 0; this.log("🔮 Dado Mágico usado!"); } else { const p = this.getCurrentPlayer(); if (p.effects.slow && p.effects.slow > 0) { result = Math.floor(Math.random()*6)+1; p.effects.slow--; this.log("🕸️ Lentidão! Rolou apenas 1d6."); } else { result = Math.floor(Math.random()*20)+1; } } if(Network.isOnline) { Network.sendAction('ROLL', { result: result }); } const playerId = Network.isOnline ? Network.myPlayerId : this.turn; this.animateDice(result, playerId); }
     
+    static async rollDice() { 
+        if(!this.canAct() || this.hasRolled) return; 
+        this.hasRolled = true; 
+        let result = 0; 
+        
+        if (this.forcedDiceValue > 0) { 
+            result = this.forcedDiceValue; 
+            this.forcedDiceValue = 0; 
+            this.log("🔮 Dado Mágico usado!"); 
+        } else { 
+            const p = this.getCurrentPlayer(); 
+            if (p.effects.slow && p.effects.slow > 0) { 
+                // Efeito Slow agora rola de 1 a 3 casas
+                result = Math.floor(Math.random() * 3) + 1; 
+                p.effects.slow--; 
+                this.log("🕸️ Lentidão! Rolou apenas 1d3."); 
+            } else { 
+                // Rolagem normal d6
+                result = Math.floor(Math.random() * 6) + 1; 
+            } 
+        } 
+        
+        if(Network.isOnline) { 
+            Network.sendAction('ROLL', { result: result }); 
+        } 
+        const playerId = Network.isOnline ? Network.myPlayerId : this.turn; 
+        this.animateDice(result, playerId); 
+    }
+
     static debugMove() { 
         if(!this.canAct()) return; 
         const input = document.getElementById('debug-input') as HTMLInputElement; 
@@ -311,33 +339,26 @@ export class Game {
     static async animateDice(result: number, playerId: number) { 
         const die = document.getElementById('d20-display')!; 
         for(let i=0;i<5;i++) { 
-            die.innerText = `🎲 ${Math.floor(Math.random()*20)+1}`; 
+            die.innerText = `🎲 ${Math.floor(Math.random()*6)+1}`; 
             await new Promise(r=>setTimeout(r,50)); 
         } 
         die.innerText = `🎲 ${result}`; 
         
-        // Mantemos o log local para todos verem o resultado do dado
         this.log(`${this.players[playerId].name} tirou ${result}`); 
         
-        // --- TRAVA DE REDE E NOVA LÓGICA DE XP ---
         const Network = (window as any).Network;
         if (!Network.isOnline || playerId === Network.myPlayerId) {
             const p = this.players[playerId]; 
-            
-            // 1. Filtra para pegar apenas os Pokémons vivos da equipe
             const aliveTeam = p.team.filter(m => !m.isFainted());
             
-            // 2. Calcula o XP: Resultado dividido por 3 (arredondado para baixo)
-            // O Math.max(1, ...) garante que o ganho mínimo seja sempre 1 de XP
-            const xpGain = Math.max(1, Math.floor(result / 3));
+            // --- ALTERAÇÃO: XP ganho é exatamente o valor tirado no dado ---
+            const xpGain = result;
             
-            // 3. Se tiver alguém vivo na equipe, sorteia e dá o XP!
             if (aliveTeam.length > 0) { 
                 const luckyMon = aliveTeam[Math.floor(Math.random() * aliveTeam.length)]; 
                 luckyMon.gainXp(xpGain, p); 
             } 
         }
-        // -----------------------------------------
 
         this.movePlayerLogic(result, playerId); 
     }

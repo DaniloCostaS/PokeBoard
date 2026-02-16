@@ -156,8 +156,8 @@
                 <ul>
                     <li><strong>Base:</strong> (atk / 5) - (def / 20)</li>
                     <li><strong>Multiplicador:</strong> Vantagem: ×1.75,Normal: ×1,Desvantagem: ×0.75</li>
-                    <li><strong>Dado:</strong> 1-2:-2, 3–5:-1, 6–10:0, 11–15:+2, 16–19:+3, 20:+5 (Crítico)</li>
-                    <li><small>O Pokémon com maior atributo spd ataca primeiro. Empare Rolar 1d20, se o resultado for maior que 10, ataca primeiro</small></li>
+                    <li><strong>Dado:</strong> 1:-2 (Falha crítica) 🛡️, 2:-1, 3:0 (Dano base normal), 4:+2, 5:+3, 6:+5 (Crítico)💥</li>
+                    <li><small>O Pokémon com maior atributo spd ataca primeiro. Empare Rolar 1d6, se o resultado for maior que 10, ataca primeiro</small></li>
                 </ul>
             </div>
         </div>
@@ -167,10 +167,18 @@
         <div class="modal-box" style="text-align: left;">
             <h3 style="text-align:center; color: var(--gold);">⭐ Regras de XP & Nível</h3>
             <ul style="font-size: 0.9rem; line-height: 1.5;">
-                <li><strong>Nível Máximo:</strong> 15 (Max 1 level por turno)</li>
+                <li><strong>Nível Máximo:</strong> 100 (Sem limite de níveis por turno)</li>
                 <li><strong>Volta no Mapa:</strong> +200G e +1 Carta</li>
                 <hr style="border-color:#eee; margin: 5px 0;">
-                <li><strong>Movimento:</strong> d20/3 XP (Aleatório no time)</li><li><strong>PvP:</strong> Vitória +15 XP | Derrota +5 XP</li><li><strong>NPC:</strong> Vitória +10 XP | Derrota +3 XP</li><li><strong>Ginásio:</strong> Vitória +25 XP | Derrota +8 XP</li><li><strong>Selvagem:</strong> Vitória +5 XP | Fuga +2 XP | Captura +3 XP Bônus</li><hr style="border-color:#eee; margin: 5px 0;"><li><strong>Bônus Desafio:</strong> +5 XP ao vencer oponente 2+ níveis acima.</li></ul><button class="btn btn-secondary mt-15" onclick="document.getElementById('xp-rules-modal').style.display='none'">Fechar</button></div></div>
+                <li><strong>Movimento:</strong> XP exato do dado d6 (Aleatório no time vivo)</li>
+                <li><strong>Vitória em Combate:</strong> Status Total do oponente derrotado / 15</li>
+                <li><strong>Derrota em Combate:</strong> Status Total do oponente / 45 (Consolação)</li>
+                <li><strong>PvP:</strong> Ao nocautear o amigo, ganha XP baseado na força do Pokémon dele!</li>
+                <li><strong>Ações Extras:</strong> Fuga +2 XP | Captura +5 XP de Bônus</li>
+            </ul>
+            <button class="btn btn-secondary mt-15" onclick="document.getElementById('xp-rules-modal').style.display='none'">Fechar</button>
+        </div>
+    </div>
     
     <div id="capture-rules-modal" class="modal-overlay">
         <div class="modal-box" style="text-align: left;">

@@ -315,14 +315,15 @@ export class Battle {
     }
 
     static calculateDamage(attacker: Pokemon, defender: Pokemon, isPlayerAttacking: boolean): { damage: number, msg: string } { 
-        const d20 = Math.floor(Math.random() * 20) + 1; 
+        const d6 = Math.floor(Math.random() * 6) + 1;
         let rollModifier = 0; 
         let isCritical = false; 
-        if (d20 >= 20) { rollModifier = +5; isCritical = true; } 
-        else if (d20 >= 16) rollModifier = +3; 
-        else if (d20 >= 11) rollModifier = +2; 
-        else if (d20 <= 2) rollModifier = -2; 
-        else if (d20 <= 5) rollModifier = -1; 
+        // Proporção adaptada do D20 para o D6
+        if (d6 === 6) { rollModifier = +5; isCritical = true; } // Crit!
+        else if (d6 === 5) rollModifier = +3; 
+        else if (d6 === 4) rollModifier = +2; 
+        else if (d6 === 2) rollModifier = -1; 
+        else if (d6 === 1) rollModifier = -2; // Falha crítica
         let defenseVal = defender.def; 
         if (isCritical) defenseVal = Math.floor(defenseVal / 2); 
         let base = Math.floor((attacker.atk / 5) - (defenseVal / 20)); 
@@ -330,7 +331,9 @@ export class Battle {
         if (TYPE_CHART[attacker.type] && (TYPE_CHART[attacker.type] as any)[defender.type] !== undefined) { rawMulti = (TYPE_CHART[attacker.type] as any)[defender.type]; } 
         const typeDamage = Math.floor(base * (rawMulti > 1 ? 1.75 : (rawMulti < 1 ? 0.75 : 1))); 
         let finalDamage = Math.max(0, typeDamage + rollModifier); 
-        if (isPlayerAttacking) { if (this.activeEffects.crit) { finalDamage *= 2; } if (this.activeEffects.focus) { finalDamage *= 4; this.activeEffects.focus = false; } if (this.player?.effects.curse) { finalDamage = Math.floor(finalDamage / 2); } } else { if (this.activeEffects.guard) { finalDamage = Math.floor(finalDamage / 2); } if (this.enemyPlayer && this.enemyPlayer.effects.curse) { finalDamage = Math.floor(finalDamage / 2); } } let logDetails = `(🎲${d20})`; if (isCritical) logDetails += " 💥!"; if (rawMulti > 1) logDetails += " 🔥!"; else if (rawMulti < 1) logDetails += " 🛡️."; if (this.activeEffects.crit && isPlayerAttacking) logDetails += " [2x]"; if (this.activeEffects.focus && isPlayerAttacking) logDetails += " [4x]"; if (this.activeEffects.guard && !isPlayerAttacking) logDetails += " [🛡️]"; return { damage: finalDamage, msg: logDetails }; 
+        if (isPlayerAttacking) { if (this.activeEffects.crit) { finalDamage *= 2; } if (this.activeEffects.focus) { finalDamage *= 4; this.activeEffects.focus = false; } if (this.player?.effects.curse) { finalDamage = Math.floor(finalDamage / 2); } } else { if (this.activeEffects.guard) { finalDamage = Math.floor(finalDamage / 2); } if (this.enemyPlayer && this.enemyPlayer.effects.curse) { finalDamage = Math.floor(finalDamage / 2); } } 
+        let logDetails = `(🎲${d6})`; 
+        if (isCritical) logDetails += " 💥!"; if (rawMulti > 1) logDetails += " 🔥!"; else if (rawMulti < 1) logDetails += " 🛡️."; if (this.activeEffects.crit && isPlayerAttacking) logDetails += " [2x]"; if (this.activeEffects.focus && isPlayerAttacking) logDetails += " [4x]"; if (this.activeEffects.guard && !isPlayerAttacking) logDetails += " [🛡️]"; return { damage: finalDamage, msg: logDetails }; 
     }
     
     // =========================================================================================
@@ -414,17 +417,12 @@ export class Battle {
         }
 
         if(this.opponent.currentHp <= 0) { 
-            // --- XP POR POKÉMON DERROTADO ---
-            let xpGain = 0;
-            if(this.isPvP) xpGain = 15;
-            else if(this.isGym) xpGain = 25;
-            else if(this.isNPC) xpGain = 10;
-            else xpGain = 5;
-
-            if (this.opponent.level >= this.activeMon.level + 2) { 
-                xpGain += 5; 
-                this.logBattle(`Bônus de Desafio! (+5 XP)`); 
-            }
+            // --- NOVO XP POR POKÉMON DERROTADO (Baseado em Status) ---
+            // Soma: MaxHP + ATK + DEF + SPD
+            const oppStats = this.opponent.maxHp + this.opponent.atk + this.opponent.def + this.opponent.speed;
+            
+            // Fórmula da Vitória: Status Totais / 15
+            const xpGain = Math.max(1, Math.floor(oppStats / 15));
             
             this.activeMon.gainXp(xpGain, this.player!);
             this.updateUI(); 
@@ -477,18 +475,19 @@ export class Battle {
         } 
         
         if(this.activeMon.currentHp <= 0) { 
-            // --- XP DE CONSOLAÇÃO E PARA O OPONENTE NO PVP ---
-            let xpGain = 0;
-            if(this.isPvP) xpGain = 5;
-            else if(this.isGym) xpGain = 8;
-            else if(this.isNPC) xpGain = 3;
-            else xpGain = 2;
+            // --- NOVO XP DE CONSOLAÇÃO E PARA O OPONENTE NO PVP ---
+            const oppStats = this.opponent.maxHp + this.opponent.atk + this.opponent.def + this.opponent.speed;
             
+            // Fórmula da Derrota (Consolação): Status Totais do Inimigo / 45
+            const xpGain = Math.max(1, Math.floor(oppStats / 45));
             this.activeMon.gainXp(xpGain, this.player!);
 
+            // Lógica para o Oponente no caso de PvP (Ele recebe a Fórmula da Vitória)
             if (this.isPvP && this.enemyPlayer) {
-                let oppXpGain = 15;
-                if (this.activeMon.level >= this.opponent.level + 2) oppXpGain += 5;
+                // Aqui usamos os status do SEU pokémon que desmaiou para dar XP ao oponente
+                const plyStats = this.activeMon.maxHp + this.activeMon.atk + this.activeMon.def + this.activeMon.speed;
+                const oppXpGain = Math.max(1, Math.floor(plyStats / 15));
+                
                 this.opponent.gainXp(oppXpGain, this.enemyPlayer);
                 if (Network.isOnline) Network.syncSpecificPlayer(this.enemyPlayer.id);
             }
@@ -500,7 +499,7 @@ export class Battle {
             setTimeout(() => { this.handleFaint(); }, 1000); 
         } else { 
             if(callback) callback();
-        } 
+        }
     }
     
     static checkWinCondition() { 
@@ -733,7 +732,43 @@ export class Battle {
         } 
     }
     
-    static useCard(cardId: string) { const Network = (window as any).Network; const Game = (window as any).Game; if (this.isPvP && this.enemyPlayer) { const enemyHasJam = this.enemyPlayer.cards.findIndex((c: any) => c.id === 'jam'); if (enemyHasJam > -1) { this.enemyPlayer.cards.splice(enemyHasJam, 1); alert(`📡 INTERFERÊNCIA! ${this.enemyPlayer.name} anulou sua carta!`); Game.sendGlobalLog(`📡 ${this.enemyPlayer.name} usou Interferência automática contra ${this.player?.name}!`); const myCardIdx = this.player!.cards.findIndex((c: any) => c.id === cardId); if(myCardIdx > -1) this.player!.cards.splice(myCardIdx, 1); document.getElementById('battle-cards-modal')!.style.display = 'none'; if(Network.isOnline) Network.syncPlayerState(); return; } } Cards.activate(cardId); }
+    static useCard(cardId: string) { 
+        const Network = (window as any).Network; 
+        const Game = (window as any).Game; 
+        
+        if (this.isPvP && this.enemyPlayer) { 
+            const enemyHasJam = this.enemyPlayer.cards.findIndex((c: any) => c.id === 'jam'); 
+            
+            if (enemyHasJam > -1) { 
+                // 1. Remove a carta de Interferência do inimigo
+                this.enemyPlayer.cards.splice(enemyHasJam, 1); 
+                
+                // 2. Remove a carta de Batalha que você tentou usar
+                const myCardIdx = this.player!.cards.findIndex((c: any) => c.id === cardId); 
+                if(myCardIdx > -1) this.player!.cards.splice(myCardIdx, 1); 
+                
+                document.getElementById('battle-cards-modal')!.style.display = 'none'; 
+                
+                // 3. Atualiza os contadores na tela instantaneamente
+                Game.updateHUD(); 
+
+                // 4. Monta a Pop-up de aviso sem travar a tela
+                const jamMsg = `📡 INTERFERÊNCIA!\n\n${this.enemyPlayer.name} anulou sua carta automaticamente!`;
+                Game.sendGlobalLog(`📡 ${this.enemyPlayer.name} usou Interferência contra ${this.player?.name}!`); 
+                Game.showGlobalAlert(jamMsg, this.player!.name, true, false);
+                
+                // 5. Salva OS DOIS JOGADORES no Firebase para ninguém duplicar carta!
+                if(Network.isOnline) { 
+                    Network.syncPlayers([this.player!.id, this.enemyPlayer.id]); 
+                    Network.sendAction('SHOW_ALERT', { msg: jamMsg, playerName: this.player!.name, endsTurn: false });
+                } 
+                return; 
+            } 
+        } 
+        
+        Cards.activate(cardId); 
+    }
+
     static openBag() { if (!this.isPlayerTurn || this.processingAction) return; const list = document.getElementById('battle-bag-list')!; list.innerHTML = ''; Object.keys(this.player!.items).forEach(key => { if(this.player!.items[key] > 0) { const item = SHOP_ITEMS.find(i => i.id === key); if(item) { const btn = document.createElement('button'); btn.className = 'btn'; btn.innerHTML = `<img src="/assets/img/Itens/${item.icon}" class="item-icon-mini"> ${item.name} x${this.player!.items[key]}`; btn.onclick = () => this.useItem(key, item); list.appendChild(btn); } } }); document.getElementById('battle-bag')!.style.display = 'block'; }
     static openCardSelection() { if (!this.isPlayerTurn || this.processingAction) return; const list = document.getElementById('battle-cards-list')!; list.innerHTML = ''; const battleCards = this.player!.cards.filter(c => c.type === 'battle'); if(battleCards.length === 0) { list.innerHTML = "<em>Sem cartas de batalha.</em>"; } else { battleCards.forEach(c => { const d = document.createElement('div'); d.className='card-item'; d.innerHTML = `<div class="card-info"><span class="card-name">${c.icon} ${c.name} <span class="card-type-badge type-battle">BATTLE</span></span><span class="card-desc">${c.desc}</span></div><button class="btn-use-card" onclick="window.Battle.useCard('${c.id}')">USAR</button>`; list.appendChild(d); }); } document.getElementById('battle-cards-modal')!.style.display = 'flex'; }
     
@@ -754,14 +789,14 @@ export class Battle {
 
         // 2. Cálculo da Chance
         const baseChance = 50;
-        const d20 = Math.floor(Math.random() * 20) + 1;
-        const modifier = d20 - 10; // Varia de -9 a +10
+        const d6 = Math.floor(Math.random() * 6) + 1;
+        const modifier = (d6 * 4) - 14; // Varia de -10 a +10
         let finalChance = baseChance + modifier;
         
         // Limites (sempre haverá 5% de chance de erro ou acerto crítico extremo)
         finalChance = Math.max(5, Math.min(95, finalChance));
 
-        this.logBattle(`Tentando fugir... (🎲${d20}) Chance: ${finalChance}%`, true);
+        this.logBattle(`Tentando fugir... (🎲${d6}) Chance: ${finalChance}%`, true);
 
         setTimeout(() => {
             const roll = Math.floor(Math.random() * 100) + 1;
@@ -864,8 +899,8 @@ export class Battle {
             if (opponent.isLegendary) chance -= 20;
             if (opponent.isShiny) chance -= 10;
 
-            const d20 = Math.floor(Math.random() * 20) + 1;
-            const diceBonus = d20 - 10;
+            const d6 = Math.floor(Math.random() * 6) + 1;
+            const diceBonus = (d6 * 4) - 14; // Varia de -10 a +10
             chance += diceBonus;
             chance = Math.max(1, Math.min(95, chance));
 

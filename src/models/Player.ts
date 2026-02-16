@@ -29,10 +29,9 @@ export class Player {
         
         if(!isLoadMode && name !== "_LOAD_") {
             // 1. Recursos Iniciais
-            this.gold = 1000;
+            this.gold = 500;
             this.items = {
                 'pokeball': 6,
-                'ultraball':1,
                 'potion': 6,
                 'revive': 3
             };
@@ -45,7 +44,7 @@ export class Player {
             }
             
             // remover depois, começar con todas as cartas.
-            this.cards = JSON.parse(JSON.stringify(CARDS_DB));
+            //this.cards = JSON.parse(JSON.stringify(CARDS_DB));
 
             // 3. Pokemon Inicial (com chance de Shiny)
             const starters = [1, 4, 7, 25]; 
