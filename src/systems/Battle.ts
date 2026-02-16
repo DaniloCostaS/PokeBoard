@@ -637,7 +637,7 @@ export class Battle {
         const city = Game.getLastCityCoord(this.player!);
         this.player!.x = city.x; 
         this.player!.y = city.y; 
-        this.player!.skipTurns = 1; 
+        this.player!.skipTurns += 1; 
         
         if (this.isPvP && this.enemyPlayer) { 
             msg += ` ${this.enemyPlayer.name} venceu!`; 

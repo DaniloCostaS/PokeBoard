@@ -177,7 +177,7 @@ export class Game {
         p.y = city.y; 
         
         // Passo 3: Marca a penalidade
-        p.skipTurns = 2; 
+        p.skipTurns += 2; 
         p.effects = {}; 
         
         // Passo 4: Revive e cura todos os pokémons
@@ -204,7 +204,37 @@ export class Game {
     d.innerHTML = `<div class="card-info"><span class="card-name">${c.icon} ${c.name} <span class="card-type-badge ${typeClass}">${typeLabel}</span></span><span class="card-desc">${c.desc}</span></div>${actionBtn}`; list.appendChild(d); }); document.getElementById('board-cards-modal')!.style.display = 'flex'; }
     static useBoardCard(cardId: string) { const p = this.getCurrentPlayer(); const cardIndex = p.cards.findIndex(c => c.id === cardId); if (cardIndex === -1) return; const card = p.cards[cardIndex]; if (card.id === 'bike') { p.cards.splice(cardIndex, 1); document.getElementById('board-cards-modal')!.style.display = 'none'; this.log(`${p.name} usou Bicicleta!`); if(Network.isOnline) { Network.sendAction('ROLL', { result: 5 }); return; } this.hasRolled = true; this.animateDice(5, 0); } else if (card.id === 'teleport') { p.cards.splice(cardIndex, 1); document.getElementById('board-cards-modal')!.style.display = 'none'; this.log(`${p.name} usou Teleporte!`); p.x = 0; p.y = 0; this.moveVisuals(); this.handleTile(p); } else { alert("Efeito não implementado na demo."); } if(Network.isOnline) Network.syncPlayerState(); }
     static forceDice(val: number) { this.forcedDiceValue = val; this.rollDice(); }
-    static placeTrap(x: number, y: number, ownerId: number) { this.traps.push({x, y, ownerId}); const tile = document.getElementById(`tile-${x}-${y}`); if(tile) tile.style.border = "2px dashed red"; }
+    
+    static placeTrap(x: number, y: number, ownerId: number) { 
+        this.traps.push({x, y, ownerId}); 
+        this.renderTraps(); // Atualiza a tela
+        
+        // Avisa a todos da sala que uma armadilha foi colocada!
+        const Network = (window as any).Network;
+        if(Network.isOnline) {
+             Network.sendAction('SYNC_TRAPS', { traps: this.traps });
+        }
+    }
+
+    // --- NOVO MÉTODO: Limpa e desenha as armadilhas de forma segura ---
+    static renderTraps(newTraps?: any[]) {
+        // Limpa apenas as bordas inline de armadilha (sem apagar as do CSS do ginásio)
+        const tiles = document.querySelectorAll('.tile');
+        tiles.forEach(t => {
+            const htmlEl = t as HTMLElement;
+            if (htmlEl.style.border.includes('dashed')) {
+                htmlEl.style.border = "";
+            }
+        });
+
+        if (newTraps) this.traps = newTraps;
+
+        // Desenha as armadilhas ativas
+        this.traps.forEach(t => {
+            const tile = document.getElementById(`tile-${t.x}-${t.y}`); 
+            if(tile) tile.style.border = "2px dashed red"; 
+        });
+    }
     static async rollDice() { if(!this.canAct() || this.hasRolled) return; this.hasRolled = true; let result = 0; if (this.forcedDiceValue > 0) { result = this.forcedDiceValue; this.forcedDiceValue = 0; this.log("🔮 Dado Mágico usado!"); } else { const p = this.getCurrentPlayer(); if (p.effects.slow && p.effects.slow > 0) { result = Math.floor(Math.random()*6)+1; p.effects.slow--; this.log("🕸️ Lentidão! Rolou apenas 1d6."); } else { result = Math.floor(Math.random()*20)+1; } } if(Network.isOnline) { Network.sendAction('ROLL', { result: result }); } const playerId = Network.isOnline ? Network.myPlayerId : this.turn; this.animateDice(result, playerId); }
     
     static debugMove() { 
@@ -270,6 +300,8 @@ export class Game {
             this.log("👟 Bônus de movimento aplicado!"); 
         } 
         
+        let hitTrap = false; // <--- NOVA VARIÁVEL PARA CONTROLAR O FLUXO DE EVENTOS
+
         for(let i=0; i<steps; i++) { 
             let currentIdx = MapSystem.getIndex(p.x, p.y); 
             currentIdx++; 
@@ -277,8 +309,6 @@ export class Game {
             if (currentIdx >= totalTiles) { 
                 currentIdx = 0; 
                 
-                // --- CORREÇÃO: TRAVA DA VOLTA ---
-                // Somente o dono do turno ganha o ouro, a carta e envia o Log!
                 if (!Network.isOnline || pId === Network.myPlayerId) {
                     p.gold += 200; 
                     Cards.draw(p); 
@@ -294,22 +324,64 @@ export class Game {
             
             const trapIdx = this.traps.findIndex(t => t.x === p.x && t.y === p.y && t.ownerId !== p.id); 
             if (trapIdx > -1) { 
+                hitTrap = true; // Marca que o jogador foi pego
+
+                const trap = this.traps[trapIdx];
+                const owner = this.players.find(op => op.id === trap.ownerId);
+
+                // Transferência de Gold
+                let stolenGold = 0;
+                if (p.gold > 0) {
+                    stolenGold = Math.min(p.gold, 100);
+                    p.gold -= stolenGold;
+                    if (owner) owner.gold += stolenGold;
+                }
+
+                // Passo 1: Marcar no contador de skipTurns +1
+                p.skipTurns += 1; 
                 
-                // --- CORREÇÃO: TRAVA DA ARMADILHA ---
+                // Remove a armadilha consumida
+                this.traps.splice(trapIdx, 1); 
+                this.renderTraps(); 
+
                 if (!Network.isOnline || pId === Network.myPlayerId) {
-                    this.sendGlobalLog(`🪤 ${p.name} caiu numa armadilha! Perdeu o próximo turno.`); 
+                    // Passo 2: Salvar no Firebase a vítima (ouro reduzido, turnos perdidos) e o dono (ouro ganho)
+                    if (Network.isOnline) Network.syncPlayerState(); 
+                    if (Network.isOnline && owner && stolenGold > 0) Network.syncSpecificPlayer(owner.id); 
+
+                    // Sincroniza a remoção da armadilha do mapa
+                    if (Network.isOnline) {
+                        Network.sendAction('SYNC_TRAPS', { traps: this.traps }); 
+                    }
+
+                    // Passo 3: Montar a Mensagem e Informar nos logs
+                    let msg = `🪤 ${p.name} caiu numa armadilha! Punição: +1 turno sem jogar`;
+                    if (stolenGold > 0 && owner) {
+                        msg += ` e perdeu ${stolenGold}G para ${owner.name}!`;
+                    } else {
+                        msg += `!`;
+                    }
+                    this.sendGlobalLog(msg); 
+
+                    // Passo 4: Ativar o Pop-up na tela E depois acionar a casa!
+                    this.pendingTileEvent = true; // A mágica acontece aqui: quando fechar o Alerta, vai ler a casa!
+                    this.showGlobalAlert(msg, p.name, true, false); // false = avisa o alerta para não pular a vez ainda
+                    
+                    if (Network.isOnline) {
+                        Network.sendAction('SHOW_ALERT', { msg: msg, playerName: p.name, endsTurn: false });
+                    }
                 }
                 
-                p.skipTurns = 1; 
-                this.traps.splice(trapIdx, 1); 
-                const tile = document.getElementById(`tile-${p.x}-${p.y}`); 
-                if(tile) tile.style.border = "none"; 
-                break; 
+                break; // Para o bonequinho de andar imediatamente
             } 
         } 
         
         if (!Network.isOnline || pId === Network.myPlayerId) { 
-            this.handleTile(p); 
+            // Se NÃO tiver caído numa armadilha, ativa a casa direto.
+            // Se caiu, o HandleTile será ativado quando ele fechar o aviso da armadilha na tela.
+            if (!hitTrap) {
+                this.handleTile(p); 
+            }
             if(Network.isOnline) Network.syncPlayerState(); 
         } 
     }

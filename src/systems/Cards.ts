@@ -148,7 +148,7 @@ export class Cards {
                 if (targetId !== null) {
                     const target = Game.players.find((p:any) => p.id === targetId);
                     if(target) {
-                        target.skipTurns = 1; 
+                        target.skipTurns += 1; 
                         effectLog = `❌ Sabotagem feita com sucesso! ${target.name} perde a próxima rodada.`;
                         if(Network.isOnline) Network.syncSpecificPlayer(target.id);
                     }

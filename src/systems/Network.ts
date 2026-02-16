@@ -273,6 +273,7 @@ export class Network {
             case 'LOG': Game.log(action.payload.msg); break; 
             case 'SHOW_ALERT': Game.showGlobalAlert(action.payload.msg, action.payload.playerName, false, action.payload.endsTurn !== false); break;
             case 'CLOSE_ALERT': Game.closeGlobalAlert(); break;
+            case 'SYNC_TRAPS': Game.renderTraps(action.payload.traps || []); break;
             case 'GAME_WIN':
                 // Recebeu aviso que alguém ganhou!
                 Game.triggerVictory(action.payload.winnerId);
