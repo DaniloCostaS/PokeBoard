@@ -87,7 +87,7 @@ export class Cards {
         const cardData = CARDS_DB.find((c: any) => c.id === 'master');
         
         if (!cardData) return;
-        
+
         // 1. Remove a bola escolhida do inventário
         player.items[ballId]--;
         
@@ -172,17 +172,31 @@ export class Cards {
                 if (targetId !== null) {
                     const target = Game.players.find((p:any) => p.id === targetId);
                     if (target) {
-                        const tempX = player.x; const tempY = player.y;
-                        player.x = target.x; player.y = target.y;
-                        target.x = tempX; target.y = tempY;
+                        const oldPlayerX = player.x; 
+                        const oldPlayerY = player.y;
+                        const oldTargetX = target.x;
+                        const oldTargetY = target.y;
+
+                        target.x = oldPlayerX; 
+                        target.y = oldPlayerY;
+                        
+                        player.x = oldTargetX; 
+                        player.y = oldTargetY;
+                        
                         Game.moveVisuals();
                         effectLog = `🔀 A magia aconteceu! A posição de ${player.name} e ${target.name} foi invertida!`;
-                        if(Network.isOnline) Network.syncSpecificPlayer(target.id);
                         
-                        // --- MELHORIA: ACIONA O EVENTO DA NOVA CASA ---
-                        Game.hasRolled = true; // Impede o jogador de rolar o dado
-                        Game.pendingTileEvent = true; // Avisa o pop-up para ler o mapa ao fechar!
-                        // ----------------------------------------------
+                        // CORREÇÃO: Envia os dois juntos! Ninguém fica sobreposto no banco.
+                        if(Network.isOnline) {
+                            if ((Network as any).syncPlayers) {
+                                (Network as any).syncPlayers([player.id, target.id]);
+                            } else {
+                                Network.syncSpecificPlayer(target.id);
+                            }
+                        }
+                        
+                        Game.hasRolled = true; 
+                        Game.pendingTileEvent = true; 
                     } else { consumed = false; }
                 } else { this.openTargetSelection(cardId); consumed = false; }
                 break;

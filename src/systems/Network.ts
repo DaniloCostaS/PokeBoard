@@ -166,8 +166,16 @@ export class Network {
             Object.values(playersData).forEach((pd: any) => { 
                 const localPlayer = Game.players.find((p: any) => p.id == pd.id); // Use == para evitar erro de string/number
                 if(localPlayer) { 
-                    localPlayer.x = pd.x; 
-                    localPlayer.y = pd.y; 
+                    // --- CORREÇÃO ANTI-ELÁSTICO ---
+                    // Se for você mesmo e for o SEU turno, o seu cliente é o chefe da própria posição.
+                    // Isso ignora "ecos" atrasados do Firebase e impede de ser puxado para trás.
+                    const isMeAndMyTurn = (localPlayer.id === this.myPlayerId && Game.canAct());
+
+                    if (!isMeAndMyTurn) {
+                        localPlayer.x = pd.x; 
+                        localPlayer.y = pd.y; 
+                    }
+                    // ------------------------------
                     localPlayer.gold = pd.gold; 
                     localPlayer.skipTurns = pd.skipTurns || 0; 
                     localPlayer.badges = pd.badges || localPlayer.badges; 
@@ -330,13 +338,16 @@ export class Network {
     static syncPlayerState() { 
         if(!this.isOnline) return; 
         const Game = (window as any).Game; 
-        const p = Game.players[this.myPlayerId]; 
         
+        // CORREÇÃO: Busca pelo ID real para evitar dessincronização de Index
+        const p = Game.players.find((pl: any) => pl.id === this.myPlayerId) || Game.players[this.myPlayerId]; 
+        if (!p) return;
+
         update(ref(db, `rooms/${this.currentRoomId}/players/${this.myPlayerId}`), { 
             x: p.x, 
             y: p.y, 
             gold: p.gold, 
-            team: this.getSanitizedTeam(p.team), // Usa a função blindada
+            team: this.getSanitizedTeam(p.team), 
             items: p.items, 
             skipTurns: p.skipTurns, 
             badges: p.badges,
@@ -345,7 +356,6 @@ export class Network {
         }); 
     }
 
-    // CORREÇÃO CRÍTICA: Método reintroduzido para compatibilidade com códigos antigos (Cards.ts)
     static sendState() {
         this.syncPlayerState();
     }
@@ -353,13 +363,16 @@ export class Network {
     static syncSpecificPlayer(targetId: number) {
         if(!this.isOnline) return;
         const Game = (window as any).Game;
-        const p = Game.players[targetId]; 
+        
+        // CORREÇÃO: Busca pelo ID real garantindo que o alvo correto seja atualizado
+        const p = Game.players.find((pl: any) => pl.id === targetId) || Game.players[targetId]; 
+        if (!p) return;
         
         update(ref(db, `rooms/${this.currentRoomId}/players/${targetId}`), { 
             x: p.x, 
             y: p.y, 
             gold: p.gold, 
-            team: this.getSanitizedTeam(p.team), // AQUI ESTAVA O BUG! Faltava o 'team'.
+            team: this.getSanitizedTeam(p.team), 
             items: p.items,
             badges: p.badges,
             cards: p.cards, 
@@ -367,6 +380,33 @@ export class Network {
             effects: p.effects 
         });
     }
+
+    // --- NOVA FUNÇÃO PARA ATUALIZAÇÃO ATÔMICA ---
+    static syncPlayers(ids: number[]) {
+        if(!this.isOnline) return;
+        const Game = (window as any).Game;
+        const updates: any = {};
+        
+        ids.forEach(id => {
+            const p = Game.players.find((pl: any) => pl.id === id) || Game.players[id];
+            if (p) {
+                updates[`rooms/${this.currentRoomId}/players/${id}`] = {
+                    x: p.x, 
+                    y: p.y, 
+                    gold: p.gold, 
+                    team: this.getSanitizedTeam(p.team), 
+                    items: p.items, 
+                    skipTurns: p.skipTurns, 
+                    badges: p.badges, 
+                    cards: p.cards, 
+                    effects: p.effects
+                };
+            }
+        });
+        
+        update(ref(db), updates);
+    }
+    // --------------------------------------------
 
     static syncTurn(newTurn: number, newRound: number = 1) { 
         if(!this.isOnline) return; 
