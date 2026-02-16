@@ -316,11 +316,12 @@ export class Network {
     
     // --- FUNÇÃO AUXILIAR PARA BLINDAR A REDE ---
     static getSanitizedTeam(team: any[]) {
+        if (!team) return [];
         return team.map((mon: any) => ({
             id: mon.id,
             name: mon.name,
             type: mon.type,
-            currentHp: mon.currentHp, // O MAIS IMPORTANTE: Garante o envio do HP atual
+            currentHp: mon.currentHp, 
             maxHp: mon.maxHp,
             level: mon.level,
             currentXp: mon.currentXp,
@@ -331,7 +332,12 @@ export class Network {
             def: mon.def,
             speed: mon.speed,
             stage: mon.stage || 1,
-            evoData: mon.evoData || null
+            evoData: mon.evoData || { next: null, trigger: null },
+            // --- CORREÇÃO: Enviando as estatísticas base e genéticas (IVs) ---
+            ivs: mon.ivs || { hp: 0, atk: 0, def: 0, spd: 0 },
+            baseStats: mon.baseStats || { hp: 10, atk: 10, def: 10, spd: 10 },
+            wins: mon.wins || 0
+            // -----------------------------------------------------------------
         }));
     }
 

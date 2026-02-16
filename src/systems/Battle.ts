@@ -99,7 +99,7 @@ export class Battle {
             Network.sendAction('BATTLE_START', { 
                 pId: this.player!.id, 
                 monIdx: this.player!.team.indexOf(this.activeMon), 
-                oppTeam: this.oppTeamList, // Enviando a lista inteira!
+                oppTeam: Network.getSanitizedTeam(this.oppTeamList),
                 isPvP: this.isPvP, 
                 reward: this.reward, 
                 enemyId, 
@@ -475,7 +475,10 @@ export class Battle {
             
             const Network = (window as any).Network;
             if(Network.isOnline && this.player && this.player.id === Network.myPlayerId) {
-                 Network.sendAction('BATTLE_OPP_SWITCH', { nextOpp: nextOpp });
+                 // --- CORREÇÃO: Blinda o próximo Pokémon do NPC ---
+                 const sanitizedNextOpp = Network.getSanitizedTeam([nextOpp])[0];
+                 Network.sendAction('BATTLE_OPP_SWITCH', { nextOpp: sanitizedNextOpp });
+                 // -------------------------------------------------
             }
         } else { 
             this.win(); 
@@ -659,6 +662,7 @@ export class Battle {
         const Network = (window as any).Network; 
         this.active = false; 
         this.opponent = null; 
+        this.oppTeamList = []; // Limpando lista de pokemons.
         document.getElementById('battle-modal')!.style.display = 'none'; 
         if(!isRemote) { 
             if(Network.isOnline) Network.sendAction('BATTLE_END', {}); Game.nextTurn(); 
