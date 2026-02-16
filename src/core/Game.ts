@@ -169,7 +169,7 @@ export class Game {
     }
 
     static handleTotalDefeat(p: Player) { 
-        alert(`🚑 ${p.name} sofreu uma derrota total!\nSerá levado ao último Centro Pokémon para recuperação emergencial.`); 
+        const msg = `🚑 ${p.name} sofreu uma derrota total!\nSerá levado ao último Centro Pokémon para recuperação emergencial.`; 
         
         // Passo 2: Move para a última cidade
         const city = this.getLastCityCoord(p);
@@ -184,6 +184,8 @@ export class Game {
         p.team.forEach(mon => { mon.currentHp = mon.maxHp; }); 
         
         this.sendGlobalLog(`🚑 ${p.name} foi resgatado! Equipe totalmente curada no Centro Pokémon, mas perderá 2 turnos.`); 
+        
+        this.showGlobalAlert(msg, p.name, true, false);
         
         this.moveVisuals(); 
         this.updateHUD(); 

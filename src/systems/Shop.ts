@@ -36,7 +36,7 @@ export class Shop {
             this.open(); 
             if(Network.isOnline) Network.syncPlayerState();
         } else {
-            alert("Ouro insuficiente!");
+            Game.showGlobalAlert("Ouro insuficiente!", p.name, true, false);
         }
     }
     
