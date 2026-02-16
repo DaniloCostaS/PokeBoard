@@ -32,24 +32,39 @@ export class Battle {
         this.activeEffects = {};
         this.battleTitle = isPvP ? "Batalha PvP!" : `Batalha contra ${_label}!`;
         
-        // Pega o time todo (já limitamos a 6 no Player.ts)
-        this.plyTeamList = player.getBattleTeam(true); 
         this.currentTerrain = terrainTile;
 
+        // --- NOVA LÓGICA DE SELEÇÃO AUTOMÁTICA PVP ---
         if (isPvP && enemyPlayer) { 
-            this.oppTeamList = enemyPlayer.getBattleTeam(false); 
+            // Calcula a quantidade (Rodada 1-19 = 1v1 | 20-39 = 2v2 | 40-59 = 3v3 ...)
+            const pkmnCount = 1 + Math.floor((Game.round || 1) / 20);
+
+            // Pega apenas os vivos de cada lado
+            let myAlive = player.team.filter(p => !p.isFainted());
+            let oppAlive = enemyPlayer.team.filter(p => !p.isFainted());
+
+            // Embaralha aleatoriamente e corta pelo limite da rodada
+            myAlive = myAlive.sort(() => Math.random() - 0.5).slice(0, pkmnCount);
+            oppAlive = oppAlive.sort(() => Math.random() - 0.5).slice(0, pkmnCount);
+
+            this.plyTeamList = myAlive;
+            this.oppTeamList = oppAlive;
             this.opponent = this.oppTeamList[0]; 
+            
             if (enemyPlayer.effects.curse) { this.logBattle(`☠️ ${enemyPlayer.name} está amaldiçoado! (Dano reduzido)`); }
-        } else if (isGym) {
+        } 
+        // ---------------------------------------------
+        else if (isGym) {
             const gymData = GYM_DATA.find(g => g.id === gymId);
             const globalAvg = Game.getGlobalAverageLevel();
             const gymLevel = globalAvg + 1; 
             if(gymData) { this.oppTeamList = gymData.teamIds.map((id: number) => new Pokemon(id, gymLevel, false)); this.opponent = this.oppTeamList[0]; } 
             else { this.oppTeamList = Array.isArray(enemyMon) ? enemyMon : [enemyMon]; this.opponent = this.oppTeamList[0]; }
+            this.plyTeamList = player.getBattleTeam(true); 
         } else { 
-            // Agora aceita tanto um Pokémon único (Selvagem) quanto o Time inteiro do NPC (Array)
             this.oppTeamList = Array.isArray(enemyMon) ? enemyMon : [enemyMon]; 
             this.opponent = this.oppTeamList[0]; 
+            this.plyTeamList = player.getBattleTeam(true); 
         }
 
         if(this.plyTeamList.length === 0) { 
@@ -59,7 +74,13 @@ export class Battle {
         }
         
         if(this.isNPC && npcImage) { (this.opponent as any)._npcImage = npcImage; (this.opponent as any)._npcName = _label; }
-        this.openSelectionModal("Escolha seu Pokémon para começar!");
+        
+        // --- BYPASS: Inicia direto sem perguntar no PvP ---
+        if (this.isPvP) {
+            this.startRound(this.plyTeamList[0]);
+        } else {
+            this.openSelectionModal("Escolha seu Pokémon para começar!");
+        }
     }
 
     static openSelectionModal(title: string) { const modal = document.getElementById('pkmn-select-modal')!; const list = document.getElementById('pkmn-select-list')!; document.getElementById('select-title')!.innerText = title; list.innerHTML = ''; this.plyTeamList.forEach((mon) => { const div = document.createElement('div'); div.className = `mon-select-item ${mon.isFainted() ? 'disabled' : ''}`; div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>(${mon.currentHp}/${mon.maxHp})</small>`; if(!mon.isFainted()) div.onclick = () => { modal.style.display = 'none'; this.startRound(mon); }; list.appendChild(div); }); modal.style.display = 'flex'; }
@@ -70,18 +91,14 @@ export class Battle {
         this.active = true; 
         this.activeMon = selectedMon; 
         
-        // 1. Renderiza a tela
         this.renderBattleScreen(); 
         
-        // 2. Define estado inicial dos botões
-        // CORREÇÃO: PvP agora se comporta como PvE para o atacante.
-        // O jogador ativo (que caiu na casa) SEMPRE tem o controle inicial.
         this.isPlayerTurn = true; 
         this.processingAction = false;
         this.updateButtons();
         
         if (this.isPvP) {
-             this.logBattle(`PvP Iniciado! Você desafiou ${this.enemyPlayer?.name || 'Inimigo'}.`, true);
+             this.logBattle(`Atenção: Combate Automático Sorteado!`, true);
         } else {
             this.logBattle(`O que ${this.activeMon.name} fará?`, true);
         }
@@ -91,15 +108,13 @@ export class Battle {
         if(Network.isOnline && this.player!.id === Network.myPlayerId) { 
             const npcImg = (this.opponent as any)._npcImage || ""; 
             const npcName = (this.opponent as any)._npcName || ""; 
-            
-            // Avisa quem começa para sincronizar os clientes
-            // No modo automático, o 'startingTurnId' é sempre o do jogador ativo
             const startingId = this.player!.id;
 
             Network.sendAction('BATTLE_START', { 
                 pId: this.player!.id, 
                 monIdx: this.player!.team.indexOf(this.activeMon), 
-                oppTeam: Network.getSanitizedTeam(this.oppTeamList),
+                oppTeam: Network.getSanitizedTeam(this.oppTeamList), 
+                plyTeam: Network.getSanitizedTeam(this.plyTeamList), // <-- NOVO: Envia o time sorteado
                 isPvP: this.isPvP, 
                 reward: this.reward, 
                 enemyId, 
@@ -129,6 +144,23 @@ export class Battle {
             (document.getElementById('btn-run') as HTMLButtonElement).disabled = true; 
         } 
     }
+
+    // --- NOVAS FUNÇÕES DO AUTO-BATTLER ---
+    static startAutoPvP() {
+        if (!this.isPvP) return;
+        this.processingAction = true; // Trava os botões
+        this.updateButtons();
+        this.logBattle(`⚔️ A Batalha Automática começou!`, true);
+        setTimeout(() => this.autoAttackNext(), 1500);
+    }
+
+    static autoAttackNext() {
+        if (!this.active || !this.isPvP) return;
+        if (this.activeMon && this.activeMon.currentHp > 0 && this.opponent && this.opponent.currentHp > 0) {
+            this.attack(); 
+        }
+    }
+    // -------------------------------------
     
     static startFromNetwork(payload: any) { 
         const Game = (window as any).Game; 
@@ -147,19 +179,33 @@ export class Battle {
         if(payload.enemyId >= 0) this.enemyPlayer = Game.players[payload.enemyId]; 
         
         // === CORREÇÃO DO ESPECTADOR (Prevenção de Crash) ===
+        if (payload.isPvP && payload.plyTeam) {
+            const PokemonClass = (window as any).Pokemon || p.team[0].constructor;
+            this.plyTeamList = payload.plyTeam.map((td: any) => {
+                 const po = new PokemonClass(td.id, td.level, td.isShiny);
+                 Object.assign(po, td);
+                 return po;
+            });
+            // Acha qual Pokémon da lista é o atual
+            this.activeMon = this.plyTeamList.find((m: any) => m.id === p.team[payload.monIdx]?.id) || this.plyTeamList[0];
+        } else {
+            this.plyTeamList = p.getBattleTeam(payload.isGym).slice(0, payload.isGym ? 6 : 3);
+            this.activeMon = p.team[payload.monIdx]; 
+        }
+
         if (this.isPvP && this.enemyPlayer) {
-            this.oppTeamList = this.enemyPlayer.getBattleTeam(false);
-            
-            // Aceita o formato antigo ou novo sem quebrar
-            let oppIdToFind = -1;
-            if (payload.oppData) oppIdToFind = payload.oppData.id;
-            else if (payload.oppTeam && payload.oppTeam.length > 0) oppIdToFind = payload.oppTeam[0].id;
-            
-            const activeOpp = this.oppTeamList.find(mon => mon.id === oppIdToFind) || this.oppTeamList[0];
-            this.opponent = activeOpp;
-            
-            if (payload.oppData && payload.oppData.currentHp !== undefined) this.opponent.currentHp = payload.oppData.currentHp;
-            else if (payload.oppTeam && payload.oppTeam[0].currentHp !== undefined) this.opponent.currentHp = payload.oppTeam[0].currentHp;
+            if (payload.oppTeam && payload.oppTeam.length > 0) {
+                const PokemonClass = (window as any).Pokemon || p.team[0].constructor;
+                this.oppTeamList = payload.oppTeam.map((td: any) => {
+                     const po = new PokemonClass(td.id, td.level, td.isShiny);
+                     Object.assign(po, td);
+                     return po;
+                });
+            } else {
+                this.oppTeamList = this.enemyPlayer.getBattleTeam(false);
+            }
+            this.opponent = this.oppTeamList[0];
+        // ----------------------------------------------------------------------
         } else {
             if (payload.oppTeam && payload.oppTeam.length > 0) {
                 const PokemonClass = (window as any).Pokemon || p.team[0].constructor;
@@ -205,43 +251,57 @@ export class Battle {
 
     static renderBattleScreen() {
         const Network = (window as any).Network; 
-        
         document.getElementById('pkmn-select-modal')!.style.display = 'none';
         document.getElementById('battle-modal')!.style.display = 'flex';
         document.getElementById('battle-log-history')!.innerHTML = '';
         
-        // --- LÓGICA DE TÍTULO DE ESPECTADOR ---
         const titleEl = document.getElementById('battle-title')!;
-        
         if (Network.isOnline && this.player && this.player.id !== Network.myPlayerId) {
-            
-            // Descobre qual é o tipo de oponente para mostrar no título
-            let oppName = "Selvagem"; // Padrão
-            
-            if (this.isPvP && this.enemyPlayer) {
-                oppName = this.enemyPlayer.name; // Luta contra outro jogador
-            } else if (this.isGym) {
-                oppName = "Líder de Ginásio"; // Luta no ginásio
-            } else if (this.isNPC && (this.opponent as any)._npcName) {
-                oppName = (this.opponent as any)._npcName; // Luta contra NPC (ex: Rocket, Jovem, etc)
-            }
-
-            // Exibe: "👁️ Assistindo Danilo contra Selvagem"
+            let oppName = "Selvagem"; 
+            if (this.isPvP && this.enemyPlayer) oppName = this.enemyPlayer.name; 
+            else if (this.isGym) oppName = "Líder de Ginásio"; 
+            else if (this.isNPC && (this.opponent as any)._npcName) oppName = (this.opponent as any)._npcName; 
             titleEl.innerHTML = `👁️ <span style="color:#ffd700;">Assistindo ${this.player.name} contra ${oppName}</span>`;
-            
         } else {
-            // Título normal para quem está jogando
             titleEl.innerText = this.battleTitle;
         }
-        // ---------------------------------------
         
+        // --- ALTERA O HUD PARA O MODO AUTO PVP ---
+        const actionsContainer = document.querySelector('.battle-actions') as HTMLElement;
+        if (actionsContainer) {
+            if (this.isPvP) {
+                Array.from(actionsContainer.children).forEach((c: any) => c.style.display = 'none');
+                let autoBtn = document.getElementById('btn-auto-pvp');
+                if (!autoBtn) {
+                    autoBtn = document.createElement('button');
+                    autoBtn.id = 'btn-auto-pvp';
+                    autoBtn.className = 'btn';
+                    autoBtn.style.cssText = 'grid-column: span 2; background: #e74c3c; font-size: 1.2rem; padding: 15px;';
+                    autoBtn.innerHTML = '⚔️ INICIAR BATALHA AUTOMÁTICA';
+                    autoBtn.onclick = () => { autoBtn!.style.display = 'none'; this.startAutoPvP(); };
+                    actionsContainer.appendChild(autoBtn);
+                }
+                autoBtn.style.display = 'block';
+
+                const isMyBattle = Network.isOnline ? (this.player && this.player.id === Network.myPlayerId) : true;
+                if (!isMyBattle) {
+                    autoBtn.innerText = 'Aguardando oponente iniciar...';
+                    (autoBtn as HTMLButtonElement).disabled = true;
+                }
+            } else {
+                Array.from(actionsContainer.children).forEach((c: any) => {
+                    if (c.id !== 'btn-auto-pvp') c.style.display = 'block';
+                    else c.style.display = 'none';
+                });
+            }
+        }
+        // -----------------------------------------
+
         this.updateButtons();
         this.updateUI();
 
-        // === LÓGICA DO BACKGROUND DINÂMICO ===
         const scene = document.querySelector('.battle-scene') as HTMLElement;
         let bgImage = 'Default.jpg'; 
-        
         switch(this.currentTerrain) {
             case 1: bgImage = 'BatalhaTerrenoGrama.png'; break;
             case 2: bgImage = 'BatalhaTerrenoAgua.png'; break;
@@ -249,7 +309,6 @@ export class Battle {
             case 5: bgImage = 'BatalhaTerrenoGym.png'; break;
             default: bgImage = 'BatalhaTerrenoGrama.png'; break;
         }
-
         scene.style.backgroundImage = `url('/assets/img/Background/${bgImage}')`;
         scene.style.backgroundSize = 'cover';
         scene.style.backgroundPosition = 'center';
@@ -301,39 +360,29 @@ export class Battle {
         this.logBattle(`Velocidade: ${this.activeMon.name}(${playerSpeed}) vs ${this.opponent.name}(${enemySpeed})`, true);
 
         if (playerGoesFirst) {
-            // JOGADOR ATACA PRIMEIRO
             this.logBattle(`💨 ${this.activeMon.name} é mais rápido!`, true);
             this.performPlayerAttack(() => {
-                // Se o inimigo sobreviveu, ele ataca de volta automaticamente (Simulando NPC)
                 if (this.opponent && this.opponent.currentHp > 0) {
                     setTimeout(() => {
                         this.performEnemyAttack(() => {
-                            // Fim da rodada
                             this.processingAction = false;
                             this.updateButtons();
+                            if (this.isPvP) setTimeout(() => this.autoAttackNext(), 1500); // LOOP
                         });
                     }, 1000);
-                } else {
-                    // Inimigo morreu, vitória já tratada
-                    this.processingAction = false;
                 }
             });
         } else {
-            // INIMIGO ATACA PRIMEIRO
             this.logBattle(`💨 ${this.opponent.name} é mais rápido!`, true);
             this.performEnemyAttack(() => {
-                // Se o jogador sobreviveu, ele ataca de volta
                 if (this.activeMon && this.activeMon.currentHp > 0) {
                     setTimeout(() => {
                         this.performPlayerAttack(() => {
-                            // Fim da rodada
                             this.processingAction = false;
                             this.updateButtons();
+                            if (this.isPvP) setTimeout(() => this.autoAttackNext(), 1500); // LOOP
                         });
                     }, 1000);
-                } else {
-                    // Jogador morreu, derrota já tratada
-                    this.processingAction = false;
                 }
             });
         }
@@ -475,10 +524,13 @@ export class Battle {
             
             const Network = (window as any).Network;
             if(Network.isOnline && this.player && this.player.id === Network.myPlayerId) {
-                 // --- CORREÇÃO: Blinda o próximo Pokémon do NPC ---
                  const sanitizedNextOpp = Network.getSanitizedTeam([nextOpp])[0];
                  Network.sendAction('BATTLE_OPP_SWITCH', { nextOpp: sanitizedNextOpp });
-                 // -------------------------------------------------
+            }
+            
+            // Continua batendo se for automático!
+            if (this.isPvP) {
+                 setTimeout(() => this.autoAttackNext(), 2000);
             }
         } else { 
             this.win(); 
@@ -486,29 +538,41 @@ export class Battle {
     }
 
     static handleFaint() { 
-        // --- SE O MEW MORRER NO MEIO DA LUTA ---
         if (this.activeMon && (this.activeMon as any).isTemp) {
             this.logBattle("🧬 O DNA de Mew se esgotou e o Pokémon original retornou!");
             this.revertMew();
             this.updateUI();
-            
-            // Se o original já estava morto antes do Mew entrar, continua o desmaio normal
-            if (this.activeMon.currentHp <= 0) {
-                // (O código vai seguir para pedir pra você escolher outro Pokémon da bolsa)
-            } else {
-                // Se o original tem vida, a batalha continua normalmente!
+            if (this.activeMon.currentHp <= 0) { } 
+            else {
                 this.processingAction = false;
                 this.updateButtons();
                 const Network = (window as any).Network;
                 if(Network.isOnline) Network.syncPlayerState();
-                return; // Interrompe o processo de morte aqui!
+                return;
             }
         }
         const nextPly = this.plyTeamList.find(p => !p.isFainted()); 
         if (nextPly) { 
             this.logBattle(`${this.activeMon!.name} desmaiou!`, true); 
-            document.getElementById('battle-modal')!.style.display = 'none'; 
-            this.openSelectionModal("Escolha o próximo!"); 
+            
+            // --- TROCA AUTOMÁTICA SE FOR PVP ---
+            if (this.isPvP) {
+                 this.activeMon = nextPly;
+                 this.logBattle(`Você enviou ${nextPly.name}!`, true);
+                 this.updateUI();
+                 
+                 const Network = (window as any).Network;
+                 if(Network.isOnline && this.player && this.player.id === Network.myPlayerId) {
+                      const sanitizedNextPly = Network.getSanitizedTeam([nextPly])[0];
+                      Network.sendAction('BATTLE_PLY_SWITCH', { nextPly: sanitizedNextPly });
+                 }
+
+                 setTimeout(() => this.autoAttackNext(), 2000);
+            } else {
+                 document.getElementById('battle-modal')!.style.display = 'none'; 
+                 this.openSelectionModal("Escolha o próximo!"); 
+            }
+            // -----------------------------------
         } 
         else { this.lose(); } 
     }

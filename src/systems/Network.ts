@@ -276,6 +276,29 @@ export class Network {
                 BattleObj.updateUI();
                 break;
             // ---------------------------
+
+            // --- NOVO EVENTO: ATACANTE TROCOU DE POKÉMON ---
+            case 'BATTLE_PLY_SWITCH': {
+                const BattleObjPly = (window as any).Battle;
+                if (!BattleObjPly.active) return;
+                
+                // Procura se ele existe na lista sorteada
+                const nextInListPly = BattleObjPly.plyTeamList.find((p: any) => p.id === action.payload.nextPly.id && !p.isFainted());
+                
+                if (nextInListPly) {
+                    BattleObjPly.activeMon = nextInListPly;
+                } else {
+                    const PokemonClass = (window as any).Pokemon || Game.players[0].team[0].constructor;
+                    const newPly = new PokemonClass(action.payload.nextPly.id, action.payload.nextPly.level, action.payload.nextPly.isShiny);
+                    Object.assign(newPly, action.payload.nextPly);
+                    BattleObjPly.activeMon = newPly;
+                }
+                
+                BattleObjPly.updateUI();
+                break;
+            }
+            // ------------------------------------------------
+            
             case 'BATTLE_UPDATE': Battle.updateFromNetwork(action.payload); break; 
             case 'BATTLE_END': Battle.end(true); break; 
             case 'LOG': Game.log(action.payload.msg); break; 
