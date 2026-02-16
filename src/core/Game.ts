@@ -196,12 +196,63 @@ export class Game {
     }
     
     static renderDebugPanel() { const container = document.querySelector('.extra-space'); if(container) { container.innerHTML = ` <button class="btn btn-secondary" onclick="window.Game.openCardLibrary()">📖 Ver Todas as Cartas</button> <button class="btn btn-secondary" style="background: #27ae60;" onclick="window.Game.openXpRules()">📘 Regras de XP</button> <button class="btn btn-secondary" style="background: #e67e22;" onclick="window.Game.openCaptureRules()">🦅 Regras de Captura</button> <div style="margin-top:10px; font-size:0.7rem; color:#aaa;">DEBUG MOVE</div> <div style="display:flex; gap:5px; justify-content:center;"> <input type="number" id="debug-input" value="1" min="1" max="50" style="width:50px; text-align:center; border:none; padding:5px; border-radius:4px;"> <button class="btn" style="width:auto; margin:0; padding:5px 10px;" onclick="window.Game.debugMove()">GO</button> </div> <button class="btn" style="margin-top:5px; background: #e67e22;" onclick="window.Game.exportSave()">💾 DEBUG SAVE</button> <div style="margin-top:5px;"><small id="online-indicator" style="color:cyan;">OFFLINE</small></div> `; } }
-    static openCardLibrary() { const list = document.getElementById('library-list')!; list.innerHTML = ''; import('../constants').then(({CARDS_DB}) => { CARDS_DB.forEach(c => { const d = document.createElement('div'); d.className = 'card-item'; const typeClass = c.type === 'move' ? 'type-move' : 'type-battle'; const typeLabel = c.type === 'move' ? 'MOVE' : 'BATTLE'; 
-        d.innerHTML = `<div class="card-info"><span class="card-name">${c.icon} ${c.name} <span class="card-type-badge ${typeClass}">${typeLabel}</span></span><span class="card-desc">${c.desc}</span></div>`; list.appendChild(d); }); }); document.getElementById('library-modal')!.style.display = 'flex'; }
+    
+    static openCardLibrary() { 
+        const list = document.getElementById('library-list')!; 
+        list.innerHTML = ''; 
+        import('../constants').then(({CARDS_DB}) => { 
+            CARDS_DB.forEach(c => { 
+                const d = document.createElement('div'); 
+                d.className = 'card-item'; 
+                
+                let typeClass = 'type-battle'; let typeLabel = 'BATTLE';
+                if (c.type === 'move') { typeClass = 'type-move'; typeLabel = 'MOVE'; }
+                else if (c.type === 'auto') { typeClass = 'type-auto'; typeLabel = 'AUTO'; }
+                
+                d.innerHTML = `<div class="card-info"><span class="card-name">${c.icon} ${c.name} <span class="card-type-badge ${typeClass}">${typeLabel}</span></span><span class="card-desc">${c.desc}</span></div>`; 
+                list.appendChild(d); 
+            }); 
+        }); 
+        document.getElementById('library-modal')!.style.display = 'flex'; 
+    }
+
     static openXpRules() { document.getElementById('xp-rules-modal')!.style.display = 'flex'; }
     static openCaptureRules() { const modal = document.getElementById('capture-rules-modal'); if (modal) modal.style.display = 'flex'; }
-    static openBoardCards(pId: number) { if(Network.isOnline && pId !== Network.myPlayerId) return alert("Privado!"); const p = this.players[pId]; const list = document.getElementById('board-cards-list')!; list.innerHTML = ''; if(p.cards.length === 0) list.innerHTML = "<em>Sem cartas.</em>"; const isMyTurn = this.canAct() && this.turn === pId; const canUseMove = isMyTurn && !this.hasRolled; p.cards.forEach(c => { const d = document.createElement('div'); d.className = 'card-item'; const typeClass = c.type === 'move' ? 'type-move' : 'type-battle'; const typeLabel = c.type === 'move' ? 'MOVE' : 'BATTLE'; let actionBtn = ''; if (c.type === 'move') { if (canUseMove) actionBtn = `<button class="btn-use-card" onclick="window.Cards.activate('${c.id}')">USAR</button>`; else actionBtn = `<button class="btn-use-card" disabled title="Só antes de rolar">USAR</button>`; } else { actionBtn = `<button class="btn-use-card" disabled style="background:#555" title="Só em batalha">BATTLE</button>`; } 
-    d.innerHTML = `<div class="card-info"><span class="card-name">${c.icon} ${c.name} <span class="card-type-badge ${typeClass}">${typeLabel}</span></span><span class="card-desc">${c.desc}</span></div>${actionBtn}`; list.appendChild(d); }); document.getElementById('board-cards-modal')!.style.display = 'flex'; }
+
+    static openBoardCards(pId: number) { 
+        if(Network.isOnline && pId !== Network.myPlayerId) return alert("Privado!"); 
+        const p = this.players[pId]; 
+        const list = document.getElementById('board-cards-list')!; 
+        list.innerHTML = ''; 
+        if(p.cards.length === 0) list.innerHTML = "<em>Sem cartas.</em>"; 
+        
+        const isMyTurn = this.canAct() && this.turn === pId; 
+        const canUseMove = isMyTurn && !this.hasRolled; 
+        
+        p.cards.forEach(c => { 
+            const d = document.createElement('div'); 
+            d.className = 'card-item'; 
+            
+            let typeClass = 'type-battle'; let typeLabel = 'BATTLE';
+            if (c.type === 'move') { typeClass = 'type-move'; typeLabel = 'MOVE'; }
+            else if (c.type === 'auto') { typeClass = 'type-auto'; typeLabel = 'AUTO'; }
+
+            let actionBtn = ''; 
+            if (c.type === 'move') { 
+                if (canUseMove) actionBtn = `<button class="btn-use-card" onclick="window.Cards.activate('${c.id}')">USAR</button>`; 
+                else actionBtn = `<button class="btn-use-card" disabled title="Só antes de rolar">USAR</button>`; 
+            } else if (c.type === 'auto') {
+                actionBtn = `<button class="btn-use-card" disabled style="background:#8e44ad" title="Ativação Automática">AUTO</button>`; 
+            } else { 
+                actionBtn = `<button class="btn-use-card" disabled style="background:#555" title="Só em batalha">BATTLE</button>`; 
+            } 
+            
+            d.innerHTML = `<div class="card-info"><span class="card-name">${c.icon} ${c.name} <span class="card-type-badge ${typeClass}">${typeLabel}</span></span><span class="card-desc">${c.desc}</span></div>${actionBtn}`; 
+            list.appendChild(d); 
+        }); 
+        document.getElementById('board-cards-modal')!.style.display = 'flex'; 
+    }
+    
     static useBoardCard(cardId: string) { const p = this.getCurrentPlayer(); const cardIndex = p.cards.findIndex(c => c.id === cardId); if (cardIndex === -1) return; const card = p.cards[cardIndex]; if (card.id === 'bike') { p.cards.splice(cardIndex, 1); document.getElementById('board-cards-modal')!.style.display = 'none'; this.log(`${p.name} usou Bicicleta!`); if(Network.isOnline) { Network.sendAction('ROLL', { result: 5 }); return; } this.hasRolled = true; this.animateDice(5, 0); } else if (card.id === 'teleport') { p.cards.splice(cardIndex, 1); document.getElementById('board-cards-modal')!.style.display = 'none'; this.log(`${p.name} usou Teleporte!`); p.x = 0; p.y = 0; this.moveVisuals(); this.handleTile(p); } else { alert("Efeito não implementado na demo."); } if(Network.isOnline) Network.syncPlayerState(); }
     static forceDice(val: number) { this.forcedDiceValue = val; this.rollDice(); }
     

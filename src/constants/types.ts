@@ -27,7 +27,7 @@ export interface CardData {
     name: string;
     icon: string;
     desc: string;
-    type: 'move' | 'battle';
+    type: 'move' | 'battle' | 'auto';
 }
 
 export interface Coord {

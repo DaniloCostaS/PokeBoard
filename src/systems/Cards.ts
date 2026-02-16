@@ -142,6 +142,53 @@ export class Cards {
         if (cardData.type === 'move' && Battle.active) return alert("Cartas MOVE só podem ser usadas no tabuleiro!");
         if (cardData.type === 'battle' && !Battle.active) return alert("Cartas BATTLE só podem ser usadas em batalha!");
 
+        // --- BLOQUEIO DE USO MANUAL ---
+        if (cardData.type === 'auto') {
+            return alert("Esta carta não pode ser ativada manualmente. Ela protege você automaticamente quando for alvo de outra carta!");
+        }
+
+        // --- SISTEMA DE INTERCEPTAÇÃO (INTERFERÊNCIA) ---
+        // Verifica se a carta sendo jogada tem um alvo e se esse alvo não é o próprio jogador
+        if (targetId !== null && targetId !== player.id) {
+            const targetP = Game.players.find((p:any) => p.id === targetId);
+            if (targetP) {
+                // Procura se o Alvo tem a carta Interferência na mão
+                const jamIndex = targetP.cards.findIndex((c:any) => c.id === 'jam');
+                if (jamIndex > -1) {
+                    
+                    // 1. Consome a Interferência do Alvo
+                    targetP.cards.splice(jamIndex, 1);
+                    
+                    // 2. Consome a carta de ataque do Jogador ativo
+                    const atkCardIdx = player.cards.findIndex((c:any) => c.id === cardId);
+                    if (atkCardIdx > -1) player.cards.splice(atkCardIdx, 1);
+                    
+                    document.getElementById('board-cards-modal')!.style.display = 'none';
+                    Game.updateHUD();
+
+                    // 3. Monta a mensagem épica de bloqueio
+                    const jamMsg = `📡 INTERFERÊNCIA!\n\n${targetP.name} tinha um bloqueador de sinal na mochila! A carta [${cardData.name}] de ${player.name} foi totalmente anulada!`;
+                    
+                    Game.log(jamMsg);
+                    Game.showGlobalAlert(jamMsg, player.name, true, false);
+
+                    // 4. Salva no banco de dados que os dois perderam as cartas
+                    if (Network.isOnline) {
+                        if ((Network as any).syncPlayers) {
+                            (Network as any).syncPlayers([player.id, targetP.id]);
+                        } else {
+                            Network.syncSpecificPlayer(targetP.id);
+                            Network.syncPlayerState();
+                        }
+                        Network.sendAction('SHOW_ALERT', { msg: jamMsg, playerName: player.name, endsTurn: false });
+                        Network.sendAction('LOG', { msg: `📡 INTERFERÊNCIA! O ataque de ${player.name} foi bloqueado por ${targetP.name}!` });
+                    }
+                    
+                    return; // <--- O SEGREDO ESTÁ AQUI: Para a função e impede o Switch de rodar!
+                }
+            }
+        }
+
         let consumed = true; 
         let effectLog = ""; 
 
@@ -340,7 +387,6 @@ export class Cards {
                 break;
             
                 case 'destiny': Battle.activeEffects.destiny = true; Battle.logBattle("🌠 Recompensas dobradas se vencer!"); break;
-            case 'jam': Battle.logBattle("📡 Interferência ativada!"); break;
 
             default: consumed = false;
         }

@@ -299,6 +299,7 @@ body {
 .card-type-badge { font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; font-weight: bold; margin-left: 5px; color: white; }
 .type-move { background-color: #3498db; }   
 .type-battle { background-color: #e74c3c; } 
+.type-auto { background-color: #8e44ad; }
 .btn-use-card { background: var(--highlight); color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; margin-left: 10px; }
 .btn-use-card:disabled { background: #ccc; cursor: not-allowed; opacity: 0.6; }
 
