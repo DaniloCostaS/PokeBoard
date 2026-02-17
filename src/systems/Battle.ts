@@ -344,8 +344,8 @@ export class Battle {
         // Calcula a proporção de velocidade (evitando divisão por zero)
         const speedRatio = attacker.speed / Math.max(1, defender.speed);
         
-        // Limita o bônus/penalidade entre 0.75 (-25% de dano) e 1.25 (+25% de dano)
-        const speedMultiplier = Math.max(0.75, Math.min(1.25, speedRatio));
+        // Limita o bônus/penalidade entre 0.90 (-10% de dano) e 1.10 (+10% de dano)
+        const speedMultiplier = Math.max(0.90, Math.min(1.10, speedRatio));
         
         // Aplica o multiplicador ao dano usando a variável correta: finalDamage
         finalDamage = Math.max(1, Math.floor(finalDamage * speedMultiplier));
