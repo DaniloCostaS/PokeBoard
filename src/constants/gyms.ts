@@ -37,7 +37,7 @@ export const GYM_DATA: GymData[] = [
     },
     {
         id: 6, leaderName: "Sabrina", type: "Psíquico",
-        teamIds: [63, 64, 122, 65], // Abra. Kadabra, Mr. Mime, Alakazam
+        teamIds: [63, 64, 122, 65], // Abra, Kadabra, Mr. Mime, Alakazam
         badgeImg: "Psiquico.png", leaderImg: "Sabrina.png", gymImg: "Psiquico.png"
     },
     {

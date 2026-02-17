@@ -333,7 +333,32 @@ export class Battle {
         let finalDamage = Math.max(0, typeDamage + rollModifier); 
         if (isPlayerAttacking) { if (this.activeEffects.crit) { finalDamage *= 2; } if (this.activeEffects.focus) { finalDamage *= 4; this.activeEffects.focus = false; } if (this.player?.effects.curse) { finalDamage = Math.floor(finalDamage / 2); } } else { if (this.activeEffects.guard) { finalDamage = Math.floor(finalDamage / 2); } if (this.enemyPlayer && this.enemyPlayer.effects.curse) { finalDamage = Math.floor(finalDamage / 2); } } 
         let logDetails = `(🎲${d6})`; 
-        if (isCritical) logDetails += " 💥!"; if (rawMulti > 1) logDetails += " 🔥!"; else if (rawMulti < 1) logDetails += " 🛡️."; if (this.activeEffects.crit && isPlayerAttacking) logDetails += " [2x]"; if (this.activeEffects.focus && isPlayerAttacking) logDetails += " [4x]"; if (this.activeEffects.guard && !isPlayerAttacking) logDetails += " [🛡️]"; return { damage: finalDamage, msg: logDetails }; 
+        if (isCritical) logDetails += " 💥!"; 
+        if (rawMulti > 1) logDetails += " 🔥!"; 
+        else if (rawMulti < 1) logDetails += " 🛡️."; 
+        if (this.activeEffects.crit && isPlayerAttacking) logDetails += " [2x]"; 
+        if (this.activeEffects.focus && isPlayerAttacking) logDetails += " [4x]"; 
+        if (this.activeEffects.guard && !isPlayerAttacking) logDetails += " [🛡️]"; 
+        
+        // --- NOVO: FATOR DE VELOCIDADE (MOMENTUM / ESQUIVA) ---
+        // Calcula a proporção de velocidade (evitando divisão por zero)
+        const speedRatio = attacker.speed / Math.max(1, defender.speed);
+        
+        // Limita o bônus/penalidade entre 0.75 (-25% de dano) e 1.25 (+25% de dano)
+        const speedMultiplier = Math.max(0.75, Math.min(1.25, speedRatio));
+        
+        // Aplica o multiplicador ao dano usando a variável correta: finalDamage
+        finalDamage = Math.max(1, Math.floor(finalDamage * speedMultiplier));
+
+        // Adiciona um feedback visual no log para os jogadores entenderem o impacto da SPD
+        if (speedMultiplier >= 1.15) {
+            logDetails += ` ⚡Ágil! (+${Math.floor((speedMultiplier-1)*100)}% Dano)`;
+        } else if (speedMultiplier <= 0.85) {
+            logDetails += ` 🐢Lento! (-${Math.floor((1-speedMultiplier)*100)}% Dano)`;
+        }
+        // --------------------------------------------------------
+        
+        return { damage: finalDamage, msg: logDetails };
     }
     
     // =========================================================================================
@@ -679,9 +704,11 @@ export class Battle {
             return; 
         }
 
-        alert(msg); 
+        this.logBattle(`🏆 ${msg}`, true); // Mostra o loot na tela de chat da batalha
         Game.sendGlobalLog(`${this.player?.name} venceu! ${msg}`); 
-        setTimeout(() => this.end(false), 1000); 
+        
+        // Aumentamos o tempo para 2 segundos para o jogador dar tempo de ler o que ganhou antes de fechar
+        setTimeout(() => this.end(false), 2000);
     }
 
     static lose() { 
@@ -714,9 +741,10 @@ export class Battle {
         
         if(Network.isOnline) Network.syncPlayerState(); 
         
-        alert(msg); 
+        this.logBattle(`💀 ${msg}`, true); 
         Game.sendGlobalLog(`${this.player?.name} perdeu e recuou para o último Centro Pokémon!`); 
-        setTimeout(() => { this.end(false); Game.moveVisuals(); }, 1500); 
+        
+        setTimeout(() => { this.end(false); Game.moveVisuals(); }, 2000);
     }
     
     static end(isRemote: boolean) { 
@@ -893,18 +921,34 @@ export class Battle {
             }
 
             let chance = item.rate || 0;
+            
+            // Bônus por HP baixo
             const hpPercent = (opponent.currentHp / opponent.maxHp) * 100;
             if (hpPercent < 15) chance += 50; else if (hpPercent < 60) chance += 25;
-            if (activeMon.level > opponent.level) chance += 5; else if (activeMon.level < opponent.level) chance -= 5;
+            
+            // Bônus por Nível
+            if (activeMon.level > opponent.level) chance += 5; 
+            else if (activeMon.level < opponent.level) chance -= 5;
+            
+            // --- NOVA LÓGICA: Penalidade por Poder (Status Totais) ---
+            const oppStats = opponent.maxHp + opponent.atk + opponent.def + opponent.speed;
+            const powerPenalty = Math.floor(oppStats / 25);
+            chance -= powerPenalty; // Reduz a chance baseado na força bruta do alvo
+            // ---------------------------------------------------------
+
+            // Penalidades por Raridade
             if (opponent.isLegendary) chance -= 20;
             if (opponent.isShiny) chance -= 10;
 
+            // Bônus do Dado d6
             const d6 = Math.floor(Math.random() * 6) + 1;
             const diceBonus = (d6 * 4) - 14; // Varia de -10 a +10
             chance += diceBonus;
+            
             chance = Math.max(1, Math.min(95, chance));
 
-            this.logBattle(`(Chance Final: ${chance}% | Sorte: ${diceBonus > 0 ? '+' : ''}${diceBonus}%)`, true);
+            // Log atualizado para mostrar a resistência aos jogadores
+            this.logBattle(`(Chance Final: ${chance}% | Resistência: -${powerPenalty}% | Sorte: ${diceBonus > 0 ? '+' : ''}${diceBonus}%)`, true);
             const roll = Math.floor(Math.random() * 100) + 1;
 
             if (roll <= chance) {

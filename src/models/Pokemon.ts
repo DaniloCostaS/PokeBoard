@@ -73,24 +73,24 @@ export class Pokemon {
             multiplier = 50;
         } else /*/
         if (this.isLegendary) {
-            multiplier = 40;
+            multiplier = 30;
         } else {
             // Lógica de Estágios
             if (this.stage === 1) {
                 // Se não tem próxima forma, é Single Stage (ex: Tauros) -> Usa lógica Stage 3 (30x)
                 // Se tem próxima forma, é Stage 1 padrão -> Usa lógica Stage 1 (10x)
-                if (!this.evoData.next) multiplier = 30;
+                if (!this.evoData.next) multiplier = 20;
                 else multiplier = 10;
             } 
             else if (this.stage === 2) {
                 // Se não tem próxima forma, é final de linha de 2 estágios (ex: Fearow) -> Usa lógica Stage 3 (30x)
                 // Se tem próxima forma, é meio de linha de 3 estágios (ex: Ivysaur) -> Usa lógica Stage 2 (20x)
-                if (!this.evoData.next) multiplier = 30;
-                else multiplier = 20;
+                if (!this.evoData.next) multiplier = 20;
+                else multiplier = 15;
             } 
             else if (this.stage === 3) {
                 // Stage 3 sempre 30x
-                multiplier = 30;
+                multiplier = 20;
             }
         }
         
