@@ -546,8 +546,64 @@ export class Game {
 
         else if(type === TILE.GYM) { 
             const gymId = MapSystem.gymLocations[`${p.x},${p.y}`] || 1; 
-            if (!p.badges[gymId-1]) { Battle.setup(p, new Pokemon(150, 1, false), false, "Líder de Ginásio", 1000, null, true, gymId, "", type); } 
-            else { this.log("Você já venceu este ginásio!"); this.nextTurn(); } 
+            
+            // Verifica se NÃO tem a insígnia
+            if (!p.badges[gymId-1]) { 
+                Battle.setup(p, new Pokemon(150, 1, false), false, "Líder de Ginásio", 1000, null, true, gymId, "", type); 
+            } 
+            else { 
+                // Já venceu o ginásio! Inicia a nova mecânica de Teletransporte
+                const roll = Math.floor(Math.random() * 100) + 1;
+                let didTeleport = false;
+                
+                if (roll <= 25) {
+                    // 1. Vasculha o mapa em busca de ginásios ainda não derrotados
+                    const undefeatedGyms: {x: number, y: number, id: number}[] = [];
+                    for (const key in MapSystem.gymLocations) {
+                        const id = MapSystem.gymLocations[key];
+                        if (!p.badges[id - 1]) {
+                            const [gx, gy] = key.split(',').map(Number);
+                            undefeatedGyms.push({x: gx, y: gy, id: id});
+                        }
+                    }
+
+                    // 2. Se achou algum ginásio livre, faz o teletransporte
+                    if (undefeatedGyms.length > 0) {
+                        const randomGym = undefeatedGyms[Math.floor(Math.random() * undefeatedGyms.length)];
+                        
+                        this.sendGlobalLog(`🌪️ UAU! A estátua do Ginásio reagiu e teletransportou ${p.name} para um desafio inédito!`);
+                        
+                        // Move o jogador fisicamente no tabuleiro
+                        p.x = randomGym.x;
+                        p.y = randomGym.y;
+                        this.moveVisuals(); 
+                        
+                        // Inicia a luta imediatamente no novo ginásio
+                        Battle.setup(p, new Pokemon(150, 1, false), false, "Líder de Ginásio", 1000, null, true, randomGym.id, "", type); 
+                        didTeleport = true;
+                    }
+                }
+                
+                // 3. Se rolou acima de 25% OU se tentou teletransportar mas já é mestre de todos
+                if (!didTeleport) {
+                    const msgLocal = `Você descansou no Ginásio aliado e encontrou uma carta!\n\n🎒 Ganhou 1 Carta`;
+                    const msgGlobal = `🎒 ${p.name} visitou um Ginásio já vencido e ganhou 1 Carta!`;
+                    
+                    const Cards = (window as any).Cards;
+                    if(Cards) Cards.draw(p, true); // true = Silencioso para não spammar log duplo
+                    
+                    this.log(msgLocal.replace(/\n\n/g, ' ')); 
+                    
+                    // Exibe o Alerta Bonito e só passa o turno quando clicar em OK
+                    this.showGlobalAlert(msgLocal, p.name, true);
+
+                    const Network = (window as any).Network;
+                    if(Network.isOnline) {
+                        Network.sendAction('LOG', { msg: msgGlobal });
+                        Network.sendAction('SHOW_ALERT', { msg: msgGlobal, playerName: p.name });
+                    }
+                }
+            } 
         }
         else if([TILE.GRASS, TILE.WATER, TILE.GROUND].includes(type)) { 
             if (Math.random() < 0.8) { 

@@ -351,9 +351,9 @@ export class Battle {
         finalDamage = Math.max(1, Math.floor(finalDamage * speedMultiplier));
 
         // Adiciona um feedback visual no log para os jogadores entenderem o impacto da SPD
-        if (speedMultiplier >= 1.15) {
+        if (speedMultiplier >= 1.10) {
             logDetails += ` ⚡Ágil! (+${Math.floor((speedMultiplier-1)*100)}% Dano)`;
-        } else if (speedMultiplier <= 0.85) {
+        } else if (speedMultiplier <= 0.90) {
             logDetails += ` 🐢Lento! (-${Math.floor((1-speedMultiplier)*100)}% Dano)`;
         }
         // --------------------------------------------------------
