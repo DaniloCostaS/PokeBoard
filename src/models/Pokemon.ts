@@ -39,8 +39,8 @@ export class Pokemon {
         this.currentXp = 0; 
         this.wins = 0;
         this.evoData = { 
-            next: template.nextForm || null, 
-            trigger: template.evoTrigger || null 
+            next: template.nextForm || "", 
+            trigger: template.evoTrigger || 999 
         };
 
         this.baseStats = {
@@ -175,30 +175,57 @@ export class Pokemon {
     }
 
     checkEvolution(player: Player | null, silent: boolean = false): boolean { 
-        if (this.evoData.next && this.level >= (this.evoData.trigger || 999)) { 
+        // Trava de segurança para strings vazias, falsas ou nulas
+        if (!this.evoData.next || this.evoData.next === "null" || this.evoData.next === "") {
+            return false; 
+        }
+
+        if (this.level >= (this.evoData.trigger || 999)) { 
             const next = POKEDEX.find(p => p.name === this.evoData.next); 
             if (next) { 
                 const oldName = this.name; 
+                const triggeredAt = this.evoData.trigger; 
+                
                 this.id = next.id; 
                 this.name = next.name; 
                 this.type = next.type; 
-                this.stage = next.stage; // Atualiza o estágio
+                this.stage = next.stage; 
                 this.baseStats = { hp: next.hp, atk: next.atk, def: next.def, spd: next.spd };
-                this.evoData = { next: next.nextForm, trigger: next.evoTrigger }; 
                 
-                // Recalcula o XP Maximo pois mudou de estágio (ex: Stage 1 -> Stage 2)
+                // --- SOLUÇÃO ANTI-FIREBASE CRASH ---
+                // Usamos "" e 999 no lugar de null para o Firebase sempre aceitar!
+                this.evoData = { 
+                    next: next.nextForm || "", 
+                    trigger: next.evoTrigger || 999 
+                }; 
+                
                 this.maxXp = this.calculateMaxXp();
-
                 this.recalculateStats(true); 
+
+                (this as any).faintedThisBattle = false;
 
                 if(player && !silent) { 
                     const Game = (window as any).Game;
+                    const Battle = (window as any).Battle;
                     const Cards = (window as any).Cards;
-                    Game.sendGlobalLog(`✨ ${oldName} evoluiu para ${this.name}! (HP Restaurado)`); 
-                    if (this.level === 8) { 
+
+                    const msgEvo = `✨ Inacreditável! ${oldName} evoluiu para ${this.name}! (HP Restaurado)`;
+
+                    Game.sendGlobalLog(msgEvo); 
+
+                    if (Battle && Battle.active) {
+                        Battle.logBattle(msgEvo, true);
+                        Battle.updateUI(); 
+                    }
+
+                    if (Game.showGlobalAlert) {
+                        Game.showGlobalAlert(`Opa! O seu ${oldName} está brilhando muito...\n\n${msgEvo}`, player.name, true, false);
+                    }
+
+                    if (triggeredAt === 8) { 
                         if(Cards) { Cards.draw(player); Cards.draw(player); }
                         Game.sendGlobalLog("Bônus Evolução: Ganhou 2 Cartas!"); 
-                    } else if (this.level === 5 || this.level === 10) { 
+                    } else if (triggeredAt === 5 || triggeredAt === 10) { 
                         if(Cards) { Cards.draw(player); }
                         Game.sendGlobalLog("Bônus Evolução: Ganhou 1 Carta!"); 
                     } 
