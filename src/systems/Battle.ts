@@ -605,11 +605,18 @@ export class Battle {
         const Game = (window as any).Game; 
         const el = document.getElementById('battle-msg'); 
         if(el) el.innerText = msg; 
+        
         const logContainer = document.getElementById('battle-log-history'); 
-        if(logContainer) logContainer.insertAdjacentHTML('afterbegin', `<div style="border-bottom:1px solid #555; padding:2px;">${msg}</div>`); 
+        if(logContainer) {
+            // 'afterbegin' empurra o histórico antigo para baixo
+            logContainer.insertAdjacentHTML('afterbegin', `<div style="border-bottom:1px solid #555; padding:2px;">${msg}</div>`); 
+            
+            // Força a barra de rolagem do histórico a ficar no topo
+            logContainer.scrollTop = 0; 
+        }
+        
         Game.log(`[Batalha] ${msg}`); 
 
-        // Se passarmos "true", ele espelha o texto para a rede!
         if (sync) {
             const Network = (window as any).Network;
             if (Network.isOnline && this.player && this.player.id === Network.myPlayerId) {
@@ -675,27 +682,61 @@ export class Battle {
                 } 
             } 
         } 
-        if (this.activeEffects.destiny) { this.player!.gold += 200; if(Cards) Cards.draw(this.player!); msg += " (+200G +Carta)"; } 
+        if (this.activeEffects.destiny) { 
+            this.player!.gold += 200; 
+            if(Cards) Cards.draw(this.player!); 
+            msg += " (+200G +Carta)"; 
+            Game.sendGlobalLog(`💰 [Extrato] ${this.player!.name} recebeu +200G (Carta Destiny).`); 
+        } 
         
         if(this.isPvP && this.enemyPlayer) { 
             if(this.enemyPlayer.gold > 0) { 
                 gain = Math.floor(this.enemyPlayer.gold * 0.3); 
                 this.enemyPlayer.gold -= gain; 
                 msg += `Roubou ${gain}G!`; 
-            } else { gain = 100; msg += `Inimigo falido!`; } 
+                Game.sendGlobalLog(`💰 [Extrato] Transferência de ${gain}G de ${this.enemyPlayer.name} para ${this.player!.name} (Luta PvP).`);
+            } else { 
+                gain = 100; msg += `Inimigo falido!`; 
+                Game.sendGlobalLog(`💰 [Extrato] ${this.player!.name} recebeu +${gain}G (Luta PvP - Sistema).`);
+            } 
             Game.sendGlobalLog(`[PvP] ${this.enemyPlayer.name} foi derrotado por ${this.player?.name}!`); 
             
             if(Network.isOnline) { 
-                Network.sendAction('PVP_SYNC_DAMAGE', { targetId: this.enemyPlayer.id, team: this.enemyPlayer.team, resetPos: true, skipTurn: true }); 
+                Network.sendAction('PVP_SYNC_DAMAGE', { targetId: this.enemyPlayer.id, team: this.enemyPlayer.team, gold: this.enemyPlayer.gold, resetPos: true, skipTurn: true });
             } 
         } else if (this.isGym) { 
             gain = 1000; 
+            Game.sendGlobalLog(`💰 [Extrato] ${this.player!.name} recebeu +${gain}G (Líder de Ginásio).`);
             if (!this.player!.badges[this.gymId - 1]) { this.player!.badges[this.gymId - 1] = true; msg += ` Insígnia ${this.gymId}!`; } 
-        } else if (this.isNPC) { gain = this.reward; } 
-        else { gain = 150; } 
+        } else if (this.isNPC) { 
+            gain = this.reward; 
+            Game.sendGlobalLog(`💰 [Extrato] ${this.player!.name} recebeu +${gain}G (Treinador NPC).`);
+        } 
+        else { 
+            gain = 150; 
+            Game.sendGlobalLog(`💰 [Extrato] ${this.player!.name} recebeu +${gain}G (Pokémon Selvagem).`);
+        } 
         
+        // Dá o ouro para o vencedor
         this.player!.gold += gain; 
-        if(Network.isOnline) Network.syncPlayerState(); 
+        
+        if(Network.isOnline) { 
+            if (this.isPvP && this.enemyPlayer) {
+                // A REGRA DE OURO: O atacante salva APENAS a si mesmo!
+                Network.syncPlayerState();
+                
+                // Envia o pacote para a vítima se virar (mandando o novo saldo dela)
+                Network.sendAction('PVP_SYNC_DAMAGE', { 
+                    targetId: this.enemyPlayer.id, 
+                    team: this.enemyPlayer.team, 
+                    gold: this.enemyPlayer.gold, 
+                    resetPos: true, 
+                    skipTurn: true 
+                }); 
+            } else {
+                Network.syncPlayerState();
+            }
+        }
         
         if (this.player!.badges.every(b => b === true)) {
             document.getElementById('battle-modal')!.style.display = 'none';
@@ -704,11 +745,20 @@ export class Battle {
             return; 
         }
 
-        this.logBattle(`🏆 ${msg}`, true); // Mostra o loot na tela de chat da batalha
-        Game.sendGlobalLog(`${this.player?.name} venceu! ${msg}`); 
+        // --- CORREÇÃO DO ENGARRAFAMENTO DE PACOTES ---
+        // Espera 500ms para o pacote de DANO/ROUBO chegar no perdedor primeiro!
+        setTimeout(() => {
+            this.logBattle(`🏆 ${msg}`, true); 
+            
+            // Espera mais 200ms para mandar o texto pro chat global
+            setTimeout(() => {
+                Game.sendGlobalLog(`${this.player?.name} venceu! ${msg}`); 
+            }, 200);
+        }, 500);
         
-        // Aumentamos o tempo para 2 segundos para o jogador dar tempo de ler o que ganhou antes de fechar
-        setTimeout(() => this.end(false), 2000);
+        // Atrasamos o encerramento da tela para 2500ms para compensar
+        setTimeout(() => this.end(false), 2500);
+        // ----------------------------------------------
     }
 
     static lose() { 
@@ -717,8 +767,31 @@ export class Battle {
         this.player!.effects.curse = false; 
         this.revertMew();
         let msg = "DERROTA... "; 
-        this.player!.gold = Math.max(0, this.player!.gold - 100); 
         
+        // --- LÓGICA DE PERDA DE OURO DIVIDIDA (PVP vs PVE) ---
+        if (this.isPvP && this.enemyPlayer) {
+            // Em PvP, se você atacar e perder, o inimigo te rouba 30%!
+            let lostGold = 0;
+            if (this.player!.gold > 0) {
+                lostGold = Math.floor(this.player!.gold * 0.3);
+                this.player!.gold -= lostGold;
+                this.enemyPlayer.gold += lostGold; // O inimigo recebe o ouro
+                
+                Game.sendGlobalLog(`💰 [Extrato] Transferência de ${lostGold}G de ${this.player!.name} para ${this.enemyPlayer.name} (Luta PvP).`);
+            } else {
+                Game.sendGlobalLog(`💰 [Extrato] ${this.player!.name} já estava falido e não perdeu ouro no PvP.`);
+            }
+        } else {
+            // Em PvE (Selvagem/Ginásio/NPC), perde apenas até 100G fixos
+            const lostGold = this.player!.gold >= 100 ? 100 : this.player!.gold;
+            this.player!.gold = Math.max(0, this.player!.gold - 100); 
+            
+            if (lostGold > 0) {
+                Game.sendGlobalLog(`💰 [Extrato] ${this.player!.name} deixou cair -${lostGold}G enquanto fugia.`);
+            }
+        }
+        // -----------------------------------------------------
+
         if (this.player!.isDefeated()) { 
             Game.handleTotalDefeat(this.player!); 
             this.end(false); 
@@ -735,16 +808,40 @@ export class Battle {
         if (this.isPvP && this.enemyPlayer) { 
             msg += ` ${this.enemyPlayer.name} venceu!`; 
             if(Network.isOnline) {
-                Network.sendAction('PVP_SYNC_DAMAGE', { targetId: this.enemyPlayer.id, team: this.enemyPlayer.team, resetPos: false, skipTurn: false });
+                Network.sendAction('PVP_SYNC_DAMAGE', { targetId: this.enemyPlayer.id, team: this.enemyPlayer.team, gold: this.enemyPlayer.gold, resetPos: false, skipTurn: false });
             }
-        } 
+        }
         
-        if(Network.isOnline) Network.syncPlayerState(); 
+        // Mudando aqui por causa do gold
+        if(Network.isOnline) {
+            if (this.isPvP && this.enemyPlayer) {
+                // O atacante apanhou e perdeu ouro. Ele salva APENAS a si mesmo!
+                Network.syncPlayerState();
+                
+                // Manda o aviso de que o defensor ganhou e envia o novo ouro do vencedor!
+                Network.sendAction('PVP_SYNC_DAMAGE', { 
+                    targetId: this.enemyPlayer.id, 
+                    team: this.enemyPlayer.team, 
+                    gold: this.enemyPlayer.gold, 
+                    resetPos: false, 
+                    skipTurn: false 
+                });
+            } else {
+                Network.syncPlayerState(); 
+            }
+        }
         
-        this.logBattle(`💀 ${msg}`, true); 
-        Game.sendGlobalLog(`${this.player?.name} perdeu e recuou para o último Centro Pokémon!`); 
+        // --- CORREÇÃO DO ENGARRAFAMENTO DE PACOTES ---
+        setTimeout(() => {
+            this.logBattle(`💀 ${msg}`, true); 
+            
+            setTimeout(() => {
+                Game.sendGlobalLog(`${this.player?.name} perdeu e recuou para o último Centro Pokémon!`); 
+            }, 200);
+        }, 500);
         
-        setTimeout(() => { this.end(false); Game.moveVisuals(); }, 2000);
+        setTimeout(() => { this.end(false); Game.moveVisuals(); }, 2500);
+        // ----------------------------------------------
     }
     
     static end(isRemote: boolean) { 

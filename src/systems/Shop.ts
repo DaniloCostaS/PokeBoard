@@ -30,6 +30,7 @@ export class Shop {
             const itemData = SHOP_ITEMS.find((i: any) => i.id === id);
             if (itemData) {
                 Game.sendGlobalLog(`🛒 ${p.name} comprou: ${itemData.name}!`);
+                Game.sendGlobalLog(`💰 [Extrato] ${p.name} gastou -${price}G na Loja.`); // Log do Extrato
             }
             // ------------------------------------------
 

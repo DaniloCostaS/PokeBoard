@@ -387,6 +387,10 @@ export class Game {
                     p.gold += 200; 
                     Cards.draw(p); 
                     this.sendGlobalLog(`🚩 ${p.name} completou uma volta! Ganhou 200G e 1 Carta!`); 
+                    // --- LOG DE AUDITORIA: GANHO DE VOLTA ---
+                    this.sendGlobalLog(`💰 [Extrato] ${p.name} recebeu +200G (Volta no Tabuleiro).`);
+                    this.updateHUD(); // Atualiza a tela na hora!
+                    if(Network.isOnline) Network.syncPlayerState();
                 }
             } 
             
@@ -411,35 +415,40 @@ export class Game {
                     if (owner) owner.gold += stolenGold;
                 }
 
-                // Passo 1: Marcar no contador de skipTurns +1
                 p.skipTurns += 1; 
-                
-                // Remove a armadilha consumida
                 this.traps.splice(trapIdx, 1); 
                 this.renderTraps(); 
+                
+                // CORREÇÃO: Força a interface a atualizar imediatamente para a vítima ver o ouro sumindo!
+                this.updateHUD();
 
                 if (!Network.isOnline || pId === Network.myPlayerId) {
-                    // Passo 2: Salvar no Firebase a vítima (ouro reduzido, turnos perdidos) e o dono (ouro ganho)
-                    if (Network.isOnline) Network.syncPlayerState(); 
-                    if (Network.isOnline && owner && stolenGold > 0) Network.syncSpecificPlayer(owner.id); 
+                    // --- CORREÇÃO FIREBASE: Salva ambos na mesma requisição para evitar conflito ---
+                    if (Network.isOnline) {
+                        if (owner && stolenGold > 0) {
+                            Network.syncPlayers([p.id, owner.id]); // Salva a vítima e o dono da armadilha juntos!
+                        } else {
+                            Network.syncPlayerState(); // Salva só a vítima (se não roubou ouro)
+                        }
+                    }
+                    // -------------------------------------------------------------------------------
 
-                    // Sincroniza a remoção da armadilha do mapa
                     if (Network.isOnline) {
                         Network.sendAction('SYNC_TRAPS', { traps: this.traps }); 
                     }
 
-                    // Passo 3: Montar a Mensagem e Informar nos logs
                     let msg = `🪤 ${p.name} caiu numa armadilha! Punição: +1 turno sem jogar`;
                     if (stolenGold > 0 && owner) {
                         msg += ` e perdeu ${stolenGold}G para ${owner.name}!`;
+                        // --- LOG DE AUDITORIA: ROUBO DE ARMADILHA ---
+                        this.sendGlobalLog(`💰 [Extrato] Transferência de ${stolenGold}G de ${p.name} para ${owner.name} (Armadilha).`);
                     } else {
                         msg += `!`;
                     }
                     this.sendGlobalLog(msg); 
 
-                    // Passo 4: Ativar o Pop-up na tela E depois acionar a casa!
-                    this.pendingTileEvent = true; // A mágica acontece aqui: quando fechar o Alerta, vai ler a casa!
-                    this.showGlobalAlert(msg, p.name, true, false); // false = avisa o alerta para não pular a vez ainda
+                    this.pendingTileEvent = true; 
+                    this.showGlobalAlert(msg, p.name, true, false); 
                     
                     if (Network.isOnline) {
                         Network.sendAction('SHOW_ALERT', { msg: msg, playerName: p.name, endsTurn: false });
@@ -672,6 +681,10 @@ export class Game {
             return;
         }
 
+        // --- NOVO: AVISO VISUAL DE FIM DE TURNO ---
+        this.sendGlobalLog(`🛑 Fim do turno de ${currentP.name} 🛑`);
+        // ------------------------------------------
+
         // --- NOVA LÓGICA DE RODADA ---
         const nextTurnIdx = (this.turn + 1) % this.players.length; 
         if (nextTurnIdx === 0) {
@@ -763,7 +776,15 @@ export class Game {
         setTimeout(() => Battle.end(false), 500); 
     }
 
-    static updateHUD() { const left = document.getElementById('hud-col-left')!; left.innerHTML = ''; const right = document.getElementById('hud-col-right')!; right.innerHTML = ''; if (!this.players || this.players.length === 0) return; this.players.forEach((p,i) => { const d = document.createElement('div'); d.className = `player-slot ${i===this.turn?'active':''}`; let badgeHTML = '<div class="badges-container">'; for(let b=0; b<8; b++) { const isActive = p.badges[b]; const gData = GYM_DATA.find(g => g.id === b+1); const imgUrl = gData ? `/assets/img/Insignias/${gData.badgeImg}` : ''; const style = isActive ? `background-image: url('${imgUrl}'); background-size: 100% 100%; background-repeat: no-repeat; background-color: transparent;` : `background-color: #ccc;`; badgeHTML += `<div class="badge-slot ${isActive?'active':''}" style="${style}" title="Insígnia ${b+1}"></div>`; } badgeHTML += '</div>'; 
+    static updateHUD() { 
+        const left = document.getElementById('hud-col-left')!; 
+        left.innerHTML = ''; 
+        const right = document.getElementById('hud-col-right')!; 
+        right.innerHTML = ''; 
+        
+        if (!this.players || this.players.length === 0) return; 
+        
+        this.players.forEach((p,i) => { const d = document.createElement('div'); d.className = `player-slot ${i===this.turn?'active':''}`; let badgeHTML = '<div class="badges-container">'; for(let b=0; b<8; b++) { const isActive = p.badges[b]; const gData = GYM_DATA.find(g => g.id === b+1); const imgUrl = gData ? `/assets/img/Insignias/${gData.badgeImg}` : ''; const style = isActive ? `background-image: url('${imgUrl}'); background-size: 100% 100%; background-repeat: no-repeat; background-color: transparent;` : `background-color: #ccc;`; badgeHTML += `<div class="badge-slot ${isActive?'active':''}" style="${style}" title="Insígnia ${b+1}"></div>`; } badgeHTML += '</div>'; 
     
         const th = p.team.map(m => { 
             let auraClass = ''; 
@@ -899,7 +920,24 @@ export class Game {
     }
 
     static getCurrentPlayer() { return this.players[this.turn]; }
-    static log(m: string) { document.getElementById('log-container')!.insertAdjacentHTML('afterbegin', `<div class="log-entry">${m}</div>`); }
+
+    static log(m: string) { 
+        let customStyle = "";
+        
+        if (m.includes("Fim do turno de")) {
+            customStyle = "text-align: center; color: #f39c12; font-weight: bold; margin: 15px 0 5px 0; border-bottom: 2px dashed #7f8c8d; padding-bottom: 5px;";
+        }
+        
+        const container = document.getElementById('log-container');
+        if (container) {
+            // 'afterbegin' coloca a nova mensagem no topo
+            container.insertAdjacentHTML('afterbegin', `<div class="log-entry" style="${customStyle}">${m}</div>`); 
+            
+            // Força a barra de rolagem a ficar colada no topo
+            container.scrollTop = 0;
+        }
+    }
+    
     // --- LÓGICA DO RE-ROLL ---
     static showDiceChoice(r1: number, r2: number) {
         let modal = document.getElementById('dice-choice-modal');

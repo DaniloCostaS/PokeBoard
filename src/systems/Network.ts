@@ -311,27 +311,35 @@ export class Network {
                 break;
 
             case 'PVP_SYNC_DAMAGE': 
-                const targetP = Game.players.find((p: any) => p.id === action.payload.targetId);
-                if(targetP) {
-                    // Atualiza o HP de acordo com os índices exatos do time
-                    if(action.payload.team) {
-                        action.payload.team.forEach((remoteMon: any, idx: number) => {
-                            if(targetP.team[idx]) targetP.team[idx].currentHp = remoteMon.currentHp;
-                        });
-                    }
-                    
-                    Game.updateHUD();
-                    
-                    if(targetP.id === this.myPlayerId) {
-                        if (action.payload.resetPos) {
-                            // Manda para o hospital SEM CURAR (passando false)
-                            Game.handleTotalDefeat(targetP); 
-                        } else {
-                            this.syncPlayerState();
-                        }
+            const targetP = Game.players.find((p: any) => p.id === action.payload.targetId);
+            
+            if(targetP) {
+                // Atualiza o HP de acordo com os índices exatos do time
+                if(action.payload.team) {
+                    action.payload.team.forEach((remoteMon: any, idx: number) => {
+                        if(targetP.team[idx]) targetP.team[idx].currentHp = remoteMon.currentHp;
+                    });
+                }
+                
+                // A vítima aceita o saldo de ouro atualizado que veio no pacote
+                if(action.payload.gold !== undefined) {
+                    targetP.gold = action.payload.gold;
+                }
+                
+                Game.updateHUD();
+                
+                // Se EU sou o alvo deste ataque, MEU computador assume o salvamento no Firebase!
+                if(targetP.id === this.myPlayerId) {
+                    if (action.payload.resetPos) {
+                        // O handleTotalDefeat já cura, move pra cidade e TEM UM syncPlayerState DENTRO DELE!
+                        Game.handleTotalDefeat(targetP); 
+                    } else {
+                        // Se não for pra cidade, apenas salva o novo HP e Ouro.
+                        this.syncPlayerState();
                     }
                 }
-                break;
+            }
+            break;
         } 
     }
 
@@ -368,11 +376,13 @@ export class Network {
         if(!this.isOnline) return; 
         const Game = (window as any).Game; 
         
-        // CORREÇÃO: Busca pelo ID real para evitar dessincronização de Index
         const p = Game.players.find((pl: any) => pl.id === this.myPlayerId) || Game.players[this.myPlayerId]; 
         if (!p) return;
 
         update(ref(db, `rooms/${this.currentRoomId}/players/${this.myPlayerId}`), { 
+            id: p.id,           // <- BLINDAGEM: Nunca mais perde o ID
+            name: p.name,       // <- BLINDAGEM: Nunca mais perde o Nome
+            avatar: p.avatar,   // <- BLINDAGEM: Nunca mais perde o Avatar
             x: p.x, 
             y: p.y, 
             gold: p.gold, 
@@ -393,11 +403,13 @@ export class Network {
         if(!this.isOnline) return;
         const Game = (window as any).Game;
         
-        // CORREÇÃO: Busca pelo ID real garantindo que o alvo correto seja atualizado
         const p = Game.players.find((pl: any) => pl.id === targetId) || Game.players[targetId]; 
         if (!p) return;
         
         update(ref(db, `rooms/${this.currentRoomId}/players/${targetId}`), { 
+            id: p.id,           // <- BLINDAGEM
+            name: p.name,       // <- BLINDAGEM
+            avatar: p.avatar,   // <- BLINDAGEM
             x: p.x, 
             y: p.y, 
             gold: p.gold, 
@@ -410,7 +422,6 @@ export class Network {
         });
     }
 
-    // --- NOVA FUNÇÃO PARA ATUALIZAÇÃO ATÔMICA ---
     static syncPlayers(ids: number[]) {
         if(!this.isOnline) return;
         const Game = (window as any).Game;
@@ -420,6 +431,9 @@ export class Network {
             const p = Game.players.find((pl: any) => pl.id === id) || Game.players[id];
             if (p) {
                 updates[`rooms/${this.currentRoomId}/players/${id}`] = {
+                    id: p.id,           // <- BLINDAGEM
+                    name: p.name,       // <- BLINDAGEM
+                    avatar: p.avatar,   // <- BLINDAGEM
                     x: p.x, 
                     y: p.y, 
                     gold: p.gold, 

@@ -7,7 +7,7 @@ export const CARDS_DB: CardData[] = [
     { id: 'run', name: "Fumaça Ninja", icon: "💨", desc: "Foge de qualquer batalha instantaneamente.", type: 'battle' },
     { id: 'reroll', name: "Re-Roll", icon: "🔄", desc: "Rola o dado duas vezes e escolhe o melhor resultado.", type: 'move' },
     { id: 'boost', name: "Tênis de Corrida", icon: "👟", desc: "Avança +6 casas após a rolagem.", type: 'move' },
-    { id: 'trap', name: "Armadilha", icon: "🪤", desc: "Coloque em uma casa. Quem cair nela perde 1 turno.", type: 'move' },
+    { id: 'trap', name: "Armadilha", icon: "🪤", desc: "Coloque em uma casa. Quem passar nela vai parar na armadilha e perde o próximo turno. Você vai receber 100G de quem passou.", type: 'move' },
     { id: 'swap', name: "Troca Rápida", icon: "🔀", desc: "Troque de posição com qualquer jogador.", type: 'move' },
     { id: 'guard', name: "Escudo Protetor", icon: "🛡️", desc: "Reduz o dano recebido pela metade (Válido até seu pokémon vencer ou ser derrotado).", type: 'battle' },
     { id: 'focus', name: "Foco Total", icon: "🎯", desc: "Seu próximo ataque causará 400% de dano.", type: 'battle' },

@@ -138,7 +138,7 @@ export class Pokemon {
     
     gainXp(amount: number, player: Player) { 
         if(this.level >= 100) return; // Cap no nível 100 por segurança
-        (window as any).Game.sendGlobalLog(`${this.name} ganhou ${amount} XP!`);
+        (window as any).Game.sendGlobalLog(`💹 ${this.name} ganhou ${amount} XP!`);
         this.currentXp += amount; 
         
         // --- CORREÇÃO BUG 2: WHILE LOOP ---
@@ -224,10 +224,10 @@ export class Pokemon {
 
                     if (triggeredAt === 8) { 
                         if(Cards) { Cards.draw(player); Cards.draw(player); }
-                        Game.sendGlobalLog("Bônus Evolução: Ganhou 2 Cartas!"); 
+                        Game.sendGlobalLog("🧬Bônus Evolução: Ganhou 2 Cartas!"); 
                     } else if (triggeredAt === 5 || triggeredAt === 10) { 
                         if(Cards) { Cards.draw(player); }
-                        Game.sendGlobalLog("Bônus Evolução: Ganhou 1 Carta!"); 
+                        Game.sendGlobalLog("🧬Bônus Evolução: Ganhou 1 Carta!"); 
                     } 
                 } 
                 return true; 

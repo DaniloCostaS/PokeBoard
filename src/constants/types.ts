@@ -2,6 +2,8 @@ export interface PokemonData {
     id: number;
     name: string;
     type: string;
+    secondType: string;
+    BaseTotal: number;
     hp: number;
     atk: number;
     def: number;
@@ -19,6 +21,13 @@ export interface ItemData {
     price: number;
     type: 'heal' | 'capture' | 'revive';
     val?: number;
+    rate?: number;
+}
+
+export interface RaridadeData {
+    id: string;
+    baseMin: number;
+    baseMax: number;
     rate?: number;
 }
 

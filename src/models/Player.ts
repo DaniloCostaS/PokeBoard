@@ -8,7 +8,7 @@ export class Player {
     avatar: string; 
     x: number = 0; 
     y: number = 0; 
-    gold: number = 1000;
+    gold: number = 500;
     items: {[key:string]:number} = {};
     cards: CardData[] = []; 
     team: Pokemon[] = [];
@@ -47,7 +47,7 @@ export class Player {
             //this.cards = JSON.parse(JSON.stringify(CARDS_DB));
 
             // 3. Pokemon Inicial (com chance de Shiny)
-            const starters = [1, 4, 7, 25]; 
+            const starters = [1, 4, 7, 152, 155, 158, 252, 255, 258]; 
             const randomStarterId = starters[Math.floor(Math.random() * starters.length)];
             const isStarterShiny = Math.random() < 0.02;
             this.team.push(new Pokemon(randomStarterId, 1, isStarterShiny)); 
