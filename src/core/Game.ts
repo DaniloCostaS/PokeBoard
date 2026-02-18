@@ -11,6 +11,7 @@ import { Battle } from '../systems/Battle';
 import { Shop } from '../systems/Shop';
 import { Cards } from '../systems/Cards';
 import type { ItemData } from '../constants';
+import { RARIDADE_DATA } from '../constants/Raridades';
 
 export class Game {
     static players: Player[] = []; 
@@ -82,72 +83,83 @@ export class Game {
     //static generateWildPokemon(): Pokemon { const stage1Mons = POKEDEX.filter(p => p.stage === 1); const legendaries = stage1Mons.filter(p => p.isLegendary); const regulars = stage1Mons.filter(p => !p.isLegendary); let chosenTemplate; if (Math.random() < 0.02 && legendaries.length > 0) { chosenTemplate = legendaries[Math.floor(Math.random() * legendaries.length)]; } else { chosenTemplate = regulars[Math.floor(Math.random() * regulars.length)]; } let level = this.getGlobalAverageLevel(); if (level < 1) level = 1; return new Pokemon(chosenTemplate.id, level, null); }
     
     static generateWildPokemon(tileType: number): Pokemon {
-        
-        // 1. Definição das regras de Spawn por Terreno
+        // 1. Filtros de Terreno (Igual ao anterior)
         let allowedTypes: string[] = [];
-
         switch (tileType) {
-            case TILE.GRASS:
-                allowedTypes = ['Grama', 'Inseto', 'Normal', 'Veneno', 'Voador', 'Fada'];
-                break;
-            case TILE.WATER:
-                allowedTypes = ['Água', 'Gelo', 'Dragão'];
-                break;
-            case TILE.GROUND:
-                allowedTypes = ['Terra', 'Pedra', 'Fogo', 'Lutador', 'Elétrico', 'Psíquico', 'Fantasma'];
-                break;
-            default:
-                allowedTypes = ['Normal'];
-                break;
+            case TILE.GRASS: allowedTypes = ['Grama', 'Inseto', 'Normal', 'Veneno', 'Voador', 'Fada']; break;
+            case TILE.WATER: allowedTypes = ['Água', 'Gelo', 'Dragão']; break;
+            case TILE.GROUND: allowedTypes = ['Terra', 'Pedra', 'Fogo', 'Lutador', 'Elétrico', 'Psíquico', 'Fantasma']; break;
+            default: allowedTypes = ['Normal']; break;
         }
 
-        // 2. Lógica de Progressão por Nível Médio
+        // 2. Filtros de Nível Global (Igual ao anterior)
         const globalAvg = this.getGlobalAverageLevel();
-        
-        let allowedStages = [1];       // Padrão: Só Stage 1
-        let allowLegendaries = false;  // Padrão: Sem lendários
+        let allowedStages = [1];
+        let allowLegendaries = false;
 
-        if (globalAvg < 5) {
-            // Regra: Média < 5 -> Só Stage 1, Sem Lendários
-            allowedStages = [1];
-            allowLegendaries = false;
-        } 
-        else if (globalAvg >= 5 && globalAvg < 10) {
-            // Regra: 5 <= Média < 10 -> Stage 1 e 2, Com Lendários
-            allowedStages = [1, 2];
-            allowLegendaries = true;
-        } 
-        else {
-            // Regra: Média >= 10 -> Stage 1, 2 e 3, Com Lendários
-            allowedStages = [1, 2, 3];
-            allowLegendaries = true;
-        }
+        if (globalAvg < 5) { allowedStages = [1]; allowLegendaries = false; } 
+        else if (globalAvg >= 5 && globalAvg < 10) { allowedStages = [1, 2]; allowLegendaries = true; } 
+        else { allowedStages = [1, 2, 3]; allowLegendaries = true; }
 
-        // 3. Filtra a Pokedex
-        const possibleSpawns = POKEDEX.filter(p => {
-            // Checa o Tipo do terreno
+        // 3. Pool de Candidatos Válidos (Peneira Técnica)
+        const validCandidates = POKEDEX.filter(p => {
             if (!allowedTypes.includes(p.type)) return false;
-
-            // Checa o Estágio de Evolução
             if (!allowedStages.includes(p.stage)) return false;
-
-            // Checa se é Lendário (Se for lendário e não estiver permitido, remove)
-            if (p.isLegendary && !allowLegendaries) return false;
-
+            // Se o nível global não permite lendários, já corta aqui
+            if (p.isLegendary && !allowLegendaries) return false; 
             return true;
         });
 
-        // 4. Fallback de Segurança
-        if (possibleSpawns.length === 0) {
-            console.warn(`Nenhum Pokémon encontrado para terreno ${tileType} com média ${globalAvg}.`);
-            return new Pokemon(16, globalAvg); // Pidgey de emergência
+        if (validCandidates.length === 0) return new Pokemon(16, globalAvg); 
+
+        // --- 4. SISTEMA DE RARIDADE COM OVERRIDE LENDÁRIO ---
+        
+        const roll = Math.random() * 100;
+        let selectedRarityId = 'Comum'; 
+        let cumulativeRate = 0;
+
+        for (const r of RARIDADE_DATA) {
+            cumulativeRate += (r.rate || 0);
+            if (roll <= cumulativeRate) {
+                selectedRarityId = r.id;
+                break;
+            }
         }
 
-        // 5. Sorteio
-        const chosenTemplate = possibleSpawns[Math.floor(Math.random() * possibleSpawns.length)];
+        const rarityInfo = RARIDADE_DATA.find(r => r.id === selectedRarityId);
 
-        // O Shiny é calculado aleatoriamente dentro do construtor da classe Pokemon
-        // ao passar 'null' no terceiro argumento.
+        // Filtra o Pool baseada na raridade sorteada
+        const rarityPool = validCandidates.filter(p => {
+            // --- REGRA DE OURO: LENDÁRIOS ---
+            if (p.isLegendary) {
+                // Se é lendário, SÓ entra se a raridade sorteada for 'Lendário'.
+                return selectedRarityId === 'Lendário';
+            }
+            // -------------------------------
+
+            // Se a raridade sorteada for Lendário, mas o pokémon NÃO for lendário,
+            // ele não deve entrar (a menos que tenha status absurdos acima de 580, 
+            // mas geralmente queremos reservar esse slot para os especiais).
+            if (selectedRarityId === 'Lendário' && !p.isLegendary) {
+                 // Opcional: Se quiser que pokémons super fortes (Pseudo-Lendários) 
+                 // contem como lendários, remova este if. Mas por padrão, deixamos exclusivo.
+                 // return false; 
+            }
+
+            // Regra Padrão: BaseTotal define a raridade
+            const total = p.BaseTotal || (p.hp + p.atk + p.def + p.spd);
+            
+            if (!rarityInfo) return false;
+            return total >= rarityInfo.baseMin && total <= rarityInfo.baseMax;
+        });
+
+        // 5. Fallback de Segurança
+        // Se sorteou "Lendário" mas não tem nenhum lendário no terreno (rarityPool vazio),
+        // ele pega qualquer um do validCandidates para não travar o jogo.
+        const finalPool = rarityPool.length > 0 ? rarityPool : validCandidates;
+        
+        const chosenTemplate = finalPool[Math.floor(Math.random() * finalPool.length)];
+
         return new Pokemon(chosenTemplate.id, globalAvg, null);
     }
     
@@ -787,11 +799,42 @@ export class Game {
         this.players.forEach((p,i) => { const d = document.createElement('div'); d.className = `player-slot ${i===this.turn?'active':''}`; let badgeHTML = '<div class="badges-container">'; for(let b=0; b<8; b++) { const isActive = p.badges[b]; const gData = GYM_DATA.find(g => g.id === b+1); const imgUrl = gData ? `/assets/img/Insignias/${gData.badgeImg}` : ''; const style = isActive ? `background-image: url('${imgUrl}'); background-size: 100% 100%; background-repeat: no-repeat; background-color: transparent;` : `background-color: #ccc;`; badgeHTML += `<div class="badge-slot ${isActive?'active':''}" style="${style}" title="Insígnia ${b+1}"></div>`; } badgeHTML += '</div>'; 
     
         const th = p.team.map(m => { 
-            let auraClass = ''; 
-            if (m.isShiny) auraClass = 'aura-shiny'; 
-            else if (m.isLegendary) auraClass = 'aura-legendary'; 
+            let auraClass = '';
+            // Variável para guardar o estilo da borda de raridade
+            let rarityStyle = ''; 
+
+            // 1. Calcula o total se não vier do servidor (Fallback de segurança)
+            const total = m.baseTotal || (m.maxHp + m.atk + m.def + m.speed);
+
+            if (m.isLegendary) {
+                auraClass = 'aura-legendary'; 
+                // Lendário mantém a aura dourada original
+                 rarityStyle = 'border: 2px solid #A33EA1; box-shadow: 0 0 5px #A33EA1;'; 
+            } 
+            else {
+                // Lógica de Borda por Raridade (Baseada no Raridades.ts)
+                // Épico (330 - 379) -> Vermelho
+                if (total >= 330) {
+                    rarityStyle = 'border: 2px solid #e74c3c; box-shadow: 0 0 5px #e74c3c;'; 
+                }
+                // Raro (280 - 329) -> Azul Claro
+                else if (total >= 280) {
+                    rarityStyle = 'border: 2px solid #3498db; box-shadow: 0 0 5px #3498db;'; 
+                }
+                // Incomum (220 - 279) -> Verde Claro
+                else if (total >= 220) {
+                    rarityStyle = 'border: 2px solid #2ecc71; box-shadow: 0 0 5px #2ecc71;'; 
+                }
+                // Comum (< 220) -> Sem borda (Padrão)
+            }
+            
+            if (m.isShiny) {
+                auraClass = 'aura-shiny'; 
+                // Shiny mantém a aura original, sem borda extra de raridade
+            }
+
             return ` 
-            <div class="poke-card ${m.isFainted() ? 'fainted' : ''}"> 
+            <div class="poke-card ${m.isFainted() ? 'fainted' : ''}" style="${rarityStyle}"> 
                 <img src="${m.getSprite()}" class="poke-card-img ${auraClass}"> 
                 <div class="poke-card-info"> 
                     <div class="poke-header"> 
@@ -799,7 +842,7 @@ export class Game {
                         <span class="poke-lvl">Lv.${m.level}</span> 
                     </div> 
                     
-                    ${m.getTypeBadgesHTML()}
+                    ${m.getTypeBadgesHTML ? m.getTypeBadgesHTML() : ''}
 
                     <div class="bar-container" title="HP"> 
                         <div class="bar-fill ${Battle.getHpColor(m.currentHp, m.maxHp)}" style="width:${(m.currentHp/m.maxHp)*100}%"></div> 
@@ -816,7 +859,8 @@ export class Game {
                         <div class="stat-item">🛡️${m.def}</div> 
                         <div class="stat-item">💨${m.speed}</div> 
                     </div> 
-            </div> </div>`; }).join(''); 
+            </div> </div>`; 
+        }).join('');
             
             // --- NOVA LÓGICA DE CONTADORES ---
             // Calcula o total de itens (soma as quantidades) e o total de cartas

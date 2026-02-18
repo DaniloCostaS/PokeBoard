@@ -2,14 +2,15 @@ import { POKEDEX } from '../constants/pokedex';
 import type { Player } from './Player';
 
 export class Pokemon {
-    id: number; name: string; type: string; secondType: string; baseTotal: number;
+    id: number; name: string; type: string; secondType: string; 
     maxHp: number; currentHp: number; atk: number; def: number; speed: number;
     level: number; currentXp: number; maxXp: number;
     isShiny: boolean; isLegendary: boolean; wins: number; 
     evoData: any; 
     leveledUpThisTurn: boolean = false;
     stage: number; // Nova propriedade para controlar o estágio
-    
+    baseTotal: number;
+
     ivs: { hp: number, atk: number, def: number, spd: number };
     baseStats: { hp: number, atk: number, def: number, spd: number };
 
@@ -27,9 +28,10 @@ export class Pokemon {
         this.name = template.name; 
         this.type = template.type; 
         this.secondType = template.secondType || ""; // Nova Tipagem Secundária
-        this.baseTotal = template.BaseTotal || 0;    // Novo Status Base
+        //this.baseTotal = template.BaseTotal || 0;    // Novo Status Base
         this.isLegendary = !!template.isLegendary;
         this.stage = template.stage; // Inicializa o estágio
+        this.baseTotal = template.BaseTotal || (template.hp + template.atk + template.def + template.spd);
 
         if (forceShiny !== null) {
             this.isShiny = forceShiny;
@@ -222,10 +224,11 @@ export class Pokemon {
                 this.name = next.name; 
                 this.type = next.type;
                 this.secondType = next.secondType || "";
-                this.baseTotal = next.BaseTotal || 0;
+                //this.baseTotal = next.BaseTotal || 0;
                 this.stage = next.stage; 
                 this.baseStats = { hp: next.hp, atk: next.atk, def: next.def, spd: next.spd };
-                
+                this.baseTotal = next.BaseTotal || (next.hp + next.atk + next.def + next.spd);
+
                 // --- SOLUÇÃO ANTI-FIREBASE CRASH ---
                 // Usamos "" e 999 no lugar de null para o Firebase sempre aceitar!
                 this.evoData = { 
