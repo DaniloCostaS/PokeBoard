@@ -2,7 +2,7 @@ import { POKEDEX } from '../constants/pokedex';
 import type { Player } from './Player';
 
 export class Pokemon {
-    id: number; name: string; type: string;
+    id: number; name: string; type: string; secondType: string; baseTotal: number;
     maxHp: number; currentHp: number; atk: number; def: number; speed: number;
     level: number; currentXp: number; maxXp: number;
     isShiny: boolean; isLegendary: boolean; wins: number; 
@@ -26,6 +26,8 @@ export class Pokemon {
         this.id = template.id; 
         this.name = template.name; 
         this.type = template.type; 
+        this.secondType = template.secondType || ""; // Nova Tipagem Secundária
+        this.baseTotal = template.BaseTotal || 0;    // Novo Status Base
         this.isLegendary = !!template.isLegendary;
         this.stage = template.stage; // Inicializa o estágio
 
@@ -174,6 +176,36 @@ export class Pokemon {
         this.recalculateStats(true); 
     }
 
+    getTypeBadgesHTML(align: string = 'center') {
+        const colors: any = { 
+            "Normal": "#A8A77A", 
+            "Fogo": "#EE8130", 
+            "Água": "#6390F0", 
+            "Elétrico": "#F7D02C", 
+            "Grama": "#7AC74C", 
+            "Gelo": "#96D9D6", 
+            "Lutador": "#C22E28", 
+            "Veneno": "#A33EA1", 
+            "Terra": "#E2BF65", 
+            "Voador": "#A98FF3", 
+            "Psíquico": "#F95587", 
+            "Inseto": "#A6B91A", 
+            "Pedra": "#B6A136", 
+            "Fantasma": "#735797", 
+            "Dragão": "#6F35FC", 
+            "Noturno": "#705746", 
+            "Aço": "#B7B7CE", 
+            "Fada": "#D685AD" 
+        };
+        const c1 = colors[this.type] || "#777";
+        let html = `<span style="background-color:${c1}; color:white; padding:1px 5px; border-radius:3px; font-size:0.55rem; font-weight:bold; text-shadow:1px 1px 1px rgba(0,0,0,0.8); border:1px solid rgba(255,255,255,0.4); box-shadow: 0 1px 2px rgba(0,0,0,0.5); letter-spacing: 0.5px;">${this.type.toUpperCase()}</span>`;
+        if (this.secondType) {
+            const c2 = colors[this.secondType] || "#777";
+            html += ` <span style="background-color:${c2}; color:white; padding:1px 5px; border-radius:3px; font-size:0.55rem; font-weight:bold; text-shadow:1px 1px 1px rgba(0,0,0,0.8); border:1px solid rgba(255,255,255,0.4); box-shadow: 0 1px 2px rgba(0,0,0,0.5); letter-spacing: 0.5px;">${this.secondType.toUpperCase()}</span>`;
+        }
+        return `<div style="display:flex; gap:3px; margin-top:2px; margin-bottom:2px; justify-content: ${align};">${html}</div>`;
+    }
+
     checkEvolution(player: Player | null, silent: boolean = false): boolean { 
         // Trava de segurança para strings vazias, falsas ou nulas
         if (!this.evoData.next || this.evoData.next === "null" || this.evoData.next === "") {
@@ -188,7 +220,9 @@ export class Pokemon {
                 
                 this.id = next.id; 
                 this.name = next.name; 
-                this.type = next.type; 
+                this.type = next.type;
+                this.secondType = next.secondType || "";
+                this.baseTotal = next.BaseTotal || 0;
                 this.stage = next.stage; 
                 this.baseStats = { hp: next.hp, atk: next.atk, def: next.def, spd: next.spd };
                 

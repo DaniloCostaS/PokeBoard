@@ -626,7 +626,91 @@ export class Battle {
     }
 
     static getHpColor(current: number, max: number) { const pct = (current / max) * 100; if(pct > 50) return 'hp-green'; if(pct > 10) return 'hp-yellow'; return 'hp-red'; }
-    static updateUI() { if(!this.activeMon || !this.opponent) return; if(!this.player) return; document.getElementById('ply-name')!.innerText = this.activeMon.name; document.getElementById('ply-lvl')!.innerText = `Lv.${this.activeMon.level}`; (document.getElementById('ply-img') as HTMLImageElement).src = this.activeMon.getSprite(); const plyPct = (this.activeMon.currentHp/this.activeMon.maxHp)*100; const plyBar = document.getElementById('ply-hp')!; plyBar.style.width = plyPct + "%"; plyBar.className = `hp-fill ${this.getHpColor(this.activeMon.currentHp, this.activeMon.maxHp)}`; document.getElementById('ply-hp-text')!.innerText = `${this.activeMon.currentHp}/${this.activeMon.maxHp}`; (document.getElementById('ply-trainer-img') as HTMLImageElement).src = this.player.avatar; document.getElementById('ply-shiny-tag')!.style.display = this.activeMon.isShiny ? 'inline-block' : 'none'; document.getElementById('ply-stats')!.innerHTML = `<span>⚔️${this.activeMon.atk}</span> <span>🛡️${this.activeMon.def}</span> <span>💨${this.activeMon.speed}</span>`; document.getElementById('opp-name')!.innerText = this.opponent.name; document.getElementById('opp-lvl')!.innerText = `Lv.${this.opponent.level}`; (document.getElementById('opp-img') as HTMLImageElement).src = this.opponent.getSprite(); const oppPct = (this.opponent.currentHp/this.opponent.maxHp)*100; const oppBar = document.getElementById('opp-hp')!; oppBar.style.width = oppPct + "%"; oppBar.className = `hp-fill ${this.getHpColor(this.opponent.currentHp, this.opponent.maxHp)}`; document.getElementById('opp-hp-text')!.innerText = `${this.opponent.currentHp}/${this.opponent.maxHp}`; document.getElementById('opp-shiny-tag')!.style.display = this.opponent.isShiny ? 'inline-block' : 'none'; document.getElementById('opp-stats')!.innerHTML = `<span>⚔️${this.opponent.atk}</span> <span>🛡️${this.opponent.def}</span> <span>💨${this.opponent.speed}</span>`; const oppTrainer = document.getElementById('opp-trainer-img') as HTMLImageElement; if(this.isPvP && this.enemyPlayer) { oppTrainer.src = this.enemyPlayer.avatar; oppTrainer.style.display = 'block'; } else if (this.isGym) { const gData = GYM_DATA.find(g => g.id === this.gymId); if(gData) oppTrainer.src = `/assets/img/LideresGym/${gData.leaderImg}`; oppTrainer.style.display = 'block'; } else if (this.isNPC) { const npcImg = (this.opponent as any)._npcImage; if (npcImg) { oppTrainer.src = npcImg; oppTrainer.style.display = 'block'; } else { oppTrainer.src = '/assets/img/Treinadores/Red.jpg'; oppTrainer.style.display = 'block'; } } else { oppTrainer.style.display = 'none'; } if(!this.isNPC && !this.isGym && !this.isPvP) { document.getElementById('ply-team-indicator')!.innerHTML = ''; document.getElementById('opp-team-indicator')!.innerHTML = ''; } else { this.renderTeamIcons('ply-team-indicator', this.plyTeamList); this.renderTeamIcons('opp-team-indicator', this.oppTeamList); } }
+    
+    static updateUI() { 
+        if(!this.activeMon || !this.opponent) return; 
+        if(!this.player) return; 
+
+        document.getElementById('ply-name')!.innerText = this.activeMon.name; 
+        
+        // --- BLINDAGEM 1: Tipos e XP do Jogador ---
+        const plyTypesEl = document.getElementById('ply-types');
+        if (plyTypesEl && typeof this.activeMon.getTypeBadgesHTML === 'function') {
+            plyTypesEl.innerHTML = this.activeMon.getTypeBadgesHTML('flex-start'); // <- Alinha a esquerda
+        }
+
+        const plyXpEl = document.getElementById('ply-xp');
+        if (plyXpEl) {
+            plyXpEl.style.width = `${(this.activeMon.currentXp / this.activeMon.maxXp) * 100}%`;
+        }
+        // ------------------------------------------
+
+        document.getElementById('ply-lvl')!.innerText = `Lv.${this.activeMon.level}`; 
+        (document.getElementById('ply-img') as HTMLImageElement).src = this.activeMon.getSprite(); 
+        
+        const plyPct = (this.activeMon.currentHp/this.activeMon.maxHp)*100; 
+        const plyBar = document.getElementById('ply-hp')!; 
+        plyBar.style.width = plyPct + "%"; 
+        plyBar.className = `hp-fill ${this.getHpColor(this.activeMon.currentHp, this.activeMon.maxHp)}`; 
+        document.getElementById('ply-hp-text')!.innerText = `${this.activeMon.currentHp}/${this.activeMon.maxHp}`; 
+        (document.getElementById('ply-trainer-img') as HTMLImageElement).src = this.player.avatar; 
+        document.getElementById('ply-shiny-tag')!.style.display = this.activeMon.isShiny ? 'inline-block' : 'none'; 
+        document.getElementById('ply-stats')!.innerHTML = `<span>⚔️${this.activeMon.atk}</span> <span>🛡️${this.activeMon.def}</span> <span>💨${this.activeMon.speed}</span>`; 
+        
+        document.getElementById('opp-name')!.innerText = this.opponent.name; 
+        document.getElementById('opp-lvl')!.innerText = `Lv.${this.opponent.level}`; 
+        
+        // --- BLINDAGEM 2: Tipos do Oponente (Opcional, mas recomendado) ---
+        const oppTypesEl = document.getElementById('opp-types');
+        if (oppTypesEl && typeof this.opponent.getTypeBadgesHTML === 'function') {
+            oppTypesEl.innerHTML = this.opponent.getTypeBadgesHTML('flex-start'); // <- Alinha a esquerda
+        }
+        // ------------------------------------------------------------------
+
+        (document.getElementById('opp-img') as HTMLImageElement).src = this.opponent.getSprite(); 
+        const oppPct = (this.opponent.currentHp/this.opponent.maxHp)*100; 
+        
+        const oppBar = document.getElementById('opp-hp')!; 
+        oppBar.style.width = oppPct + "%"; 
+        oppBar.className = `hp-fill ${this.getHpColor(this.opponent.currentHp, this.opponent.maxHp)}`; 
+        document.getElementById('opp-hp-text')!.innerText = `${this.opponent.currentHp}/${this.opponent.maxHp}`; 
+        document.getElementById('opp-shiny-tag')!.style.display = this.opponent.isShiny ? 'inline-block' : 'none'; 
+        document.getElementById('opp-stats')!.innerHTML = `<span>⚔️${this.opponent.atk}</span> <span>🛡️${this.opponent.def}</span> <span>💨${this.opponent.speed}</span>`; 
+        
+        const oppTrainer = document.getElementById('opp-trainer-img') as HTMLImageElement; 
+        if(this.isPvP && this.enemyPlayer) { 
+            oppTrainer.src = this.enemyPlayer.avatar; 
+            oppTrainer.style.display = 'block'; 
+        } 
+        else if (this.isGym) { 
+            const gData = GYM_DATA.find(g => g.id === this.gymId); 
+            if(gData) oppTrainer.src = `/assets/img/LideresGym/${gData.leaderImg}`; 
+            oppTrainer.style.display = 'block'; 
+        } 
+        else if (this.isNPC) { 
+            const npcImg = (this.opponent as any)._npcImage; 
+            if (npcImg) { 
+                oppTrainer.src = npcImg; 
+                oppTrainer.style.display = 'block'; 
+            } 
+            else { 
+                oppTrainer.src = '/assets/img/Treinadores/Red.jpg'; oppTrainer.style.display = 'block'; 
+            } 
+        } 
+        else { 
+            oppTrainer.style.display = 'none'; 
+        } 
+        
+        if(!this.isNPC && !this.isGym && !this.isPvP) { 
+            document.getElementById('ply-team-indicator')!.innerHTML = ''; 
+            document.getElementById('opp-team-indicator')!.innerHTML = ''; 
+        } 
+        else { 
+            this.renderTeamIcons('ply-team-indicator', this.plyTeamList); 
+            this.renderTeamIcons('opp-team-indicator', this.oppTeamList); 
+        } 
+    }
+    
     static renderTeamIcons(elId: string, list: Pokemon[]) { document.getElementById(elId)!.innerHTML = list.map(p => `<div class="ball-icon ${p.isFainted() ? 'lost' : ''}"></div>`).join(''); }
     
     static revertMew() {

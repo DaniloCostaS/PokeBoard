@@ -226,6 +226,7 @@
             <div class="battle-wrapper">
                 <div class="battle-main-column">
                     <div class="battle-scene">
+
                         <div class="battler self-end">
                             <div class="battler-images">
                                 <img id="ply-trainer-img" class="trainer-battle-img" src="">
@@ -236,12 +237,20 @@
                                 <div id="ply-hp" class="hp-fill"></div>
                                 <span id="ply-hp-text" class="hp-overlay-text">100/100</span>
                             </div>
+                            
+                            <div style="width: 100%; height: 4px; background: #222; border-radius: 2px; margin-top: 2px; border: 1px solid #000;">
+                                <div id="ply-xp" style="height: 100%; background: #3498db; width: 0%; border-radius: 1px;"></div>
+                            </div>
 
                             <div class="battle-info-box">
-                                <span id="ply-name" style="font-size: 1.1em; color: #fff;"></span> 
-                                <span id="ply-lvl" style="color:#f1c40f; margin-left: 5px;"></span>
-                                <div id="ply-shiny-tag" class="shiny-tag" style="display:none;">✨ SHINY ✨</div>
-                                <div class="battle-stats" id="ply-stats"></div>
+                                <div style="display:flex; align-items:baseline;">
+                                    <span id="ply-name" style="font-size: 1.1em; color: #fff; font-weight:bold;"></span> 
+                                    <span id="ply-lvl" style="color:#f1c40f; margin-left: 5px; font-weight:bold;"></span>
+                                </div>
+                                <div id="ply-types"></div>
+
+                                <div id="ply-shiny-tag" class="shiny-tag" style="display:none; margin-top:3px;">✨ SHINY ✨</div>
+                                <div class="battle-stats" id="ply-stats" style="margin-top:3px;"></div>
                             </div>
                             <div id="ply-team-indicator" class="battle-team-indicator"></div>
                         </div>
@@ -258,13 +267,18 @@
                             </div>
 
                             <div class="battle-info-box">
-                                <span id="opp-name" style="font-size: 1.1em; color: #fff;"></span> 
-                                <span id="opp-lvl" style="color:#f1c40f; margin-left: 5px;"></span>
-                                <div id="opp-shiny-tag" class="shiny-tag" style="display:none;">✨ SHINY ✨</div>
-                                <div class="battle-stats" id="opp-stats"></div>
+                                <div style="display:flex; align-items:baseline;">
+                                    <span id="opp-name" style="font-size: 1.1em; color: #fff; font-weight:bold;"></span> 
+                                    <span id="opp-lvl" style="color:#f1c40f; margin-left: 5px; font-weight:bold;"></span>
+                                </div>
+                                <div id="opp-types"></div>
+
+                                <div id="opp-shiny-tag" class="shiny-tag" style="display:none; margin-top:3px;">✨ SHINY ✨</div>
+                                <div class="battle-stats" id="opp-stats" style="margin-top:3px;"></div>
                             </div>
                             <div id="opp-team-indicator" class="battle-team-indicator"></div>
                         </div>
+
                     </div>
                     
                     <div id="battle-msg">...</div>

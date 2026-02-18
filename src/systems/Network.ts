@@ -352,6 +352,8 @@ export class Network {
             id: mon.id,
             name: mon.name,
             type: mon.type,
+            secondType: mon.secondType || "",
+            baseTotal: mon.baseTotal || 0,
             currentHp: mon.currentHp, 
             maxHp: mon.maxHp,
             level: mon.level,

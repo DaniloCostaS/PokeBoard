@@ -783,7 +783,7 @@ export class Game {
         right.innerHTML = ''; 
         
         if (!this.players || this.players.length === 0) return; 
-        
+
         this.players.forEach((p,i) => { const d = document.createElement('div'); d.className = `player-slot ${i===this.turn?'active':''}`; let badgeHTML = '<div class="badges-container">'; for(let b=0; b<8; b++) { const isActive = p.badges[b]; const gData = GYM_DATA.find(g => g.id === b+1); const imgUrl = gData ? `/assets/img/Insignias/${gData.badgeImg}` : ''; const style = isActive ? `background-image: url('${imgUrl}'); background-size: 100% 100%; background-repeat: no-repeat; background-color: transparent;` : `background-color: #ccc;`; badgeHTML += `<div class="badge-slot ${isActive?'active':''}" style="${style}" title="Insígnia ${b+1}"></div>`; } badgeHTML += '</div>'; 
     
         const th = p.team.map(m => { 
@@ -798,6 +798,8 @@ export class Game {
                         <span>${m.name}</span> 
                         <span class="poke-lvl">Lv.${m.level}</span> 
                     </div> 
+                    
+                    ${m.getTypeBadgesHTML()}
 
                     <div class="bar-container" title="HP"> 
                         <div class="bar-fill ${Battle.getHpColor(m.currentHp, m.maxHp)}" style="width:${(m.currentHp/m.maxHp)*100}%"></div> 
