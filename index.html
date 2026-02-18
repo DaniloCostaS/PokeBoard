@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PokéBoard V25 - Segurança e Terceira Geração - Correções Roubo Gold</title>
+    <title>PokéBoard V27 - Nova Mecânica de batalha e raridade</title>
     <link rel="stylesheet" href="style.css">
     
     <script type="importmap">
@@ -18,8 +18,8 @@
 <body>
 
     <div id="setup-screen">
-        <h1 class="title-highlight">PokéBoard V25</h1>
-        <p class="subtitle">Segurança e Terceira Geração - Correções Roubo Gold</p>
+        <h1 class="title-highlight">PokéBoard V27</h1>
+        <p class="subtitle">Nova Mecânica de batalha e raridade</p>
         
         <div id="menu-phase-1">
             <button class="btn" onclick="window.Setup.showOfflineSetup()">🏠 JOGAR OFFLINE</button>
@@ -152,12 +152,15 @@
                     <li><strong>1 Evolução:</strong> Lvl 8</li>
                     <li><small>Evoluir cura e dá cartas!</small></li>
                 </ul>
-                <h4>⚔️ Regras de Dano</h4>
-                <ul>
-                    <li><strong>Base:</strong> (atk / 5) - (def / 20)</li>
-                    <li><strong>Multiplicador:</strong> Vantagem: ×1.75,Normal: ×1,Desvantagem: ×0.75</li>
-                    <li><strong>Dado:</strong> 1:-2 (Falha crítica) 🛡️, 2:-1, 3:0 (Dano base normal), 4:+2, 5:+3, 6:+5 (Crítico)💥</li>
-                    <li><small>O Pokémon com maior atributo spd ataca primeiro. Empare Rolar 1d6, se o resultado for maior que 10, ataca primeiro</small></li>
+                <h4>⚔️ Nova Mecânica de Combate 2.0</h4>
+                <ul style="font-size: 0.8rem;">
+                    <li><strong>Ataque Base:</strong> Híbrido! Soma de (65% Atk) + (15% Spd) + (20% HP).</li>
+                    <li><strong>Defesa:</strong> Redução percentual. Dano = (Base / 5) - (Def / 20).</li>
+                    <li><strong>⚡ Esquiva:</strong> (Spd / 5)% de chance de evitar 100% do dano.</li>
+                    <li><strong>⚡ Crítico Veloz:</strong> (Spd / 8)% de chance de causar +5 de dano fixo.</li>
+                    <li><strong>⚡ Ataque Duplo:</strong> Se sua Spd for 50% maior que a do rival, tem 20% de chance de atacar 2x!</li>
+                    <li><strong>Multiplicadores:</strong> Vantagem (x1.75), Normal (x1), Desvantagem (x0.75).</li>
+                    <li><strong>Sorte (Dado d6):</strong> 1:(-2), 2:(-1), 3:(0), 4:(+2), 5:(+3), 6:(+5 Crítico💥).</li>
                 </ul>
             </div>
         </div>

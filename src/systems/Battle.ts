@@ -314,51 +314,71 @@ export class Battle {
         scene.style.backgroundPosition = 'center';
     }
 
-    static calculateDamage(attacker: Pokemon, defender: Pokemon, isPlayerAttacking: boolean): { damage: number, msg: string } { 
+    static calculateDamage(attacker: Pokemon, defender: Pokemon, isPlayerAttacking: boolean): { damage: number, msg: string, avoided: boolean } { 
+        // 1. CÁLCULO DE ESQUIVA (Mantido)
+        const dodgeChance = defender.speed / 5;
+        if (Math.random() * 100 <= dodgeChance) {
+            return { damage: 0, msg: "💨 ESQUIVOU!", avoided: true };
+        }
+
+        // 2. ATAQUE BASE HÍBRIDO (Mantido)
+        // Soma ponderada: 65% ATK + 15% SPD + 20% HP
+        const baseAtk = (attacker.atk * 0.65) + (attacker.speed * 0.15) + (attacker.maxHp * 0.2);
+
+        // 3. NOVA FÓRMULA DE DANO (Agressiva)
+        // Dano = (AtaqueBase / 5) - (DEF / 20)
+        let finalDamage = (baseAtk / 5) - (defender.def / 20);
+
+        // Garante que o dano base nunca seja negativo antes dos modificadores
+        finalDamage = Math.max(1, finalDamage);
+
+        let logDetails = "";
+
+        // 4. CRÍTICO DE VELOCIDADE (Mantido)
+        const spdCritChance = attacker.speed / 8;
+        if (Math.random() * 100 <= spdCritChance) {
+            finalDamage += 5;
+            logDetails += " ⚡Crit.Vel!";
+        }
+
+        // 5. DADO D6 (Sorte/Azar)
         const d6 = Math.floor(Math.random() * 6) + 1;
         let rollModifier = 0; 
-        let isCritical = false; 
-        // Proporção adaptada do D20 para o D6
-        if (d6 === 6) { rollModifier = +5; isCritical = true; } // Crit!
+        
+        if (d6 === 6) { rollModifier = +5; logDetails += " 🎲Crit!"; } 
         else if (d6 === 5) rollModifier = +3; 
         else if (d6 === 4) rollModifier = +2; 
         else if (d6 === 2) rollModifier = -1; 
-        else if (d6 === 1) rollModifier = -2; // Falha crítica
-        let defenseVal = defender.def; 
-        if (isCritical) defenseVal = Math.floor(defenseVal / 2); 
-        let base = Math.floor((attacker.atk / 5) - (defenseVal / 20)); 
-        base = Math.max(1, base); let rawMulti = 1; 
-        if (TYPE_CHART[attacker.type] && (TYPE_CHART[attacker.type] as any)[defender.type] !== undefined) { rawMulti = (TYPE_CHART[attacker.type] as any)[defender.type]; } 
-        const typeDamage = Math.floor(base * (rawMulti > 1 ? 1.75 : (rawMulti < 1 ? 0.75 : 1))); 
-        let finalDamage = Math.max(0, typeDamage + rollModifier); 
-        if (isPlayerAttacking) { if (this.activeEffects.crit) { finalDamage *= 2; } if (this.activeEffects.focus) { finalDamage *= 4; this.activeEffects.focus = false; } if (this.player?.effects.curse) { finalDamage = Math.floor(finalDamage / 2); } } else { if (this.activeEffects.guard) { finalDamage = Math.floor(finalDamage / 2); } if (this.enemyPlayer && this.enemyPlayer.effects.curse) { finalDamage = Math.floor(finalDamage / 2); } } 
-        let logDetails = `(🎲${d6})`; 
-        if (isCritical) logDetails += " 💥!"; 
+        else if (d6 === 1) rollModifier = -2; 
+
+        finalDamage += rollModifier;
+
+        // 6. MULTIPLICADOR DE TIPO
+        let rawMulti = 1; 
+        if (TYPE_CHART[attacker.type] && (TYPE_CHART[attacker.type] as any)[defender.type] !== undefined) { 
+            rawMulti = (TYPE_CHART[attacker.type] as any)[defender.type]; 
+        } 
+        
+        // Aplica fraqueza/vantagem
+        finalDamage = Math.floor(finalDamage * (rawMulti > 1 ? 1.75 : (rawMulti < 1 ? 0.75 : 1))); 
+        
+        // Garante que o dano final não cure o oponente (mínimo 0)
+        finalDamage = Math.max(0, Math.floor(finalDamage));
+
+        // Aplica modificadores de cartas/efeitos
+        if (isPlayerAttacking) { 
+            if (this.activeEffects.crit) { finalDamage *= 2; logDetails += " [2x]"; } 
+            if (this.activeEffects.focus) { finalDamage *= 4; this.activeEffects.focus = false; logDetails += " [4x]"; } 
+            if (this.player?.effects.curse) { finalDamage = Math.floor(finalDamage / 2); } 
+        } else { 
+            if (this.activeEffects.guard) { finalDamage = Math.floor(finalDamage / 2); logDetails += " [🛡️]"; } 
+            if (this.enemyPlayer && this.enemyPlayer.effects.curse) { finalDamage = Math.floor(finalDamage / 2); } 
+        } 
+        
         if (rawMulti > 1) logDetails += " 🔥!"; 
         else if (rawMulti < 1) logDetails += " 🛡️."; 
-        if (this.activeEffects.crit && isPlayerAttacking) logDetails += " [2x]"; 
-        if (this.activeEffects.focus && isPlayerAttacking) logDetails += " [4x]"; 
-        if (this.activeEffects.guard && !isPlayerAttacking) logDetails += " [🛡️]"; 
         
-        // --- NOVO: FATOR DE VELOCIDADE (MOMENTUM / ESQUIVA) ---
-        // Calcula a proporção de velocidade (evitando divisão por zero)
-        const speedRatio = attacker.speed / Math.max(1, defender.speed);
-        
-        // Limita o bônus/penalidade entre 0.90 (-10% de dano) e 1.10 (+10% de dano)
-        const speedMultiplier = Math.max(0.90, Math.min(1.10, speedRatio));
-        
-        // Aplica o multiplicador ao dano usando a variável correta: finalDamage
-        finalDamage = Math.max(1, Math.floor(finalDamage * speedMultiplier));
-
-        // Adiciona um feedback visual no log para os jogadores entenderem o impacto da SPD
-        if (speedMultiplier >= 1.10) {
-            logDetails += ` ⚡Ágil! (+${Math.floor((speedMultiplier-1)*100)}% Dano)`;
-        } else if (speedMultiplier <= 0.90) {
-            logDetails += ` 🐢Lento! (-${Math.floor((1-speedMultiplier)*100)}% Dano)`;
-        }
-        // --------------------------------------------------------
-        
-        return { damage: finalDamage, msg: logDetails };
+        return { damage: finalDamage, msg: `(🎲${d6})${logDetails}`, avoided: false };
     }
     
     // =========================================================================================
@@ -421,11 +441,36 @@ export class Battle {
         const Network = (window as any).Network;
         if(!this.activeMon || !this.opponent) return;
 
-        let calc = this.calculateDamage(this.activeMon, this.opponent, true); 
-        let dmg = calc.damage; 
+        // --- CÁLCULO DO PRIMEIRO ATAQUE ---
+        let calc1 = this.calculateDamage(this.activeMon, this.opponent, true); 
+        let totalDmg = calc1.damage;
+        let logMsg = `${this.activeMon.name} atacou! `;
+
+        if (calc1.avoided) {
+            logMsg += `${calc1.msg}`;
+        } else {
+            logMsg += `💥${calc1.damage} ${calc1.msg}`;
+        }
+
+        // --- CÁLCULO DO ATAQUE DUPLO (SPEED) ---
+        // Se SPD >= 50% maior que oponente -> 20% chance de atacar duas vezes
+        if (!calc1.avoided && this.activeMon.speed >= (this.opponent.speed * 1.5)) {
+            if (Math.random() * 100 <= 20) {
+                // Removemos a variável isDouble aqui
+                let calc2 = this.calculateDamage(this.activeMon, this.opponent, true);
+                
+                // Se o segundo não for esquivado, soma
+                if (!calc2.avoided) {
+                    totalDmg += calc2.damage;
+                    logMsg += ` + ⚔️DUPLO! 💥${calc2.damage}`;
+                } else {
+                    logMsg += ` + ⚔️DUPLO! (Errou)`;
+                }
+            }
+        }
+        // ----------------------------------------
         
-        this.opponent.currentHp = Math.max(0, this.opponent.currentHp - dmg); 
-        const logMsg = `${this.activeMon.name} atacou! 💥${dmg} ${calc.msg}`; 
+        this.opponent.currentHp = Math.max(0, this.opponent.currentHp - totalDmg); 
         this.logBattle(logMsg); 
         this.updateUI(); 
 
@@ -435,25 +480,17 @@ export class Battle {
                 oppHp: this.opponent.currentHp, 
                 msg: logMsg
             });
-            // CORREÇÃO CRÍTICA PVP: Salva o dano no banco de dados IMEDIATAMENTE!
             if (this.isPvP && this.enemyPlayer) {
                 Network.syncSpecificPlayer(this.enemyPlayer.id);
             }
         }
 
         if(this.opponent.currentHp <= 0) { 
-            // --- NOVO XP POR POKÉMON DERROTADO (Baseado em Status) ---
-            // Soma: MaxHP + ATK + DEF + SPD
             const oppStats = this.opponent.maxHp + this.opponent.atk + this.opponent.def + this.opponent.speed;
-            
-            // Fórmula da Vitória: Status Totais / 15
             const xpGain = Math.max(1, Math.floor(oppStats / 15));
-            
             this.activeMon.gainXp(xpGain, this.player!);
             this.updateUI(); 
             if (Network.isOnline) Network.syncPlayerState();
-            // --------------------------------
-
             setTimeout(() => { this.checkWinCondition(); }, 1000); 
         } else {
             if(callback) callback();
@@ -472,22 +509,43 @@ export class Battle {
             return; 
         } 
 
-        let calc = this.calculateDamage(this.opponent, this.activeMon, false); 
-        let dmg = calc.damage; 
+        // --- CÁLCULO DO PRIMEIRO ATAQUE ---
+        let calc1 = this.calculateDamage(this.opponent, this.activeMon, false); 
+        let totalDmg = calc1.damage;
+        let logMsg = `${this.opponent.name} atacou! `;
+
+        if (calc1.avoided) {
+            logMsg += `${calc1.msg}`;
+        } else {
+            logMsg += `💥${calc1.damage} ${calc1.msg}`;
+        }
+
+        // --- CÁLCULO DO ATAQUE DUPLO (SPEED) ---
+        if (!calc1.avoided && this.opponent.speed >= (this.activeMon.speed * 1.5)) {
+            if (Math.random() * 100 <= 20) {
+                let calc2 = this.calculateDamage(this.opponent, this.activeMon, false);
+                if (!calc2.avoided) {
+                    totalDmg += calc2.damage;
+                    logMsg += ` + ⚔️DUPLO! 💥${calc2.damage}`;
+                } else {
+                    logMsg += ` + ⚔️DUPLO! (Errou)`;
+                }
+            }
+        }
+        // ----------------------------------------
         
-        this.activeMon.currentHp = Math.max(0, this.activeMon.currentHp - dmg); 
-        const logMsg = `${this.opponent.name} atacou! 💥${dmg} ${calc.msg}`; 
+        this.activeMon.currentHp = Math.max(0, this.activeMon.currentHp - totalDmg); 
         this.logBattle(logMsg); 
         this.updateUI(); 
         
+        // Lógica de Counter (Reflete o dano total recebido)
         if (this.activeEffects.counter && this.activeEffects.counter > 0) { 
-            const reflect = Math.floor(dmg * 0.5); 
+            const reflect = Math.floor(totalDmg * 0.5); 
             if (reflect > 0) { 
                 this.opponent.currentHp = Math.max(0, this.opponent.currentHp - reflect); 
                 this.logBattle(`🔁 Contra-ataque! Inimigo sofreu ${reflect} de dano.`); 
                 this.activeEffects.counter--; 
                 this.updateUI(); 
-                // CORREÇÃO PVP: Salva o dano do counter no Firebase!
                 if (this.isPvP && this.enemyPlayer && Network.isOnline) {
                     Network.syncSpecificPlayer(this.enemyPlayer.id);
                 }
@@ -500,27 +558,19 @@ export class Battle {
         } 
         
         if(this.activeMon.currentHp <= 0) { 
-            // --- NOVO XP DE CONSOLAÇÃO E PARA O OPONENTE NO PVP ---
             const oppStats = this.opponent.maxHp + this.opponent.atk + this.opponent.def + this.opponent.speed;
-            
-            // Fórmula da Derrota (Consolação): Status Totais do Inimigo / 45
             const xpGain = Math.max(1, Math.floor(oppStats / 45));
             this.activeMon.gainXp(xpGain, this.player!);
 
-            // Lógica para o Oponente no caso de PvP (Ele recebe a Fórmula da Vitória)
             if (this.isPvP && this.enemyPlayer) {
-                // Aqui usamos os status do SEU pokémon que desmaiou para dar XP ao oponente
                 const plyStats = this.activeMon.maxHp + this.activeMon.atk + this.activeMon.def + this.activeMon.speed;
                 const oppXpGain = Math.max(1, Math.floor(plyStats / 15));
-                
                 this.opponent.gainXp(oppXpGain, this.enemyPlayer);
                 if (Network.isOnline) Network.syncSpecificPlayer(this.enemyPlayer.id);
             }
 
             this.updateUI(); 
             if (Network.isOnline) Network.syncPlayerState();
-            // -------------------------------------------------
-
             setTimeout(() => { this.handleFaint(); }, 1000); 
         } else { 
             if(callback) callback();
