@@ -32,33 +32,47 @@ export class Network {
     
     static async createRoom() { 
         if(!this.checkInput()) return; 
-        const roomCode = Math.random().toString(36).substring(2, 6).toUpperCase(); 
+
+        // --- NOVA LÓGICA DE CÓDIGO MANUAL ---
+        const customInput = (document.getElementById('custom-room-code') as HTMLInputElement);
+        let roomCode = "";
+
+        if (customInput && customInput.value.trim().length > 0) {
+            // Usa o código digitado (Remove espaços e coloca em Maiúsculo)
+            roomCode = customInput.value.trim().toUpperCase();
+            
+            // Validação simples para evitar caracteres proibidos no Firebase (., #, $, [, ])
+            if (/[.#$\[\]]/.test(roomCode)) {
+                return alert("O código da sala não pode conter símbolos especiais (. # $ [ ]).");
+            }
+        } else {
+            // Se estiver vazio, gera aleatório como antes
+            roomCode = Math.random().toString(36).substring(2, 6).toUpperCase(); 
+        }
+        // -------------------------------------
+
         this.currentRoomId = roomCode; 
         this.myPlayerId = 0; 
         this.isHost = true; 
         
         const myPlayerObj = new Player(0, this.localName, this.localAvatar, false); 
         
-        // --- GERA O MAPA E OS TIMES ANTES DE SALVAR ---
-        MapSystem.generate(20); // Garante que o mapa existe
+        // Gera Mapa e Times
+        MapSystem.generate(20); 
         const Game = (window as any).Game;
-        Game.generateGymTeams(); // Gera os times únicos dessa partida
-        // ----------------------------------------------
+        Game.generateGymTeams(); 
 
         const initialData = { 
             status: "LOBBY", 
             turn: 0, 
             round: 1,
             mapSize: 20,
-
-            // Salva o mapa e os times na criação da sala
             map: {
                 size: 20,
                 grid: MapSystem.grid,
                 gymLocations: MapSystem.gymLocations
             },
-            gymTeams: Game.gymTeams, // <--- SALVA AQUI
-
+            gymTeams: Game.gymTeams, 
             players: { 
                 0: { 
                     name: myPlayerObj.name, 
@@ -78,11 +92,15 @@ export class Network {
             lastAction: { type: "INIT", timestamp: Date.now() } 
         }; 
         
+        // Salva no Firebase com o código escolhido
         await set(ref(db, 'rooms/' + roomCode), initialData); 
+        
         localStorage.setItem('pkbd_session', JSON.stringify({roomId: roomCode, id: 0})); 
         this.isOnline = true; 
         this.setupLobbyListener(); 
+        
         document.getElementById('lobby-status')!.style.display = 'block'; 
+        // Mostra o código escolhido no Lobby também
         document.getElementById('lobby-status')!.innerHTML = `Sala Criada: <b>${roomCode}</b><br>Você é o HOST`; 
         document.getElementById('host-controls')!.style.display = 'block'; 
     }

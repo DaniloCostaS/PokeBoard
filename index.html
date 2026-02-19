@@ -51,8 +51,11 @@
                 </div>
             </div>
 
-            <div id="online-lobby-controls">
-                <button class="btn" onclick="window.Network.createRoom()">Criar Sala</button>
+            <div id="online-lobby-controls">  
+                <div style="margin-bottom: 10px;">
+                    <input type="text" id="custom-room-code" placeholder="Cód. Sala (Opcional)" maxlength="10" style="padding: 10px; text-transform: uppercase; width: 150px; text-align: center;">
+                </div>
+                <button id="btn-create-room" class="btn" onclick="Network.createRoom()">Criar Sala</button>
                 <div style="display:flex; gap:5px; margin-top:10px;">
                     <input type="text" id="room-code-input" placeholder="Código da Sala" style="flex:1; padding:10px;">
                     <button class="btn" style="width:auto; margin:0;" onclick="window.Network.joinRoom()">Entrar</button>
@@ -111,6 +114,12 @@
 
             <div class="panel-box info-section" style="font-size: 0.85rem; text-align: left; line-height: 1.6;">
                 <div style="color: var(--gold); font-weight: bold; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.2); margin-bottom: 5px; padding-bottom: 5px;">🌍 Status do Mundo</div>
+                <div class="info-panel">
+                    <div class="info-item">
+                        <span class="info-label">🏠 SALA: </span>
+                        <span id="room-code-indicator" class="info-value" style="color: #00ffea;">OFFLINE</span>
+                    </div>
+                </div>
                 <div>🔄 Rodada: <b id="round-indicator" style="color:#fff;">1</b></div>
                 <div>📊 NPC / Selvagem: <b id="avg-lvl-indicator" style="color:#fff;">Lv.1</b></div>
                 <div>🏛️ Líder Ginásio: <b id="gym-lvl-indicator" style="color:#fff;">Lv.2</b></div>

@@ -956,6 +956,14 @@ export class Game {
             const elRound = document.getElementById('round-indicator');
             if (elRound) elRound.innerText = this.round.toString();
             
+            // --- NOVO: EXIBIR CÓDIGO DA SALA ---
+            const elRoom = document.getElementById('room-code-indicator');
+            if (elRoom) {
+                // Se estiver online mostra o ID, se não mostra "OFFLINE" ou "LOCAL"
+                elRoom.innerText = Network.isOnline ? Network.currentRoomId : "LOCAL";
+            }
+            // ------------------------------------
+            
             const avgLvl = this.getGlobalAverageLevel();
             const elAvg = document.getElementById('avg-lvl-indicator');
             if (elAvg) elAvg.innerText = `Lv.${avgLvl}`;
