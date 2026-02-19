@@ -158,16 +158,16 @@ export class Game {
     //static generateWildPokemon(): Pokemon { const stage1Mons = POKEDEX.filter(p => p.stage === 1); const legendaries = stage1Mons.filter(p => p.isLegendary); const regulars = stage1Mons.filter(p => !p.isLegendary); let chosenTemplate; if (Math.random() < 0.02 && legendaries.length > 0) { chosenTemplate = legendaries[Math.floor(Math.random() * legendaries.length)]; } else { chosenTemplate = regulars[Math.floor(Math.random() * regulars.length)]; } let level = this.getGlobalAverageLevel(); if (level < 1) level = 1; return new Pokemon(chosenTemplate.id, level, null); }
     
     static generateWildPokemon(tileType: number): Pokemon {
-        // 1. Filtros de Terreno (Igual ao anterior)
+        // 1. Filtros de Terreno
         let allowedTypes: string[] = [];
         switch (tileType) {
             case TILE.GRASS: allowedTypes = ['Grama', 'Inseto', 'Normal', 'Veneno', 'Voador', 'Noturno']; break;
             case TILE.WATER: allowedTypes = ['Água', 'Gelo', 'Dragão', 'Fada']; break;
-            case TILE.GROUND: allowedTypes = ['Terra', 'Pedra', 'Fogo', 'Lutador', 'Elétrico', 'Psíquico', 'Fantasma','Aço']; break;
+            case TILE.GROUND: allowedTypes = ['Terra', 'Pedra', 'Fogo', 'Lutador', 'Elétrico', 'Psíquico', 'Fantasma', 'Aço']; break;
             default: allowedTypes = ['Normal']; break;
         }
 
-        // 2. Filtros de Nível Global (Igual ao anterior)
+        // 2. Filtros de Nível Global
         const globalAvg = this.getGlobalAverageLevel();
         let allowedStages = [1];
         let allowLegendaries = false;
@@ -176,19 +176,21 @@ export class Game {
         else if (globalAvg >= 5 && globalAvg < 10) { allowedStages = [1, 2]; allowLegendaries = true; } 
         else { allowedStages = [1, 2, 3]; allowLegendaries = true; }
 
-        // 3. Pool de Candidatos Válidos (Peneira Técnica)
+        // 3. Pool de Candidatos Válidos
         const validCandidates = POKEDEX.filter(p => {
-            if (!allowedTypes.includes(p.type)) return false;
+            // Verifica se ALGUM dos dois tipos bate com o terreno
+            const match1 = allowedTypes.includes(p.type);
+            const match2 = p.secondType && allowedTypes.includes(p.secondType);
+
+            if (!match1 && !match2) return false;
             if (!allowedStages.includes(p.stage)) return false;
-            // Se o nível global não permite lendários, já corta aqui
             if (p.isLegendary && !allowLegendaries) return false; 
             return true;
         });
 
         if (validCandidates.length === 0) return new Pokemon(16, globalAvg); 
 
-        // --- 4. SISTEMA DE RARIDADE COM OVERRIDE LENDÁRIO ---
-        
+        // 4. Sistema de Raridade
         const roll = Math.random() * 100;
         let selectedRarityId = 'Comum'; 
         let cumulativeRate = 0;
@@ -205,34 +207,26 @@ export class Game {
 
         // Filtra o Pool baseada na raridade sorteada
         const rarityPool = validCandidates.filter(p => {
-            // --- REGRA DE OURO: LENDÁRIOS ---
             if (p.isLegendary) {
-                // Se é lendário, SÓ entra se a raridade sorteada for 'Lendário'.
                 return selectedRarityId === 'Lendário';
             }
-            // -------------------------------
 
-            // Se a raridade sorteada for Lendário, mas o pokémon NÃO for lendário,
-            // ele não deve entrar (a menos que tenha status absurdos acima de 580, 
-            // mas geralmente queremos reservar esse slot para os especiais).
             if (selectedRarityId === 'Lendário' && !p.isLegendary) {
-                 // Opcional: Se quiser que pokémons super fortes (Pseudo-Lendários) 
-                 // contem como lendários, remova este if. Mas por padrão, deixamos exclusivo.
-                 // return false; 
+                 // return false; // (Opcional: descomente se quiser exclusividade total)
             }
 
-            // Regra Padrão: BaseTotal define a raridade
-            const total = p.BaseTotal || (p.hp + p.atk + p.def + p.spd);
+            // --- CORREÇÃO DOS ERROS TS ---
+            // Removemos a variável 'total' duplicada.
+            // Usamos p.BaseTotal (Maiúsculo) pois 'p' vem do JSON bruto POKEDEX.
+            const checkTotal = p.BaseTotal || (p.hp + p.atk + p.def + p.spd);
+            // -----------------------------
             
             if (!rarityInfo) return false;
-            return total >= rarityInfo.baseMin && total <= rarityInfo.baseMax;
+            return checkTotal >= rarityInfo.baseMin && checkTotal <= rarityInfo.baseMax;
         });
 
         // 5. Fallback de Segurança
-        // Se sorteou "Lendário" mas não tem nenhum lendário no terreno (rarityPool vazio),
-        // ele pega qualquer um do validCandidates para não travar o jogo.
         const finalPool = rarityPool.length > 0 ? rarityPool : validCandidates;
-        
         const chosenTemplate = finalPool[Math.floor(Math.random() * finalPool.length)];
 
         return new Pokemon(chosenTemplate.id, globalAvg, null);
