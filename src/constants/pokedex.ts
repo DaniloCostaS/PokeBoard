@@ -22,15 +22,15 @@ export const POKEDEX: PokemonData[] = [
   {"id": 14, "name": "Kakuna", "type": "Inseto", "secondType": "Veneno", "BaseTotal": 143, "hp": 45, "atk": 25, "def": 38, "spd": 35, "stage": 2, "nextForm": "Beedrill", "evoTrigger": 10},
   {"id": 15, "name": "Beedrill", "type": "Inseto", "secondType": "Veneno", "BaseTotal": 268, "hp": 65, "atk": 68, "def": 60, "spd": 75, "stage": 3, "nextForm": null},
 
-  {"id": 16, "name": "Pidgey", "type": "Voador", "secondType": "", "BaseTotal": 174, "hp": 40, "atk": 40, "def": 38, "spd": 56, "stage": 1, "nextForm": "Pidgeotto", "evoTrigger": 5},
-  {"id": 17, "name": "Pidgeotto", "type": "Voador", "secondType": "", "BaseTotal": 242, "hp": 63, "atk": 55, "def": 53, "spd": 71, "stage": 2, "nextForm": "Pidgeot", "evoTrigger": 10},
-  {"id": 18, "name": "Pidgeot", "type": "Voador", "secondType": "", "BaseTotal": 322, "hp": 83, "atk": 75, "def": 73, "spd": 91, "stage": 3, "nextForm": null},
+  {"id": 16, "name": "Pidgey", "type": "Voador", "secondType": "Normal", "BaseTotal": 174, "hp": 40, "atk": 40, "def": 38, "spd": 56, "stage": 1, "nextForm": "Pidgeotto", "evoTrigger": 5},
+  {"id": 17, "name": "Pidgeotto", "type": "Voador", "secondType": "Normal", "BaseTotal": 242, "hp": 63, "atk": 55, "def": 53, "spd": 71, "stage": 2, "nextForm": "Pidgeot", "evoTrigger": 10},
+  {"id": 18, "name": "Pidgeot", "type": "Voador", "secondType": "Normal", "BaseTotal": 322, "hp": 83, "atk": 75, "def": 73, "spd": 91, "stage": 3, "nextForm": null},
 
   {"id": 19, "name": "Rattata", "type": "Normal", "secondType": "", "BaseTotal": 178, "hp": 30, "atk": 41, "def": 35, "spd": 72, "stage": 1, "nextForm": "Raticate", "evoTrigger": 8},
   {"id": 20, "name": "Raticate", "type": "Normal", "secondType": "", "BaseTotal": 283, "hp": 55, "atk": 66, "def": 65, "spd": 97, "stage": 2, "nextForm": null},
 
-  {"id": 21, "name": "Spearow", "type": "Voador", "secondType": "", "BaseTotal": 187, "hp": 40, "atk": 46, "def": 31, "spd": 70, "stage": 1, "nextForm": "Fearow", "evoTrigger": 8},
-  {"id": 22, "name": "Fearow", "type": "Voador", "secondType": "", "BaseTotal": 304, "hp": 65, "atk": 76, "def": 63, "spd": 100, "stage": 2, "nextForm": null},
+  {"id": 21, "name": "Spearow", "type": "Voador", "secondType": "Normal", "BaseTotal": 187, "hp": 40, "atk": 46, "def": 31, "spd": 70, "stage": 1, "nextForm": "Fearow", "evoTrigger": 8},
+  {"id": 22, "name": "Fearow", "type": "Voador", "secondType": "Normal", "BaseTotal": 304, "hp": 65, "atk": 76, "def": 63, "spd": 100, "stage": 2, "nextForm": null},
 
   {"id": 23, "name": "Ekans", "type": "Veneno", "secondType": "", "BaseTotal": 189, "hp": 35, "atk": 50, "def": 49, "spd": 55, "stage": 1, "nextForm": "Arbok", "evoTrigger": 8},
   {"id": 24, "name": "Arbok", "type": "Veneno", "secondType": "", "BaseTotal": 294, "hp": 60, "atk": 80, "def": 74, "spd": 80, "stage": 2, "nextForm": null},
@@ -43,11 +43,11 @@ export const POKEDEX: PokemonData[] = [
 
   {"id": 29, "name": "Nidoran♀", "type": "Veneno", "secondType": "", "BaseTotal": 186, "hp": 55, "atk": 44, "def": 46, "spd": 41, "stage": 1, "nextForm": "Nidorina", "evoTrigger": 5},
   {"id": 30, "name": "Nidorina", "type": "Veneno", "secondType": "", "BaseTotal": 246, "hp": 70, "atk": 59, "def": 61, "spd": 56, "stage": 2, "nextForm": "Nidoqueen", "evoTrigger": 10},
-  {"id": 31, "name": "Nidoqueen", "type": "Veneno", "secondType": "", "BaseTotal": 336, "hp": 90, "atk": 84, "def": 86, "spd": 76, "stage": 3, "nextForm": null},
+  {"id": 31, "name": "Nidoqueen", "type": "Veneno", "secondType": "Terra", "BaseTotal": 336, "hp": 90, "atk": 84, "def": 86, "spd": 76, "stage": 3, "nextForm": null},
 
   {"id": 32, "name": "Nidoran♂", "type": "Veneno", "secondType": "", "BaseTotal": 185, "hp": 46, "atk": 49, "def": 40, "spd": 50, "stage": 1, "nextForm": "Nidorino", "evoTrigger": 5},
   {"id": 33, "name": "Nidorino", "type": "Veneno", "secondType": "", "BaseTotal": 246, "hp": 61, "atk": 64, "def": 56, "spd": 65, "stage": 2, "nextForm": "Nidoking", "evoTrigger": 10},
-  {"id": 34, "name": "Nidoking", "type": "Veneno", "secondType": "", "BaseTotal": 336, "hp": 81, "atk": 94, "def": 76, "spd": 85, "stage": 3, "nextForm": null},
+  {"id": 34, "name": "Nidoking", "type": "Veneno", "secondType": "Terra", "BaseTotal": 336, "hp": 81, "atk": 94, "def": 76, "spd": 85, "stage": 3, "nextForm": null},
 
   {"id": 35, "name": "Clefairy", "type": "Fada", "secondType": "", "BaseTotal": 215, "hp": 70, "atk": 53, "def": 57, "spd": 35, "stage": 2, "nextForm": "Clefable", "evoTrigger": 10},
   {"id": 36, "name": "Clefable", "type": "Fada", "secondType": "", "BaseTotal": 320, "hp": 95, "atk": 83, "def": 82, "spd": 60, "stage": 3, "nextForm": null},
@@ -55,21 +55,21 @@ export const POKEDEX: PokemonData[] = [
   {"id": 37, "name": "Vulpix", "type": "Fogo", "secondType": "", "BaseTotal": 202, "hp": 38, "atk": 46, "def": 53, "spd": 65, "stage": 1, "nextForm": "Ninetales", "evoTrigger": 8},
   {"id": 38, "name": "Ninetales", "type": "Fogo", "secondType": "", "BaseTotal": 340, "hp": 73, "atk": 79, "def": 88, "spd": 100, "stage": 2, "nextForm": null},
 
-  {"id": 39, "name": "Jigglypuff", "type": "Fada", "secondType": "", "BaseTotal": 203, "hp": 115, "atk": 45, "def": 23, "spd": 20, "stage": 2, "nextForm": "Wigglytuff", "evoTrigger": 10},
-  {"id": 40, "name": "Wigglytuff", "type": "Fada", "secondType": "", "BaseTotal": 311, "hp": 140, "atk": 78, "def": 48, "spd": 45, "stage": 3, "nextForm": null},
+  {"id": 39, "name": "Jigglypuff", "type": "Fada", "secondType": "Normal", "BaseTotal": 203, "hp": 115, "atk": 45, "def": 23, "spd": 20, "stage": 2, "nextForm": "Wigglytuff", "evoTrigger": 10},
+  {"id": 40, "name": "Wigglytuff", "type": "Fada", "secondType": "Normal", "BaseTotal": 311, "hp": 140, "atk": 78, "def": 48, "spd": 45, "stage": 3, "nextForm": null},
 
-  {"id": 41, "name": "Zubat", "type": "Veneno", "secondType": "", "BaseTotal": 171, "hp": 40, "atk": 38, "def": 38, "spd": 55, "stage": 1, "nextForm": "Golbat", "evoTrigger": 5},
-  {"id": 42, "name": "Golbat", "type": "Veneno", "secondType": "", "BaseTotal": 311, "hp": 75, "atk": 73, "def": 73, "spd": 90, "stage": 2, "nextForm": "Crobat", "evoTrigger": 10},
+  {"id": 41, "name": "Zubat", "type": "Veneno", "secondType": "Voador", "BaseTotal": 171, "hp": 40, "atk": 38, "def": 38, "spd": 55, "stage": 1, "nextForm": "Golbat", "evoTrigger": 5},
+  {"id": 42, "name": "Golbat", "type": "Veneno", "secondType": "Voador", "BaseTotal": 311, "hp": 75, "atk": 73, "def": 73, "spd": 90, "stage": 2, "nextForm": "Crobat", "evoTrigger": 10},
 
-  {"id": 43, "name": "Oddish", "type": "Grama", "secondType": "", "BaseTotal": 198, "hp": 45, "atk": 63, "def": 60, "spd": 30, "stage": 1, "nextForm": "Gloom", "evoTrigger": 5},
-  {"id": 44, "name": "Gloom", "type": "Grama", "secondType": "", "BaseTotal": 248, "hp": 60, "atk": 75, "def": 73, "spd": 40, "stage": 2, "nextForm": "Vileplume", "evoTrigger": 10},
-  {"id": 45, "name": "Vileplume", "type": "Grama", "secondType": "", "BaseTotal": 308, "hp": 75, "atk": 95, "def": 88, "spd": 50, "stage": 3, "nextForm": null},
+  {"id": 43, "name": "Oddish", "type": "Grama", "secondType": "Veneno", "BaseTotal": 198, "hp": 45, "atk": 63, "def": 60, "spd": 30, "stage": 1, "nextForm": "Gloom", "evoTrigger": 5},
+  {"id": 44, "name": "Gloom", "type": "Grama", "secondType": "Veneno", "BaseTotal": 248, "hp": 60, "atk": 75, "def": 73, "spd": 40, "stage": 2, "nextForm": "Vileplume", "evoTrigger": 10},
+  {"id": 45, "name": "Vileplume", "type": "Grama", "secondType": "Veneno", "BaseTotal": 308, "hp": 75, "atk": 95, "def": 88, "spd": 50, "stage": 3, "nextForm": null},
 
-  {"id": 46, "name": "Paras", "type": "Inseto", "secondType": "", "BaseTotal": 173, "hp": 35, "atk": 58, "def": 55, "spd": 25, "stage": 1, "nextForm": "Parasect", "evoTrigger": 8},
-  {"id": 47, "name": "Parasect", "type": "Inseto", "secondType": "", "BaseTotal": 248, "hp": 60, "atk": 78, "def": 80, "spd": 30, "stage": 2, "nextForm": null},
+  {"id": 46, "name": "Paras", "type": "Inseto", "secondType": "Grama", "BaseTotal": 173, "hp": 35, "atk": 58, "def": 55, "spd": 25, "stage": 1, "nextForm": "Parasect", "evoTrigger": 8},
+  {"id": 47, "name": "Parasect", "type": "Inseto", "secondType": "Grama", "BaseTotal": 248, "hp": 60, "atk": 78, "def": 80, "spd": 30, "stage": 2, "nextForm": null},
 
-  {"id": 48, "name": "Venonat", "type": "Inseto", "secondType": "", "BaseTotal": 206, "hp": 60, "atk": 48, "def": 53, "spd": 45, "stage": 1, "nextForm": "Venomoth", "evoTrigger": 8},
-  {"id": 49, "name": "Venomoth", "type": "Inseto", "secondType": "", "BaseTotal": 306, "hp": 70, "atk": 78, "def": 68, "spd": 90, "stage": 2, "nextForm": null},
+  {"id": 48, "name": "Venonat", "type": "Inseto", "secondType": "Veneno", "BaseTotal": 206, "hp": 60, "atk": 48, "def": 53, "spd": 45, "stage": 1, "nextForm": "Venomoth", "evoTrigger": 8},
+  {"id": 49, "name": "Venomoth", "type": "Inseto", "secondType": "Veneno", "BaseTotal": 306, "hp": 70, "atk": 78, "def": 68, "spd": 90, "stage": 2, "nextForm": null},
 
   {"id": 50, "name": "Diglett", "type": "Terra", "secondType": "", "BaseTotal": 185, "hp": 10, "atk": 45, "def": 35, "spd": 95, "stage": 1, "nextForm": "Dugtrio", "evoTrigger": 8},
   {"id": 51, "name": "Dugtrio", "type": "Terra", "secondType": "", "BaseTotal": 290, "hp": 35, "atk": 75, "def": 60, "spd": 120, "stage": 2, "nextForm": null},
@@ -88,7 +88,7 @@ export const POKEDEX: PokemonData[] = [
 
   {"id": 60, "name": "Poliwag", "type": "Água", "secondType": "", "BaseTotal": 215, "hp": 40, "atk": 45, "def": 40, "spd": 90, "stage": 1, "nextForm": "Poliwhirl", "evoTrigger": 5},
   {"id": 61, "name": "Poliwhirl", "type": "Água", "secondType": "", "BaseTotal": 271, "hp": 65, "atk": 58, "def": 58, "spd": 90, "stage": 2, "nextForm": "Poliwrath", "evoTrigger": 10},
-  {"id": 62, "name": "Poliwrath", "type": "Lutador", "secondType": "", "BaseTotal": 336, "hp": 90, "atk": 83, "def": 93, "spd": 70, "stage": 3, "nextForm": null},
+  {"id": 62, "name": "Poliwrath", "type": "Lutador", "secondType": "Lutador", "BaseTotal": 336, "hp": 90, "atk": 83, "def": 93, "spd": 70, "stage": 3, "nextForm": null},
 
   {"id": 63, "name": "Abra", "type": "Psíquico", "secondType": "", "BaseTotal": 213, "hp": 25, "atk": 63, "def": 35, "spd": 90, "stage": 1, "nextForm": "Kadabra", "evoTrigger": 5},
   {"id": 64, "name": "Kadabra", "type": "Psíquico", "secondType": "", "BaseTotal": 273, "hp": 40, "atk": 78, "def": 50, "spd": 105, "stage": 2, "nextForm": "Alakazam", "evoTrigger": 10},
@@ -98,43 +98,45 @@ export const POKEDEX: PokemonData[] = [
   {"id": 67, "name": "Machoke", "type": "Lutador", "secondType": "", "BaseTotal": 265, "hp": 80, "atk": 75, "def": 65, "spd": 45, "stage": 2, "nextForm": "Machamp", "evoTrigger": 10},
   {"id": 68, "name": "Machamp", "type": "Lutador", "secondType": "", "BaseTotal": 326, "hp": 90, "atk": 98, "def": 83, "spd": 55, "stage": 3, "nextForm": null},
 
-  {"id": 69, "name": "Bellsprout", "type": "Grama", "secondType": "", "BaseTotal": 196, "hp": 50, "atk": 73, "def": 33, "spd": 40, "stage": 1, "nextForm": "Weepinbell", "evoTrigger": 5},
-  {"id": 70, "name": "Weepinbell", "type": "Grama", "secondType": "", "BaseTotal": 256, "hp": 65, "atk": 88, "def": 48, "spd": 55, "stage": 2, "nextForm": "Victreebel", "evoTrigger": 10},
-  {"id": 71, "name": "Victreebel", "type": "Grama", "secondType": "", "BaseTotal": 321, "hp": 80, "atk": 103, "def": 68, "spd": 70, "stage": 3, "nextForm": null},
+  {"id": 69, "name": "Bellsprout", "type": "Grama", "secondType": "Veneno", "BaseTotal": 196, "hp": 50, "atk": 73, "def": 33, "spd": 40, "stage": 1, "nextForm": "Weepinbell", "evoTrigger": 5},
+  {"id": 70, "name": "Weepinbell", "type": "Grama", "secondType": "Veneno", "BaseTotal": 256, "hp": 65, "atk": 88, "def": 48, "spd": 55, "stage": 2, "nextForm": "Victreebel", "evoTrigger": 10},
+  {"id": 71, "name": "Victreebel", "type": "Grama", "secondType": "Veneno", "BaseTotal": 321, "hp": 80, "atk": 103, "def": 68, "spd": 70, "stage": 3, "nextForm": null},
 
-  {"id": 72, "name": "Tentacool", "type": "Água", "secondType": "", "BaseTotal": 223, "hp": 40, "atk": 45, "def": 68, "spd": 70, "stage": 1, "nextForm": "Tentacruel", "evoTrigger": 8},
-  {"id": 73, "name": "Tentacruel", "type": "Água", "secondType": "", "BaseTotal": 348, "hp": 80, "atk": 75, "def": 93, "spd": 100, "stage": 2, "nextForm": null},
+  {"id": 72, "name": "Tentacool", "type": "Água", "secondType": "Veneno", "BaseTotal": 223, "hp": 40, "atk": 45, "def": 68, "spd": 70, "stage": 1, "nextForm": "Tentacruel", "evoTrigger": 8},
+  {"id": 73, "name": "Tentacruel", "type": "Água", "secondType": "Veneno", "BaseTotal": 348, "hp": 80, "atk": 75, "def": 93, "spd": 100, "stage": 2, "nextForm": null},
 
-  {"id": 74, "name": "Geodude", "type": "Pedra", "secondType": "", "BaseTotal": 180, "hp": 40, "atk": 55, "def": 65, "spd": 20, "stage": 1, "nextForm": "Graveler", "evoTrigger": 5},
-  {"id": 75, "name": "Graveler", "type": "Pedra", "secondType": "", "BaseTotal": 240, "hp": 55, "atk": 70, "def": 80, "spd": 35, "stage": 2, "nextForm": "Golem", "evoTrigger": 10},
-  {"id": 76, "name": "Golem", "type": "Pedra", "secondType": "", "BaseTotal": 312, "hp": 80, "atk": 89, "def": 98, "spd": 45, "stage": 3, "nextForm": null},
+  {"id": 74, "name": "Geodude", "type": "Pedra", "secondType": "Terra", "BaseTotal": 180, "hp": 40, "atk": 55, "def": 65, "spd": 20, "stage": 1, "nextForm": "Graveler", "evoTrigger": 5},
+  {"id": 75, "name": "Graveler", "type": "Pedra", "secondType": "Terra", "BaseTotal": 240, "hp": 55, "atk": 70, "def": 80, "spd": 35, "stage": 2, "nextForm": "Golem", "evoTrigger": 10},
+  {"id": 76, "name": "Golem", "type": "Pedra", "secondType": "Terra", "BaseTotal": 312, "hp": 80, "atk": 89, "def": 98, "spd": 45, "stage": 3, "nextForm": null},
 
   {"id": 77, "name": "Ponyta", "type": "Fogo", "secondType": "", "BaseTotal": 275, "hp": 50, "atk": 75, "def": 60, "spd": 90, "stage": 1, "nextForm": "Rapidash", "evoTrigger": 8},
   {"id": 78, "name": "Rapidash", "type": "Fogo", "secondType": "", "BaseTotal": 335, "hp": 65, "atk": 90, "def": 75, "spd": 105, "stage": 2, "nextForm": null},
 
-  {"id": 79, "name": "Slowpoke", "type": "Água", "secondType": "", "BaseTotal": 211, "hp": 90, "atk": 53, "def": 53, "spd": 15, "stage": 1, "nextForm": "Slowbro", "evoTrigger": 8},
-  {"id": 80, "name": "Slowbro", "type": "Água", "secondType": "", "BaseTotal": 308, "hp": 95, "atk": 88, "def": 95, "spd": 30, "stage": 2, "nextForm": null},
+  {"id": 79, "name": "Slowpoke", "type": "Água", "secondType": "Psíquico", "BaseTotal": 211, "hp": 90, "atk": 53, "def": 53, "spd": 15, "stage": 1, "nextForm": "Slowbro", "evoTrigger": 8},
+  {"id": 80, "name": "Slowbro", "type": "Água", "secondType": "Psíquico", "BaseTotal": 308, "hp": 95, "atk": 88, "def": 95, "spd": 30, "stage": 2, "nextForm": null},
 
   {"id": 81, "name": "Magnemite", "type": "Elétrico", "secondType": "Aço", "BaseTotal": 198, "hp": 25, "atk": 65, "def": 63, "spd": 45, "stage": 1, "nextForm": "Magneton", "evoTrigger": 8},
   {"id": 82, "name": "Magneton", "type": "Elétrico", "secondType": "Aço", "BaseTotal": 293, "hp": 50, "atk": 90, "def": 83, "spd": 70, "stage": 2, "nextForm": null},
 
-  {"id": 84, "name": "Doduo", "type": "Voador", "secondType": "", "BaseTotal": 210, "hp": 35, "atk": 60, "def": 40, "spd": 75, "stage": 1, "nextForm": "Dodrio", "evoTrigger": 8},
-  {"id": 85, "name": "Dodrio", "type": "Voador", "secondType": "", "BaseTotal": 310, "hp": 60, "atk": 85, "def": 65, "spd": 100, "stage": 2, "nextForm": null},
+  {"id": 83, "name": "Farfetch'd", "type": "Normal", "secondType": "Voador", "BaseTotal": 242, "hp": 52, "atk": 77, "def": 58, "spd": 55, "stage": 1, "nextForm": null},
+
+  {"id": 84, "name": "Doduo", "type": "Voador", "secondType": "Normal", "BaseTotal": 210, "hp": 35, "atk": 60, "def": 40, "spd": 75, "stage": 1, "nextForm": "Dodrio", "evoTrigger": 8},
+  {"id": 85, "name": "Dodrio", "type": "Voador", "secondType": "Normal", "BaseTotal": 310, "hp": 60, "atk": 85, "def": 65, "spd": 100, "stage": 2, "nextForm": null},
 
   {"id": 86, "name": "Seel", "type": "Água", "secondType": "", "BaseTotal": 218, "hp": 65, "atk": 45, "def": 63, "spd": 45, "stage": 1, "nextForm": "Dewgong", "evoTrigger": 8},
-  {"id": 87, "name": "Dewgong", "type": "Gelo", "secondType": "", "BaseTotal": 318, "hp": 90, "atk": 70, "def": 88, "spd": 70, "stage": 2, "nextForm": null},
+  {"id": 87, "name": "Dewgong", "type": "Gelo", "secondType": "Água", "BaseTotal": 318, "hp": 90, "atk": 70, "def": 88, "spd": 70, "stage": 2, "nextForm": null},
 
   {"id": 88, "name": "Grimer", "type": "Veneno", "secondType": "", "BaseTotal": 215, "hp": 80, "atk": 60, "def": 50, "spd": 25, "stage": 1, "nextForm": "Muk", "evoTrigger": 8},
   {"id": 89, "name": "Muk", "type": "Veneno", "secondType": "", "BaseTotal": 328, "hp": 105, "atk": 85, "def": 88, "spd": 50, "stage": 2, "nextForm": null},
 
   {"id": 90, "name": "Shellder", "type": "Água", "secondType": "", "BaseTotal": 188, "hp": 30, "atk": 55, "def": 63, "spd": 40, "stage": 1, "nextForm": "Cloyster", "evoTrigger": 8},
-  {"id": 91, "name": "Cloyster", "type": "Gelo", "secondType": "", "BaseTotal": 323, "hp": 50, "atk": 90, "def": 113, "spd": 70, "stage": 2, "nextForm": null},
+  {"id": 91, "name": "Cloyster", "type": "Gelo", "secondType": "Água", "BaseTotal": 323, "hp": 50, "atk": 90, "def": 113, "spd": 70, "stage": 2, "nextForm": null},
 
-  {"id": 92, "name": "Gastly", "type": "Fantasma", "secondType": "", "BaseTotal": 211, "hp": 30, "atk": 68, "def": 33, "spd": 80, "stage": 1, "nextForm": "Haunter", "evoTrigger": 5},
-  {"id": 93, "name": "Haunter", "type": "Fantasma", "secondType": "", "BaseTotal": 273, "hp": 45, "atk": 83, "def": 50, "spd": 95, "stage": 2, "nextForm": "Gengar", "evoTrigger": 10},
-  {"id": 94, "name": "Gengar", "type": "Fantasma", "secondType": "", "BaseTotal": 336, "hp": 60, "atk": 98, "def": 68, "spd": 110, "stage": 3, "nextForm": null},
+  {"id": 92, "name": "Gastly", "type": "Fantasma", "secondType": "Veneno", "BaseTotal": 211, "hp": 30, "atk": 68, "def": 33, "spd": 80, "stage": 1, "nextForm": "Haunter", "evoTrigger": 5},
+  {"id": 93, "name": "Haunter", "type": "Fantasma", "secondType": "Veneno", "BaseTotal": 273, "hp": 45, "atk": 83, "def": 50, "spd": 95, "stage": 2, "nextForm": "Gengar", "evoTrigger": 10},
+  {"id": 94, "name": "Gengar", "type": "Fantasma", "secondType": "Veneno", "BaseTotal": 336, "hp": 60, "atk": 98, "def": 68, "spd": 110, "stage": 3, "nextForm": null},
 
-  {"id": 95, "name": "Onix", "type": "Pedra", "secondType": "", "BaseTotal": 246, "hp": 35, "atk": 38, "def": 103, "spd": 70, "stage": 1, "nextForm": "Steelix", "evoTrigger": 8},
+  {"id": 95, "name": "Onix", "type": "Pedra", "secondType": "Terra", "BaseTotal": 246, "hp": 35, "atk": 38, "def": 103, "spd": 70, "stage": 1, "nextForm": "Steelix", "evoTrigger": 8},
 
   {"id": 96, "name": "Drowzee", "type": "Psíquico", "secondType": "", "BaseTotal": 216, "hp": 60, "atk": 46, "def": 68, "spd": 42, "stage": 1, "nextForm": "Hypno", "evoTrigger": 8},
   {"id": 97, "name": "Hypno", "type": "Psíquico", "secondType": "", "BaseTotal": 318, "hp": 85, "atk": 73, "def": 93, "spd": 67, "stage": 2, "nextForm": null},
