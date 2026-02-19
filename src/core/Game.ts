@@ -25,8 +25,83 @@ export class Game {
     static bonusMovement: number = 0;
     static traps: {x: number, y: number, ownerId: number}[] = [];
     static pendingHealItem: string | null = null;
+    static gymTeams: { [id: number]: number[] } = {};
 
-    static init(players: Player[], mapSize: number) { this.players = players; if(MapSystem.grid.length === 0) { MapSystem.generate(mapSize); } if(Network.isOnline && Network.isHost) { if(db) update(ref(db, `rooms/${Network.currentRoomId}`), { grid: MapSystem.grid, gymLocations: MapSystem.gymLocations }); } this.renderBoard(); this.updateHUD(); this.moveVisuals(); this.checkTurnControl(); this.renderDebugPanel(); }
+    static init(players: Player[], mapSize: number) { 
+        this.players = players; 
+        
+        if(MapSystem.grid.length === 0) { 
+            MapSystem.generate(mapSize); 
+        } 
+        
+        if (Object.keys(this.gymTeams).length === 0) {
+            this.generateGymTeams();
+        }
+
+        if(Network.isOnline && Network.isHost) { 
+            if(db) update(ref(db, `rooms/${Network.currentRoomId}`), { 
+                grid: MapSystem.grid, 
+                gymLocations: MapSystem.gymLocations, 
+                gymTeams: this.gymTeams
+            }); 
+        } 
+
+        this.renderBoard(); 
+        this.updateHUD(); 
+        this.moveVisuals(); 
+        this.checkTurnControl(); 
+        this.renderDebugPanel(); 
+    }
+
+    // --- NOVA FUNÇÃO GERADORA DE TIMES DE GINÁSIO ---
+    static generateGymTeams() {
+        this.gymTeams = {};
+        
+        GYM_DATA.forEach(gym => {
+            // 1. Filtra candidatos na Pokedex
+            // - Tem que ser estágio 1 (Base) -> A evolução automática do Battle.ts cuidará do nível
+            // - Tem que bater com UM dos tipos do ginásio
+            const validCandidates = POKEDEX.filter(p => 
+                p.stage === 1 && 
+                (gym.type.includes(p.type) || (p.secondType && gym.type.includes(p.secondType)))
+            );
+
+            const roster: number[] = [];
+            
+            // Gera um elenco fixo de 6 Pokémons para o ginásio
+            for(let i = 0; i < 6; i++) {
+                // 2. Lógica de Raridade (Mesma chance global: 2% para Lendário)
+                const isLegendaryRoll = Math.random() * 100 < 2;
+                
+                let pool = [];
+                
+                if (isLegendaryRoll) {
+                    // Tenta achar lendário que bata com o tipo
+                    pool = validCandidates.filter(p => p.isLegendary);
+                    // Se não tiver lendário desse tipo, volta para o pool normal
+                    if (pool.length === 0) pool = validCandidates.filter(p => !p.isLegendary);
+                } else {
+                    pool = validCandidates.filter(p => !p.isLegendary);
+                }
+
+                // Fallback de segurança
+                if (pool.length === 0) pool = validCandidates;
+                
+                if (pool.length > 0) {
+                    const pick = pool[Math.floor(Math.random() * pool.length)];
+                    roster.push(pick.id);
+                } else {
+                    // Se algo der muito errado, coloca um Magikarp (id 129)
+                    roster.push(129); 
+                }
+            }
+            
+            this.gymTeams[gym.id] = roster;
+        });
+        
+        console.log("Times de Ginásio Gerados:", this.gymTeams);
+    }
+    
     static addItem(player: Player, itemId: string, amount: number = 1) { if (!player.items[itemId]) { player.items[itemId] = 0; } player.items[itemId] += amount; this.updateHUD(); if(Network.isOnline) Network.syncPlayerState(); }
     static sendGlobalLog(msg: string) { this.log(msg); if(Network.isOnline) { Network.sendAction('LOG', { msg: msg }); } }
     static getGlobalAverageLevel(): number { if (!this.players || this.players.length === 0) return 1; let totalLevels = 0; let totalMons = 0; this.players.forEach(p => { p.team.forEach(m => { totalLevels += m.level; totalMons++; }); }); if (totalMons === 0) return 1; return Math.floor(totalLevels / totalMons); }
@@ -86,9 +161,9 @@ export class Game {
         // 1. Filtros de Terreno (Igual ao anterior)
         let allowedTypes: string[] = [];
         switch (tileType) {
-            case TILE.GRASS: allowedTypes = ['Grama', 'Inseto', 'Normal', 'Veneno', 'Voador', 'Fada']; break;
-            case TILE.WATER: allowedTypes = ['Água', 'Gelo', 'Dragão']; break;
-            case TILE.GROUND: allowedTypes = ['Terra', 'Pedra', 'Fogo', 'Lutador', 'Elétrico', 'Psíquico', 'Fantasma']; break;
+            case TILE.GRASS: allowedTypes = ['Grama', 'Inseto', 'Normal', 'Veneno', 'Voador', 'Noturno']; break;
+            case TILE.WATER: allowedTypes = ['Água', 'Gelo', 'Dragão', 'Fada']; break;
+            case TILE.GROUND: allowedTypes = ['Terra', 'Pedra', 'Fogo', 'Lutador', 'Elétrico', 'Psíquico', 'Fantasma','Aço']; break;
             default: allowedTypes = ['Normal']; break;
         }
 

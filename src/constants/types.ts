@@ -43,3 +43,14 @@ export interface Coord {
     x: number;
     y: number;
 }
+
+export interface GymData {
+    id: number;
+    leaderName: string;
+    type: string[];
+    // IDs dos pokémons na Pokedex
+    teamIds: number[]; 
+    badgeImg: string;
+    leaderImg: string;
+    gymImg: string;
+}

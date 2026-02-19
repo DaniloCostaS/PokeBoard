@@ -39,11 +39,26 @@ export class Network {
         
         const myPlayerObj = new Player(0, this.localName, this.localAvatar, false); 
         
+        // --- GERA O MAPA E OS TIMES ANTES DE SALVAR ---
+        MapSystem.generate(20); // Garante que o mapa existe
+        const Game = (window as any).Game;
+        Game.generateGymTeams(); // Gera os times únicos dessa partida
+        // ----------------------------------------------
+
         const initialData = { 
             status: "LOBBY", 
             turn: 0, 
             round: 1,
-            mapSize: 20, 
+            mapSize: 20,
+
+            // Salva o mapa e os times na criação da sala
+            map: {
+                size: 20,
+                grid: MapSystem.grid,
+                gymLocations: MapSystem.gymLocations
+            },
+            gymTeams: Game.gymTeams, // <--- SALVA AQUI
+
             players: { 
                 0: { 
                     name: myPlayerObj.name, 
@@ -122,6 +137,20 @@ export class Network {
         const snapshot = await get(ref(db, `rooms/${this.currentRoomId}`)); 
         const data = snapshot.val(); 
         Game.round = data.round || 1;
+
+        // Carrega Mapa
+        if (data.map) { 
+            MapSystem.size = data.map.size; 
+            MapSystem.grid = data.map.grid; 
+            MapSystem.gymLocations = data.map.gymLocations || {}; 
+        }
+        
+        // --- CARREGA OS TIMES DE GINÁSIO ---
+        if (data.gymTeams) {
+            Game.gymTeams = data.gymTeams;
+        }
+        // -----------------------------------
+
         if (data.map) { MapSystem.size = data.map.size; MapSystem.grid = data.map.grid; MapSystem.gymLocations = data.map.gymLocations || {}; } else { return; } 
         const playerArray = Object.values(data.players).map((pd: any) => { 
             const pl = new Player(pd.id, pd.name, pd.avatar, true); 

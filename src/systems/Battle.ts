@@ -58,9 +58,26 @@ export class Battle {
             const gymData = GYM_DATA.find(g => g.id === gymId);
             const globalAvg = Game.getGlobalAverageLevel();
             const gymLevel = globalAvg + 1; 
-            if(gymData) { this.oppTeamList = gymData.teamIds.map((id: number) => new Pokemon(id, gymLevel, false)); this.opponent = this.oppTeamList[0]; } 
-            else { this.oppTeamList = Array.isArray(enemyMon) ? enemyMon : [enemyMon]; this.opponent = this.oppTeamList[0]; }
-            this.plyTeamList = player.getBattleTeam(true); 
+
+            const teamSize = Math.min(6, Math.max(2, Game.getGlobalAverageTeamSize() + 1));
+            
+            // BLINDAGEM 1: Garante que Game.gymTeams existe. Se não existir, usa fallback vazio.
+            const dynamicTeams = Game.gymTeams || {}; 
+            
+            // Pega o elenco dinâmico OU usa o fixo do JSON OU usa Magikarp como último recurso
+            let rosterIds = dynamicTeams[gymId] || (gymData ? gymData.teamIds : [129]);
+            
+            const battleIds = rosterIds.slice(0, teamSize);
+
+            this.oppTeamList = battleIds.map((id: number) => new Pokemon(id, gymLevel, false));
+            this.opponent = this.oppTeamList[0];
+            
+            // BLINDAGEM 2: Força pegar qualquer Pokémon vivo se getBattleTeam falhar
+            this.plyTeamList = player.getBattleTeam(true);
+            if (this.plyTeamList.length === 0) {
+                 // Fallback manual: Pega qualquer um que não esteja desmaiado
+                 this.plyTeamList = player.team.filter(p => !p.isFainted());
+            }
         } else { 
             this.oppTeamList = Array.isArray(enemyMon) ? enemyMon : [enemyMon]; 
             this.opponent = this.oppTeamList[0]; 
@@ -315,17 +332,17 @@ export class Battle {
     }
 
     static calculateDamage(attacker: Pokemon, defender: Pokemon, isPlayerAttacking: boolean): { damage: number, msg: string, avoided: boolean } { 
-        // 1. CÁLCULO DE ESQUIVA (Mantido)
+        // 1. CÁLCULO DE ESQUIVA (Mantém igual)
         const dodgeChance = defender.speed / 5;
         if (Math.random() * 100 <= dodgeChance) {
             return { damage: 0, msg: "💨 ESQUIVOU!", avoided: true };
         }
 
-        // 2. ATAQUE BASE HÍBRIDO (Mantido)
+        // 2. ATAQUE BASE HÍBRIDO (Mantém igual)
         // Soma ponderada: 65% ATK + 15% SPD + 20% HP
         const baseAtk = (attacker.atk * 0.65) + (attacker.speed * 0.15) + (attacker.maxHp * 0.2);
 
-        // 3. NOVA FÓRMULA DE DANO (Agressiva)
+        // 3. DANO BASE (Sua fórmula nova)
         // Dano = (AtaqueBase / 5) - (DEF / 20)
         let finalDamage = (baseAtk / 5) - (defender.def / 20);
 
@@ -334,7 +351,7 @@ export class Battle {
 
         let logDetails = "";
 
-        // 4. CRÍTICO DE VELOCIDADE (Mantido)
+        // 4. CRÍTICO E DADO (Mantém igual)
         const spdCritChance = attacker.speed / 8;
         if (Math.random() * 100 <= spdCritChance) {
             finalDamage += 5;
@@ -344,28 +361,58 @@ export class Battle {
         // 5. DADO D6 (Sorte/Azar)
         const d6 = Math.floor(Math.random() * 6) + 1;
         let rollModifier = 0; 
-        
         if (d6 === 6) { rollModifier = +5; logDetails += " 🎲Crit!"; } 
         else if (d6 === 5) rollModifier = +3; 
         else if (d6 === 4) rollModifier = +2; 
         else if (d6 === 2) rollModifier = -1; 
         else if (d6 === 1) rollModifier = -2; 
-
         finalDamage += rollModifier;
 
-        // 6. MULTIPLICADOR DE TIPO
-        let rawMulti = 1; 
-        if (TYPE_CHART[attacker.type] && (TYPE_CHART[attacker.type] as any)[defender.type] !== undefined) { 
-            rawMulti = (TYPE_CHART[attacker.type] as any)[defender.type]; 
-        } 
+        // =================================================================================
+        // 5. NOVO SISTEMA DE MULTIPLICADOR DUPLO (MÉDIA PONDERADA)
+        // =================================================================================
         
-        // Aplica fraqueza/vantagem
-        finalDamage = Math.floor(finalDamage * (rawMulti > 1 ? 1.75 : (rawMulti < 1 ? 0.75 : 1))); 
+        // Lista os tipos presentes (remove vazios)
+        const atkTypes = [attacker.type, attacker.secondType].filter(t => t);
+        const defTypes = [defender.type, defender.secondType].filter(t => t);
+
+        let totalMulti = 0;
+        let interactions = 0;
+
+        // Cruza cada tipo do atacante contra cada tipo do defensor
+        atkTypes.forEach(atkT => {
+            defTypes.forEach(defT => {
+                let factor = 1; // Neutro
+                
+                // Verifica na tabela se existe relação
+                if (TYPE_CHART[atkT] && (TYPE_CHART[atkT] as any)[defT] !== undefined) {
+                    const val = (TYPE_CHART[atkT] as any)[defT];
+                    // Converte os valores padrão (2, 0.5) para os seus personalizados (1.75, 0.75)
+                    if (val > 1) factor = 1.75;      // Vantagem
+                    else if (val < 1) factor = 0.75; // Desvantagem
+                }
+                
+                totalMulti += factor;
+                interactions++;
+            });
+        });
+
+        // Calcula a média final (equivalente a somar 25% de cada parte)
+        const finalMulti = totalMulti / interactions;
         
-        // Garante que o dano final não cure o oponente (mínimo 0)
+        // Aplica o multiplicador no dano
+        finalDamage = Math.floor(finalDamage * finalMulti);
+
+        // Define o ícone do log baseado na média final
+        if (finalMulti > 1.2) logDetails += " 🔥!"; // Muito efetivo (Média alta)
+        else if (finalMulti > 1.0) logDetails += " ⚔️"; // Levemente efetivo
+        else if (finalMulti < 0.9) logDetails += " 🛡️."; // Pouco efetivo
+        
+        // =================================================================================
+
         finalDamage = Math.max(0, Math.floor(finalDamage));
 
-        // Aplica modificadores de cartas/efeitos
+        // Aplica modificadores de cartas (Mantém igual)
         if (isPlayerAttacking) { 
             if (this.activeEffects.crit) { finalDamage *= 2; logDetails += " [2x]"; } 
             if (this.activeEffects.focus) { finalDamage *= 4; this.activeEffects.focus = false; logDetails += " [4x]"; } 
@@ -374,9 +421,6 @@ export class Battle {
             if (this.activeEffects.guard) { finalDamage = Math.floor(finalDamage / 2); logDetails += " [🛡️]"; } 
             if (this.enemyPlayer && this.enemyPlayer.effects.curse) { finalDamage = Math.floor(finalDamage / 2); } 
         } 
-        
-        if (rawMulti > 1) logDetails += " 🔥!"; 
-        else if (rawMulti < 1) logDetails += " 🛡️."; 
         
         return { damage: finalDamage, msg: `(🎲${d6})${logDetails}`, avoided: false };
     }
