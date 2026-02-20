@@ -14,6 +14,7 @@ export class Pokemon {
 
     ivs: { hp: number, atk: number, def: number, spd: number };
     baseStats: { hp: number, atk: number, def: number, spd: number };
+    bonusStats: { hp: number, atk: number, def: number, spd: number };
 
     constructor(templateId: number, targetLevel: number = 1, forceShiny: boolean | null = null, isGymLeaderMon: boolean = false) {
         let template = POKEDEX.find(p => p.id === templateId) || POKEDEX[0];
@@ -31,8 +32,7 @@ export class Pokemon {
         this.isLegendary = !!template.isLegendary;
         this.stage = template.stage; 
         this.baseTotal = template.BaseTotal || (template.hp + template.atk + template.def + template.spd);
-        
-        this.isGymLeaderMon = isGymLeaderMon; // <--- SALVA A IDENTIFICAÇÃO
+        this.isGymLeaderMon = isGymLeaderMon;
 
         if (forceShiny !== null) {
             this.isShiny = forceShiny;
@@ -43,85 +43,102 @@ export class Pokemon {
         this.level = targetLevel; 
         this.currentXp = 0; 
         this.wins = 0;
-        this.evoData = { 
-            next: template.nextForm || "", 
-            trigger: template.evoTrigger || 999 
-        };
+        this.evoData = { next: template.nextForm || "", trigger: template.evoTrigger || 999 };
+        this.baseStats = { hp: template.hp, atk: template.atk, def: template.def, spd: template.spd };
 
-        this.baseStats = {
-            hp: template.hp,
-            atk: template.atk,
-            def: template.def,
-            spd: template.spd
-        };
-
-        // --- REGRA 3: IVs CRAVADOS EM 20 PARA LÍDERES ---
+        // --- REGRA DE IVs: 20 para Lideres, 0 a 10 para Players ---
         if (this.isGymLeaderMon) {
             this.ivs = { hp: 20, atk: 20, def: 20, spd: 20 };
         } else {
             this.ivs = {
-                hp: Math.floor(Math.random() * 6),
-                atk: Math.floor(Math.random() * 6),
-                def: Math.floor(Math.random() * 6),
-                spd: Math.floor(Math.random() * 6)
+                hp: Math.floor(Math.random() * 11), // 0 a 10
+                atk: Math.floor(Math.random() * 11),
+                def: Math.floor(Math.random() * 11),
+                spd: Math.floor(Math.random() * 11)
             };
         }
 
+        // --- DISTRIBUIÇÃO INICIAL DE STATUS POR LEVEL ---
+        this.bonusStats = { hp: 0, atk: 0, def: 0, spd: 0 };
+        const levelsToSimulate = targetLevel - 1;
+        if (levelsToSimulate > 0) {
+            for (let i = 0; i < levelsToSimulate; i++) {
+                this.distributeLevelUpStats();
+            }
+        }
+
         this.maxHp = 0; this.currentHp = 0; this.atk = 0; this.def = 0; this.speed = 0;
-        
         this.maxXp = this.calculateMaxXp();
         this.recalculateStats(true);
     }
 
     // Nova lógica de cálculo de XP baseada na planilha
     calculateMaxXp(): number {
-        let multiplier = 10; // Padrão Stage 1
+        let multiplier = 8; // Padrão Stage 1
 
         /* if (this.isShiny) {
             multiplier = 50;
         } else /*/
         if (this.isLegendary) {
-            multiplier = 30;
+            multiplier = 15;
         } else {
             // Lógica de Estágios
             if (this.stage === 1) {
-                // Se não tem próxima forma, é Single Stage (ex: Tauros) -> Usa lógica Stage 3 (30x)
-                // Se tem próxima forma, é Stage 1 padrão -> Usa lógica Stage 1 (10x)
-                if (!this.evoData.next) multiplier = 20;
-                else multiplier = 10;
+                if (!this.evoData.next) 
+                    multiplier = 12;
+                else 
+                    multiplier = 8;
             } 
             else if (this.stage === 2) {
-                // Se não tem próxima forma, é final de linha de 2 estágios (ex: Fearow) -> Usa lógica Stage 3 (30x)
-                // Se tem próxima forma, é meio de linha de 3 estágios (ex: Ivysaur) -> Usa lógica Stage 2 (20x)
-                if (!this.evoData.next) multiplier = 20;
-                else multiplier = 15;
+                if (!this.evoData.next) 
+                    multiplier = 12;
+                else 
+                    multiplier = 10;
             } 
             else if (this.stage === 3) {
-                // Stage 3 sempre 30x
-                multiplier = 20;
+                multiplier = 12;
             }
         }
         
         return this.level * multiplier;
     }
 
+    // --- NOVA FUNÇÃO: Sorteia 15 pontos e devolve o que foi ganho ---
+    distributeLevelUpStats() {
+        const gains = { hp: 0, atk: 0, def: 0, spd: 0 }; // Guarda o que ganhou NESSE level
+
+        if (this.isGymLeaderMon) {
+            this.bonusStats.hp += 5; gains.hp += 5;
+            this.bonusStats.atk += 5; gains.atk += 5;
+            this.bonusStats.def += 5; gains.def += 5;
+            this.bonusStats.spd += 5; gains.spd += 5;
+        } else {
+            let points = 15;
+            const stats: (keyof typeof this.bonusStats)[] = ['hp', 'atk', 'def', 'spd'];
+            while (points > 0) {
+                const randomStat = stats[Math.floor(Math.random() * stats.length)];
+                this.bonusStats[randomStat] += 1;
+                gains[randomStat] += 1;
+                points--;
+            }
+        }
+        return gains;
+    }
+
     recalculateStats(resetHp: boolean = false) {
-        // --- ALTERAÇÃO: Mudando o bônus de 1.1 (10%) para 1.15 (15%) para 1.3 (30%) ---
         const shinyBonus = this.isShiny ? 1.15 : 1.0; 
         
-        // --- REGRA 4: +5 STATUS POR LEVEL PARA LÍDERES (+2 PARA JOGADORES) ---
-        const levelBonus = this.isGymLeaderMon ? (this.level - 1) * 5 : (this.level - 1) * 2;
-
-        const calc = (base: number, iv: number) => Math.floor((base + iv + levelBonus) * shinyBonus);
+        // A fórmula agora usa Base + IV + Bonus (sem usar this.level diretamente)
+        const calc = (base: number, iv: number, bonus: number) => Math.floor((base + iv + bonus) * shinyBonus);
 
         const oldMaxHp = this.maxHp;
 
-        this.maxHp = calc(this.baseStats.hp, this.ivs.hp); 
+        this.maxHp = calc(this.baseStats.hp, this.ivs.hp, this.bonusStats.hp); 
         this.maxHp = Math.max(1, this.maxHp);
         
-        this.atk = calc(this.baseStats.atk, this.ivs.atk);
-        this.def = calc(this.baseStats.def, this.ivs.def);
-        this.speed = calc(this.baseStats.spd, this.ivs.spd);
+        this.atk = calc(this.baseStats.atk, this.ivs.atk, this.bonusStats.atk);
+        this.def = calc(this.baseStats.def, this.ivs.def, this.bonusStats.def);
+        this.speed = calc(this.baseStats.spd, this.ivs.spd, this.bonusStats.spd);
 
         if (resetHp) {
             this.currentHp = this.maxHp;
@@ -163,20 +180,29 @@ export class Pokemon {
     levelUp(player: Player | null) { 
         this.level++; 
         
-        // Recalcula o XP necessário para o próximo nível (agora que o nível aumentou)
-        this.maxXp = this.calculateMaxXp();
+        // Recebe os ganhos exatos deste level
+        const gains = this.distributeLevelUpStats(); 
         
+        this.maxXp = this.calculateMaxXp();
         this.recalculateStats(false);
+        
         if(player) {
              const Game = (window as any).Game;
-             Game.sendGlobalLog(`🎉 ${this.name} subiu para o Nível ${this.level}! (+2 Status)`); 
+             // Log detalhado com os status sorteados!
+             Game.sendGlobalLog(`🎉 ${this.name} subiu para o Nível ${this.level}! (+${gains.hp} HP | +${gains.atk} ATK | +${gains.def} DEF | +${gains.spd} SPD)`); 
         }
         this.checkEvolution(player); 
     }
 
     forceLevel(targetLevel: number) { 
+        const diff = targetLevel - this.level;
+        if (diff > 0) {
+            for (let i = 0; i < diff; i++) {
+                this.distributeLevelUpStats(); // <- Simula os níveis pulados
+            }
+        }
         this.level = targetLevel;
-        this.maxXp = this.calculateMaxXp(); // Atualiza XP necessário
+        this.maxXp = this.calculateMaxXp(); 
         let evolved = false;
         do {
             evolved = this.checkEvolution(null, true); 
