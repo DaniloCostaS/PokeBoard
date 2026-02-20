@@ -148,7 +148,29 @@ export class Network {
         Setup.showLobbyUIOnly(); 
     }
 
-    static setupLobbyListener() { const playersRef = ref(db, `rooms/${this.currentRoomId}/players`); const statusRef = ref(db, `rooms/${this.currentRoomId}/status`); onValue(playersRef, (snapshot) => { const players = snapshot.val(); if(!players) return; this.lobbyPlayers = Object.values(players); const list = document.getElementById('online-lobby-list')!; list.style.display = 'block'; list.innerHTML = this.lobbyPlayers.map((p: any) => `<div class="lobby-player-item"><img src="/assets/img/Treinadores/${p.avatar}"><span><b>P${p.id + 1}</b>: ${p.name} ${p.id === 0 ? '(HOST)' : ''}</span></div>`).join(''); }); onValue(statusRef, (snapshot) => { const status = snapshot.val(); if(status === 'PLAYING') { this.initializeGameFromFirebase(); } }); }
+    static setupLobbyListener() { 
+        const playersRef = ref(db, `rooms/${this.currentRoomId}/players`); 
+        const statusRef = ref(db, `rooms/${this.currentRoomId}/status`); 
+        
+        onValue(playersRef, (snapshot) => { 
+            const players = snapshot.val(); 
+            if(!players) return; 
+            this.lobbyPlayers = Object.values(players); 
+            const list = document.getElementById('online-lobby-list')!; 
+            list.style.display = 'block'; 
+            
+            list.innerHTML = this.lobbyPlayers.map((p: any) => {
+                // CORREÇÃO LOBBY: Limpa o caminho se já estiver salvo longo no banco
+                const avatarFile = (p.avatar || "Red.jpg").split('/').pop();
+                return `<div class="lobby-player-item"><img src="/assets/img/Treinadores/${avatarFile}"><span><b>P${p.id + 1}</b>: ${p.name} ${p.id === 0 ? '(HOST)' : ''}</span></div>`;
+            }).join(''); 
+        }); 
+        
+        onValue(statusRef, (snapshot) => { 
+            const status = snapshot.val(); 
+            if(status === 'PLAYING') { this.initializeGameFromFirebase(); } 
+        }); 
+    }
 
     static async initializeGameFromFirebase() { 
         const Game = (window as any).Game; 
@@ -171,8 +193,12 @@ export class Network {
 
         if (data.map) { MapSystem.size = data.map.size; MapSystem.grid = data.map.grid; MapSystem.gymLocations = data.map.gymLocations || {}; } else { return; } 
         const playerArray = Object.values(data.players).map((pd: any) => { 
-            const pl = new Player(pd.id, pd.name, pd.avatar, true); 
+            // CORREÇÃO DOS AVATARES: Pega só o nome do arquivo para não duplicar
+            const avatarFile = (pd.avatar || "Red.jpg").split('/').pop();
+            
+            const pl = new Player(pd.id, pd.name, avatarFile, true); 
             pl.x = pd.x; pl.y = pd.y; pl.gold = pd.gold; 
+
             pl.skipTurns = pd.skipTurns || 0;
             pl.badges = pd.badges || [false,false,false,false,false,false,false,false];
             pl.cards = pd.cards || [];
@@ -431,7 +457,7 @@ export class Network {
         update(ref(db, `rooms/${this.currentRoomId}/players/${this.myPlayerId}`), { 
             id: p.id,           // <- BLINDAGEM: Nunca mais perde o ID
             name: p.name,       // <- BLINDAGEM: Nunca mais perde o Nome
-            avatar: p.avatar,   // <- BLINDAGEM: Nunca mais perde o Avatar
+            avatar: p.avatar.split('/').pop(), // <- CORREÇÃO: Salva SÓ o nome do arquivo
             x: p.x, 
             y: p.y, 
             gold: p.gold, 
@@ -458,7 +484,7 @@ export class Network {
         update(ref(db, `rooms/${this.currentRoomId}/players/${targetId}`), { 
             id: p.id,           // <- BLINDAGEM
             name: p.name,       // <- BLINDAGEM
-            avatar: p.avatar,   // <- BLINDAGEM
+            avatar: p.avatar.split('/').pop(), // <- CORREÇÃO: Salva SÓ o nome do arquivo
             x: p.x, 
             y: p.y, 
             gold: p.gold, 
@@ -482,7 +508,7 @@ export class Network {
                 updates[`rooms/${this.currentRoomId}/players/${id}`] = {
                     id: p.id,           // <- BLINDAGEM
                     name: p.name,       // <- BLINDAGEM
-                    avatar: p.avatar,   // <- BLINDAGEM
+                    avatar: p.avatar.split('/').pop(), // <- CORREÇÃO: Salva SÓ o nome do arquivo
                     x: p.x, 
                     y: p.y, 
                     gold: p.gold, 
