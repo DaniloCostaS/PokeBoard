@@ -57,25 +57,22 @@ export class Battle {
         else if (isGym) {
             const gymData = GYM_DATA.find(g => g.id === gymId);
             const globalAvg = Game.getGlobalAverageLevel();
-            const gymLevel = globalAvg + 1; 
+            const gymLevel = globalAvg + 1; // Regra 1: Mantém o level como estava
 
-            const teamSize = Math.min(6, Math.max(2, Game.getGlobalAverageTeamSize() + 1));
+            const teamSize = Math.min(6, Math.max(2, Game.getGlobalAverageTeamSize() + 1)); // Regra 1: Mantém a quantidade
             
-            // BLINDAGEM 1: Garante que Game.gymTeams existe. Se não existir, usa fallback vazio.
             const dynamicTeams = Game.gymTeams || {}; 
-            
-            // Pega o elenco dinâmico OU usa o fixo do JSON OU usa Magikarp como último recurso
-            let rosterIds = dynamicTeams[gymId] || (gymData ? gymData.teamIds : [129]);
-            
+            let rosterIds = dynamicTeams[gymId] || (gymData ? gymData.teamIds : [130]);
             const battleIds = rosterIds.slice(0, teamSize);
 
-            this.oppTeamList = battleIds.map((id: number) => new Pokemon(id, gymLevel, false));
+            // --- ATIVANDO O MODO BOSS (Quarto parâmetro = true) ---
+            // Isso diz para o Pokémon que ele é um Líder (IVs 20 e Escala +5)
+            this.oppTeamList = battleIds.map((id: number) => new Pokemon(id, gymLevel, false, true));
             this.opponent = this.oppTeamList[0];
+            // ------------------------------------------------------
             
-            // BLINDAGEM 2: Força pegar qualquer Pokémon vivo se getBattleTeam falhar
             this.plyTeamList = player.getBattleTeam(true);
             if (this.plyTeamList.length === 0) {
-                 // Fallback manual: Pega qualquer um que não esteja desmaiado
                  this.plyTeamList = player.team.filter(p => !p.isFainted());
             }
         } else { 

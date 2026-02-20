@@ -58,48 +58,42 @@ export class Game {
         this.gymTeams = {};
         
         GYM_DATA.forEach(gym => {
-            // 1. Filtra candidatos na Pokedex
-            // - Tem que ser estágio 1 (Base) -> A evolução automática do Battle.ts cuidará do nível
-            // - Tem que bater com UM dos tipos do ginásio
+            // --- REGRA 2: SOMENTE ÚLTIMA EVOLUÇÃO ---
+            // Verifica se a propriedade nextForm não existe ou é vazia
             const validCandidates = POKEDEX.filter(p => 
-                p.stage === 1 && 
+                (!p.nextForm || p.nextForm === "") && 
                 (gym.type.includes(p.type) || (p.secondType && gym.type.includes(p.secondType)))
             );
 
             const roster: number[] = [];
             
-            // Gera um elenco fixo de 6 Pokémons para o ginásio
             for(let i = 0; i < 6; i++) {
-                // 2. Lógica de Raridade (Mesma chance global: 2% para Lendário)
                 const isLegendaryRoll = Math.random() * 100 < 2;
                 
                 let pool = [];
                 
                 if (isLegendaryRoll) {
-                    // Tenta achar lendário que bata com o tipo
                     pool = validCandidates.filter(p => p.isLegendary);
-                    // Se não tiver lendário desse tipo, volta para o pool normal
                     if (pool.length === 0) pool = validCandidates.filter(p => !p.isLegendary);
                 } else {
                     pool = validCandidates.filter(p => !p.isLegendary);
                 }
 
-                // Fallback de segurança
                 if (pool.length === 0) pool = validCandidates;
                 
                 if (pool.length > 0) {
                     const pick = pool[Math.floor(Math.random() * pool.length)];
                     roster.push(pick.id);
                 } else {
-                    // Se algo der muito errado, coloca um Magikarp (id 129)
-                    roster.push(129); 
+                    // Fallback de segurança atualizado para Gyarados (ID 130) por ser estágio final
+                    roster.push(130); 
                 }
             }
             
             this.gymTeams[gym.id] = roster;
         });
         
-        console.log("Times de Ginásio Gerados:", this.gymTeams);
+        console.log("Times de Ginásio Gerados (Apenas Finais):", this.gymTeams);
     }
     
     static addItem(player: Player, itemId: string, amount: number = 1) { if (!player.items[itemId]) { player.items[itemId] = 0; } player.items[itemId] += amount; this.updateHUD(); if(Network.isOnline) Network.syncPlayerState(); }

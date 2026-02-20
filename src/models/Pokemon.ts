@@ -10,14 +10,14 @@ export class Pokemon {
     leveledUpThisTurn: boolean = false;
     stage: number; // Nova propriedade para controlar o estágio
     baseTotal: number;
+    isGymLeaderMon: boolean = false;
 
     ivs: { hp: number, atk: number, def: number, spd: number };
     baseStats: { hp: number, atk: number, def: number, spd: number };
 
-    constructor(templateId: number, targetLevel: number = 1, forceShiny: boolean | null = null) {
+    constructor(templateId: number, targetLevel: number = 1, forceShiny: boolean | null = null, isGymLeaderMon: boolean = false) {
         let template = POKEDEX.find(p => p.id === templateId) || POKEDEX[0];
         
-        // Ajusta o template se for um pokemon selvagem de nível alto (já evoluído)
         while (template.nextForm && template.evoTrigger && targetLevel >= template.evoTrigger) {
             const next = POKEDEX.find(p => p.name === template.nextForm);
             if (next) template = next;
@@ -27,11 +27,12 @@ export class Pokemon {
         this.id = template.id; 
         this.name = template.name; 
         this.type = template.type; 
-        this.secondType = template.secondType || ""; // Nova Tipagem Secundária
-        //this.baseTotal = template.BaseTotal || 0;    // Novo Status Base
+        this.secondType = template.secondType || ""; 
         this.isLegendary = !!template.isLegendary;
-        this.stage = template.stage; // Inicializa o estágio
+        this.stage = template.stage; 
         this.baseTotal = template.BaseTotal || (template.hp + template.atk + template.def + template.spd);
+        
+        this.isGymLeaderMon = isGymLeaderMon; // <--- SALVA A IDENTIFICAÇÃO
 
         if (forceShiny !== null) {
             this.isShiny = forceShiny;
@@ -54,18 +55,21 @@ export class Pokemon {
             spd: template.spd
         };
 
-        this.ivs = {
-            hp: Math.floor(Math.random() * 6),
-            atk: Math.floor(Math.random() * 6),
-            def: Math.floor(Math.random() * 6),
-            spd: Math.floor(Math.random() * 6)
-        };
+        // --- REGRA 3: IVs CRAVADOS EM 20 PARA LÍDERES ---
+        if (this.isGymLeaderMon) {
+            this.ivs = { hp: 20, atk: 20, def: 20, spd: 20 };
+        } else {
+            this.ivs = {
+                hp: Math.floor(Math.random() * 6),
+                atk: Math.floor(Math.random() * 6),
+                def: Math.floor(Math.random() * 6),
+                spd: Math.floor(Math.random() * 6)
+            };
+        }
 
         this.maxHp = 0; this.currentHp = 0; this.atk = 0; this.def = 0; this.speed = 0;
         
-        // Calcula o XP necessário com base na nova lógica
         this.maxXp = this.calculateMaxXp();
-        
         this.recalculateStats(true);
     }
 
@@ -104,7 +108,9 @@ export class Pokemon {
     recalculateStats(resetHp: boolean = false) {
         // --- ALTERAÇÃO: Mudando o bônus de 1.1 (10%) para 1.15 (15%) para 1.3 (30%) ---
         const shinyBonus = this.isShiny ? 1.15 : 1.0; 
-        const levelBonus = (this.level - 1) * 2;
+        
+        // --- REGRA 4: +5 STATUS POR LEVEL PARA LÍDERES (+2 PARA JOGADORES) ---
+        const levelBonus = this.isGymLeaderMon ? (this.level - 1) * 5 : (this.level - 1) * 2;
 
         const calc = (base: number, iv: number) => Math.floor((base + iv + levelBonus) * shinyBonus);
 
