@@ -398,6 +398,12 @@ export class Network {
                 if(action.payload.gold !== undefined) {
                     targetP.gold = action.payload.gold;
                 }
+
+                // --- CORREÇÃO: A vítima aceita a atualização das insígnias pelo Firebase ---
+                if(action.payload.badges !== undefined) {
+                    targetP.badges = action.payload.badges;
+                }
+                // --------------------
                 
                 Game.updateHUD();
                 
@@ -466,7 +472,7 @@ export class Network {
             items: p.items, 
             skipTurns: p.skipTurns, 
             badges: p.badges,
-            cards: p.cards,
+            cards: p.cards && p.cards.length > 0 ? p.cards : null,
             effects: p.effects
         }); 
     }
@@ -492,7 +498,7 @@ export class Network {
             team: this.getSanitizedTeam(p.team), 
             items: p.items,
             badges: p.badges,
-            cards: p.cards, 
+            cards: p.cards && p.cards.length > 0 ? p.cards : null,
             skipTurns: p.skipTurns, 
             effects: p.effects 
         });
@@ -517,7 +523,7 @@ export class Network {
                     items: p.items, 
                     skipTurns: p.skipTurns, 
                     badges: p.badges, 
-                    cards: p.cards, 
+                    cards: p.cards && p.cards.length > 0 ? p.cards : null,
                     effects: p.effects
                 };
             }

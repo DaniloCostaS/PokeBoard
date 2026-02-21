@@ -376,10 +376,10 @@ export class Game {
         } else { 
             const p = this.getCurrentPlayer(); 
             if (p.effects.slow && p.effects.slow > 0) { 
-                // Efeito Slow agora rola de 1 a 3 casas
-                result = Math.floor(Math.random() * 3) + 1; 
+                // Efeito Slow agora anda de 1 a 1 casa
+                result = 1; 
                 p.effects.slow--; 
-                this.log("🕸️ Lentidão! Rolou apenas 1d3."); 
+                this.log("🕸️ Lentidão! Rolou apenas 1d1."); 
             } else { 
                 // Rolagem normal d6
                 result = Math.floor(Math.random() * 6) + 1; 

@@ -936,15 +936,19 @@ export class Battle {
         let gain = 0; let msg = "VITÓRIA! "; 
         
         if (this.isPvP && this.enemyPlayer && this.activeEffects.stealBadgeFrom === this.enemyPlayer.id) { 
-            const myBadges = this.player!.badges; 
-            const enBadges = this.enemyPlayer.badges; 
-            for(let i=0; i<8; i++) { 
-                if(enBadges[i] && !myBadges[i]) { 
-                    myBadges[i] = true; enBadges[i] = false; 
-                    msg += ` Roubou Insígnia ${i+1}!`; break; 
-                } 
-            } 
-        } 
+            // --- CORREÇÃO: Sorteia uma insígnia aleatória que o inimigo tem e você não ---
+            const stealableBadges = [];
+            for(let i=0; i<8; i++) {
+                if(this.enemyPlayer.badges[i] && !this.player!.badges[i]) stealableBadges.push(i);
+            }
+            if (stealableBadges.length > 0) {
+                const randomBadge = stealableBadges[Math.floor(Math.random() * stealableBadges.length)];
+                this.player!.badges[randomBadge] = true;
+                this.enemyPlayer.badges[randomBadge] = false;
+                msg += ` Roubou a Insígnia ${randomBadge+1}!`;
+            }
+            // ---------------------------------------------------------------------------
+        }
         if (this.activeEffects.destiny) { 
             this.player!.gold += 200; 
             if(Cards) Cards.draw(this.player!); 
@@ -965,7 +969,14 @@ export class Battle {
             Game.sendGlobalLog(`[PvP] ${this.enemyPlayer.name} foi derrotado por ${this.player?.name}!`); 
             
             if(Network.isOnline) { 
-                Network.sendAction('PVP_SYNC_DAMAGE', { targetId: this.enemyPlayer.id, team: this.enemyPlayer.team, gold: this.enemyPlayer.gold, resetPos: true, skipTurn: true });
+                Network.sendAction('PVP_SYNC_DAMAGE', { 
+                    targetId: this.enemyPlayer.id, 
+                    team: this.enemyPlayer.team, 
+                    gold: this.enemyPlayer.gold,
+                    badges: this.enemyPlayer.badges, 
+                    resetPos: true, 
+                    skipTurn: true 
+                });
             } 
         } else if (this.isGym) { 
             gain = 1000; 
@@ -992,7 +1003,8 @@ export class Battle {
                 Network.sendAction('PVP_SYNC_DAMAGE', { 
                     targetId: this.enemyPlayer.id, 
                     team: this.enemyPlayer.team, 
-                    gold: this.enemyPlayer.gold, 
+                    gold: this.enemyPlayer.gold,
+                    badges: this.enemyPlayer.badges,
                     resetPos: true, 
                     skipTurn: true 
                 }); 
@@ -1033,14 +1045,16 @@ export class Battle {
         
         // --- LÓGICA DE PERDA DE OURO DIVIDIDA (PVP vs PVE) ---
         if (this.isPvP && this.enemyPlayer) {
-            // Em PvP, se você atacar e perder, o inimigo te rouba 30%!
+            // CORREÇÃO: Se for aposta pelo "Novo Líder", a punição é 50%, senão 30%
+            const penaltyRate = (this.activeEffects.stealBadgeFrom === this.enemyPlayer.id) ? 0.5 : 0.3;
             let lostGold = 0;
+            
             if (this.player!.gold > 0) {
-                lostGold = Math.floor(this.player!.gold * 0.3);
+                lostGold = Math.floor(this.player!.gold * penaltyRate);
                 this.player!.gold -= lostGold;
                 this.enemyPlayer.gold += lostGold; // O inimigo recebe o ouro
                 
-                Game.sendGlobalLog(`💰 [Extrato] Transferência de ${lostGold}G de ${this.player!.name} para ${this.enemyPlayer.name} (Luta PvP).`);
+                Game.sendGlobalLog(`💰 [Extrato] Transferência de ${lostGold}G de ${this.player!.name} para ${this.enemyPlayer.name} (${penaltyRate === 0.5 ? 'Aposta Novo Líder' : 'Luta PvP'}).`);
             } else {
                 Game.sendGlobalLog(`💰 [Extrato] ${this.player!.name} já estava falido e não perdeu ouro no PvP.`);
             }
@@ -1071,7 +1085,14 @@ export class Battle {
         if (this.isPvP && this.enemyPlayer) { 
             msg += ` ${this.enemyPlayer.name} venceu!`; 
             if(Network.isOnline) {
-                Network.sendAction('PVP_SYNC_DAMAGE', { targetId: this.enemyPlayer.id, team: this.enemyPlayer.team, gold: this.enemyPlayer.gold, resetPos: false, skipTurn: false });
+                Network.sendAction('PVP_SYNC_DAMAGE', { 
+                    targetId: this.enemyPlayer.id, 
+                    team: this.enemyPlayer.team, 
+                    gold: this.enemyPlayer.gold, 
+                    badges: this.enemyPlayer.badges,
+                    resetPos: false, 
+                    skipTurn: false 
+                });
             }
         }
         
@@ -1085,7 +1106,8 @@ export class Battle {
                 Network.sendAction('PVP_SYNC_DAMAGE', { 
                     targetId: this.enemyPlayer.id, 
                     team: this.enemyPlayer.team, 
-                    gold: this.enemyPlayer.gold, 
+                    gold: this.enemyPlayer.gold,
+                    badges: this.enemyPlayer.badges,
                     resetPos: false, 
                     skipTurn: false 
                 });

@@ -6,11 +6,11 @@ export const SHOP_ITEMS: ItemData[] = [
     { id: 'superpotion', name: 'Super Poção', icon: 'SuperPocao.png', price: 200, type: 'heal', val: 60 },
     { id: 'hyperpotion', name: 'Hyper Poção', icon: 'HyperPocao.png', price: 350, type: 'heal', val: 120 },
     // Ultra Full Restore: Cura 100% de todos os vivos (val ignorado na lógica especial)
-    { id: 'ultrafullrestore', name: 'Ultra Full Restore', icon: 'UltraFullRestore.png', price: 1000, type: 'heal', val: 9999 },
+    { id: 'ultrafullrestore', name: 'Ultra Full Restore', icon: 'UltraFullRestore.png', price: 2500, type: 'heal', val: 9999 },
     
     // --- REVIVER (REVIVE) ---
     { id: 'revive', name: 'Revive', icon: 'Revive.png', price: 200, type: 'revive', val: 50 }, // 50% HP
-    { id: 'maxrevive', name: 'Max Revive', icon: 'MaxRevive.png', price: 300, type: 'revive', val: 100 }, // 100% HP
+    { id: 'maxrevive', name: 'Max Revive', icon: 'MaxRevive.png', price: 400, type: 'revive', val: 100 }, // 100% HP
     // Ultra Max Revive: Revive todos com 100% (val ignorado na lógica especial)
     { id: 'ultramaxrevive', name: 'Ultra Max Revive', icon: 'UltraMaxRevive.png', price: 2000, type: 'revive', val: 100 },
     

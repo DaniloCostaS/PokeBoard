@@ -309,20 +309,36 @@ export class Cards {
             case 'time': player.effects.extraTurn = true; effectLog = "⏳ O tempo congelou! O jogador terá mais um turno imediato."; break;
             
             case 'new_leader': 
+                const myBadgesCount = player.badges.filter((b: boolean) => b).length;
+                if (myBadgesCount >= 7) {
+                    // --- SUBSTITUIU O ALERT ---
+                    Game.showGlobalAlert("A Liga Pokémon interveio! É proibido usar a carta 'Novo Líder' quando falta apenas 1 Insígnia para vencer o jogo. Conquiste a última com seu próprio suor!", player.name, true, false);
+                    consumed = false;
+                    break;
+                }
+
                 if(targetId !== null) {
                     const target = Game.players.find((p:any) => p.id === targetId);
                     if (!target) { consumed = false; break; }
 
-                    const hasBadge = target.badges.some((b: boolean) => b === true);
-                    if (!hasBadge) {
-                        alert(`O jogador ${target.name} não possui nenhuma Insígnia para você roubar!`);
+                    const stealableBadges = [];
+                    for(let i=0; i<8; i++) {
+                        if(target.badges[i] && !player.badges[i]) {
+                            stealableBadges.push(i);
+                        }
+                    }
+
+                    if (stealableBadges.length === 0) {
+                        // --- SUBSTITUIU O ALERT ---
+                        Game.showGlobalAlert(`O jogador ${target.name} não possui nenhuma Insígnia nova para você roubar!`, player.name, true, false);
                         consumed = false;
                         break;
                     }
                     
                     const targetTeam = target.getBattleTeam(false);
                     if (targetTeam.length === 0) {
-                        alert(`O jogador ${target.name} está sem Pokémons vivos! Tente mais tarde.`);
+                        // --- SUBSTITUIU O ALERT ---
+                        Game.showGlobalAlert(`O jogador ${target.name} está sem Pokémons vivos! Tente mais tarde.`, player.name, true, false);
                         consumed = false;
                         break;
                     }
@@ -330,10 +346,12 @@ export class Cards {
                     Battle.activeEffects.stealBadgeFrom = target.id; 
                     effectLog = `⚔️ UM DUELO FOI DECLARADO! ${player.name} desafiou ${target.name} para roubar uma de suas Insígnias!`;
                     
-                    // Inicia a Batalha Imediatamente!
                     Battle.setup(player, targetTeam[0], true, target.name, 0, target, false, 0, "", 1);
 
-                } else { this.openTargetSelection(cardId); consumed = false; }
+                } else { 
+                    this.openTargetSelection(cardId); 
+                    consumed = false; 
+                }
                 break;
 
             // BATTLE CARDS
@@ -444,10 +462,15 @@ export class Cards {
                         playerName: player.name, 
                         endsTurn: false 
                     });
+                    
+                    // --- CORREÇÃO: Envia o texto para o Histórico (Log lateral) de todos os outros jogadores! ---
+                    Network.sendAction('LOG', { msg: logMsg });
+                    if (effectLog) Network.sendAction('LOG', { msg: effectLog });
+                    // -------------------------------------------------------------------------------------------
                 } else {
                     // Para o Novo Líder no Online, só manda os logs laterais para não encavalar com a batalha
                     Network.sendAction('LOG', { msg: logMsg });
-                    Network.sendAction('LOG', { msg: effectLog });
+                    if (effectLog) Network.sendAction('LOG', { msg: effectLog });
                 }
             }
         }

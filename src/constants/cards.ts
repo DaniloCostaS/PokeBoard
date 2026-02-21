@@ -2,12 +2,14 @@ import type { CardData } from './types';
 
 export const CARDS_DB: CardData[] = [
     { id: 'dice', name: "Dado Mágico", icon: "🎲", desc: "Escolha o nº do dado (1-20).", type: 'move' },
+    { id: 'jam', name: "Interferência", icon: "📡", desc: "Anula a carta que um jogador acabou de usar conta você (Ativado automaticamente).", type: 'auto' },
     { id: 'crit', name: "Super Crítico", icon: "💥", desc: "Dobra o dano causado (Válido até seu pokémon vencer ou ser derrotado).", type: 'battle' },
     { id: 'master', name: "Master Ball", icon: "🟣", desc: "Captura 100% garantida usando qualquer pokebola (Só pode ser usado se tiver pokebola).", type: 'battle' },
     { id: 'run', name: "Fumaça Ninja", icon: "💨", desc: "Foge de qualquer batalha instantaneamente.", type: 'battle' },
     { id: 'reroll', name: "Re-Roll", icon: "🔄", desc: "Rola o dado duas vezes e escolhe o melhor resultado.", type: 'move' },
     { id: 'boost', name: "Tênis de Corrida", icon: "👟", desc: "Avança +6 casas após a rolagem.", type: 'move' },
     { id: 'trap', name: "Armadilha", icon: "🪤", desc: "Coloque em uma casa. Quem passar nela vai parar na armadilha e perde o próximo turno. Você vai receber 100G de quem passou.", type: 'move' },
+    { id: 'slow', name: "Campo Grudento", icon: "🕸️", desc: "Escolha um jogador: ele rola apenas 1d1 nos próximos 3 turnos.", type: 'move' },
     { id: 'swap', name: "Troca Rápida", icon: "🔀", desc: "Troque de posição com qualquer jogador.", type: 'move' },
     { id: 'guard', name: "Escudo Protetor", icon: "🛡️", desc: "Reduz o dano recebido pela metade (Válido até seu pokémon vencer ou ser derrotado).", type: 'battle' },
     { id: 'focus', name: "Foco Total", icon: "🎯", desc: "Seu próximo ataque causará 400% de dano.", type: 'battle' },
@@ -20,8 +22,14 @@ export const CARDS_DB: CardData[] = [
     { id: 'mew', name: "DNA de Mew", icon: "🧬", desc: "Invoca um MEW para lutar ao seu lado nessa batalha (O nivel dele será o mesmo do seu pokémon ativo).", type: 'battle' },
     { id: 'time', name: "Controle do Tempo", icon: "⏳", desc: "Jogue novamente após este turno.", type: 'move' },
     { id: 'destiny', name: "Destino Selado", icon: "🌠", desc: "Se vencer a batalha, ganhe 2 recompensas (Gold/Carta).", type: 'battle' },
-    { id: 'new_leader', name: "Novo líder", icon: "⚔️", desc: "Escolha um jogador: Se vencer a batalha, pegue uma insígnia aleatória que ainda não tem do adversário.", type: 'move' } 
+    { id: 'new_leader', name: "Novo líder", icon: "⚔️", desc: "Escolha um jogador: Se vencer a batalha, pegue uma insígnia aleatória que ainda não tem do adversário. (Se faltar somente uma insígnia para ganhar, essa carta fica inutilizável)", type: 'move' } 
 ];
-// { id: 'slow', name: "Campo Grudento", icon: "🕸️", desc: "Escolha um jogador: ele rola apenas 1d6 nos próximos 3 turnos.", type: 'move' },
-// { id: 'jam', name: "Interferência", icon: "📡", desc: "Anula a carta que um jogador acabou de usar conta você (Ativado automaticamente).", type: 'auto' },
-// 
+
+/*
+Novas cartas 
+- RareCandy - Suba 1 nível de seu pokémon.
+- Evolução forçada, force um pokémon do seu time a evoluir.
+- Lure Shiny - As próximas 3 rodadas sua chance de Shiny aumenta para 15%.
+- Double XP - Seus próximos 5 ganhos de XP serão dobrados (XP do dado conta)
+- Exp Share - Seus próximo 5 ganhos de XP serão  igualmente distribuído para todo o time (XP do dado conta)
+*/
