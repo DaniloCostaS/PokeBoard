@@ -773,3 +773,26 @@ body {
     0% { transform: rotateY(0deg); }
     100% { transform: rotateY(360deg); }
 }
+
+/* Botão de Auto Battle PvE */
+.btn-auto {
+    background: #1abc9c; /* Turquesa */
+    color: white;
+    font-weight: bold;
+    border-bottom: 3px solid #16a085;
+}
+.btn-auto:active {
+    border-bottom: 0;
+    transform: translateY(3px);
+}
+/* Efeito pulsante quando estiver ativo */
+.btn-auto.active-auto {
+    background: #e74c3c; /* Vira vermelho para "PARAR" */
+    animation: pulseAuto 1s infinite;
+}
+
+@keyframes pulseAuto {
+    0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(231, 76, 60, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
+}

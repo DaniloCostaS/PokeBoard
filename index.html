@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PokéBoard V29 - Melhorias de balanceamento</title>
+    <title>PokéBoard V30 - Auto ataque</title>
     <link rel="stylesheet" href="style.css">
     
     <script type="importmap">
@@ -18,8 +18,8 @@
 <body>
 
     <div id="setup-screen">
-        <h1 class="title-highlight">PokéBoard V29</h1>
-        <p class="subtitle">Melhorias de balanceamento</p>
+        <h1 class="title-highlight">PokéBoard V30</h1>
+        <p class="subtitle">Auto ataque</p>
         
         <div id="menu-phase-1">
             <button class="btn" onclick="window.Setup.showOfflineSetup()">🏠 JOGAR OFFLINE</button>
@@ -300,6 +300,7 @@
                         <button class="btn btn-items" onclick="window.Battle.openBag()">🎒 Itens</button>
                         <button class="btn btn-cards" onclick="window.Battle.openCardSelection()">🃏 Cartas</button>
                         <button id="btn-run" class="btn btn-run" onclick="window.Battle.run()">🏃 Fugir</button>
+                        <button id="btn-auto-pve" class="btn btn-auto" style="grid-column: span 2;" onclick="window.Battle.toggleAutoPvE()">⚡ Auto Atacar</button>
                     </div>
                 </div>
 

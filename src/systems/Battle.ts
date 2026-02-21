@@ -25,12 +25,14 @@ export class Battle {
     static processingAction: boolean = false; 
     static activeEffects: any = {};
     static currentTerrain: number = 0;
+    static isAutoPvE: boolean = false;
 
     static setup(player: Player, enemyMon: any, isPvP: boolean = false, _label: string = "", reward: number = 0, enemyPlayer: Player | null = null, isGym: boolean = false, gymId: number = 0, npcImage: string = "", terrainTile: number = 1) {
         const Game = (window as any).Game;
         this.player = player; this.isPvP = isPvP; this.isNPC = (reward > 0 && !isPvP); this.isGym = isGym; this.gymId = gymId; this.reward = reward; this.enemyPlayer = enemyPlayer; this.processingAction = false;
         this.activeEffects = {};
         this.battleTitle = isPvP ? "Batalha PvP!" : `Batalha contra ${_label}!`;
+        this.isAutoPvE = false;
         
         this.currentTerrain = terrainTile;
 
@@ -95,6 +97,7 @@ export class Battle {
         } else {
             this.openSelectionModal("Escolha seu Pokémon para começar!");
         }
+        this.isAutoPvE = false;
     }
 
     static openSelectionModal(title: string) { const modal = document.getElementById('pkmn-select-modal')!; const list = document.getElementById('pkmn-select-list')!; document.getElementById('select-title')!.innerText = title; list.innerHTML = ''; this.plyTeamList.forEach((mon) => { const div = document.createElement('div'); div.className = `mon-select-item ${mon.isFainted() ? 'disabled' : ''}`; div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>(${mon.currentHp}/${mon.maxHp})</small>`; if(!mon.isFainted()) div.onclick = () => { modal.style.display = 'none'; this.startRound(mon); }; list.appendChild(div); }); modal.style.display = 'flex'; }
@@ -147,16 +150,58 @@ export class Battle {
         const Network = (window as any).Network; 
         const btns = document.querySelectorAll('.battle-actions button'); 
         
-        // Regra: Só habilita se for MEU turno, não estiver processando E for minha sessão
-        // Se eu sou o jogador passivo (defensor no PvP), isMyBattle será false, pois this.player é o atacante.
         const isMyBattle = Network.isOnline ? (this.player && this.player.id === Network.myPlayerId) : true;
+        // Se estiver em Auto Mode PvE, travamos os botões normais, mas deixamos o de Auto liberado para poder cancelar
         const canAct = this.isPlayerTurn && !this.processingAction && isMyBattle; 
         
-        btns.forEach((btn: Element) => { (btn as HTMLButtonElement).disabled = !canAct; }); 
+        btns.forEach((btn: Element) => { 
+            const htmlBtn = btn as HTMLButtonElement;
+            // O botão de Auto (id btn-auto-pve) tem regra própria
+            if (htmlBtn.id === 'btn-auto-pve') {
+                htmlBtn.disabled = !isMyBattle; // Só desabilita se não for minha batalha
+            } else {
+                // Se o Auto estiver ligado, desabilita tudo (menos o próprio botão auto, tratado acima)
+                if (this.isAutoPvE) htmlBtn.disabled = true;
+                else htmlBtn.disabled = !canAct;
+            }
+        }); 
         
-        if(this.isPvP || this.isGym) { 
-            (document.getElementById('btn-run') as HTMLButtonElement).disabled = true; 
-        } 
+        const runBtn = document.getElementById('btn-run') as HTMLButtonElement;
+        const autoBtn = document.getElementById('btn-auto-pve') as HTMLButtonElement;
+
+        // Regras de visibilidade e bloqueio específicas
+        if(this.isPvP) { 
+            runBtn.disabled = true; 
+            if(autoBtn) autoBtn.style.display = 'none'; // Esconde Auto PvE no PvP
+        } else if (this.isGym) {
+            runBtn.disabled = true;
+            if(autoBtn) autoBtn.style.display = 'block';
+        } else {
+            if(autoBtn) autoBtn.style.display = 'block';
+        }
+    }
+
+    // --- NOVO SISTEMA: AUTO BATTLE PVE ---
+    static toggleAutoPvE() {
+        this.isAutoPvE = !this.isAutoPvE;
+        
+        const btn = document.getElementById('btn-auto-pve');
+        if (btn) {
+            if (this.isAutoPvE) {
+                btn.innerText = "🛑 Parar Auto";
+                btn.classList.add('active-auto');
+                this.logBattle("⚡ Modo Automático ativado!", true);
+                
+                // Se não estiver processando nada agora, já inicia o ataque
+                if (!this.processingAction) {
+                    this.attack();
+                }
+            } else {
+                btn.innerText = "⚡ Auto Atacar";
+                btn.classList.remove('active-auto');
+                this.logBattle("⚡ Modo Automático pausado.", true);
+            }
+        }
     }
 
     // --- NOVAS FUNÇÕES DO AUTO-BATTLER ---
@@ -427,7 +472,6 @@ export class Battle {
     // =========================================================================================
 
     static attack() { 
-        // Se eu não sou o jogador ativo (ex: sou o passivo assistindo), não faço nada
         const Network = (window as any).Network; 
         if(Network.isOnline && this.player && this.player.id !== Network.myPlayerId) return;
 
@@ -436,15 +480,41 @@ export class Battle {
         this.processingAction = true; 
         this.updateButtons(); 
 
-        // 1. Verifica Velocidade (Igual para PvE e PvP agora)
         const playerSpeed = this.activeMon.speed;
         const enemySpeed = this.opponent.speed;
-        
         let playerGoesFirst = true;
 
         if (playerSpeed > enemySpeed) playerGoesFirst = true;
         else if (enemySpeed > playerSpeed) playerGoesFirst = false;
-        else playerGoesFirst = Math.random() > 0.5; // Empate
+        else playerGoesFirst = Math.random() > 0.5;
+
+        // --- FUNÇÃO AUXILIAR PARA FINALIZAR O TURNO E VERIFICAR AUTO ---
+        const finishTurnSequence = () => {
+            this.processingAction = false;
+            this.updateButtons();
+
+            // Lógica de PvP Automático (Já existente)
+            if (this.isPvP) {
+                setTimeout(() => this.autoAttackNext(), 1500);
+            }
+            // Lógica de PvE Automático (NOVA)
+            else if (this.isAutoPvE) {
+                // Só continua se ambos estiverem vivos
+                if (this.activeMon!.currentHp > 0 && this.opponent!.currentHp > 0) {
+                    setTimeout(() => this.attack(), 1500); // Delay para dar tempo de ler o dano
+                } else {
+                    // Se alguém morreu, o handleFaint ou win vai rodar.
+                    // Nós desligamos o Auto aqui para o jogador ter controle na troca.
+                    this.isAutoPvE = false;
+                    const btn = document.getElementById('btn-auto-pve');
+                    if(btn) { 
+                        btn.innerText = "⚡ Auto Atacar"; 
+                        btn.classList.remove('active-auto'); 
+                    }
+                }
+            }
+        };
+        // -------------------------------------------------------------
 
         this.logBattle(`Velocidade: ${this.activeMon.name}(${playerSpeed}) vs ${this.opponent.name}(${enemySpeed})`, true);
 
@@ -454,11 +524,11 @@ export class Battle {
                 if (this.opponent && this.opponent.currentHp > 0) {
                     setTimeout(() => {
                         this.performEnemyAttack(() => {
-                            this.processingAction = false;
-                            this.updateButtons();
-                            if (this.isPvP) setTimeout(() => this.autoAttackNext(), 1500); // LOOP
+                            finishTurnSequence(); // <--- CHAMA O FINALIZADOR AQUI
                         });
                     }, 1000);
+                } else {
+                    finishTurnSequence(); // <--- OU AQUI SE O INIMIGO MORREU NO PRIMEIRO HIT
                 }
             });
         } else {
@@ -467,11 +537,11 @@ export class Battle {
                 if (this.activeMon && this.activeMon.currentHp > 0) {
                     setTimeout(() => {
                         this.performPlayerAttack(() => {
-                            this.processingAction = false;
-                            this.updateButtons();
-                            if (this.isPvP) setTimeout(() => this.autoAttackNext(), 1500); // LOOP
+                            finishTurnSequence(); // <--- CHAMA O FINALIZADOR AQUI
                         });
                     }, 1000);
+                } else {
+                    finishTurnSequence(); // <--- OU AQUI SE VOCÊ MORREU NO PRIMEIRO HIT
                 }
             });
         }
@@ -619,6 +689,15 @@ export class Battle {
     }
     
     static checkWinCondition() { 
+        // --- DESLIGA O AUTO BATTLE QUANDO O INIMIGO MORRE ---
+        this.isAutoPvE = false;
+        const btn = document.getElementById('btn-auto-pve');
+        if (btn) {
+            btn.innerText = "⚡ Auto Atacar";
+            btn.classList.remove('active-auto');
+        }
+        // ---------------------------------------------------
+        
         const nextOpp = this.oppTeamList.find(p => !p.isFainted() && p !== this.opponent); 
         
         if (nextOpp) { 
@@ -653,6 +732,15 @@ export class Battle {
     }
 
     static handleFaint() { 
+        // --- DESLIGA O AUTO BATTLE AO MORRER ---
+        this.isAutoPvE = false;
+        const btn = document.getElementById('btn-auto-pve');
+        if (btn) {
+            btn.innerText = "⚡ Auto Atacar";
+            btn.classList.remove('active-auto');
+        }
+        // ---------------------------------------
+
         if (this.activeMon && (this.activeMon as any).isTemp) {
             this.logBattle("🧬 O DNA de Mew se esgotou e o Pokémon original retornou!");
             this.revertMew();
