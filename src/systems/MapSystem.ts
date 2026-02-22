@@ -46,7 +46,11 @@ export class MapSystem {
             const c = allCoords.pop()!;
             this.grid[c.y][c.x] = TILE.EVENT;
         }
-        const npcTypes = [TILE.ROCKET, TILE.BIKER, TILE.YOUNG, TILE.OLD];
+        const npcTypes = [
+            TILE.ROCKET, TILE.BIKER, TILE.YOUNG, TILE.OLD,
+            TILE.BUG_CATCHER, TILE.SWIMMER, TILE.KIMONO, TILE.RIVAL_JOHTO,
+            TILE.AQUA, TILE.MAGMA, TILE.HIKER, TILE.SCHOOLBOY
+        ];
         for(let i=0; i<targetCount; i++) {
             if(allCoords.length === 0) break;
             const c = allCoords.pop()!;

@@ -459,15 +459,20 @@ export class Game {
                 currentIdx = 0; 
                 
                 if (!Network.isOnline || pId === Network.myPlayerId) {
-                    p.gold += 200; 
+                    // --- NOVAS RECOMPENSAS DE VOLTA COMPLETA ---
+                    p.gold += 500; 
                     Cards.draw(p); 
-                    this.sendGlobalLog(`🚩 ${p.name} completou uma volta! Ganhou 200G e 1 Carta!`); 
+                    Cards.draw(p); // Compra a segunda carta
+                    
+                    this.sendGlobalLog(`🚩 ${p.name} completou uma volta! Ganhou 500G e 2 Cartas!`); 
+                    
                     // --- LOG DE AUDITORIA: GANHO DE VOLTA ---
-                    this.sendGlobalLog(`💰 [Extrato] ${p.name} recebeu +200G (Volta no Tabuleiro).`);
+                    this.sendGlobalLog(`💰 [Extrato] ${p.name} recebeu +500G (Volta no Tabuleiro).`);
+                    
                     this.updateHUD(); // Atualiza a tela na hora!
                     if(Network.isOnline) Network.syncPlayerState();
                 }
-            } 
+            }
             
             const nextCoord = MapSystem.getCoord(currentIdx); 
             p.x = nextCoord.x; 
@@ -569,14 +574,14 @@ export class Game {
             } 
             return; 
         }
-        
+
         if(NPC_DATA[type]) { 
             const npc = NPC_DATA[type]; 
-            let npcImg = '/assets/img/Treinadores/Red.jpg'; 
-            if (type === TILE.ROCKET) npcImg = '/assets/img/NPCs/Rocket.jpg'; 
-            else if (type === TILE.BIKER) npcImg = '/assets/img/NPCs/Motoqueiro.jpg'; 
-            else if (type === TILE.YOUNG) npcImg = '/assets/img/NPCs/Jovem.jpg'; 
-            else if (type === TILE.OLD) npcImg = '/assets/img/NPCs/Velho.jpg'; 
+            
+            // --- LÓGICA DINÂMICA DE IMAGEM ---
+            // Ele puxa direto o nome da imagem que você colocou na NPC_DATA!
+            const npcImg = npc.img ? `/assets/img/NPCs/${npc.img}` : '/assets/img/Treinadores/Red.jpg'; 
+            // ---------------------------------
             
             const npcLevel = this.getGlobalAverageLevel(); 
             const teamSize = this.getGlobalAverageTeamSize();
@@ -588,7 +593,7 @@ export class Game {
                 npcTeam.push(new Pokemon(monId, npcLevel, null));
             }
 
-            // Repare que agora passamos 'npcTeam as any' em vez de um único Pokémon
+            // Inicia a batalha com o nome e imagem corretos
             Battle.setup(p, npcTeam as any, false, npc.name, npc.gold, null, false, 0, npcImg, type); 
             return; 
         }
@@ -1080,10 +1085,20 @@ export class Game {
                 else if(t===TILE.CITY) c='city'; 
                 else if(t===TILE.GYM) c='gym'; 
                 else if(t===TILE.EVENT) c='event'; 
-                else if(t===TILE.ROCKET) c='rocket'; 
-                else if(t===TILE.BIKER) c='biker'; 
-                else if(t===TILE.YOUNG) c='young'; 
-                else if(t===TILE.OLD) c='old'; 
+
+                // --- NOVA LÓGICA DINÂMICA PARA TODOS OS NPCs DO MAPA ---
+                else if(NPC_DATA[t]) {
+                    c = 'npc-tile'; // Classe genérica (para não precisar criar uma pra cada no CSS)
+                    tooltip = `Treinador: ${NPC_DATA[t].name}\nRecompensa: ${NPC_DATA[t].gold}G`;
+
+                    // Renderiza o rostinho do NPC direto no bloco do tabuleiro!
+                    if (NPC_DATA[t].img) {
+                        d.style.backgroundImage = `url('/assets/img/NPCs/${NPC_DATA[t].img}')`;
+                        d.style.backgroundSize = '100% 100%';
+                        d.style.backgroundRepeat = 'no-repeat';
+                    }
+                }
+                // --------------------------------------------------------
                 
                 d.className = `tile ${c}`; 
                 d.id = `tile-${x}-${y}`; 
