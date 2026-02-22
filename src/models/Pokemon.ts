@@ -34,11 +34,26 @@ export class Pokemon {
         this.baseTotal = template.BaseTotal || (template.hp + template.atk + template.def + template.spd);
         this.isGymLeaderMon = isGymLeaderMon;
 
+        // --- NOVA LÓGICA DO LURE SHINY ---
+        let shinyRate = 0.03; // Chance Padrão (3%)
+        try {
+            const Game = (window as any).Game;
+            // Verifica se existe um jogo rodando e pega o jogador do turno atual
+            if (Game && Game.players && Game.players.length > 0) {
+                const currentPlayer = Game.players[Game.turn];
+                // Se o jogador da vez tiver o Lure Shiny ativo, sobe a chance para 15%
+                if (currentPlayer && currentPlayer.effects && currentPlayer.effects.lureShiny > 0) {
+                    shinyRate = 0.15; 
+                }
+            }
+        } catch(e) {}
+
         if (forceShiny !== null) {
             this.isShiny = forceShiny;
         } else {
-            this.isShiny = Math.random() < 0.03;
+            this.isShiny = Math.random() < shinyRate;
         }
+        // ---------------------------------
 
         this.level = targetLevel; 
         this.currentXp = 0; 
@@ -164,17 +179,61 @@ export class Pokemon {
     }
     
     gainXp(amount: number, player: Player) { 
-        if(this.level >= 100) return; // Cap no nível 100 por segurança
+        if(this.level >= 100) return; 
+
+        let finalAmount = amount;
+        let usedEffect = false;
+        const Game = (window as any).Game;
+
+        if (player && player.effects) {
+            // Verifica o Double XP
+            if (player.effects.doubleXp && player.effects.doubleXp > 0) {
+                finalAmount *= 2;
+                player.effects.doubleXp--;
+                usedEffect = true;
+                if (player.effects.doubleXp === 0) Game.sendGlobalLog(`🛑 O efeito Double XP de ${player.name} acabou!`);
+            }
+
+            // Verifica o Exp Share
+            if (player.effects.expShare && player.effects.expShare > 0) {
+                player.effects.expShare--;
+                usedEffect = true;
+                if (player.effects.expShare === 0) Game.sendGlobalLog(`🛑 O efeito Exp Share de ${player.name} acabou!`);
+                
+                // Divide o XP pelos membros vivos
+                const aliveTeam = player.team.filter(p => !p.isFainted());
+                const splitAmount = Math.max(1, Math.floor(finalAmount / aliveTeam.length));
+                
+                Game.sendGlobalLog(`🤩 Exp Share ativado! O time de ${player.name} dividiu ${finalAmount} XP!`);
+                
+                // Distribui para a equipe usando a função interna para não dar loop
+                aliveTeam.forEach(mon => mon._applyXp(splitAmount, player));
+                
+                if (usedEffect && (window as any).Network && (window as any).Network.isOnline) {
+                    (window as any).Network.syncPlayerState();
+                }
+                return; 
+            }
+        }
+
+        // Se não usou Exp Share, ganha sozinho normalmente
+        this._applyXp(finalAmount, player);
+        
+        // Salva a queima dos contadores no Firebase
+        if (usedEffect && (window as any).Network && (window as any).Network.isOnline) {
+            (window as any).Network.syncPlayerState();
+        }
+    }
+
+    // --- NOVA FUNÇÃO INTERNA: Entrega o XP bruto sem ativar as cartas de novo ---
+    _applyXp(amount: number, player: Player) {
         (window as any).Game.sendGlobalLog(`💹 ${this.name} ganhou ${amount} XP!`);
         this.currentXp += amount; 
         
-        // --- CORREÇÃO BUG 2: WHILE LOOP ---
-        // Agora o Pokémon upa quantas vezes for necessário, sem travas!
         while(this.currentXp >= this.maxXp && this.level < 100) { 
             this.currentXp -= this.maxXp; 
             this.levelUp(player); 
         } 
-        // ----------------------------------
     }
 
     levelUp(player: Player | null) { 

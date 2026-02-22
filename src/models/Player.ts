@@ -21,11 +21,15 @@ export class Player {
         slow?: number; 
         curse?: boolean; 
         extraTurn?: boolean; 
+        lureShiny?: number;
+        doubleXp?: number;
+        expShare?: number;
     } = {};
 
     constructor(id: number, name: string, avatarFile: string, isLoadMode: boolean) {
         this.id = id; this.name = name; 
         this.avatar = `/assets/img/Treinadores/${avatarFile}`;
+        this.effects = { slow: 0, curse: false, extraTurn: false, lureShiny: 0, doubleXp: 0, expShare: 0 };
         
         if(!isLoadMode && name !== "_LOAD_") {
             // 1. Recursos Iniciais

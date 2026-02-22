@@ -747,6 +747,20 @@ export class Game {
         const currentP = this.getCurrentPlayer();
         currentP.resetTurnFlags();
 
+        // --- DECREMENTA O LURE SHINY DO JOGADOR QUE ACABOU O TURNO ---
+        if (currentP.effects && currentP.effects.lureShiny && currentP.effects.lureShiny > 0) {
+            currentP.effects.lureShiny--;
+            
+            if (currentP.effects.lureShiny === 0) {
+                this.sendGlobalLog(`✨ O efeito Lure Shiny de ${currentP.name} perdeu a força.`);
+            }
+            
+            // Salva a contagem atualizada no Firebase
+            const Network = (window as any).Network;
+            if (Network && Network.isOnline) Network.syncSpecificPlayer(currentP.id);
+        }
+        // -------------------------------------------------------------
+
         if (currentP.effects.extraTurn) {
             currentP.effects.extraTurn = false;
             this.hasRolled = false;

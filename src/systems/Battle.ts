@@ -94,7 +94,7 @@ export class Battle {
         if (this.isGym && this.player.effects.curse) {
             this.logBattle("😈 CUIDADO! Você entrou no Ginásio Amaldiçoado! Dano reduzido e Itens bloqueados!", true);
         }
-        
+
         // --- BYPASS: Inicia direto sem perguntar no PvP ---
         if (this.isPvP) {
             this.startRound(this.plyTeamList[0]);
@@ -380,7 +380,11 @@ export class Battle {
     static calculateDamage(attacker: Pokemon, defender: Pokemon, isPlayerAttacking: boolean): { damage: number, msg: string, avoided: boolean } { 
         // 1. CÁLCULO DE ESQUIVA (Mantém igual)
         const dodgeChance = defender.speed / 5;
-        if (Math.random() * 100 <= dodgeChance) {
+
+        // --- NOVA LÓGICA SNIPER: Ignora a esquiva se tiver a carta ativa ---
+        const ignoreDodge = (isPlayerAttacking && this.activeEffects.sniper);
+
+        if (!ignoreDodge && Math.random() * 100 <= dodgeChance) {
             return { damage: 0, msg: "💨 ESQUIVOU!", avoided: true };
         }
 
