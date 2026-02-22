@@ -287,12 +287,20 @@ export class Cards {
             case 'curse': 
                 if (targetId !== null) {
                     const target = Game.players.find((p:any) => p.id === targetId);
-                    if(target) {
-                        target.effects.curse = true; 
-                        effectLog = `☠️ O ataque de ${target.name} foi reduzido pela metade!`;
-                        if(Network.isOnline) Network.syncSpecificPlayer(target.id);
+                    if (!target) { consumed = false; break; }
+
+                    // Aplica a maldição no banco de dados do jogador
+                    target.effects.curse = true; 
+                    
+                    effectLog = `😈 MALDIÇÃO! ${target.name} causará apenas METADE do dano e não poderá usar itens na sua próxima luta de Ginásio!`;
+                    
+                    if (Network.isOnline) {
+                        Network.syncSpecificPlayer(target.id);
                     }
-                } else { this.openTargetSelection(cardId); consumed = false; }
+                } else { 
+                    this.openTargetSelection(cardId); 
+                    consumed = false; 
+                }
                 break;
 
             case 'trade_fail': 

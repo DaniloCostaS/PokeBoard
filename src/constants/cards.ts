@@ -12,7 +12,7 @@ export const CARDS_DB: CardData[] = [
     { id: 'slow', name: "Campo Grudento", icon: "🕸️", desc: "Escolha um jogador: ele rola apenas 1d1 nos próximos 3 turnos.", type: 'move' },
     { id: 'swap', name: "Troca Rápida", icon: "🔀", desc: "Troque de posição com qualquer jogador.", type: 'move' },
     { id: 'guard', name: "Escudo Protetor", icon: "🛡️", desc: "Reduz o dano recebido pela metade (Válido até seu pokémon vencer ou ser derrotado).", type: 'battle' },
-    { id: 'focus', name: "Foco Total", icon: "🎯", desc: "Seu próximo ataque causará 400% de dano.", type: 'battle' },
+    { id: 'focus', name: "Foco Total", icon: "🦭", desc: "Seu próximo ataque causará 400% de dano.", type: 'battle' },
     { id: 'status', name: "Ataque Surpresa", icon: "⚡", desc: "Aplica um efeito de atordoamento no pokémon do inimigo. Ele não atacará por 2 turnos", type: 'battle' },
     { id: 'heal', name: "Poção Máxima", icon: "💊", desc: "Recupera 100% do HP durante a batalha.", type: 'battle' },
     { id: 'counter', name: "Contra-Ataque", icon: "🔁", desc: "Reflete 50% do dano recebido dos próximos 3 ataques.", type: 'battle' },
@@ -26,10 +26,29 @@ export const CARDS_DB: CardData[] = [
 ];
 
 /*
+Maldição - mudar para proximo gym e não pode usar itens.
+
 Novas cartas 
 - RareCandy - Suba 1 nível de seu pokémon.
+{ id: 'rare_candy', name: "Rare Candy", icon: "🍬", desc: "Suba 1 nível de um pokémon de sua escolha.", type: 'move' },
+
 - Evolução forçada, force um pokémon do seu time a evoluir.
+{ id: 'evoluir', name: "Evolução forçada", icon: "🆙", desc: "Evolua um pokémon de sua escolha.", type: 'move' },
+
 - Lure Shiny - As próximas 3 rodadas sua chance de Shiny aumenta para 15%.
+{ id: 'shiny', name: "Lure Shiny", icon: "✨", desc: "As próximas 3 rodadas sua chance de Shiny aumenta para 15%.", type: 'move' },
+
 - Double XP - Seus próximos 5 ganhos de XP serão dobrados (XP do dado conta)
+{ id: 'doublexp', name: "Double XP", icon: "🚻", desc: "Seus próximos 5 ganhos de XP serão dobrados (XP do dado conta)", type: 'move' },
+
 - Exp Share - Seus próximo 5 ganhos de XP serão  igualmente distribuído para todo o time (XP do dado conta)
+{ id: 'expshare', name: "Exp Share", icon: "🤩", desc: "Seus próximo 5 ganhos de XP serão  igualmente distribuído para todo o time (XP do dado conta)", type: 'move' },
+
+{ id: 'sniper', name: "Sniper Americano", icon: "🎯", desc: "Durante essa seus pokémon não erra golpes.", type: 'move' },
+
+{ id: 'troques', name: "Troca forçada", icon: "🔛", desc: "Troque um pokémon seu com um de outro jogador.", type: 'move' },
+
+{ id: 'bag', name: "Bolsa furada", icon: "🎒", desc: "Escolha um jogador e ele vai perder metade dos seus itens aleatoriamente.", type: 'move' },
+
+drop de cartas 25%.
 */

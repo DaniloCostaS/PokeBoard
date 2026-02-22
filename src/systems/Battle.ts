@@ -91,6 +91,10 @@ export class Battle {
         
         if(this.isNPC && npcImage) { (this.opponent as any)._npcImage = npcImage; (this.opponent as any)._npcName = _label; }
         
+        if (this.isGym && this.player.effects.curse) {
+            this.logBattle("😈 CUIDADO! Você entrou no Ginásio Amaldiçoado! Dano reduzido e Itens bloqueados!", true);
+        }
+        
         // --- BYPASS: Inicia direto sem perguntar no PvP ---
         if (this.isPvP) {
             this.startRound(this.plyTeamList[0]);
@@ -458,7 +462,11 @@ export class Battle {
         if (isPlayerAttacking) { 
             if (this.activeEffects.crit) { finalDamage *= 2; logDetails += " [2x]"; } 
             if (this.activeEffects.focus) { finalDamage *= 4; this.activeEffects.focus = false; logDetails += " [4x]"; } 
-            if (this.player?.effects.curse) { finalDamage = Math.floor(finalDamage / 2); } 
+            // --- CORREÇÃO: Maldição só corta o dano se for contra Ginásio ---
+            if (this.player?.effects.curse && this.isGym) { 
+                finalDamage = Math.floor(finalDamage / 2); 
+                logDetails += " [😈Amaldiçoado]"; 
+            }
         } else { 
             if (this.activeEffects.guard) { finalDamage = Math.floor(finalDamage / 2); logDetails += " [🛡️]"; } 
             if (this.enemyPlayer && this.enemyPlayer.effects.curse) { finalDamage = Math.floor(finalDamage / 2); } 
@@ -931,7 +939,7 @@ export class Battle {
         
         if(Network.isOnline && this.isPvP && Network.myPlayerId === this.enemyPlayer?.id) return;
 
-        this.player!.effects.curse = false; 
+        if (this.isGym) this.player!.effects.curse = false; 
         this.revertMew();
         let gain = 0; let msg = "VITÓRIA! "; 
         
@@ -985,10 +993,18 @@ export class Battle {
         } else if (this.isNPC) { 
             gain = this.reward; 
             Game.sendGlobalLog(`💰 [Extrato] ${this.player!.name} recebeu +${gain}G (Treinador NPC).`);
+
+            if(Cards) Cards.draw(this.player!); 
+            msg += ` e ganhou uma Carta!`;
         } 
         else { 
             gain = 150; 
             Game.sendGlobalLog(`💰 [Extrato] ${this.player!.name} recebeu +${gain}G (Pokémon Selvagem).`);
+
+            if (Math.random() <= 0.25) { // Sorteia um número de 0.00 a 1.00
+                if(Cards) Cards.draw(this.player!);
+                msg += ` e achou uma Carta!`;
+            }
         } 
         
         // Dá o ouro para o vencedor
@@ -1039,7 +1055,7 @@ export class Battle {
     static lose() { 
         const Game = (window as any).Game; 
         const Network = (window as any).Network; 
-        this.player!.effects.curse = false; 
+        if (this.isGym) this.player!.effects.curse = false;
         this.revertMew();
         let msg = "DERROTA... "; 
         
@@ -1179,7 +1195,20 @@ export class Battle {
         Cards.activate(cardId); 
     }
 
-    static openBag() { if (!this.isPlayerTurn || this.processingAction) return; const list = document.getElementById('battle-bag-list')!; list.innerHTML = ''; Object.keys(this.player!.items).forEach(key => { if(this.player!.items[key] > 0) { const item = SHOP_ITEMS.find(i => i.id === key); if(item) { const btn = document.createElement('button'); btn.className = 'btn'; btn.innerHTML = `<img src="/assets/img/Itens/${item.icon}" class="item-icon-mini"> ${item.name} x${this.player!.items[key]}`; btn.onclick = () => this.useItem(key, item); list.appendChild(btn); } } }); document.getElementById('battle-bag')!.style.display = 'block'; }
+    static openBag() { 
+        if (!this.isPlayerTurn || this.processingAction) 
+            return; 
+        
+        // --- NOVA REGRA: MALDIÇÃO BLOQUEIA A MOCHILA NO GINÁSIO ---
+        if (this.isGym && this.player!.effects.curse) {
+            const Game = (window as any).Game;
+            Game.showGlobalAlert("😈 Sua mochila foi selada pela Maldição! Você não pode usar itens nesta Batalha de Ginásio!", this.player!.name, true, false);
+            return;
+        }
+
+        const list = document.getElementById('battle-bag-list')!; 
+        list.innerHTML = ''; Object.keys(this.player!.items).forEach(key => { if(this.player!.items[key] > 0) { const item = SHOP_ITEMS.find(i => i.id === key); if(item) { const btn = document.createElement('button'); btn.className = 'btn'; btn.innerHTML = `<img src="/assets/img/Itens/${item.icon}" class="item-icon-mini"> ${item.name} x${this.player!.items[key]}`; btn.onclick = () => this.useItem(key, item); list.appendChild(btn); } } }); document.getElementById('battle-bag')!.style.display = 'block'; }
+    
     static openCardSelection() { if (!this.isPlayerTurn || this.processingAction) return; const list = document.getElementById('battle-cards-list')!; list.innerHTML = ''; const battleCards = this.player!.cards.filter(c => c.type === 'battle'); if(battleCards.length === 0) { list.innerHTML = "<em>Sem cartas de batalha.</em>"; } else { battleCards.forEach(c => { const d = document.createElement('div'); d.className='card-item'; d.innerHTML = `<div class="card-info"><span class="card-name">${c.icon} ${c.name} <span class="card-type-badge type-battle">BATTLE</span></span><span class="card-desc">${c.desc}</span></div><button class="btn-use-card" onclick="window.Battle.useCard('${c.id}')">USAR</button>`; list.appendChild(d); }); } document.getElementById('battle-cards-modal')!.style.display = 'flex'; }
     
     // =========================================================================================
