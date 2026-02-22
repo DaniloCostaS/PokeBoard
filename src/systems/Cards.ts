@@ -32,22 +32,50 @@ export class Cards {
 
     static openTargetSelection(cardId: string) {
         const Game = (window as any).Game;
-        const targets = Game.players.filter((p: Player) => p.id !== Game.turn);
-        if (targets.length === 0) return alert("Sem alvos disponíveis.");
+        const currentPlayer = Game.getCurrentPlayer();
         
-        let list = "Escolha o alvo pelo NÚMERO (ID):\n\n";
-        targets.forEach((p: Player) => list += `ID: ${p.id} -> ${p.name}\n`);
+        // Filtra para não deixar o jogador usar a carta nele mesmo
+        const targets = Game.players.filter((p: any) => p.id !== currentPlayer.id);
         
-        const choice = prompt(list + "\nDigite o ID do jogador alvo:");
-        if (choice !== null && choice.trim() !== "") {
-            const targetId = parseInt(choice);
-            const target = Game.players.find((p: any) => p.id === targetId);
-            if (target && targetId !== Game.turn) {
-                this.activate(cardId, targetId);
-            } else { 
-                alert("ID inválido! Digite exatamente o número do jogador da lista."); 
-            }
+        if (targets.length === 0) {
+            Game.showGlobalAlert("Você está sozinho na sala! Não há alvos disponíveis.", currentPlayer.name, true, false);
+            return;
         }
+
+        // Reutilizamos a janela modal de seleção
+        const modal = document.getElementById('pkmn-select-modal')!;
+        const list = document.getElementById('pkmn-select-list')!;
+        
+        document.getElementById('select-title')!.innerText = "Selecione o Jogador Alvo:";
+        list.innerHTML = '';
+        
+        targets.forEach((target: any) => {
+            const div = document.createElement('div');
+            div.className = `mon-select-item`; 
+            
+            // Coloca a foto de avatar arredondada e o nome do jogador
+            div.innerHTML = `
+                <img src="${target.avatar}" width="40" style="border-radius: 50%; border: 2px solid #ecf0f1;">
+                <b>${target.name}</b> 
+                <small style="color:#bdc3c7;">(P${target.id + 1})</small>
+            `;
+            
+            div.onclick = () => {
+                modal.style.display = 'none';
+                // Chama a ativação da carta passando o ID de quem foi clicado
+                this.activate(cardId, target.id); 
+            };
+            list.appendChild(div);
+        });
+
+        // Adiciona um botão de cancelar para o jogador não gastar a carta se clicar sem querer
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn btn-secondary mt-15';
+        cancelBtn.innerText = 'Cancelar';
+        cancelBtn.onclick = () => { modal.style.display = 'none'; };
+        list.appendChild(cancelBtn);
+
+        modal.style.display = 'flex';
     }
 
     static openPokemonSelectionForCard(cardId: string) {
@@ -200,6 +228,101 @@ export class Cards {
         setTimeout(() => {
             Battle.captureSuccess();
         }, 1500);
+    }
+
+    static startTradeFlow(player: any, target: any) {
+        const modal = document.getElementById('pkmn-select-modal')!;
+        const list = document.getElementById('pkmn-select-list')!;
+        
+        // PASSO 1: Escolher o seu Pokémon
+        document.getElementById('select-title')!.innerText = `Escolha o SEU Pokémon para enviar a ${target.name}:`;
+        list.innerHTML = '';
+        
+        player.team.forEach((mon: any, index: number) => {
+            const div = document.createElement('div');
+            div.className = `mon-select-item`;
+            div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>Lv.${mon.level}</small>`;
+            div.onclick = () => {
+                Cards.continueTradeFlow(player, target, index);
+            };
+            list.appendChild(div);
+        });
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn btn-secondary mt-15';
+        cancelBtn.innerText = 'Cancelar';
+        cancelBtn.onclick = () => { modal.style.display = 'none'; };
+        list.appendChild(cancelBtn);
+
+        modal.style.display = 'flex';
+    }
+
+    static continueTradeFlow(player: any, target: any, myChoice: number) {
+        const modal = document.getElementById('pkmn-select-modal')!;
+        const list = document.getElementById('pkmn-select-list')!;
+        
+        // PASSO 2: Escolher o Pokémon do Alvo
+        document.getElementById('select-title')!.innerText = `Escolha o Pokémon de ${target.name} que você vai pegar:`;
+        list.innerHTML = '';
+        
+        target.team.forEach((mon: any, index: number) => {
+            const div = document.createElement('div');
+            div.className = `mon-select-item`;
+            div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>Lv.${mon.level}</small>`;
+            div.onclick = () => {
+                modal.style.display = 'none';
+                Cards.executeTrade(player, target, myChoice, index);
+            };
+            list.appendChild(div);
+        });
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn btn-secondary mt-15';
+        cancelBtn.innerText = 'Cancelar Voltar';
+        cancelBtn.onclick = () => { modal.style.display = 'none'; };
+        list.appendChild(cancelBtn);
+    }
+
+    static executeTrade(player: any, target: any, myChoice: number, hisChoice: number) {
+        const Game = (window as any).Game;
+        const Network = (window as any).Network;
+
+        const myMon = player.team[myChoice];
+        const hisMon = target.team[hisChoice];
+
+        // 1. Faz a troca das posições na equipe
+        player.team[myChoice] = hisMon;
+        target.team[hisChoice] = myMon;
+
+        // 2. Remove a carta do inventário manualmente (já que saímos do fluxo normal)
+        const idx = player.cards.findIndex((c:any) => c.id === 'troques');
+        if (idx > -1) player.cards.splice(idx, 1);
+        
+        Game.updateHUD(); 
+        const boardModal = document.getElementById('board-cards-modal');
+        if(boardModal) boardModal.style.display = 'none';
+
+        // 3. Monta e envia os logs globais bonitos
+        const effectLog = `🔛 INACREDITÁVEL! ${player.name} forçou uma troca com ${target.name}!\nEnviou: ${myMon.name} ↔️ Recebeu: ${hisMon.name}`;
+        const logMsg = `🃏 ${player.name} ativou a carta: [Troca Forçada]!`;
+        const fullMsg = `${logMsg}\n\n${effectLog}`;
+
+        Game.log(logMsg);
+        Game.log(effectLog);
+        Game.showGlobalAlert(fullMsg, player.name, true, false);
+
+        // 4. Salva no Firebase para sincronizar os dois jogadores na mesma hora
+        if (Network.isOnline) {
+            if ((Network as any).syncPlayers) {
+                (Network as any).syncPlayers([player.id, target.id]);
+            } else {
+                Network.syncSpecificPlayer(target.id);
+                Network.syncPlayerState();
+            }
+            Network.sendAction('SHOW_ALERT', { msg: fullMsg, playerName: player.name, endsTurn: false });
+            Network.sendAction('LOG', { msg: logMsg });
+            Network.sendAction('LOG', { msg: effectLog });
+        }
     }
 
     static activate(cardId: string, targetId: number | null = null) {
@@ -540,10 +663,11 @@ export class Cards {
                     // 1. Salvamos o gatilho de level original
                     const originalTrigger = targetMon.evoData.trigger;
                     
-                    // 2. "Enganamos" o sistema do Pokémon dizendo que ele evolui no level 0
-                    targetMon.evoData.trigger = 0; 
+                    // --- CORREÇÃO: "Enganamos" o sistema do Pokémon dizendo que ele evolui no level 1 ---
+                    targetMon.evoData.trigger = 1; 
+                    // -----------------------------------------------------------------------------------
                     
-                    // 3. Chamamos a função oficial de evolução (ela faz os logs, atualiza status base e mantém a genética)
+                    // 3. Chamamos a função oficial de evolução 
                     const evolved = targetMon.checkEvolution(player);
                     
                     if (!evolved) {
@@ -563,7 +687,7 @@ export class Cards {
                         Network.syncPlayerState();
                     }
                 } else {
-                    // Se não escolheu o alvo ainda, abre a lista travando quem não pode evoluir
+                    // Se não escolheu o alvo ainda, abre a lista
                     this.openEvolutionSelectionForCard(cardId);
                     consumed = false;
                 }
@@ -643,39 +767,13 @@ export class Cards {
                     const target = Game.players.find((p:any) => p.id === targetId);
                     if (!target) { consumed = false; break; }
 
-                    // Lista para mostrar na tela (prompt)
-                    const myPkmnList = player.team.map((p:any, i:number) => `${i+1}: ${p.name} (Lv.${p.level})`).join('\n');
-                    const hisPkmnList = target.team.map((p:any, i:number) => `${i+1}: ${p.name} (Lv.${p.level})`).join('\n');
-
-                    // Jogador escolhe o SEU Pokémon
-                    const myRes = prompt(`Escolha qual SEU Pokémon vai ser enviado para ${target.name}:\n\n${myPkmnList}\n\nDigite o NÚMERO (1 a ${player.team.length}):`);
-                    if (!myRes) { consumed = false; break; }
-                    const myChoice = parseInt(myRes) - 1;
-                    if (myChoice < 0 || myChoice >= player.team.length) { alert("Seleção inválida!"); consumed = false; break; }
-
-                    // Jogador escolhe o Pokémon do ALVO
-                    const hisRes = prompt(`Escolha qual Pokémon de ${target.name} você vai pegar:\n\n${hisPkmnList}\n\nDigite o NÚMERO (1 a ${target.team.length}):`);
-                    if (!hisRes) { consumed = false; break; }
-                    const hisChoice = parseInt(hisRes) - 1;
-                    if (hisChoice < 0 || hisChoice >= target.team.length) { alert("Seleção inválida!"); consumed = false; break; }
-
-                    // Faz o SWAP das equipes
-                    const myMon = player.team[myChoice];
-                    const hisMon = target.team[hisChoice];
-
-                    player.team[myChoice] = hisMon;
-                    target.team[hisChoice] = myMon;
-
-                    effectLog = `🔛 INACREDITÁVEL! ${player.name} forçou uma troca com ${target.name}!\n${myMon.name} ↔️ ${hisMon.name}`;
-
-                    if (Network.isOnline) {
-                        if ((Network as any).syncPlayers) {
-                            (Network as any).syncPlayers([player.id, target.id]);
-                        } else {
-                            Network.syncSpecificPlayer(target.id);
-                        }
-                    }
+                    // Redireciona para o nosso fluxo visual bonitinho de 2 passos!
+                    Cards.startTradeFlow(player, target);
+                    
+                    // Colocamos false para a carta não sumir até a troca ser concluída!
+                    consumed = false; 
                 } else {
+                    // Passo Inicial: Escolher o jogador alvo
                     this.openTargetSelection(cardId);
                     consumed = false;
                 }

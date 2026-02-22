@@ -99,13 +99,56 @@ export class Battle {
         if (this.isPvP) {
             this.startRound(this.plyTeamList[0]);
         } else {
-            this.openSelectionModal("Escolha seu Pokémon para começar!");
+            // --- NOVA LÓGICA: TÍTULO DESCRITIVO BASEADO NO TERRENO/INIMIGO ---
+            let terrainName = "Terreno Selvagem";
+            if (this.currentTerrain === 1) terrainName = "Mato Alto 🌿";
+            else if (this.currentTerrain === 2) terrainName = "Águas Profundas 🌊";
+            else if (this.currentTerrain === 3) terrainName = "Caverna/Deserto 🪨";
+
+            let contextTitle = "";
+            if (this.isGym) {
+                // --- NOVA LÓGICA: BUSCA NOME E TIPOS DIRETAMENTE NO GYM_DATA ---
+                const gymData = GYM_DATA.find(g => g.id === this.gymId);
+                let gymDesc = `Ginásio de ${_label}`; // Fallback de segurança
+                
+                if (gymData) {
+                    const typesStr = gymData.type.join(" e "); // Junta ["Pedra", "Aço"] em "Pedra e Aço"
+                    gymDesc = `Ginásio do ${gymData.leaderName} de ${typesStr}`;
+                }
+                
+                contextTitle = `🏛️ <b>${gymDesc}</b><br><small style="color:#bdc3c7; font-size:0.9rem;">Escolha seu Pokémon para a batalha!</small>`;
+                // ---------------------------------------------------------------
+            } else if (this.isNPC) {
+                contextTitle = `👤 <b>O Treinador ${_label} te desafiou!</b><br><small style="color:#bdc3c7; font-size:0.9rem;">Escolha seu Pokémon para começar.</small>`;
+            } else {
+                contextTitle = `🐾 <b>Um Pokémon selvagem apareceu!</b><br><small style="color:#f1c40f; font-size:0.9rem;">Local: ${terrainName}</small>`;
+            }
+            
+            this.openSelectionModal(contextTitle);
+            // -----------------------------------------------------------------
         }
         this.isAutoPvE = false;
     }
 
-    static openSelectionModal(title: string) { const modal = document.getElementById('pkmn-select-modal')!; const list = document.getElementById('pkmn-select-list')!; document.getElementById('select-title')!.innerText = title; list.innerHTML = ''; this.plyTeamList.forEach((mon) => { const div = document.createElement('div'); div.className = `mon-select-item ${mon.isFainted() ? 'disabled' : ''}`; div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>(${mon.currentHp}/${mon.maxHp})</small>`; if(!mon.isFainted()) div.onclick = () => { modal.style.display = 'none'; this.startRound(mon); }; list.appendChild(div); }); modal.style.display = 'flex'; }
-    
+    static openSelectionModal(title: string) { 
+        const modal = document.getElementById('pkmn-select-modal')!; 
+        const list = document.getElementById('pkmn-select-list')!; 
+        
+        // --- CORREÇÃO: Usar innerHTML para aceitar formatação bonitinha ---
+        document.getElementById('select-title')!.innerHTML = title; 
+        // -----------------------------------------------------------------
+        
+        list.innerHTML = ''; 
+        this.plyTeamList.forEach((mon) => { 
+            const div = document.createElement('div'); 
+            div.className = `mon-select-item ${mon.isFainted() ? 'disabled' : ''}`; 
+            div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>(${mon.currentHp}/${mon.maxHp})</small>`; 
+            if(!mon.isFainted()) div.onclick = () => { modal.style.display = 'none'; this.startRound(mon); }; 
+            list.appendChild(div); 
+        }); 
+        modal.style.display = 'flex'; 
+    }
+
     static startRound(selectedMon: Pokemon) { 
         const Network = (window as any).Network; 
         document.getElementById('pkmn-select-modal')!.style.display = 'none'; 
@@ -383,7 +426,7 @@ export class Battle {
 
         // Garante que a esquiva nunca seja menor que 10% (A regra do mínimo)
         dodgeChance = Math.max(10, dodgeChance);
-        
+
         // --- NOVA LÓGICA SNIPER: Ignora a esquiva se tiver a carta ativa ---
         const ignoreDodge = (isPlayerAttacking && this.activeEffects.sniper);
 

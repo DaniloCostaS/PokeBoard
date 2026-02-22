@@ -846,7 +846,67 @@ export class Game {
     static useItemBoard(key: string, pId: number) { const p = this.players[pId]; const item = SHOP_ITEMS.find(i => i.id === key); if (!item || p.items[key] <= 0) return; if (item.type === 'heal') { if (item.id === 'ultrafullrestore') { this.applyBoardItemEffect(p, item, -1); return; } this.openHealSelector(pId, key); } else if (item.type === 'revive') { if (item.id === 'ultramaxrevive') { this.applyBoardItemEffect(p, item, -1); return; } this.openHealSelector(pId, key); } }
     static openHealSelector(pId: number, itemKey: string) { this.pendingHealItem = itemKey; const p = this.players[pId]; const modal = document.getElementById('pkmn-select-modal')!; const list = document.getElementById('pkmn-select-list')!; const title = document.getElementById('select-title')!; title.innerText = "Usar em qual Pokémon?"; list.innerHTML = ''; p.team.forEach((mon, idx) => { const div = document.createElement('div'); div.className = `mon-select-item`; div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>(${mon.currentHp}/${mon.maxHp})</small>`; div.onclick = () => { modal.style.display = 'none'; this.applyBoardItemEffect(p, SHOP_ITEMS.find(i=>i.id === itemKey)!, idx); }; list.appendChild(div); }); const cancelBtn = document.createElement('button'); cancelBtn.className = "btn btn-secondary mt-15"; cancelBtn.innerText = "Cancelar"; cancelBtn.onclick = () => { modal.style.display = 'none'; this.pendingHealItem = null; }; list.appendChild(cancelBtn); modal.style.display = 'flex'; }
     static applyBoardItemEffect(p: Player, item: ItemData, targetIdx: number) { let used = false; if (item.type === 'heal') { if (item.id === 'ultrafullrestore') { let count = 0; p.team.forEach(m => { if(!m.isFainted() && m.currentHp < m.maxHp) { m.heal(9999); count++; } }); if(count > 0) { used = true; alert(`${count} Pokémon curados!`); } else alert("Ninguém precisa de cura!"); } else { const target = p.team[targetIdx]; if(target.isFainted()) return alert("Não funciona em Pokémon desmaiado!"); if(target.currentHp >= target.maxHp) return alert("HP já está cheio!"); target.heal(item.val || 20); alert(`Usou ${item.name} em ${target.name}.`); used = true; } } else if (item.type === 'revive') { if (item.id === 'ultramaxrevive') { let count = 0; p.team.forEach(m => { if(m.isFainted()) { m.revive(100); count++; } }); if(count > 0) { used = true; alert(`${count} Pokémon revividos!`); } else alert("Ninguém está desmaiado!"); } else { const target = p.team[targetIdx]; if(!target.isFainted()) return alert("Este Pokémon não está desmaiado!"); target.revive(item.val || 50); alert(`Usou ${item.name} em ${target.name}.`); used = true; } } if (used) { p.items[item.id]--; this.updateHUD(); this.openInventoryModal(p.id); this.saveGame(); if (Network.isOnline) { Network.sendAction('LOG', { msg: `${p.name} usou ${item.name}.` }); Network.syncPlayerState(); } } }
-    static openSwapModal(newMon: Pokemon) { const modal = document.getElementById('swap-modal')!; const list = document.getElementById('swap-list')!; list.innerHTML = ''; const p = this.getCurrentPlayer(); p.team.forEach((currP, idx) => { const div = document.createElement('div'); div.className = 'swap-item'; div.innerHTML = `<img src="${currP.getSprite()}"> <b>${currP.name}</b> Lv.${currP.level}`; div.onclick = () => this.executeSwap(idx, newMon); list.appendChild(div); }); const divNew = document.createElement('div'); divNew.className = 'swap-item new-mon'; divNew.innerHTML = `<img src="${newMon.getSprite()}"> <b>${newMon.name} (NOVO)</b> Lv.${newMon.level} <br><small>Clique para descartar este</small>`; divNew.onclick = () => this.executeSwap(-1, newMon); list.appendChild(divNew); modal.style.display = 'block'; }
+    
+    static openSwapModal(newMon: Pokemon) { 
+        const modal = document.getElementById('swap-modal')!; 
+        const list = document.getElementById('swap-list')!; 
+        list.innerHTML = ''; 
+        const p = this.getCurrentPlayer(); 
+        
+        // 1. Renderiza os Pokémons atuais do time
+        p.team.forEach((currP: Pokemon, idx: number) => { 
+            const div = document.createElement('div'); 
+            div.className = 'swap-item'; 
+            
+            div.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 15px; width: 100%; padding: 5px;">
+                    <img src="${currP.getSprite()}" width="50" style="filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.2));">
+                    <div style="text-align: left; line-height: 1.4; flex-grow: 1;">
+                        <b style="font-size: 1.1rem; color: #2c3e50;">${currP.name}</b> 
+                        <small style="color: #e67e22; font-weight: bold;">Lv.${currP.level}</small><br>
+                        
+                        <div style="font-size: 0.85rem; color: #7f8c8d; margin-top: 4px; display: flex; gap: 10px;">
+                            <span>❤️ <b>${currP.maxHp}</b></span>
+                            <span>⚔️ <b>${currP.atk}</b></span>
+                            <span>🛡️ <b>${currP.def}</b></span>
+                            <span>💨 <b>${currP.speed}</b></span>
+                        </div>
+                    </div>
+                </div>
+            `; 
+            
+            div.onclick = () => this.executeSwap(idx, newMon); 
+            list.appendChild(div); 
+        }); 
+        
+        // 2. Renderiza o NOVO Pokémon para o jogador poder descartar ele mesmo
+        const divNew = document.createElement('div'); 
+        divNew.className = 'swap-item new-mon'; 
+        
+        // Coloquei um fundo levemente diferente e uma borda tracejada para destacar a opção de descartar a novidade
+        divNew.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 15px; width: 100%; padding: 5px; background-color: #fcf3f2; border: 1px dashed #e74c3c; border-radius: 8px; margin-top: 10px;">
+                <img src="${newMon.getSprite()}" width="50" style="filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.2));">
+                <div style="text-align: left; line-height: 1.4; flex-grow: 1;">
+                    <b style="font-size: 1.1rem; color: #e74c3c;">${newMon.name} (NOVO)</b> 
+                    <small style="color: #e67e22; font-weight: bold;">Lv.${newMon.level}</small><br>
+                    
+                    <div style="font-size: 0.85rem; color: #7f8c8d; margin-top: 4px; display: flex; gap: 10px;">
+                        <span>❤️ <b>${newMon.maxHp}</b></span>
+                        <span>⚔️ <b>${newMon.atk}</b></span>
+                        <span>🛡️ <b>${newMon.def}</b></span>
+                        <span>💨 <b>${newMon.speed}</b></span>
+                    </div>
+                    <small style="color: #c0392b; font-weight: bold; display: block; margin-top: 5px;">❌ Clique aqui para soltar e não capturar este</small>
+                </div>
+            </div>
+        `; 
+        
+        divNew.onclick = () => this.executeSwap(-1, newMon); 
+        list.appendChild(divNew); 
+        
+        modal.style.display = 'block'; 
+    }
     
     static executeSwap(indexToRelease: number, newMon: Pokemon) { 
         const p = this.getCurrentPlayer(); 
