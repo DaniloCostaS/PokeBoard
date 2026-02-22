@@ -457,7 +457,7 @@ export const POKEDEX: PokemonData[] = [
 
   {"id": 287, "name": "Slakoth", "type": "Normal", "secondType": "", "BaseTotal": 186, "hp": 60, "atk": 48, "def": 48, "spd": 30, "stage": 1, "nextForm": "Vigoroth", "evoTrigger": 5},
   {"id": 288, "name": "Vigoroth", "type": "Normal", "secondType": "", "BaseTotal": 306, "hp": 80, "atk": 68, "def": 68, "spd": 90, "stage": 2, "nextForm": "Slaking", "evoTrigger": 10},
-  {"id": 289, "name": "Slaking", "type": "Normal", "secondType": "", "BaseTotal": 460, "hp": 150, "atk": 128, "def": 82, "spd": 100, "stage": 3, "nextForm": null},
+  {"id": 289, "name": "Slaking", "type": "Normal", "secondType": "", "BaseTotal": 370, "hp": 120, "atk": 108, "def": 82, "spd": 60, "stage": 3, "nextForm": null},
 
   {"id": 290, "name": "Nincada", "type": "Inseto", "secondType": "Terra", "BaseTotal": 169, "hp": 31, "atk": 38, "def": 60, "spd": 40, "stage": 1, "nextForm": "Ninjask", "evoTrigger": 8},
   {"id": 291, "name": "Ninjask", "type": "Inseto", "secondType": "Voador", "BaseTotal": 339, "hp": 61, "atk": 70, "def": 48, "spd": 160, "stage": 2, "nextForm": null},
