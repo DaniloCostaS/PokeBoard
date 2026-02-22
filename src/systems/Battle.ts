@@ -379,8 +379,11 @@ export class Battle {
 
     static calculateDamage(attacker: Pokemon, defender: Pokemon, isPlayerAttacking: boolean): { damage: number, msg: string, avoided: boolean } { 
         // 1. CÁLCULO DE ESQUIVA (Mantém igual)
-        const dodgeChance = defender.speed / 5;
+        let dodgeChance = (defender.speed - attacker.speed) / 5;
 
+        // Garante que a esquiva nunca seja menor que 10% (A regra do mínimo)
+        dodgeChance = Math.max(10, dodgeChance);
+        
         // --- NOVA LÓGICA SNIPER: Ignora a esquiva se tiver a carta ativa ---
         const ignoreDodge = (isPlayerAttacking && this.activeEffects.sniper);
 
@@ -419,44 +422,45 @@ export class Battle {
         finalDamage += rollModifier;
 
         // =================================================================================
-        // 5. NOVO SISTEMA DE MULTIPLICADOR DUPLO (MÉDIA PONDERADA)
+        // 5. NOVO SISTEMA: MELHOR VANTAGEM (O Pokémon escolhe seu melhor tipo)
         // =================================================================================
         
         // Lista os tipos presentes (remove vazios)
         const atkTypes = [attacker.type, attacker.secondType].filter(t => t);
         const defTypes = [defender.type, defender.secondType].filter(t => t);
 
-        let totalMulti = 0;
-        let interactions = 0;
+        let bestMulti = 0; // Vai guardar a maior vantagem possível
 
-        // Cruza cada tipo do atacante contra cada tipo do defensor
+        // O atacante testa mentalmente cada um dos seus tipos para ver qual machuca mais
         atkTypes.forEach(atkT => {
+            let currentTypeMulti = 1; // Começa neutro para este tipo de ataque
+            
+            // Multiplica o efeito contra todos os tipos do defensor (Igual Pokémon Original)
             defTypes.forEach(defT => {
-                let factor = 1; // Neutro
-                
-                // Verifica na tabela se existe relação
+                let factor = 1; 
                 if (TYPE_CHART[atkT] && (TYPE_CHART[atkT] as any)[defT] !== undefined) {
                     const val = (TYPE_CHART[atkT] as any)[defT];
-                    // Converte os valores padrão (2, 0.5) para os seus personalizados (1.75, 0.75)
                     if (val > 1) factor = 1.75;      // Vantagem
                     else if (val < 1) factor = 0.75; // Desvantagem
                 }
-                
-                totalMulti += factor;
-                interactions++;
+                currentTypeMulti *= factor; 
             });
+
+            // Se esse tipo causou mais dano que o tipo anterior testado, o Pokémon usa ele!
+            if (currentTypeMulti > bestMulti) {
+                bestMulti = currentTypeMulti;
+            }
         });
 
-        // Calcula a média final (equivalente a somar 25% de cada parte)
-        const finalMulti = totalMulti / interactions;
+        const finalMulti = bestMulti;
         
         // Aplica o multiplicador no dano
         finalDamage = Math.floor(finalDamage * finalMulti);
 
-        // Define o ícone do log baseado na média final
-        if (finalMulti > 1.2) logDetails += " 🔥!"; // Muito efetivo (Média alta)
+        // Define o ícone do log baseado no resultado final
+        if (finalMulti >= 1.5) logDetails += " 🔥!"; // Muito efetivo (Aparece se for 1.75 ou maior)
         else if (finalMulti > 1.0) logDetails += " ⚔️"; // Levemente efetivo
-        else if (finalMulti < 0.9) logDetails += " 🛡️."; // Pouco efetivo
+        else if (finalMulti < 1.0) logDetails += " 🛡️."; // Pouco efetivo (Nenhum tipo ajudou)
         
         // =================================================================================
 
