@@ -141,10 +141,16 @@ export class Pokemon {
     }
 
     recalculateStats(resetHp: boolean = false) {
-        const shinyBonus = this.isShiny ? 1.15 : 1.0; 
+        // --- NOVOS MULTIPLICADORES DE FORÇA ---
+        const shinyBonus = this.isShiny ? 1.20 : 1.0;       // Shiny é 20% mais forte
+        const legendaryBonus = this.isLegendary ? 1.10 : 1.0; // Lendário é 10% mais forte
         
-        // A fórmula agora usa Base + IV + Bonus (sem usar this.level diretamente)
-        const calc = (base: number, iv: number, bonus: number) => Math.floor((base + iv + bonus) * shinyBonus);
+        // Se por um milagre o jogador achar um Lendário Shiny, os bônus se acumulam!
+        const totalMultiplier = shinyBonus * legendaryBonus; 
+        
+        // A fórmula agora aplica o multiplicador total nos status
+        const calc = (base: number, iv: number, bonus: number) => Math.floor((base + iv + bonus) * totalMultiplier);
+        // --------------------------------------
 
         const oldMaxHp = this.maxHp;
 

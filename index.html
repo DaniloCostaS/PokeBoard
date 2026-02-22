@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PokéBoard V30 - Auto ataque</title>
+    <title>PokéBoard V31</title>
     <link rel="stylesheet" href="style.css">
     
     <script type="importmap">
@@ -18,8 +18,8 @@
 <body>
 
     <div id="setup-screen">
-        <h1 class="title-highlight">PokéBoard V30</h1>
-        <p class="subtitle">Auto ataque</p>
+        <h1 class="title-highlight">PokéBoard V31</h1>
+        <p class="subtitle">Novas cartas. Esquiva e vantagens ajustada.</p>
         
         <div id="menu-phase-1">
             <button class="btn" onclick="window.Setup.showOfflineSetup()">🏠 JOGAR OFFLINE</button>
@@ -165,7 +165,7 @@
                 <ul style="font-size: 0.8rem;">
                     <li><strong>Ataque Base:</strong> Híbrido! Soma de (65% Atk) + (15% Spd) + (20% HP).</li>
                     <li><strong>Defesa:</strong> Redução percentual. Dano = (Base / 5) - (Def / 20).</li>
-                    <li><strong>⚡ Esquiva:</strong> (Spd / 5)% de chance de evitar 100% do dano.</li>
+                    <li><strong>⚡ Esquiva:</strong> ((SpdA - SpdD) / 5)% de chance de evitar 100% do dano (Mínimo 10%).</li>
                     <li><strong>⚡ Crítico Veloz:</strong> (Spd / 8)% de chance de causar +5 de dano fixo.</li>
                     <li><strong>⚡ Ataque Duplo:</strong> Se sua Spd for 50% maior que a do rival, tem 20% de chance de atacar 2x!</li>
                     <li><strong>Multiplicadores:</strong> Vantagem (x1.75), Normal (x1), Desvantagem (x0.75).</li>
