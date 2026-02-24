@@ -189,13 +189,22 @@ export class Battle {
             const npcName = (this.opponent as any)._npcName || ""; 
             const startingId = this.player!.id;
 
-            // --- CORREÇÃO DEFINITIVA: BUSCA PELO ID (BLINDAGEM) ---
-            // O indexOf falha se a referência do objeto mudou. 
-            // O findIndex pelo ID funciona sempre, pois o número ID é constante.
+            // --- CORREÇÃO VISUAL DE ESPECTADOR ---
+            // Antes usávamos findIndex pelo ID, o que causava bug em times com Pokémons repetidos
+            // (ex: 2 Geodudes). O sistema achava sempre o primeiro (índice 0) e mostrava o pokémon morto.
+            
             let targetIdx = 0;
             if (this.opponent && this.oppTeamList.length > 0) {
-                targetIdx = this.oppTeamList.findIndex(p => p.id === this.opponent!.id);
-                // Se der erro (-1) ou for duplicado, garante pelo menos o índice 0 para não bugar
+                // 1. Tenta achar pela referência exata do objeto na memória (Infalível para o Host)
+                targetIdx = this.oppTeamList.indexOf(this.opponent);
+
+                // 2. Fallback de segurança: Se por algum motivo a referência for perdida,
+                // busca pelo ID mas ignora os desmaiados para não pegar o morto do índice 0.
+                if (targetIdx === -1) {
+                    targetIdx = this.oppTeamList.findIndex(p => p.id === this.opponent!.id && !p.isFainted());
+                }
+
+                // 3. Último caso, volta para 0
                 if (targetIdx === -1) targetIdx = 0;
             }
             // ------------------------------------------------------
@@ -206,7 +215,7 @@ export class Battle {
                 oppTeam: Network.getSanitizedTeam(this.oppTeamList), 
                 plyTeam: Network.getSanitizedTeam(this.plyTeamList),
                 
-                // Agora enviamos o índice calculado de forma segura pelo ID
+                // Agora enviamos o índice correto, mesmo se houver pokémons repetidos
                 oppIdx: targetIdx,
                 
                 isPvP: this.isPvP, 
