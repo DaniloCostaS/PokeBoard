@@ -490,7 +490,11 @@ export class Game {
                 // Transferência de Gold
                 let stolenGold = 0;
                 if (p.gold > 0) {
-                    stolenGold = Math.min(p.gold, 100);
+                    // --- ALTERAÇÃO: Agora rouba 20% do ouro total da vítima ---
+                    stolenGold = Math.floor(p.gold * 0.20);
+                    // Garante que roube pelo menos 1 moeda se a conta der zero (ex: 20% de 4 = 0.8)
+                    if (stolenGold === 0 && p.gold > 0) stolenGold = 1;
+                    
                     p.gold -= stolenGold;
                     if (owner) owner.gold += stolenGold;
                 }

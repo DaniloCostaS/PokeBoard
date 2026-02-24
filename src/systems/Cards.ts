@@ -502,11 +502,18 @@ export class Cards {
                 if (targetId !== null) {
                     const target = Game.players.find((p:any) => p.id === targetId);
                     if(target) {
-                        target.skipTurns += 1; 
-                        effectLog = `❌ Sabotagem feita com sucesso! ${target.name} perde a próxima rodada.`;
+                        // --- ALTERAÇÃO: Agora adiciona 3 turnos de punição em vez de 1 ---
+                        target.skipTurns += 3; 
+                        
+                        // Atualizamos a mensagem de log para refletir a nova força da carta
+                        effectLog = `❌ Sabotagem feita com sucesso! A troca falhou terrivelmente e ${target.name} perde as próximas 3 rodadas!`;
+                        
                         if(Network.isOnline) Network.syncSpecificPlayer(target.id);
                     }
-                } else { this.openTargetSelection(cardId); consumed = false; }
+                } else { 
+                    this.openTargetSelection(cardId); 
+                    consumed = false; 
+                }
                 break;
 
             case 'time': player.effects.extraTurn = true; effectLog = "⏳ O tempo congelou! O jogador terá mais um turno imediato."; break;
@@ -558,7 +565,11 @@ export class Cards {
                 break;
 
             // BATTLE CARDS
-            case 'crit': Battle.activeEffects.crit = true; Battle.logBattle("💥 Dano Dobrado ativado!"); break;
+            case 'crit': 
+                Battle.activeEffects.crit = 3; // Define 3 cargas
+                Battle.logBattle("💥 Super Crítico! Seus próximos 3 acertos causarão dobro de dano."); 
+                break;
+
             case 'master': 
                 // Impede o uso contra outros jogadores, NPCs ou Ginásios
                 if (Battle.isPvP || Battle.isNPC || Battle.isGym) {

@@ -511,7 +511,11 @@ export class Battle {
 
         // Aplica modificadores de cartas (Mantém igual)
         if (isPlayerAttacking) { 
-            if (this.activeEffects.crit) { finalDamage *= 2; logDetails += " [2x]"; } 
+            if (this.activeEffects.crit > 0) { 
+                finalDamage *= 2; 
+                this.activeEffects.crit--; // Gasta 1 carga
+                logDetails += ` [2x] (Restam: ${this.activeEffects.crit})`; 
+            }
             if (this.activeEffects.focus) { finalDamage *= 4; this.activeEffects.focus = false; logDetails += " [4x]"; } 
             // --- CORREÇÃO: Maldição só corta o dano se for contra Ginásio ---
             if (this.player?.effects.curse && this.isGym) { 
