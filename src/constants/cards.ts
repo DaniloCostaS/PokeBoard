@@ -2,7 +2,6 @@ import type { CardData } from './types';
 
 export const CARDS_DB: CardData[] = [
     { id: 'dice', name: "Dado Mágico", icon: "🎲", desc: "Escolha o nº do dado (1-20).", type: 'move' },
-    { id: 'jam', name: "Interferência", icon: "📡", desc: "Anula a carta que um jogador acabou de usar conta você (Ativado automaticamente).", type: 'auto' },
     { id: 'crit', name: "Super Crítico", icon: "💥", desc: "Dobra o dano causado dos próximos 3 ataques.", type: 'battle' },
     { id: 'master', name: "Master Ball", icon: "🟣", desc: "Captura 100% garantida usando qualquer pokebola (Só pode ser usado se tiver pokebola).", type: 'battle' },
     { id: 'run', name: "Fumaça Ninja", icon: "💨", desc: "Foge de qualquer batalha instantaneamente.", type: 'battle' },
@@ -28,9 +27,14 @@ export const CARDS_DB: CardData[] = [
     { id: 'doublexp', name: "Double XP", icon: "🚻", desc: "Seus próximos 5 ganhos de XP serão dobrados (XP do dado conta)", type: 'move' },
     { id: 'expshare', name: "Exp Share", icon: "🤩", desc: "Seus próximo 5 ganhos de XP serão  igualmente distribuído para todo o time (XP do dado conta)", type: 'move' },
     { id: 'sniper', name: "Sniper Americano", icon: "🎯", desc: "Durante essa batalha seus pokémon não erram golpes.", type: 'battle' },
+    // Cartas de ativação automatica.
+    { id: 'jam', name: "Interferência", icon: "📡", desc: "Anula a carta que um jogador acabou de usar conta você (Ativado automaticamente).", type: 'auto' },
+    { id: 'silvertape', name: "Silver Tape", icon: "🚷", desc: "Anula a carta Bolsa furada que um jogador acabou de usar conta você (Ativado automaticamente).", type: 'auto' },
+    { id: 'no_troques', name: "Pokémon fiel", icon: "💝", desc: "Anula a carta Troca forçada que um jogador acabou de usar conta você (Ativado automaticamente).", type: 'auto' },
+    { id: 'old_leader', name: "Líder Velho", icon: "💝", desc: "Anula a carta Novo líder que um jogador acabou de usar conta você (Ativado automaticamente).", type: 'auto' },
 
     // Cartas raras
     { id: 'bag', name: "Bolsa furada", icon: "🎒", desc: "Escolha um jogador e ele vai perder metade dos seus itens aleatoriamente.", type: 'move' },
     { id: 'troques', name: "Troca forçada", icon: "🔛", desc: "Troque um pokémon seu com um de outro jogador.", type: 'move' },
-    { id: 'new_leader', name: "Novo líder", icon: "⚔️", desc: "Escolha um jogador: Se vencer a batalha, pegue uma insígnia aleatória que ainda não tem do adversário. (Se faltar somente uma insígnia para ganhar, essa carta fica inutilizável)", type: 'move' }
+    { id: 'new_leader', name: "Novo líder", icon: "⚔️", desc: "Escolha um jogador: Se vencer a batalha, pegue uma insígnia aleatória que ainda não tem do adversário.", type: 'move' }
 ];

@@ -325,6 +325,93 @@ export class Cards {
         }
     }
 
+    // =========================================================================================
+    //  NOVO SISTEMA DE DEFESA AUTOMÁTICA COM PRIORIDADE
+    // =========================================================================================
+    static checkAutoDefense(attacker: Player, target: Player, incomingCardId: string, incomingCardName: string): boolean {
+        const Game = (window as any).Game;
+        const Network = (window as any).Network;
+
+        // 1. Define a prioridade baseada na carta que está atacando
+        let priorityList: string[] = [];
+
+        switch (incomingCardId) {
+            case 'new_leader':
+                priorityList = ['old_leader', 'jam']; // Líder Velho ganha de Jam
+                break;
+            case 'bag':
+                priorityList = ['silvertape', 'jam']; // Silver Tape ganha de Jam
+                break;
+            case 'troques':
+                priorityList = ['no_troques', 'jam']; // Pokémon Fiel ganha de Jam
+                break;
+            default:
+                priorityList = ['jam']; // Para o resto, só Jam resolve
+                break;
+        }
+
+        // 2. Procura no inventário do alvo seguindo a ordem da lista
+        for (const defenseId of priorityList) {
+            const defenseCardIndex = target.cards.findIndex((c: any) => c.id === defenseId);
+
+            if (defenseCardIndex > -1) {
+                // --- DEFESA ENCONTRADA! ---
+                
+                // A. Consome a carta de Defesa do Alvo
+                target.cards.splice(defenseCardIndex, 1);
+
+                // B. Consome a carta de Ataque do Agressor (ela é gasta mesmo falhando)
+                const attackCardIndex = attacker.cards.findIndex((c: any) => c.id === incomingCardId);
+                if (attackCardIndex > -1) attacker.cards.splice(attackCardIndex, 1);
+
+                // C. Atualiza HUD local
+                const boardModal = document.getElementById('board-cards-modal');
+                if(boardModal) boardModal.style.display = 'none';
+                Game.updateHUD();
+
+                // D. Define mensagens personalizadas
+                let blockMsg = "";
+                let logMsg = "";
+
+                if (defenseId === 'silvertape') {
+                    blockMsg = `🚫 SILVER TAPE!\n\n${target.name} usou uma fita mágica e remendou a bolsa instantaneamente! A carta [${incomingCardName}] falhou.`;
+                    logMsg = `🚫 ${target.name} anulou o rasgo na bolsa com Silver Tape!`;
+                } else if (defenseId === 'no_troques') {
+                    blockMsg = `💝 POKÉMON FIEL!\n\nO Pokémon de ${target.name} se recusou a obedecer a troca! A carta [${incomingCardName}] foi ignorada.`;
+                    logMsg = `🚫 ${target.name} bloqueou a troca com Pokémon Fiel!`;
+                } else if (defenseId === 'old_leader') {
+                    blockMsg = `👑 LÍDER VELHO!\n\nA tradição falou mais alto! ${target.name} invocou sua autoridade veterana e cancelou o desafio de [${incomingCardName}].`;
+                    logMsg = `🚫 ${target.name} impediu o roubo de insígnia com Líder Velho!`;
+                } else {
+                    // Mensagem padrão da Interferência (Jam)
+                    blockMsg = `📡 INTERFERÊNCIA!\n\n${target.name} tinha um bloqueador de sinal! A carta [${incomingCardName}] de ${attacker.name} foi anulada!`;
+                    logMsg = `📡 INTERFERÊNCIA! O ataque de ${attacker.name} foi bloqueado por ${target.name}!`;
+                }
+
+                Game.log(logMsg);
+                Game.showGlobalAlert(blockMsg, attacker.name, true, false);
+
+                // E. Sincroniza com Firebase
+                if (Network.isOnline) {
+                    // Salva os dois jogadores simultaneamente
+                    if ((Network as any).syncPlayers) {
+                        (Network as any).syncPlayers([attacker.id, target.id]);
+                    } else {
+                        Network.syncSpecificPlayer(target.id);
+                        Network.syncPlayerState(); 
+                    }
+
+                    Network.sendAction('SHOW_ALERT', { msg: blockMsg, playerName: attacker.name, endsTurn: false });
+                    Network.sendAction('LOG', { msg: logMsg });
+                }
+
+                return true; // Retorna TRUE indicando que o ataque foi bloqueado
+            }
+        }
+
+        return false; // Nenhuma defesa encontrada, o ataque prossegue
+    }
+
     static activate(cardId: string, targetId: number | null = null) {
         const Game = (window as any).Game;
         const Battle = (window as any).Battle;
@@ -342,47 +429,23 @@ export class Cards {
             return alert("Esta carta não pode ser ativada manualmente. Ela protege você automaticamente quando for alvo de outra carta!");
         }
 
-        // --- SISTEMA DE INTERCEPTAÇÃO (INTERFERÊNCIA) ---
-        // Verifica se a carta sendo jogada tem um alvo e se esse alvo não é o próprio jogador
+        // =====================================================================
+        // NOVA LÓGICA DE DEFESA (SUBSTITUI O BLOCO ANTIGO DO JAM)
+        // =====================================================================
+        // Verifica se há um alvo (que não seja você mesmo)
         if (targetId !== null && targetId !== player.id) {
             const targetP = Game.players.find((p:any) => p.id === targetId);
+            
             if (targetP) {
-                // Procura se o Alvo tem a carta Interferência na mão
-                const jamIndex = targetP.cards.findIndex((c:any) => c.id === 'jam');
-                if (jamIndex > -1) {
-                    
-                    // 1. Consome a Interferência do Alvo
-                    targetP.cards.splice(jamIndex, 1);
-                    
-                    // 2. Consome a carta de ataque do Jogador ativo
-                    const atkCardIdx = player.cards.findIndex((c:any) => c.id === cardId);
-                    if (atkCardIdx > -1) player.cards.splice(atkCardIdx, 1);
-                    
-                    document.getElementById('board-cards-modal')!.style.display = 'none';
-                    Game.updateHUD();
-
-                    // 3. Monta a mensagem épica de bloqueio
-                    const jamMsg = `📡 INTERFERÊNCIA!\n\n${targetP.name} tinha um bloqueador de sinal na mochila! A carta [${cardData.name}] de ${player.name} foi totalmente anulada!`;
-                    
-                    Game.log(jamMsg);
-                    Game.showGlobalAlert(jamMsg, player.name, true, false);
-
-                    // 4. Salva no banco de dados que os dois perderam as cartas
-                    if (Network.isOnline) {
-                        if ((Network as any).syncPlayers) {
-                            (Network as any).syncPlayers([player.id, targetP.id]);
-                        } else {
-                            Network.syncSpecificPlayer(targetP.id);
-                            Network.syncPlayerState();
-                        }
-                        Network.sendAction('SHOW_ALERT', { msg: jamMsg, playerName: player.name, endsTurn: false });
-                        Network.sendAction('LOG', { msg: `📡 INTERFERÊNCIA! O ataque de ${player.name} foi bloqueado por ${targetP.name}!` });
-                    }
-                    
-                    return; // <--- O SEGREDO ESTÁ AQUI: Para a função e impede o Switch de rodar!
+                // Chama a nova função. Se retornar TRUE, para tudo.
+                const wasBlocked = this.checkAutoDefense(player, targetP, cardId, cardData.name);
+                
+                if (wasBlocked) {
+                    return; // Sai da função activate e impede o efeito da carta!
                 }
             }
         }
+        // =====================================================================
 
         let consumed = true; 
         let effectLog = ""; 
