@@ -5,6 +5,8 @@ import { TYPE_CHART } from '../constants/typeChart';
 import { SHOP_ITEMS } from '../constants';
 import type { ItemData } from '../constants';
 import { Cards } from './Cards';
+import { db } from './Network'; 
+import { ref, update } from 'firebase/database';
 
 export class Battle {
     static active: boolean = false; 
@@ -174,11 +176,26 @@ export class Battle {
             const npcName = (this.opponent as any)._npcName || ""; 
             const startingId = this.player!.id;
 
+            // --- CORREÇÃO DEFINITIVA: BUSCA PELO ID (BLINDAGEM) ---
+            // O indexOf falha se a referência do objeto mudou. 
+            // O findIndex pelo ID funciona sempre, pois o número ID é constante.
+            let targetIdx = 0;
+            if (this.opponent && this.oppTeamList.length > 0) {
+                targetIdx = this.oppTeamList.findIndex(p => p.id === this.opponent!.id);
+                // Se der erro (-1) ou for duplicado, garante pelo menos o índice 0 para não bugar
+                if (targetIdx === -1) targetIdx = 0;
+            }
+            // ------------------------------------------------------
+
             Network.sendAction('BATTLE_START', { 
                 pId: this.player!.id, 
                 monIdx: this.player!.team.indexOf(this.activeMon), 
                 oppTeam: Network.getSanitizedTeam(this.oppTeamList), 
-                plyTeam: Network.getSanitizedTeam(this.plyTeamList), // <-- NOVO: Envia o time sorteado
+                plyTeam: Network.getSanitizedTeam(this.plyTeamList),
+                
+                // Agora enviamos o índice calculado de forma segura pelo ID
+                oppIdx: targetIdx,
+                
                 isPvP: this.isPvP, 
                 reward: this.reward, 
                 enemyId, 
@@ -276,60 +293,61 @@ export class Battle {
         
         this.active = true; 
         this.player = p; 
-        this.activeMon = p.team[payload.monIdx]; 
         
+        this.currentTerrain = payload.currentTerrain || 1; 
+
         this.isPvP = payload.isPvP; 
         this.isGym = payload.isGym; 
         this.gymId = payload.gymId; 
         this.isNPC = (!payload.isPvP && payload.reward > 0); 
         if(payload.enemyId >= 0) this.enemyPlayer = Game.players[payload.enemyId]; 
         
-        // === CORREÇÃO DO ESPECTADOR (Prevenção de Crash) ===
-        if (payload.isPvP && payload.plyTeam) {
+        // Time do Jogador
+        if (payload.plyTeam) {
             const PokemonClass = (window as any).Pokemon || p.team[0].constructor;
             this.plyTeamList = payload.plyTeam.map((td: any) => {
                  const po = new PokemonClass(td.id, td.level, td.isShiny);
                  Object.assign(po, td);
                  return po;
             });
-            // Acha qual Pokémon da lista é o atual
             this.activeMon = this.plyTeamList.find((m: any) => m.id === p.team[payload.monIdx]?.id) || this.plyTeamList[0];
         } else {
-            this.plyTeamList = p.getBattleTeam(payload.isGym).slice(0, payload.isGym ? 6 : 3);
-            this.activeMon = p.team[payload.monIdx]; 
+            this.activeMon = p.team[payload.monIdx] || p.team[0]; 
+            if (this.activeMon) { this.plyTeamList = [this.activeMon]; } 
+            else { this.plyTeamList = []; }
         }
 
-        if (this.isPvP && this.enemyPlayer) {
-            if (payload.oppTeam && payload.oppTeam.length > 0) {
-                const PokemonClass = (window as any).Pokemon || p.team[0].constructor;
-                this.oppTeamList = payload.oppTeam.map((td: any) => {
-                     const po = new PokemonClass(td.id, td.level, td.isShiny);
-                     Object.assign(po, td);
-                     return po;
-                });
-            } else {
-                this.oppTeamList = this.enemyPlayer.getBattleTeam(false);
-            }
-            this.opponent = this.oppTeamList[0];
-        // ----------------------------------------------------------------------
-        } else {
-            if (payload.oppTeam && payload.oppTeam.length > 0) {
-                const PokemonClass = (window as any).Pokemon || p.team[0].constructor;
-                this.oppTeamList = payload.oppTeam.map((td: any) => {
-                     const po = new PokemonClass(td.id, td.level, td.isShiny);
-                     Object.assign(po, td);
-                     return po;
-                });
-                this.opponent = this.oppTeamList[0];
-            } else if (payload.oppData) {
-                this.opponent = new Pokemon(payload.oppData.id, payload.oppData.level, payload.oppData.isShiny); 
-                Object.assign(this.opponent, payload.oppData); 
-                this.oppTeamList = [this.opponent];
-            }
+        // Time do Oponente
+        if (payload.oppTeam && payload.oppTeam.length > 0) {
+            const PokemonClass = (window as any).Pokemon || p.team[0].constructor;
+            this.oppTeamList = payload.oppTeam.map((td: any) => {
+                    const po = new PokemonClass(td.id, td.level, td.isShiny);
+                    Object.assign(po, td);
+                    if (payload.npcImage) (po as any)._npcImage = payload.npcImage;
+                    if (payload.npcName) (po as any)._npcName = payload.npcName;
+                    return po;
+            });
+
+            // --- SELEÇÃO SEGURA DO ÍNDICE ---
+            // Se oppIdx vier como -1 ou undefined, cai para 0.
+            const targetIdx = (payload.oppIdx !== undefined && payload.oppIdx >= 0) ? payload.oppIdx : 0;
+            this.opponent = this.oppTeamList[targetIdx] || this.oppTeamList[0];
+            // --------------------------------
+        } 
+        else if (payload.oppData) {
+            this.opponent = new Pokemon(payload.oppData.id, payload.oppData.level, payload.oppData.isShiny); 
+            Object.assign(this.opponent, payload.oppData); 
+            this.oppTeamList = [this.opponent];
+        }
+        else if (this.enemyPlayer) {
+            this.oppTeamList = this.enemyPlayer.getBattleTeam(false);
+            const targetIdx = (payload.oppIdx !== undefined && payload.oppIdx >= 0) ? payload.oppIdx : 0;
+            this.opponent = this.oppTeamList[targetIdx] || this.oppTeamList[0];
         }
         
         if(payload.npcImage && this.opponent) (this.opponent as any)._npcImage = payload.npcImage; 
         if(payload.npcName && this.opponent) (this.opponent as any)._npcName = payload.npcName; 
+        
         if(payload.battleTitle) this.battleTitle = payload.battleTitle; 
         
         if (payload.startingTurnId !== undefined) {
@@ -338,7 +356,6 @@ export class Battle {
             this.isPlayerTurn = (payload.pId === Network.myPlayerId); 
         }
 
-        this.plyTeamList = p.getBattleTeam(payload.isGym).slice(0, payload.isGym ? 6 : 3);
         this.renderBattleScreen(); 
     }
     
@@ -998,20 +1015,54 @@ export class Battle {
         this.revertMew();
         let gain = 0; let msg = "VITÓRIA! "; 
         
+        // =========================================================================
+        // LÓGICA DA CARTA "NOVO LÍDER" (ROUBO DE INSÍGNIA - ATOMIC UPDATE)
+        // =========================================================================
         if (this.isPvP && this.enemyPlayer && this.activeEffects.stealBadgeFrom === this.enemyPlayer.id) { 
-            // --- CORREÇÃO: Sorteia uma insígnia aleatória que o inimigo tem e você não ---
-            const stealableBadges = [];
-            for(let i=0; i<8; i++) {
-                if(this.enemyPlayer.badges[i] && !this.player!.badges[i]) stealableBadges.push(i);
+            // 1. Busca os objetos reais na memória global
+            const realWinner = Game.players.find((p: any) => p.id === this.player!.id);
+            const realLoser = Game.players.find((p: any) => p.id === this.enemyPlayer!.id);
+
+            if (realWinner && realLoser) {
+                const stealableBadges = [];
+                for(let i=0; i<8; i++) {
+                    if(realLoser.badges[i] && !realWinner.badges[i]) stealableBadges.push(i);
+                }
+                
+                if (stealableBadges.length > 0) {
+                    const randomBadge = stealableBadges[Math.floor(Math.random() * stealableBadges.length)];
+                    
+                    // 2. Atualiza memória LOCAL (para o HUD atualizar na hora)
+                    realWinner.badges[randomBadge] = true;
+                    realLoser.badges[randomBadge] = false; 
+                    this.player!.badges[randomBadge] = true;
+                    this.enemyPlayer.badges[randomBadge] = false;
+                    
+                    msg += ` Roubou a Insígnia ${randomBadge+1}!`;
+
+                    // 3. ATOMIC UPDATE: Gravação Direta e Blindada no Firebase
+                    if(Network.isOnline) {
+                        const updates: any = {};
+                        const roomPath = `rooms/${Network.currentRoomId}`;
+                        
+                        // Prepara o pacote apenas com as insígnias (ignora HP, Gold, etc)
+                        updates[`${roomPath}/players/${realWinner.id}/badges`] = realWinner.badges;
+                        updates[`${roomPath}/players/${realLoser.id}/badges`] = realLoser.badges;
+                        
+                        // Envia tudo junto num único comando de alta prioridade
+                        update(ref(db), updates).then(() => {
+                            console.log(`✅ [ATOMIC] Insígnia ${randomBadge+1} transferida de P${realLoser.id} para P${realWinner.id}`);
+                        }).catch((err) => {
+                            console.error("❌ Erro ao salvar insígnia:", err);
+                        });
+                    }
+                } else {
+                    msg += ` (Inimigo não tinha insígnias novas)`;
+                }
             }
-            if (stealableBadges.length > 0) {
-                const randomBadge = stealableBadges[Math.floor(Math.random() * stealableBadges.length)];
-                this.player!.badges[randomBadge] = true;
-                this.enemyPlayer.badges[randomBadge] = false;
-                msg += ` Roubou a Insígnia ${randomBadge+1}!`;
-            }
-            // ---------------------------------------------------------------------------
         }
+        // =========================================================================
+
         if (this.activeEffects.destiny) { 
             this.player!.gold += 200; 
             if(Cards) Cards.draw(this.player!); 
@@ -1036,7 +1087,7 @@ export class Battle {
                     targetId: this.enemyPlayer.id, 
                     team: this.enemyPlayer.team, 
                     gold: this.enemyPlayer.gold,
-                    badges: this.enemyPlayer.badges, 
+                    badges: this.enemyPlayer.badges, // Envia badges atualizadas para garantir visual
                     resetPos: true, 
                     skipTurn: true 
                 });
@@ -1048,29 +1099,26 @@ export class Battle {
         } else if (this.isNPC) { 
             gain = this.reward; 
             Game.sendGlobalLog(`💰 [Extrato] ${this.player!.name} recebeu +${gain}G (Treinador NPC).`);
-
             if(Cards) Cards.draw(this.player!); 
             msg += ` e ganhou uma Carta!`;
         } 
         else { 
             gain = 150; 
             Game.sendGlobalLog(`💰 [Extrato] ${this.player!.name} recebeu +${gain}G (Pokémon Selvagem).`);
-
-            if (Math.random() <= 0.25) { // Sorteia um número de 0.00 a 1.00
+            if (Math.random() <= 0.25) { 
                 if(Cards) Cards.draw(this.player!);
                 msg += ` e achou uma Carta!`;
             }
         } 
         
-        // Dá o ouro para o vencedor
         this.player!.gold += gain; 
         
         if(Network.isOnline) { 
+            // O update atômico lá em cima já salvou as badges. 
+            // Aqui salvamos o resto (Gold, XP) do vencedor.
+            Network.syncPlayerState();
+            
             if (this.isPvP && this.enemyPlayer) {
-                // A REGRA DE OURO: O atacante salva APENAS a si mesmo!
-                Network.syncPlayerState();
-                
-                // Envia o pacote para a vítima se virar (mandando o novo saldo dela)
                 Network.sendAction('PVP_SYNC_DAMAGE', { 
                     targetId: this.enemyPlayer.id, 
                     team: this.enemyPlayer.team, 
@@ -1079,8 +1127,6 @@ export class Battle {
                     resetPos: true, 
                     skipTurn: true 
                 }); 
-            } else {
-                Network.syncPlayerState();
             }
         }
         
@@ -1091,20 +1137,14 @@ export class Battle {
             return; 
         }
 
-        // --- CORREÇÃO DO ENGARRAFAMENTO DE PACOTES ---
-        // Espera 500ms para o pacote de DANO/ROUBO chegar no perdedor primeiro!
         setTimeout(() => {
             this.logBattle(`🏆 ${msg}`, true); 
-            
-            // Espera mais 200ms para mandar o texto pro chat global
             setTimeout(() => {
                 Game.sendGlobalLog(`${this.player?.name} venceu! ${msg}`); 
             }, 200);
         }, 500);
         
-        // Atrasamos o encerramento da tela para 2500ms para compensar
         setTimeout(() => this.end(false), 2500);
-        // ----------------------------------------------
     }
 
     static lose() { 

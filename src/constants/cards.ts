@@ -34,4 +34,3 @@ export const CARDS_DB: CardData[] = [
     { id: 'troques', name: "Troca forçada", icon: "🔛", desc: "Troque um pokémon seu com um de outro jogador.", type: 'move' },
     { id: 'new_leader', name: "Novo líder", icon: "⚔️", desc: "Escolha um jogador: Se vencer a batalha, pegue uma insígnia aleatória que ainda não tem do adversário. (Se faltar somente uma insígnia para ganhar, essa carta fica inutilizável)", type: 'move' }
 ];
-

@@ -329,22 +329,28 @@ export class Network {
                 const BattleObj = (window as any).Battle;
                 if (!BattleObj.active) return;
                 
-                // Pega o próximo Pokémon da lista já existente para não quebrar o indicador de bolinhas!
+                // 1. Tenta achar o Pokémon na lista que já foi criada no início (Isso arruma as bolinhas de status)
                 const nextInList = BattleObj.oppTeamList.find((p: any) => p.id === action.payload.nextOpp.id && !p.isFainted());
                 
+                // Salva a imagem/nome do anterior antes de trocar!
+                const oldNpcImg = (BattleObj.opponent as any)?._npcImage;
+                const oldNpcName = (BattleObj.opponent as any)?._npcName;
+
                 if (nextInList) {
                     BattleObj.opponent = nextInList;
                 } else {
-                    // Fallback se não achar
-                    const PokemonClass = (window as any).Pokemon || Game.players[0].team[0].constructor;
+                    // Se não achou (bug de sincronia), cria um novo de emergência
+                    const GameRef = (window as any).Game;
+                    const PokemonClass = (window as any).Pokemon || GameRef.players[0].team[0].constructor;
                     const newOpp = new PokemonClass(action.payload.nextOpp.id, action.payload.nextOpp.level, action.payload.nextOpp.isShiny);
                     Object.assign(newOpp, action.payload.nextOpp);
-                    
-                    if ((BattleObj.opponent as any)._npcImage) (newOpp as any)._npcImage = (BattleObj.opponent as any)._npcImage;
-                    if ((BattleObj.opponent as any)._npcName) (newOpp as any)._npcName = (BattleObj.opponent as any)._npcName;
-                    
                     BattleObj.opponent = newOpp;
                 }
+                
+                // --- CORREÇÃO: Reaplica a imagem do NPC no novo Pokémon Ativo ---
+                if (oldNpcImg) (BattleObj.opponent as any)._npcImage = oldNpcImg;
+                if (oldNpcName) (BattleObj.opponent as any)._npcName = oldNpcName;
+                // ---------------------------------------------------------------
                 
                 BattleObj.updateUI();
                 break;
