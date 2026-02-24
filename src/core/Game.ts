@@ -494,7 +494,7 @@ export class Game {
                     stolenGold = Math.floor(p.gold * 0.20);
                     // Garante que roube pelo menos 1 moeda se a conta der zero (ex: 20% de 4 = 0.8)
                     if (stolenGold === 0 && p.gold > 0) stolenGold = 1;
-                    
+
                     p.gold -= stolenGold;
                     if (owner) owner.gold += stolenGold;
                 }
@@ -1013,17 +1013,63 @@ export class Game {
             const totalItems = Object.values(p.items).reduce((sum, val) => sum + val, 0);
             const totalCards = p.cards.length;
 
+            // Dentro do loop this.players.forEach((p,i) => { ...
+        
+            // 1. CONSTRUÇÃO DA BARRA DE EFEITOS (BUFFS/DEBUFFS)
+            let effectsHTML = `<div style="display:flex; gap:4px; flex-wrap:wrap; margin-top:2px; min-height:18px;">`;
+
+            // 🛑 PERDE A VEZ (Skip Turn)
+            if (p.skipTurns > 0) {
+                effectsHTML += `<span style="background:#c0392b; color:white; font-size:0.65rem; padding:1px 4px; border-radius:4px; display:flex; align-items:center;" title="Paralisado: Perde a vez por ${p.skipTurns} rodadas">🚫 ${p.skipTurns}</span>`;
+            }
+
+            // 🕸️ LENTIDÃO (Slow)
+            if (p.effects.slow && p.effects.slow > 0) {
+                effectsHTML += `<span style="background:#7f8c8d; color:white; font-size:0.65rem; padding:1px 4px; border-radius:4px; display:flex; align-items:center;" title="Lentidão: Anda apenas 1 casa por ${p.effects.slow} turnos">🕸️ ${p.effects.slow}</span>`;
+            }
+
+            // 😈 MALDIÇÃO (Curse)
+            if (p.effects.curse) {
+                effectsHTML += `<span style="background:#2c3e50; color:#e74c3c; font-size:0.65rem; padding:1px 4px; border-radius:4px; display:flex; align-items:center; border:1px solid #e74c3c;" title="Amaldiçoado: Dano reduzido e Itens bloqueados no Ginásio">😈 CURSE</span>`;
+            }
+
+            // ✨ LURE SHINY (Chance Aumentada)
+            if (p.effects.lureShiny && p.effects.lureShiny > 0) {
+                effectsHTML += `<span style="background:#f1c40f; color:#2c3e50; font-size:0.65rem; padding:1px 4px; border-radius:4px; display:flex; align-items:center; font-weight:bold;" title="Shiny Lure: Chance de Shiny aumentada por ${p.effects.lureShiny} turnos">✨ ${p.effects.lureShiny}</span>`;
+            }
+
+            // ⏳ TURNO EXTRA (Time Stop)
+            if (p.effects.extraTurn) {
+                effectsHTML += `<span style="background:#2980b9; color:white; font-size:0.65rem; padding:1px 4px; border-radius:4px; display:flex; align-items:center;" title="Tempo Parado: Jogará novamente">⏳ EXTRA</span>`;
+            }
+
+            // 🚻 DOUBLE XP
+            if (p.effects.doubleXp && p.effects.doubleXp > 0) {
+                effectsHTML += `<span style="background:#8e44ad; color:white; font-size:0.65rem; padding:1px 4px; border-radius:4px; display:flex; align-items:center;" title="Double XP: Próximos ${p.effects.doubleXp} ganhos dobrados">🚻 ${p.effects.doubleXp}</span>`;
+            }
+
+            // 🤩 EXP SHARE
+            if (p.effects.expShare && p.effects.expShare > 0) {
+                effectsHTML += `<span style="background:#27ae60; color:white; font-size:0.65rem; padding:1px 4px; border-radius:4px; display:flex; align-items:center;" title="Exp Share: Próximos ${p.effects.expShare} ganhos divididos">🤝 ${p.effects.expShare}</span>`;
+            }
+
+            effectsHTML += `</div>`;
+            // -----------------------------------------------------------
+
             d.innerHTML = ` 
-            <div class="hud-header">
-                <div class="hud-name-group"><img src="${p.avatar}" class="hud-avatar-img"><span>${p.name}</span></div>
-                <div>💰${p.gold}</div>
+            <div class="hud-header" style="flex-direction:column; align-items:flex-start; gap:0;">
+                <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
+                    <div class="hud-name-group"><img src="${p.avatar}" class="hud-avatar-img"><span>${p.name}</span></div>
+                    <div style="font-weight:bold; color:#f1c40f; text-shadow:1px 1px 0 #000;">💰${p.gold}</div>
+                </div>
+                ${effectsHTML}
             </div> 
             ${badgeHTML} 
             <div class="hud-team">${th}</div> 
             <div class="hud-actions">
                 <button class="btn btn-secondary btn-mini" onclick="window.openInventory(${i})">🎒 ${totalItems}</button>
                 <button class="btn btn-secondary btn-mini" onclick="window.openCards(${i})">🃏 ${totalCards}</button>
-            </div>`; 
+            </div>`;
             if(i < Math.ceil(this.players.length/2)) left.appendChild(d); 
             else right.appendChild(d); }); 
             const turnPlayer = this.players[this.turn]; 
