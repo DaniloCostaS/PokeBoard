@@ -297,11 +297,42 @@ export class Game {
     static openCaptureRules() { const modal = document.getElementById('capture-rules-modal'); if (modal) modal.style.display = 'flex'; }
 
     static openBoardCards(pId: number) { 
+        const Network = (window as any).Network;
+        
+        // Validação de segurança (já existente)
         if(Network.isOnline && pId !== Network.myPlayerId) return alert("Privado!"); 
+        
         const p = this.players[pId]; 
         const list = document.getElementById('board-cards-list')!; 
         list.innerHTML = ''; 
-        if(p.cards.length === 0) list.innerHTML = "<em>Sem cartas.</em>"; 
+        
+        // =====================================================================
+        // NOVO: BOTÃO DE SACRIFÍCIO (Aparece no topo da lista)
+        // =====================================================================
+        // Verifica se sou eu mesmo olhando minhas cartas
+        const isMe = !Network.isOnline || (p.id === Network.myPlayerId);
+        
+        // Só mostra o botão se eu tiver pelo menos 2 cartas para sacrificar
+        if (isMe && p.cards.length >= 2) {
+            const sacBtn = document.createElement('button');
+            sacBtn.className = 'btn btn-sacrifice';
+            sacBtn.innerHTML = `<span>🔥 SACRIFICAR CARTAS (2 ➡ 1)</span>`;
+            sacBtn.onclick = () => {
+                // Fecha o modal atual
+                document.getElementById('board-cards-modal')!.style.display = 'none';
+                
+                // Abre o modal de sacrifício (que criamos no passo anterior na classe Cards)
+                // Usamos (window as any) para garantir acesso global
+                (window as any).Cards.openSacrificeModal();
+            };
+            list.appendChild(sacBtn);
+        }
+        // =====================================================================
+
+        if(p.cards.length === 0) {
+            // Se não tiver cartas, avisa (mas se tiver botão ele já apareceu acima, difícil acontecer pq precisa de 2 cartas)
+            if (list.innerHTML === '') list.innerHTML = "<em>Sem cartas.</em>"; 
+        }
         
         const isMyTurn = this.canAct() && this.turn === pId; 
         const canUseMove = isMyTurn && !this.hasRolled; 
@@ -327,6 +358,7 @@ export class Game {
             d.innerHTML = `<div class="card-info"><span class="card-name">${c.icon} ${c.name} <span class="card-type-badge ${typeClass}">${typeLabel}</span></span><span class="card-desc">${c.desc}</span></div>${actionBtn}`; 
             list.appendChild(d); 
         }); 
+        
         document.getElementById('board-cards-modal')!.style.display = 'flex'; 
     }
     

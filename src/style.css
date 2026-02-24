@@ -796,3 +796,33 @@ body {
     70% { box-shadow: 0 0 0 10px rgba(231, 76, 60, 0); }
     100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
 }
+
+/* ==========================================================================
+   BOTÃO DE SACRIFÍCIO
+   ========================================================================== */
+.btn-sacrifice {
+    background: linear-gradient(135deg, #e67e22 0%, #c0392b 100%);
+    color: #fff;
+    font-weight: bold;
+    text-transform: uppercase;
+    border: 2px solid #d35400;
+    margin-bottom: 15px; /* Espaço antes da lista de cartas */
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.btn-sacrifice:hover {
+    transform: scale(1.02);
+    box-shadow: 0 0 15px rgba(231, 76, 60, 0.6);
+    border-color: #fff;
+    filter: brightness(1.1);
+}
+
+.btn-sacrifice:active {
+    transform: scale(0.98);
+}

@@ -2,7 +2,157 @@ import { CARDS_DB } from '../constants';
 import type { Player } from '../models/Player';
 
 export class Cards {
-    
+    // =========================================================================================
+    //  SISTEMA DE SACRIFÍCIO (CRAFTING)
+    // =========================================================================================
+    // 1. Abre o modal para selecionar as cartas
+    static openSacrificeModal() {
+        const Game = (window as any).Game;
+        const Network = (window as any).Network;
+        const player = Game.getCurrentPlayer();
+
+        // Validação de Turno e Jogador
+        if (Network.isOnline && player.id !== Network.myPlayerId) {
+            return alert("Você só pode sacrificar cartas no seu próprio turno!");
+        }
+        if (!Game.canAct()) {
+            return alert("Aguarde sua vez para realizar ações.");
+        }
+        
+        // Validação mínima de cartas
+        if (player.cards.length < 2) {
+            return alert("Você precisa de pelo menos 2 cartas para realizar um sacrifício.");
+        }
+
+        const list = document.getElementById('board-inventory-list')!; // Reutilizando container existente ou crie um novo
+        // Se preferir, crie um modal específico no HTML, aqui vou usar o padrão do inventory/cards
+        const modal = document.getElementById('board-inventory-modal') || document.getElementById('board-cards-modal');
+        
+        // Limpa e prepara título
+        if(modal) modal.style.display = 'flex';
+        list.innerHTML = `<h3 style="width:100%; text-align:center; color:#e74c3c;">Selecione 2 Cartas para Sacrificar</h3>
+                          <div id="sacrifice-counter" style="width:100%; text-align:center; margin-bottom:10px;">Selecionado: 0/2</div>`;
+
+        player.cards.forEach((c: any, index: number) => {
+            const d = document.createElement('div');
+            d.className = 'card-item';
+            // Adiciona Checkbox
+            d.innerHTML = `
+                <div class="card-info" style="display:flex; align-items:center; gap:10px;">
+                    <input type="checkbox" class="sacrifice-checkbox" data-index="${index}" style="transform: scale(1.5); cursor:pointer;" onchange="window.Cards.updateSacrificeCount()">
+                    <span class="card-name">${c.icon} ${c.name}</span>
+                </div>
+            `;
+            list.appendChild(d);
+        });
+
+        // Botão de Confirmar
+        const btnContainer = document.createElement('div');
+        btnContainer.style.width = '100%';
+        btnContainer.style.textAlign = 'center';
+        btnContainer.style.marginTop = '15px';
+        btnContainer.innerHTML = `
+            <button class="btn" style="background-color:#e67e22;" onclick="window.Cards.confirmSacrifice()">🔥 SACRIFICAR</button>
+            <button class="btn btn-secondary" onclick="document.getElementById('${modal?.id}').style.display='none'">Cancelar</button>
+        `;
+        list.appendChild(btnContainer);
+
+        // Expõe função auxiliar para o checkbox (caso não exista)
+        (window as any).Cards.updateSacrificeCount = () => {
+            const checks = document.querySelectorAll('.sacrifice-checkbox:checked');
+            const counter = document.getElementById('sacrifice-counter');
+            if(counter) counter.innerText = `Selecionado: ${checks.length}/2`;
+            
+            // Impede selecionar mais de 2
+            if(checks.length > 2) {
+                alert("Selecione apenas 2 cartas!");
+                (window.event?.target as HTMLInputElement).checked = false;
+                if(counter) counter.innerText = `Selecionado: 2/2`;
+            }
+        };
+    }
+
+    // 2. Executa a Lógica do Sacrifício
+    static async confirmSacrifice() {
+        const Game = (window as any).Game;
+        const Network = (window as any).Network;
+        const CARDS_DB = (await import('../constants')).CARDS_DB; // Import dinâmico ou use o import do topo
+        const player = Game.getCurrentPlayer();
+
+        // Coleta índices selecionados
+        const checkboxes = document.querySelectorAll('.sacrifice-checkbox:checked');
+        if (checkboxes.length !== 2) {
+            return alert("Você deve selecionar EXATAMENTE 2 cartas.");
+        }
+
+        const indicesToRemove: number[] = [];
+        checkboxes.forEach((cb: any) => indicesToRemove.push(parseInt(cb.getAttribute('data-index'))));
+
+        // Ordena decrescente para remover do array sem alterar os índices dos próximos
+        indicesToRemove.sort((a, b) => b - a);
+
+        // --- LÓGICA LOCAL (Pré-visualização imediata) ---
+        const removedNames: string[] = [];
+        
+        // Remove cartas (do maior índice para o menor)
+        indicesToRemove.forEach(idx => {
+            if (player.cards[idx]) {
+                removedNames.push(player.cards[idx].name);
+                player.cards.splice(idx, 1);
+            }
+        });
+
+        // Sorteia NOVA carta (Regra: qualquer carta do pool, exceto Master Ball se quiser restringir)
+        // Usando lógica similar ao Cards.draw
+        const validPool = CARDS_DB.filter((c: any) => c.id !== 'master'); // Exemplo: Tira Master Ball do pool de craft
+        const newCard = validPool[Math.floor(Math.random() * validPool.length)];
+        
+        player.cards.push(newCard);
+
+        // Fecha modal e Atualiza HUD
+        const modal = document.getElementById('board-inventory-modal') || document.getElementById('board-cards-modal');
+        if(modal) modal.style.display = 'none';
+        Game.updateHUD();
+
+        const logMsg = `🔥 ${player.name} sacrificou [${removedNames.join(', ')}] e invocou uma nova carta: [${newCard.name}]!`;
+        Game.log(logMsg);
+        Game.showGlobalAlert(logMsg, player.name, true, false);
+
+        // --- LÓGICA DE REDE (UPDATE ATÔMICO) ---
+        if (Network.isOnline) {
+            // Importar funções do Firebase necessárias (assumindo que já estão disponíveis no escopo ou via Network.ts)
+            const { ref, update, getDatabase } = await import('firebase/database');
+            const db = getDatabase();
+
+            const updates: any = {};
+            const roomPath = `rooms/${Network.currentRoomId}`;
+
+            // 1. Atualiza o Array de Cartas Completo (Atomicidade para Arrays)
+            // Firebase substitui o array antigo pelo novo, sem deixar buracos
+            updates[`${roomPath}/players/${player.id}/cards`] = player.cards;
+            
+            // 2. Adiciona o Log na mesma requisição
+            // updates[`${roomPath}/lastAction`] = { 
+            //    type: 'LOG', 
+            //    payload: { msg: logMsg }, 
+            //    playerId: player.id, 
+            //    timestamp: Date.now() 
+            // };
+            // Nota: Se usar lastAction aqui, pode conflitar com o listener. 
+            // O ideal é atualizar os dados do player e mandar o LOG via sendAction separado OU confiar no sync.
+            
+            // Executa o update principal dos dados
+            await update(ref(db), updates);
+
+            // 3. Sincroniza e avisa
+            Network.sendAction('LOG', { msg: logMsg });
+            Network.sendAction('SHOW_ALERT', { msg: logMsg, playerName: player.name, endsTurn: false });
+            
+            // Garante consistência
+            Network.syncPlayerState();
+        }
+    }
+
     static draw(player: Player, silentLog: boolean = false) { 
         const Game = (window as any).Game;
         const Network = (window as any).Network;
