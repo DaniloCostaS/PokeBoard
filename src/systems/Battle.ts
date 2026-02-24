@@ -31,8 +31,21 @@ export class Battle {
 
     static setup(player: Player, enemyMon: any, isPvP: boolean = false, _label: string = "", reward: number = 0, enemyPlayer: Player | null = null, isGym: boolean = false, gymId: number = 0, npcImage: string = "", terrainTile: number = 1) {
         const Game = (window as any).Game;
+        // --- CORREÇÃO: Preserva o efeito da carta "Novo Líder" ---
+        const pendingSteal = this.activeEffects.stealBadgeFrom;
+        // ---------------------------------------------------------
         this.player = player; this.isPvP = isPvP; this.isNPC = (reward > 0 && !isPvP); this.isGym = isGym; this.gymId = gymId; this.reward = reward; this.enemyPlayer = enemyPlayer; this.processingAction = false;
+        
+        // Limpa efeitos anteriores
         this.activeEffects = {};
+
+        // --- CORREÇÃO CRÍTICA DO ZERO ---
+        // Verifica se é diferente de undefined/null, pois "0" é um ID válido!
+        if (pendingSteal !== undefined && pendingSteal !== null) {
+            this.activeEffects.stealBadgeFrom = pendingSteal;
+        }
+        // --------------------------------
+
         this.battleTitle = isPvP ? "Batalha PvP!" : `Batalha contra ${_label}!`;
         this.isAutoPvE = false;
         
@@ -1009,6 +1022,7 @@ export class Battle {
         const Network = (window as any).Network; 
         const Cards = (window as any).Cards; 
         
+        // Segurança: Se eu sou o inimigo (cliente passivo), não executo a lógica de vitória do atacante
         if(Network.isOnline && this.isPvP && Network.myPlayerId === this.enemyPlayer?.id) return;
 
         if (this.isGym) this.player!.effects.curse = false; 
@@ -1016,47 +1030,71 @@ export class Battle {
         let gain = 0; let msg = "VITÓRIA! "; 
         
         // =========================================================================
-        // LÓGICA DA CARTA "NOVO LÍDER" (ROUBO DE INSÍGNIA - ATOMIC UPDATE)
+        // LÓGICA DA CARTA "NOVO LÍDER" (CORREÇÃO DE UPDATE E BUG DO ZERO)
         // =========================================================================
-        if (this.isPvP && this.enemyPlayer && this.activeEffects.stealBadgeFrom === this.enemyPlayer.id) { 
-            // 1. Busca os objetos reais na memória global
+        // CORREÇÃO: Verifica undefined explicitamente. Se usasse '?' com ID 0, viraria -1.
+        const stealTargetId = (this.activeEffects.stealBadgeFrom !== undefined && this.activeEffects.stealBadgeFrom !== null) 
+            ? Number(this.activeEffects.stealBadgeFrom) 
+            : -1;
+            
+        const enemyId = this.enemyPlayer ? Number(this.enemyPlayer.id) : -2;
+
+        if (this.isPvP && this.enemyPlayer && stealTargetId === enemyId) { 
+            console.log("🔍 [DEBUG] Iniciando lógica Novo Líder contra ID:", enemyId);
+
+            // 1. Busca os objetos REAIS na memória global (Fonte da Verdade)
             const realWinner = Game.players.find((p: any) => p.id === this.player!.id);
             const realLoser = Game.players.find((p: any) => p.id === this.enemyPlayer!.id);
 
             if (realWinner && realLoser) {
-                const stealableBadges = [];
-                for(let i=0; i<8; i++) {
-                    if(realLoser.badges[i] && !realWinner.badges[i]) stealableBadges.push(i);
-                }
+                const validBadges: number[] = [];
                 
-                if (stealableBadges.length > 0) {
-                    const randomBadge = stealableBadges[Math.floor(Math.random() * stealableBadges.length)];
-                    
-                    // 2. Atualiza memória LOCAL (para o HUD atualizar na hora)
-                    realWinner.badges[randomBadge] = true;
-                    realLoser.badges[randomBadge] = false; 
-                    this.player!.badges[randomBadge] = true;
-                    this.enemyPlayer.badges[randomBadge] = false;
-                    
-                    msg += ` Roubou a Insígnia ${randomBadge+1}!`;
+                // 2. Filtra insígnias que o Perdedor TEM e o Vencedor NÃO TEM
+                for(let i=0; i<8; i++) {
+                    if(realLoser.badges[i] === true && realWinner.badges[i] === false) {
+                        validBadges.push(i);
+                    }
+                }
 
-                    // 3. ATOMIC UPDATE: Gravação Direta e Blindada no Firebase
+                console.log("🔍 [DEBUG] Valid badges indices:", validBadges);
+                
+                if (validBadges.length > 0) {
+                    // 3. Sorteio
+                    const stolenBadgeIdx = validBadges[Math.floor(Math.random() * validBadges.length)];
+                    console.log("🔍 [DEBUG] Stolen badge Index:", stolenBadgeIdx);
+                    
+                    // 4. ATUALIZAÇÃO LOCAL (CRÍTICO: Atualizar TUDO antes de enviar para rede)
+                    
+                    // A) Atualiza memória Global do Jogo (Game.players)
+                    realWinner.badges[stolenBadgeIdx] = true;
+                    realLoser.badges[stolenBadgeIdx] = false; 
+                    
+                    // B) Atualiza referências locais da Batalha (Battle.ts)
+                    if (this.player) this.player.badges[stolenBadgeIdx] = true;
+                    if (this.enemyPlayer) this.enemyPlayer.badges[stolenBadgeIdx] = false;
+                    
+                    msg += ` Roubou a Insígnia ${stolenBadgeIdx+1}!`;
+
+                    // 5. ATUALIZAÇÃO ATÔMICA NO FIREBASE
                     if(Network.isOnline) {
                         const updates: any = {};
-                        const roomPath = `rooms/${Network.currentRoomId}`;
+                        const playersPath = `rooms/${Network.currentRoomId}/players`;
                         
-                        // Prepara o pacote apenas com as insígnias (ignora HP, Gold, etc)
-                        updates[`${roomPath}/players/${realWinner.id}/badges`] = realWinner.badges;
-                        updates[`${roomPath}/players/${realLoser.id}/badges`] = realLoser.badges;
+                        // CORREÇÃO DE CAMINHO: Atualizamos o índice específico
+                        updates[`${playersPath}/${realWinner.id}/badges/${stolenBadgeIdx}`] = true;
+                        updates[`${playersPath}/${realLoser.id}/badges/${stolenBadgeIdx}`] = false;
                         
-                        // Envia tudo junto num único comando de alta prioridade
+                        console.log("🔍 [DEBUG] Updates object:", updates);
+
+                        // Envia o update das badges
                         update(ref(db), updates).then(() => {
-                            console.log(`✅ [ATOMIC] Insígnia ${randomBadge+1} transferida de P${realLoser.id} para P${realWinner.id}`);
+                            console.log(`✅ [FIREBASE] Insígnia ${stolenBadgeIdx+1} transferida com sucesso.`);
                         }).catch((err) => {
-                            console.error("❌ Erro ao salvar insígnia:", err);
+                            console.error("❌ [FIREBASE] Erro ao salvar insígnia:", err);
                         });
                     }
                 } else {
+                    console.log("🔍 [DEBUG] Nenhuma insígnia roubável encontrada.");
                     msg += ` (Inimigo não tinha insígnias novas)`;
                 }
             }
@@ -1083,11 +1121,12 @@ export class Battle {
             Game.sendGlobalLog(`[PvP] ${this.enemyPlayer.name} foi derrotado por ${this.player?.name}!`); 
             
             if(Network.isOnline) { 
+                // Envia pacote com a badge já atualizada localmente para o perdedor aceitar a derrota correta
                 Network.sendAction('PVP_SYNC_DAMAGE', { 
                     targetId: this.enemyPlayer.id, 
                     team: this.enemyPlayer.team, 
                     gold: this.enemyPlayer.gold,
-                    badges: this.enemyPlayer.badges, // Envia badges atualizadas para garantir visual
+                    badges: this.enemyPlayer.badges, 
                     resetPos: true, 
                     skipTurn: true 
                 });
@@ -1114,10 +1153,10 @@ export class Battle {
         this.player!.gold += gain; 
         
         if(Network.isOnline) { 
-            // O update atômico lá em cima já salvou as badges. 
-            // Aqui salvamos o resto (Gold, XP) do vencedor.
+            // Atualiza o vencedor (que ganhou a insígnia localmente no passo 4)
             Network.syncPlayerState();
             
+            // Reforço de segurança
             if (this.isPvP && this.enemyPlayer) {
                 Network.sendAction('PVP_SYNC_DAMAGE', { 
                     targetId: this.enemyPlayer.id, 
