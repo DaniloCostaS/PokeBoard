@@ -164,6 +164,11 @@ export class Battle {
         modal.style.display = 'flex'; 
     }
 
+    // Helper para pausas assíncronas
+    static wait(ms: number) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
     static startRound(selectedMon: Pokemon) { 
         const Network = (window as any).Network; 
         document.getElementById('pkmn-select-modal')!.style.display = 'none'; 
@@ -1461,64 +1466,137 @@ export class Battle {
         if (Network.isOnline) Network.syncPlayerState();
     }
 
-    static attemptCapture(item: ItemData) {
+    // =========================================================================
+    // SEQUÊNCIA DE ANIMAÇÃO CORRIGIDA (ARREMESSO -> QUEDA -> SHAKE)
+    // =========================================================================
+    static async animateCaptureSequence(ballIcon: string, isSuccess: boolean): Promise<void> {
+        const scene = document.querySelector('.battle-scene') as HTMLElement;
+        const enemyImg = document.getElementById('opp-img') as HTMLElement;
+
+        // Limpeza de segurança (caso tenha sobrado algo)
+        const oldBall = document.querySelector('.anim-ball');
+        if(oldBall) oldBall.remove();
+
+        // 1. Cria a Bola
+        const ball = document.createElement('div');
+        ball.className = 'anim-ball';
+        ball.style.backgroundImage = `url('/assets/img/Itens/${ballIcon}')`;
+        scene.appendChild(ball);
+
+        // --- FASE 1: ARREMESSO (600ms) ---
+        ball.classList.add('anim-throwing');
+        await this.wait(600); // Espera a bola chegar no alvo
+
+        // --- FASE 2: IMPACTO & CAPTURA VISUAL ---
+        // Cria flash de luz
+        const flash = document.createElement('div');
+        flash.className = 'anim-flash';
+        scene.appendChild(flash);
+        setTimeout(() => flash.remove(), 300);
+
+        // Oculta o Pokémon (Sugado para dentro)
+        if (enemyImg) enemyImg.classList.add('mon-caught-hidden');
+
+        // Remove classe de arremesso para preparar a queda
+        ball.classList.remove('anim-throwing');
+        
+        // --- FASE 3: QUEDA AO CHÃO (500ms) ---
+        // A bola "pula" um pouco e cai no chão
+        ball.classList.add('anim-falling');
+        await this.wait(500); 
+
+        // --- FASE 4: SHAKES (Balançadas no chão) ---
+        // Remove a queda e fixa a posição no chão via classe CSS do shake
+        ball.classList.remove('anim-falling');
+        
+        // Determina quantos shakes fazer
+        // Se capturou: 3 shakes + click
+        // Se falhou: 1 ou 2 shakes aleatórios
+        const totalShakes = isSuccess ? 3 : (Math.random() > 0.5 ? 2 : 1);
+
+        for (let i = 0; i < totalShakes; i++) {
+            await this.wait(400); // Pausa entre shakes (tensão)
+            
+            ball.classList.add('anim-shaking');
+            this.logBattle(`... (${i+1})`, false); // Log visual
+            
+            await this.wait(600); // Duração do shake
+            ball.classList.remove('anim-shaking');
+        }
+
+        await this.wait(400); // Pausa dramática final
+
+        // --- FASE 5: FINALIZAÇÃO ---
+        if (isSuccess) {
+            // Sucesso: Bola apaga um pouco, Pokémon continua oculto
+            ball.style.filter = "brightness(0.5)"; // Bola "desliga"
+            await this.wait(500);
+            ball.remove();
+        } else {
+            // Falha: Pokémon explode para fora
+            ball.style.opacity = '0'; // Bola some
+            if (enemyImg) {
+                enemyImg.classList.remove('mon-caught-hidden'); // Pokémon reaparece
+                // Pequena animação de "pop" ao sair (opcional, via CSS transition já resolve)
+            }
+            await this.wait(300);
+            ball.remove();
+        }
+    }
+
+    static async attemptCapture(item: ItemData) {
         if (!this.opponent || !this.activeMon) return;
+        
+        // 1. Trava Interface
+        this.processingAction = true;
+        this.updateButtons();
+        
         const opponent = this.opponent;
         const activeMon = this.activeMon;
 
-        this.logBattle(`Jogou ${item.name}...`, true);
+        this.logBattle(`Jogou ${item.name}!`, true);
 
-        setTimeout(() => {
-            if (item.id === 'masterball') {
-                this.captureSuccess();
-                return;
-            }
-
+        // 2. CÁLCULO IMEDIATO (Lógica mantida, apenas calculada antes)
+        let success = false;
+        if (item.id === 'masterball') {
+            success = true;
+        } else {
             let chance = item.rate || 0;
-            
-            // Bônus por HP baixo
             const hpPercent = (opponent.currentHp / opponent.maxHp) * 100;
             if (hpPercent < 15) chance += 50; else if (hpPercent < 60) chance += 25;
-            
-            // Bônus por Nível
             if (activeMon.level > opponent.level) chance += 5; 
             else if (activeMon.level < opponent.level) chance -= 5;
-            
-            // --- NOVA LÓGICA: Penalidade por Poder (Status Totais) ---
             const oppStats = opponent.maxHp + opponent.atk + opponent.def + opponent.speed;
             const powerPenalty = Math.floor(oppStats / 25);
-            chance -= powerPenalty; // Reduz a chance baseado na força bruta do alvo
-            // ---------------------------------------------------------
-
-            // Penalidades por Raridade
+            chance -= powerPenalty;
             if (opponent.isLegendary) chance -= 20;
             if (opponent.isShiny) chance -= 10;
-
-            // Bônus do Dado d6
             const d6 = Math.floor(Math.random() * 6) + 1;
-            const diceBonus = (d6 * 4) - 14; // Varia de -10 a +10
+            const diceBonus = (d6 * 4) - 14; 
             chance += diceBonus;
-            
             chance = Math.max(1, Math.min(95, chance));
-
-            // Log atualizado para mostrar a resistência aos jogadores
-            this.logBattle(`(Chance Final: ${chance}% | Resistência: -${powerPenalty}% | Sorte: ${diceBonus > 0 ? '+' : ''}${diceBonus}%)`, true);
             const roll = Math.floor(Math.random() * 100) + 1;
+            success = (roll <= chance);
+        }
 
-            if (roll <= chance) {
-                this.captureSuccess();
-            } else {
-                this.logBattle("Aargh! Quase! O Pokémon escapou!", true);
-                
-                // Se falhar a captura, o inimigo ataca!
-                setTimeout(() => {
-                    this.performEnemyAttack(() => {
-                        this.processingAction = false;
-                        this.updateButtons();
-                    });
-                }, 1000);
-            }
-        }, 1500);
+        // 3. EXECUTA A SEQUÊNCIA VISUAL COMPLETA
+        // O código espera essa linha terminar antes de decidir o destino do monstro
+        await this.animateCaptureSequence(item.icon, success);
+            
+        // 4. APLICA O RESULTADO
+        if (success) {
+            this.captureSuccess();
+        } else {
+            this.logBattle("Aargh! Quase! O Pokémon escapou!", true);
+            
+            // Se falhar, inimigo ataca
+            setTimeout(() => {
+                this.performEnemyAttack(() => {
+                    this.processingAction = false;
+                    this.updateButtons();
+                });
+            }, 500);
+        }
     }
 
     static captureSuccess() {

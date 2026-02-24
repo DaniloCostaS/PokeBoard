@@ -826,3 +826,103 @@ body {
 .btn-sacrifice:active {
     transform: scale(0.98);
 }
+
+/* ==========================================================================
+   ANIMAÇÃO DE CAPTURA 2.0 (SEQUÊNCIA CORRIGIDA)
+   ========================================================================== */
+
+.anim-ball {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    z-index: 100;
+    pointer-events: none;
+    filter: drop-shadow(0 5px 5px rgba(0,0,0,0.5));
+    /* Ponto de origem: Mão do treinador (aproximado) */
+    bottom: 10%;
+    left: 20%;
+    transform: scale(0);
+}
+
+/* Estado: Pokémon sendo sugado */
+.mon-caught-hidden {
+    transition: transform 0.2s ease-in, opacity 0.2s ease-in;
+    transform: scale(0.1) !important; /* Encolhe */
+    opacity: 0 !important; /* Some */
+    filter: brightness(10); /* Brilho branco antes de sumir */
+}
+
+/* FASE 1: ARREMESSO (Do Jogador até o Inimigo) */
+@keyframes throwArc {
+    0% {
+        bottom: 10%;
+        left: 20%;
+        transform: scale(0.5) rotate(0deg);
+    }
+    100% {
+        bottom: 55%; /* Altura do peito do inimigo */
+        left: 70%;   /* Posição do inimigo */
+        transform: scale(1) rotate(720deg); /* Gira muito enquanto voa */
+    }
+}
+
+.anim-throwing {
+    animation: throwArc 0.6s ease-out forwards;
+}
+
+/* FASE 2: QUEDA (Do Inimigo até o Chão) */
+@keyframes ballDrop {
+    0% {
+        bottom: 55%;
+        left: 70%;
+        transform: scale(1) rotate(0deg);
+    }
+    40% {
+        bottom: 65%; /* Pulinho pra cima antes de cair */
+        left: 70%;
+    }
+    100% {
+        bottom: 25%; /* Chão */
+        left: 70%;
+        transform: scale(0.8) rotate(0deg);
+    }
+}
+
+.anim-falling {
+    animation: ballDrop 0.5s cubic-bezier(0.6, -0.28, 0.735, 0.045) forwards; /* Efeito de gravidade */
+}
+
+/* FASE 3: SHAKE (Balançar no chão) */
+@keyframes ballShake {
+    0% { transform: scale(0.8) rotate(0deg); }
+    25% { transform: scale(0.8) rotate(-20deg); }
+    50% { transform: scale(0.8) rotate(20deg); }
+    75% { transform: scale(0.8) rotate(-10deg); }
+    100% { transform: scale(0.8) rotate(0deg); }
+}
+
+.anim-shaking {
+    /* Fixa no chão para o shake */
+    bottom: 25% !important;
+    left: 70% !important;
+    transform: scale(0.8);
+    animation: ballShake 0.6s ease-in-out;
+}
+
+/* Efeito de Flash (Luz de captura) */
+.anim-flash {
+    position: absolute;
+    width: 100%; height: 100%;
+    background: white;
+    opacity: 0;
+    z-index: 99;
+    pointer-events: none;
+    animation: flashBang 0.2s ease-out;
+}
+
+@keyframes flashBang {
+    0% { opacity: 0.8; }
+    100% { opacity: 0; }
+}
