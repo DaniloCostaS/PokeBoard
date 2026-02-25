@@ -88,7 +88,7 @@ export const POKEDEX: PokemonData[] = [
 
   {"id": 60, "name": "Poliwag", "type": "Água", "secondType": "", "BaseTotal": 215, "hp": 40, "atk": 45, "def": 40, "spd": 90, "stage": 1, "nextForm": "Poliwhirl", "evoTrigger": 5},
   {"id": 61, "name": "Poliwhirl", "type": "Água", "secondType": "", "BaseTotal": 271, "hp": 65, "atk": 58, "def": 58, "spd": 90, "stage": 2, "nextForm": "Poliwrath", "evoTrigger": 10},
-  {"id": 62, "name": "Poliwrath", "type": "Lutador", "secondType": "Lutador", "BaseTotal": 336, "hp": 90, "atk": 83, "def": 93, "spd": 70, "stage": 3, "nextForm": null},
+  {"id": 62, "name": "Poliwrath", "type": "Água", "secondType": "Lutador", "BaseTotal": 336, "hp": 90, "atk": 83, "def": 93, "spd": 70, "stage": 3, "nextForm": null},
 
   {"id": 63, "name": "Abra", "type": "Psíquico", "secondType": "", "BaseTotal": 213, "hp": 25, "atk": 63, "def": 35, "spd": 90, "stage": 1, "nextForm": "Kadabra", "evoTrigger": 5},
   {"id": 64, "name": "Kadabra", "type": "Psíquico", "secondType": "", "BaseTotal": 273, "hp": 40, "atk": 78, "def": 50, "spd": 105, "stage": 2, "nextForm": "Alakazam", "evoTrigger": 10},
