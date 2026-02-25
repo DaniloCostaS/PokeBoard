@@ -40,9 +40,9 @@ export class Player {
                 'revive': 3
             };
 
-            // 2. Sorteio de 3 Cartas (Exceto Master Ball)
+            // 2. Sorteio de 5 Cartas (Exceto Master Ball)
             const validCards = CARDS_DB.filter(c => c.id !== 'master');
-            for(let i=0; i<3; i++) {
+            for(let i=0; i<5; i++) {
                 const randomCard = validCards[Math.floor(Math.random() * validCards.length)];
                 this.cards.push(randomCard);
             }
@@ -51,7 +51,7 @@ export class Player {
             //this.cards = JSON.parse(JSON.stringify(CARDS_DB));
 
             // 3. Pokemon Inicial (com chance de Shiny)
-            const starters = [1, 4, 7, 152, 155, 158, 252, 255, 258]; 
+            const starters = [1, 4, 7, 152, 155, 158, 252, 255, 258, 387, 390, 393]; 
             const randomStarterId = starters[Math.floor(Math.random() * starters.length)];
             const isStarterShiny = Math.random() < 0.02;
             this.team.push(new Pokemon(randomStarterId, 1, isStarterShiny)); 

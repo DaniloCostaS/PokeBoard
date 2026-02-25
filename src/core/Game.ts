@@ -253,7 +253,10 @@ export class Game {
         
         // Passo 3: Marca a penalidade
         p.skipTurns += 2; 
-        p.effects = {}; 
+       
+        // --- CORREÇÃO: Removemos a linha abaixo para manter os efeitos ---
+        // p.effects = {};  <-- REMOVIDO! Agora os buffs/debuffs persistem.
+        // ----------------------------------------------------------------
         
         // Passo 4: Revive e cura todos os pokémons
         p.team.forEach(mon => { mon.currentHp = mon.maxHp; }); 
@@ -791,8 +794,9 @@ export class Game {
         const currentP = this.getCurrentPlayer();
         currentP.resetTurnFlags();
 
-        // --- DECREMENTA O LURE SHINY DO JOGADOR QUE ACABOU O TURNO ---
-        if (currentP.effects && currentP.effects.lureShiny && currentP.effects.lureShiny > 0) {
+        // --- CORREÇÃO LURE SHINY: Só decrementa se o jogador ROLOU O DADO ---
+        // Se ele pulou a vez (skipTurns), o efeito não é gasto!
+        if (this.hasRolled && currentP.effects && currentP.effects.lureShiny && currentP.effects.lureShiny > 0) {
             currentP.effects.lureShiny--;
             
             if (currentP.effects.lureShiny === 0) {
@@ -803,7 +807,7 @@ export class Game {
             const Network = (window as any).Network;
             if (Network && Network.isOnline) Network.syncSpecificPlayer(currentP.id);
         }
-        // -------------------------------------------------------------
+        // ---------------------------------------------------------------------
 
         if (currentP.effects.extraTurn) {
             currentP.effects.extraTurn = false;

@@ -405,6 +405,17 @@ export class Battle {
         document.getElementById('battle-modal')!.style.display = 'flex';
         document.getElementById('battle-log-history')!.innerHTML = '';
         
+        // =====================================================================
+        // CORREÇÃO VISUAL: Limpa o estado de "Capturado" da batalha anterior
+        // =====================================================================
+        const enemyImg = document.getElementById('opp-img') as HTMLElement;
+        if (enemyImg) {
+            enemyImg.classList.remove('mon-caught-hidden');
+            enemyImg.style.opacity = '1';       // Garante opacidade total
+            enemyImg.style.transform = 'none';  // Remove escala reduzida
+        }
+        // =====================================================================
+        
         const titleEl = document.getElementById('battle-title')!;
         if (Network.isOnline && this.player && this.player.id !== Network.myPlayerId) {
             let oppName = "Selvagem"; 
@@ -1213,14 +1224,14 @@ export class Battle {
         
         // --- LÓGICA DE PERDA DE OURO DIVIDIDA (PVP vs PVE) ---
         if (this.isPvP && this.enemyPlayer) {
-            // CORREÇÃO: Se for aposta pelo "Novo Líder", a punição é 50%, senão 30%
+            // Se for aposta pelo "Novo Líder", a punição é 50%, senão 30%
             const penaltyRate = (this.activeEffects.stealBadgeFrom === this.enemyPlayer.id) ? 0.5 : 0.3;
             let lostGold = 0;
             
             if (this.player!.gold > 0) {
                 lostGold = Math.floor(this.player!.gold * penaltyRate);
                 this.player!.gold -= lostGold;
-                this.enemyPlayer.gold += lostGold; // O inimigo recebe o ouro
+                this.enemyPlayer.gold += lostGold; // O inimigo recebe o ouro visualmente
                 
                 Game.sendGlobalLog(`💰 [Extrato] Transferência de ${lostGold}G de ${this.player!.name} para ${this.enemyPlayer.name} (${penaltyRate === 0.5 ? 'Aposta Novo Líder' : 'Luta PvP'}).`);
                 Game.sendGlobalLog(`💰 [Extrato] Novo Saldo de ${this.player!.name}: ${this.player!.gold}G.`);
@@ -1267,13 +1278,17 @@ export class Battle {
             }
         }
         
-        // Mudando aqui por causa do gold
+        // --- CORREÇÃO DO SALVAMENTO DE GOLD NO PVP ---
         if(Network.isOnline) {
             if (this.isPvP && this.enemyPlayer) {
-                // O atacante apanhou e perdeu ouro. Ele salva APENAS a si mesmo!
+                // 1. Salva o MEU estado (perdi ouro)
                 Network.syncPlayerState();
                 
-                // Manda o aviso de que o defensor ganhou e envia o novo ouro do vencedor!
+                // 2. Salva o estado do INIMIGO (ganhou ouro) DIRETAMENTE NO FIREBASE
+                // Isso garante que o ouro entre mesmo se o inimigo estiver lagado ou offline
+                Network.syncSpecificPlayer(this.enemyPlayer.id); 
+                
+                // 3. Manda o aviso visual para o cliente dele
                 Network.sendAction('PVP_SYNC_DAMAGE', { 
                     targetId: this.enemyPlayer.id, 
                     team: this.enemyPlayer.team, 
@@ -1286,8 +1301,8 @@ export class Battle {
                 Network.syncPlayerState(); 
             }
         }
+        // ---------------------------------------------
         
-        // --- CORREÇÃO DO ENGARRAFAMENTO DE PACOTES ---
         setTimeout(() => {
             this.logBattle(`💀 ${msg}`, true); 
             
@@ -1297,7 +1312,6 @@ export class Battle {
         }, 500);
         
         setTimeout(() => { this.end(false); Game.moveVisuals(); }, 2500);
-        // ----------------------------------------------
     }
     
     static end(isRemote: boolean) { 

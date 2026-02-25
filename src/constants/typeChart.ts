@@ -1,63 +1,11 @@
 export const TYPE_CHART: {[key: string]: {[key: string]: number}} = {
 
-  'Normal': {
-    'Pedra': 0.5,
-    'Aço': 0.5,
-    'Fantasma': 0.5
-  },
-
-  'Fogo': {
-    'Grama': 2,
-    'Gelo': 2,
-    'Inseto': 2,
-    'Aço': 2,
-    'Fogo': 0.5,
-    'Água': 0.5,
-    'Pedra': 0.5,
-    'Dragão': 0.5
-  },
-
-  'Água': {
-    'Fogo': 2,
-    'Terra': 2,
-    'Pedra': 2,
-    'Água': 0.5,
-    'Grama': 0.5,
-    'Dragão': 0.5
-  },
-
-  'Elétrico': {
-    'Água': 2,
-    'Voador': 2,
-    'Elétrico': 0.5,
-    'Grama': 0.5,
-    'Dragão': 0.5,
-    'Terra': 0.5
-  },
-
-  'Grama': {
-    'Água': 2,
-    'Terra': 2,
-    'Pedra': 2,
-    'Fogo': 0.5,
-    'Grama': 0.5,
-    'Veneno': 0.5,
-    'Voador': 0.5,
-    'Inseto': 0.5,
-    'Dragão': 0.5,
-    'Aço': 0.5
-  },
-
-  'Gelo': {
-    'Grama': 2,
-    'Terra': 2,
-    'Voador': 2,
-    'Dragão': 2,
-    'Fogo': 0.5,
-    'Água': 0.5,
-    'Gelo': 0.5,
-    'Aço': 0.5
-  },
+  'Normal': {'Pedra': 0.5,'Aço': 0.5,'Fantasma': 0.5},
+  'Fogo': {'Grama': 2,'Gelo': 2,'Inseto': 2,'Aço': 2,'Fogo': 0.5,'Água': 0.5,'Pedra': 0.5,'Dragão': 0.5},
+  'Água': {'Fogo': 2,'Terra': 2,'Pedra': 2,'Água': 0.5,'Grama': 0.5,'Dragão': 0.5},
+  'Elétrico': {'Água': 2,'Voador': 2,'Elétrico': 0.5,'Grama': 0.5,'Dragão': 0.5,'Terra': 0.5},
+  'Grama': {'Água': 2,'Terra': 2,'Pedra': 2,'Fogo': 0.5,'Grama': 0.5,'Veneno': 0.5,'Voador': 0.5,'Inseto': 0.5,'Dragão': 0.5,'Aço': 0.5},
+  'Gelo': {'Grama': 2,'Terra': 2,'Voador': 2,'Dragão': 2,'Fogo': 0.5,'Água': 0.5,'Gelo': 0.5,'Aço': 0.5},
 
   'Lutador': {
     'Normal': 2,
@@ -165,13 +113,6 @@ export const TYPE_CHART: {[key: string]: {[key: string]: number}} = {
     'Aço': 0.5
   },
 
-  'Fada': {
-    'Lutador': 2,
-    'Dragão': 2,
-    'Noturno': 2,
-    'Fogo': 0.5,
-    'Veneno': 0.5,
-    'Aço': 0.5
-  }
+  'Fada': {'Lutador': 2,'Dragão': 2,'Noturno': 2,'Fogo': 0.5,'Veneno': 0.5,'Aço': 0.5}
 
 };
