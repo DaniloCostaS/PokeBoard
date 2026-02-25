@@ -500,6 +500,7 @@ export class Game {
                     
                     // --- LOG DE AUDITORIA: GANHO DE VOLTA ---
                     this.sendGlobalLog(`💰 [Extrato] ${p.name} recebeu +500G (Volta no Tabuleiro).`);
+                    this.sendGlobalLog(`💰 [Extrato] Novo Saldo: ${p.gold}G.`);
                     
                     this.updateHUD(); // Atualiza a tela na hora!
                     if(Network.isOnline) Network.syncPlayerState();
@@ -558,6 +559,8 @@ export class Game {
                         msg += ` e perdeu ${stolenGold}G para ${owner.name}!`;
                         // --- LOG DE AUDITORIA: ROUBO DE ARMADILHA ---
                         this.sendGlobalLog(`💰 [Extrato] Transferência de ${stolenGold}G de ${p.name} para ${owner.name} (Armadilha).`);
+                        this.sendGlobalLog(`💰 [Extrato] Novo Saldo de ${p.name}: ${p.gold}G.`);
+                        this.sendGlobalLog(`💰 [Extrato] Novo Saldo de ${owner.name}: ${owner.gold}G.`);
                     } else {
                         msg += `!`;
                     }

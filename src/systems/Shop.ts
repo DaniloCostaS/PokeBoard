@@ -31,6 +31,7 @@ export class Shop {
             if (itemData) {
                 Game.sendGlobalLog(`🛒 ${p.name} comprou: ${itemData.name}!`);
                 Game.sendGlobalLog(`💰 [Extrato] ${p.name} gastou -${price}G na Loja.`); // Log do Extrato
+                Game.sendGlobalLog(`💰 [Extrato] Novo Saldo: ${p.gold}G.`);
             }
             // ------------------------------------------
 

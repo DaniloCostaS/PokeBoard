@@ -1120,6 +1120,7 @@ export class Battle {
             if(Cards) Cards.draw(this.player!); 
             msg += " (+200G +Carta)"; 
             Game.sendGlobalLog(`💰 [Extrato] ${this.player!.name} recebeu +200G (Carta Destiny).`); 
+            Game.sendGlobalLog(`💰 [Extrato] Novo Saldo: ${this.player!.gold}G.`);
         } 
         
         if(this.isPvP && this.enemyPlayer) { 
@@ -1128,8 +1129,10 @@ export class Battle {
                 this.enemyPlayer.gold -= gain; 
                 msg += `Roubou ${gain}G!`; 
                 Game.sendGlobalLog(`💰 [Extrato] Transferência de ${gain}G de ${this.enemyPlayer.name} para ${this.player!.name} (Luta PvP).`);
+                Game.sendGlobalLog(`💰 [Extrato] Novo Saldo de ${this.enemyPlayer.name}: ${this.enemyPlayer.gold}G.`);
             } else { 
-                gain = 100; msg += `Inimigo falido!`; 
+                gain = 300; 
+                msg += `Inimigo falido!`; 
                 Game.sendGlobalLog(`💰 [Extrato] ${this.player!.name} recebeu +${gain}G (Luta PvP - Sistema).`);
             } 
             Game.sendGlobalLog(`[PvP] ${this.enemyPlayer.name} foi derrotado por ${this.player?.name}!`); 
@@ -1165,7 +1168,8 @@ export class Battle {
         } 
         
         this.player!.gold += gain; 
-        
+        Game.sendGlobalLog(`💰 [Extrato] Novo Saldo de ${this.player!.name}: ${this.player!.gold}G.`);
+
         if(Network.isOnline) { 
             // Atualiza o vencedor (que ganhou a insígnia localmente no passo 4)
             Network.syncPlayerState();
@@ -1219,6 +1223,8 @@ export class Battle {
                 this.enemyPlayer.gold += lostGold; // O inimigo recebe o ouro
                 
                 Game.sendGlobalLog(`💰 [Extrato] Transferência de ${lostGold}G de ${this.player!.name} para ${this.enemyPlayer.name} (${penaltyRate === 0.5 ? 'Aposta Novo Líder' : 'Luta PvP'}).`);
+                Game.sendGlobalLog(`💰 [Extrato] Novo Saldo de ${this.player!.name}: ${this.player!.gold}G.`);
+                Game.sendGlobalLog(`💰 [Extrato] Novo Saldo de ${this.enemyPlayer.name}: ${this.enemyPlayer.gold}G.`);
             } else {
                 Game.sendGlobalLog(`💰 [Extrato] ${this.player!.name} já estava falido e não perdeu ouro no PvP.`);
             }
@@ -1229,6 +1235,7 @@ export class Battle {
             
             if (lostGold > 0) {
                 Game.sendGlobalLog(`💰 [Extrato] ${this.player!.name} deixou cair -${lostGold}G enquanto fugia.`);
+                Game.sendGlobalLog(`💰 [Extrato] Novo Saldo: ${this.player!.gold}G.`);
             }
         }
         // -----------------------------------------------------
@@ -1560,6 +1567,7 @@ export class Battle {
         let success = false;
         if (item.id === 'masterball') {
             success = true;
+            this.logBattle(`(Chance Final: 100% | Master Ball)`, true);
         } else {
             let chance = item.rate || 0;
             const hpPercent = (opponent.currentHp / opponent.maxHp) * 100;
@@ -1575,6 +1583,10 @@ export class Battle {
             const diceBonus = (d6 * 4) - 14; 
             chance += diceBonus;
             chance = Math.max(1, Math.min(95, chance));
+
+            // Log atualizado para mostrar a resistência aos jogadores
+            this.logBattle(`(Chance Final: ${chance}% | Resistência: -${powerPenalty}% | Sorte: ${diceBonus > 0 ? '+' : ''}${diceBonus}%)`, true);
+            
             const roll = Math.floor(Math.random() * 100) + 1;
             success = (roll <= chance);
         }
