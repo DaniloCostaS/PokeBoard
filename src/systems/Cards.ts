@@ -554,7 +554,7 @@ export class Cards {
                     }
 
                     Network.sendAction('SHOW_ALERT', { msg: blockMsg, playerName: attacker.name, endsTurn: false });
-                    Network.sendAction('LOG', { msg: logMsg });
+                    Network.sendAction('LOG', { msg: blockMsg });
                 }
 
                 return true; // Retorna TRUE indicando que o ataque foi bloqueado

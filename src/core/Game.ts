@@ -708,10 +708,9 @@ export class Game {
                 // Busca o nome bonito do item sorteado
                 const itemData = SHOP_ITEMS.find(i => i.id === giftId);
                 const itemName = itemData ? itemData.name : giftId;
-                const itemIcon = itemData ? `<img src="/assets/img/Itens/${itemData.icon}" class="item-icon-mini">` : '🎒';
 
                 this.addItem(p, giftId, 1); 
-                localMsg = `Você explorou o evento e encontrou um item:\n\n${itemIcon} ${itemName}`;
+                localMsg = `Você explorou o evento e encontrou um item:\n\n🎒 ${itemName}`;
                 remoteMsg = `🌟 ${p.name} explorou o evento e encontrou: ${itemName}!`;
             } 
             
@@ -1250,15 +1249,15 @@ export class Game {
                 // --- NOVA LÓGICA DE TOOLTIPS ---
                 if(t===TILE.GRASS) {
                     c='grass';
-                    tooltip = "Terreno: Grama\nTipos: Grama, Inseto, Normal, Veneno, Voador, Fada";
+                    tooltip = "Terreno: Grama\nTipos: Grama, Inseto, Normal, Veneno, Voador, Noturno";
                 }
                 else if(t===TILE.WATER) {
                     c='water';
-                    tooltip = "Terreno: Água\nTipos: Água, Gelo, Dragão";
+                    tooltip = "Terreno: Água\nTipos: Água, Gelo, Dragão, Fada";
                 }
                 else if(t===TILE.GROUND) {
                     c='ground';
-                    tooltip = "Terreno: Terra/Pedra\nTipos: Terra, Pedra, Fogo, Lutador, Elétrico, Psíquico, Fantasma";
+                    tooltip = "Terreno: Terra/Pedra\nTipos: Terra, Pedra, Fogo, Lutador, Elétrico, Psíquico, Fantasma, Aço";
                 }
                 // -------------------------------
                 else if(t===TILE.CITY) c='city'; 

@@ -1631,6 +1631,15 @@ export class Battle {
         const Network = (window as any).Network;
 
         Game.sendGlobalLog(`✨ ${this.player?.name} capturou um ${this.opponent!.name}!`);
+
+        // =========================================================================
+        // CORREÇÃO: Reverte o Mew imediatamente!
+        // Garante que ele não vá para a tela de Swap nem seja salvo no Firebase.
+        // =========================================================================
+        this.revertMew();
+        this.updateUI(); // Opcional, mas ajuda a limpar a HUD visualmente
+        // =========================================================================
+        
         this.activeMon!.gainXp(5, this.player!); 
 
         if (this.player!.team.length < 6) {
