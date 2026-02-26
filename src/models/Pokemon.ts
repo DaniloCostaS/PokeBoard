@@ -206,14 +206,13 @@ export class Pokemon {
                 usedEffect = true;
                 if (player.effects.expShare === 0) Game.sendGlobalLog(`🛑 O efeito Exp Share de ${player.name} acabou!`);
                 
-                // Divide o XP pelos membros vivos
                 const aliveTeam = player.team.filter(p => !p.isFainted());
-                const splitAmount = Math.max(1, Math.floor(finalAmount / aliveTeam.length));
                 
-                Game.sendGlobalLog(`🤩 Exp Share ativado! O time de ${player.name} dividiu ${finalAmount} XP!`);
+                // --- CORREÇÃO: Removemos o splitAmount. Agora usa o valor total ---
+                Game.sendGlobalLog(`🤩 Exp Share ativado! Todos os vivos do time de ${player.name} receberam ${finalAmount} XP integralmente!`);
                 
-                // Distribui para a equipe usando a função interna para não dar loop
-                aliveTeam.forEach(mon => mon._applyXp(splitAmount, player));
+                // Distribui o valor INTEGRAL (finalAmount) para a equipe
+                aliveTeam.forEach(mon => mon._applyXp(finalAmount, player));
                 
                 if (usedEffect && (window as any).Network && (window as any).Network.isOnline) {
                     (window as any).Network.syncPlayerState();

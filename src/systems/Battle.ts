@@ -1596,7 +1596,8 @@ export class Battle {
             const d6 = Math.floor(Math.random() * 6) + 1;
             const diceBonus = (d6 * 4) - 14; 
             chance += diceBonus;
-            chance = Math.max(1, Math.min(95, chance));
+            // --- CORREÇÃO: Taxa mínima de 10% ---
+            chance = Math.max(10, Math.min(95, chance));
 
             // Log atualizado para mostrar a resistência aos jogadores
             this.logBattle(`(Chance Final: ${chance}% | Resistência: -${powerPenalty}% | Sorte: ${diceBonus > 0 ? '+' : ''}${diceBonus}%)`, true);

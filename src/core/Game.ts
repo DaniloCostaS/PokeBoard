@@ -649,19 +649,73 @@ export class Game {
             let localMsg = "";
             let remoteMsg = "";
 
+            // =========================================================
+            // 1. CHANCE DE TELETRANSPORTE (15%)
+            // =========================================================
+            const eventRoll = Math.random();
+            if (eventRoll < 0.15) {
+                const totalTiles = MapSystem.size * MapSystem.size;
+                const randomIdx = Math.floor(Math.random() * totalTiles);
+                const targetCoord = MapSystem.getCoord(randomIdx);
+
+                // Move o jogador
+                p.x = targetCoord.x;
+                p.y = targetCoord.y;
+                this.moveVisuals();
+
+                localMsg = `🌀 UM VÓRTICE SE ABRIU!\n\nVocê pisou em uma fenda espacial e foi teletransportado para uma área aleatória do mapa!`;
+                remoteMsg = `🌀 ${p.name} pisou em um vórtice e foi teletransportado!`;
+
+                this.log(localMsg.replace(/\n\n/g, ' '));
+                
+                // Ativa a casa de destino DEPOIS de clicar no 'OK'
+                this.pendingTileEvent = true; 
+                this.showGlobalAlert(localMsg, p.name, true, false); // false = não encerra o turno
+
+                const Network = (window as any).Network;
+                if(Network.isOnline) {
+                    Network.syncPlayerState();
+                    Network.sendAction('LOG', { msg: remoteMsg });
+                    Network.sendAction('SHOW_ALERT', { msg: remoteMsg, playerName: p.name, endsTurn: false });
+                }
+                return; // Para a função aqui, a nova casa será processada quando fechar o alerta
+            }
+
+            // =========================================================
+            // 2. SE NÃO TELETRANPORTOU: CARTA (50%) ou ITEM (50%)
+            // =========================================================
             if(Math.random() < 0.5) { 
                 const card = Cards.draw(p, true); // true = Log silencioso
                 localMsg = `Você explorou o evento e encontrou uma carta:\n\n${card.icon} ${card.name}`;
                 remoteMsg = `🌟 ${p.name} explorou o evento e encontrou uma Carta Misteriosa!`;
             } else { 
-                const gift = Math.random() > 0.5 ? 'pokeball' : 'potion'; 
-                const itemName = gift === 'pokeball' ? 'Pokébola' : 'Poção';
-                this.addItem(p, gift, 1); 
-                localMsg = `Você explorou o evento e encontrou um item:\n\n🎒 ${itemName}`;
+                // --- NOVA LÓGICA DE ITENS COM RARIDADE ---
+                const itemRoll = Math.random();
+                let giftId = '';
+
+                // Apenas 5% de chance TOTAL de puxar um item Raro
+                if (itemRoll < 0.05) {
+                    const rareItems = ['ultrafullrestore', 'ultramaxrevive', 'masterball'];
+                    // Sorteia 1 entre os 3
+                    giftId = rareItems[Math.floor(Math.random() * rareItems.length)];
+                } else {
+                    // Os 95% restantes caem nos itens comuns (Filtra a loja tirando os raros)
+                    const normalItems = SHOP_ITEMS.filter(i => !['ultrafullrestore', 'ultramaxrevive', 'masterball'].includes(i.id));
+                    const randomItem = normalItems[Math.floor(Math.random() * normalItems.length)];
+                    giftId = randomItem.id;
+                }
+
+                // Busca o nome bonito do item sorteado
+                const itemData = SHOP_ITEMS.find(i => i.id === giftId);
+                const itemName = itemData ? itemData.name : giftId;
+                const itemIcon = itemData ? `<img src="/assets/img/Itens/${itemData.icon}" class="item-icon-mini">` : '🎒';
+
+                this.addItem(p, giftId, 1); 
+                localMsg = `Você explorou o evento e encontrou um item:\n\n${itemIcon} ${itemName}`;
                 remoteMsg = `🌟 ${p.name} explorou o evento e encontrou: ${itemName}!`;
             } 
             
-            this.log(localMsg.replace(/\n\n/g, ' ')); 
+            this.log(localMsg.replace(/<[^>]*>?/gm, '').replace(/\n\n/g, ' ')); // Limpa as tags de imagem do log de texto
             
             // Abre a Pop-up Bonita!
             this.showGlobalAlert(localMsg, p.name, true);
@@ -671,8 +725,6 @@ export class Game {
                 Network.sendAction('LOG', { msg: remoteMsg });
                 Network.sendAction('SHOW_ALERT', { msg: remoteMsg, playerName: p.name });
             }
-            // Repare que NÃO tem o this.nextTurn() aqui! 
-            // O turno passará quando clicar no "OK" da pop-up.
         }
 
         else if(type === TILE.GYM) { 
@@ -766,27 +818,65 @@ export class Game {
     // CORREÇÃO: Lógica de Cura Completa (Revive + Heal All)
     // =========================================================================================
     static handleCityChoice(c: string) { 
-        if(c==='heal') { 
-            const player = this.getCurrentPlayer();
-            
-            // Itera sobre todos os Pokémon e força HP = MaxHP
-            // Isso garante que desmaiados (HP=0) revivam e todos curem 100%
+        const player = this.getCurrentPlayer();
+
+        if (c === 'heal') { 
+            // Cura o time
             player.team.forEach(p => { 
                 p.currentHp = p.maxHp; 
             }); 
             
             this.sendGlobalLog(`🏥 ${player.name} recuperou seu time no Centro Pokémon!`);
-            
-            this.updateHUD(); // Atualiza a UI imediatamente para refletir a cura
+            this.updateHUD(); 
             this.isCityEvent = false; 
             
             if(Network.isOnline) Network.syncPlayerState(); 
             
+            document.getElementById('city-modal')!.style.display='none'; 
             this.nextTurn(); 
-        } else { 
-            Shop.open(); 
         } 
-        document.getElementById('city-modal')!.style.display='none'; 
+        else if (c === 'card') {
+            // Nova Lógica de Comprar Carta
+            if (player.gold >= 500) {
+                player.gold -= 500;
+                
+                // Fecha a janela da cidade
+                this.isCityEvent = false;
+                document.getElementById('city-modal')!.style.display='none'; 
+                
+                const Cards = (window as any).Cards;
+                const card = Cards.draw(player, true); // true = Log silencioso original
+                
+                // Cria as mensagens personalizadas
+                const localMsg = `Você comprou uma carta misteriosa no mercado negro por 500G:\n\n${card.icon} ${card.name}`;
+                const remoteMsg = `🃏 ${player.name} comprou uma Carta Misteriosa no Centro Pokémon!`;
+                
+                this.log(localMsg.replace(/\n\n/g, ' '));
+                this.sendGlobalLog(`💰 [Extrato] ${player.name} gastou -500G (Compra de Carta).`);
+                this.sendGlobalLog(`💰 [Extrato] Novo Saldo: ${player.gold}G.`);
+                
+                this.updateHUD();
+
+                // Usa o sistema de Alerta Bonito! 
+                // O último "true" avisa o sistema que o turno DEVE ser passado quando o jogador clicar em OK.
+                this.showGlobalAlert(localMsg, player.name, true, true);
+
+                const Network = (window as any).Network;
+                if(Network.isOnline) {
+                    Network.syncPlayerState();
+                    Network.sendAction('LOG', { msg: remoteMsg });
+                    Network.sendAction('SHOW_ALERT', { msg: remoteMsg, playerName: player.name });
+                }
+            } else {
+                // Deixa a janela aberta e avisa o erro
+                alert("Ouro insuficiente! Você precisa de 500G para comprar uma carta.");
+            }
+        }
+        else if (c === 'shop') { 
+            // Abre a loja
+            document.getElementById('city-modal')!.style.display='none'; 
+            Shop.open();
+        } 
     }
 
     static nextTurn() {

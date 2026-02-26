@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PokéBoard V36</title>
+    <title>PokéBoard V37</title>
     <link rel="stylesheet" href="style.css">
     
     <script type="importmap">
@@ -18,8 +18,8 @@
 <body>
 
     <div id="setup-screen">
-        <h1 class="title-highlight">PokéBoard V36</h1>
-        <p class="subtitle">Quarta Geração.</p>
+        <h1 class="title-highlight">PokéBoard V37</h1>
+        <p class="subtitle">Quinta Geração. Compra de cartas. Teletransporte.</p>
         
         <div id="menu-phase-1">
             <button class="btn" onclick="window.Setup.showOfflineSetup()">🏠 JOGAR OFFLINE</button>
@@ -218,9 +218,14 @@
         <div class="modal-box">
             <h2 style="color: #3498db;">🏙️ Centro Pokémon</h2>
             <p>O que deseja fazer?</p>
-            <div style="display:flex; gap:10px; justify-content:center; margin-top:20px;">
-                <button class="btn" style="background:#2ecc71;" onclick="window.Game.handleCityChoice('heal')">❤️ Curar</button>
-                <button class="btn btn-shop" onclick="window.Game.handleCityChoice('shop')">🛒 Loja</button>
+            
+            <div style="display:flex; flex-direction:column; gap:10px; justify-content:center; margin-top:20px;">
+                <div style="display:flex; gap:10px;">
+                    <button class="btn" style="background:#2ecc71;" onclick="window.Game.handleCityChoice('heal')">❤️ Curar Time</button>
+                    <button class="btn btn-shop" onclick="window.Game.handleCityChoice('shop')">🛒 Loja de Itens</button>
+                </div>
+                
+                <button class="btn btn-cards" onclick="window.Game.handleCityChoice('card')">🃏 Comprar Carta Misteriosa (500G)</button>
             </div>
         </div>
     </div>

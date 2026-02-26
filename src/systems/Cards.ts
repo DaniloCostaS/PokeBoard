@@ -115,6 +115,8 @@ export class Cards {
         Game.updateHUD();
 
         const logMsg = `🔥 ${player.name} sacrificou [${removedNames.join(', ')}] e invocou uma nova carta: [${newCard.name}]!`;
+        const logMsgGlobal = `🔥 ${player.name} sacrificou duas cartas e invocou uma nova carta!`;
+        
         Game.log(logMsg);
         Game.showGlobalAlert(logMsg, player.name, true, false);
 
@@ -145,8 +147,8 @@ export class Cards {
             await update(ref(db), updates);
 
             // 3. Sincroniza e avisa
-            Network.sendAction('LOG', { msg: logMsg });
-            Network.sendAction('SHOW_ALERT', { msg: logMsg, playerName: player.name, endsTurn: false });
+            Network.sendAction('LOG', { msg: logMsgGlobal });
+            Network.sendAction('SHOW_ALERT', { msg: logMsgGlobal, playerName: player.name, endsTurn: false });
             
             // Garante consistência
             Network.syncPlayerState();
