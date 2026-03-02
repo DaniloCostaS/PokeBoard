@@ -26,6 +26,10 @@ export class Player {
         expShare?: number;
     } = {};
 
+    // --- NOVA ESTRUTURA PARA A POKÉDEX FUTURA ---
+    pokedexData: { [id: number]: { seen: number, caught: number, defeated: number } } = {};
+    // --------------------------------------------
+
     constructor(id: number, name: string, avatarFile: string, isLoadMode: boolean) {
         this.id = id; this.name = name; 
         this.avatar = `/assets/img/Treinadores/${avatarFile}`;
@@ -55,6 +59,11 @@ export class Player {
             const randomStarterId = starters[Math.floor(Math.random() * starters.length)];
             const isStarterShiny = Math.random() < 0.02;
             this.team.push(new Pokemon(randomStarterId, 1, isStarterShiny)); 
+
+            // ==============================================================
+            // NOVO: POKÉDEX (Registra o Inicial como Visto e Capturado)
+            // ==============================================================
+            this.pokedexData[randomStarterId] = { seen: 1, caught: 1, defeated: 0 };
         }
     }
     

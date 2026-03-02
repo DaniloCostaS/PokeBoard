@@ -980,6 +980,64 @@ export class Game {
     static exportSave() { const d = localStorage.getItem('pk_save'); if(!d)return alert("Vazio"); const b = new Blob([d], {type:'text/plain'}); const a = document.createElement('a'); a.href=URL.createObjectURL(b); a.download='save.txt'; a.click(); }
     static importSave(i: HTMLInputElement) { const f = i.files?.[0]; if(!f)return; const r = new FileReader(); r.onload=e=>{ localStorage.setItem('pk_save', e.target?.result as string); this.loadGame(); }; r.readAsText(f); }
     static openInventoryModal(pId: number) { const p = this.players[pId]; const list = document.getElementById('board-inventory-list')!; list.innerHTML = ''; const canUse = (this.canAct() && this.turn === pId); Object.keys(p.items).forEach(key => { if(p.items[key] > 0) { const item = SHOP_ITEMS.find(i => i.id === key); if(item) { const d = document.createElement('div'); d.className='shop-item'; let btnHTML = ''; if(canUse && (item.type === 'heal' || item.type === 'revive')) { btnHTML = `<button class="btn btn-mini" style="width:auto;" onclick="window.Game.useItemBoard('${key}', ${pId})">Usar</button>`; } d.innerHTML = `<div style="display:flex; align-items:center;"><img src="/assets/img/Itens/${item.icon}" class="item-icon-mini"><span>${item.name} x${p.items[key]}</span></div>${btnHTML}`; list.appendChild(d); } } }); document.getElementById('board-inventory-modal')!.style.display='flex'; }
+    
+    static openPokedex(pId: number) {
+        const p = this.players[pId];
+        const list = document.getElementById('pokedex-list')!;
+        list.innerHTML = '';
+        
+        // Cores dos tipos padronizadas
+        const colors: any = { "Normal": "#A8A77A", "Fogo": "#EE8130", "Água": "#6390F0", "Elétrico": "#F7D02C", "Grama": "#7AC74C", "Gelo": "#96D9D6", "Lutador": "#C22E28", "Veneno": "#A33EA1", "Terra": "#E2BF65", "Voador": "#A98FF3", "Psíquico": "#F95587", "Inseto": "#A6B91A", "Pedra": "#B6A136", "Fantasma": "#735797", "Dragão": "#6F35FC", "Noturno": "#705746", "Aço": "#B7B7CE", "Fada": "#D685AD" };
+
+        POKEDEX.forEach(mon => {
+            // Busca o registro do jogador, se não existir, cria um zerado visualmente
+            const dexEntry = p.pokedexData[mon.id] || { seen: 0, caught: 0, defeated: 0 };
+            
+            // Monta as tags de Tipo
+            const c1 = colors[mon.type] || "#777";
+            let typeHtml = `<span style="background-color:${c1}; color:white; padding:2px 6px; border-radius:4px; font-size:0.6rem; text-shadow:1px 1px 1px rgba(0,0,0,0.5);">${mon.type}</span>`;
+            if (mon.secondType) {
+                const c2 = colors[mon.secondType] || "#777";
+                typeHtml += `<span style="background-color:${c2}; color:white; padding:2px 6px; border-radius:4px; font-size:0.6rem; text-shadow:1px 1px 1px rgba(0,0,0,0.5);">${mon.secondType}</span>`;
+            }
+
+            const d = document.createElement('div');
+            d.className = 'dex-card';
+            
+            // Efeito visual: Se o jogador nunca viu nem capturou, o Pokémon fica em tons de cinza!
+            const isDiscovered = dexEntry.seen > 0 || dexEntry.caught > 0;
+            const imgFilter = isDiscovered ? '' : 'filter: brightness(0) opacity(0.4);';
+            const displayName = isDiscovered ? mon.name : '???';
+
+            d.innerHTML = `
+                <div style="font-weight: bold; color: #7f8c8d; width: 100%; text-align: left; font-size: 0.8rem;">#${mon.id.toString().padStart(3, '0')}</div>
+                <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${mon.id}.png" style="width: 70px; height: 70px; image-rendering: pixelated; ${imgFilter}">
+                <b style="font-size: 1rem; color: #2c3e50;">${displayName}</b>
+                <div style="display:flex; gap:5px; margin: 5px 0;">${typeHtml}</div>
+                
+                <div class="dex-stats-row">
+                    <span title="HP Base">❤️ ${mon.hp}</span> 
+                    <span title="Ataque Base">⚔️ ${mon.atk}</span> 
+                    <span title="Defesa Base">🛡️ ${mon.def}</span> 
+                    <span title="Velocidade Base">💨 ${mon.spd}</span>
+                </div>
+                
+                <div style="font-size: 0.75rem; color: #8e44ad; margin-top: 6px; text-align: center; min-height: 15px;">
+                    ${mon.nextForm ? `Evolui: <b>${mon.nextForm}</b> (Lv.${mon.evoTrigger})` : '<b>Estágio Final</b>'}
+                </div>
+
+                <div class="dex-track-row">
+                    <span title="Vistos" style="color: #3498db;">👁️ ${dexEntry.seen}</span>
+                    <span title="Derrotados" style="color: #e74c3c;">💀 ${dexEntry.defeated}</span>
+                    <span title="Capturados" style="color: #2ecc71;">🦅 ${dexEntry.caught}</span>
+                </div>
+            `;
+            list.appendChild(d);
+        });
+
+        document.getElementById('pokedex-modal')!.style.display = 'flex';
+    }
+
     static useItemBoard(key: string, pId: number) { const p = this.players[pId]; const item = SHOP_ITEMS.find(i => i.id === key); if (!item || p.items[key] <= 0) return; if (item.type === 'heal') { if (item.id === 'ultrafullrestore') { this.applyBoardItemEffect(p, item, -1); return; } this.openHealSelector(pId, key); } else if (item.type === 'revive') { if (item.id === 'ultramaxrevive') { this.applyBoardItemEffect(p, item, -1); return; } this.openHealSelector(pId, key); } }
     static openHealSelector(pId: number, itemKey: string) { this.pendingHealItem = itemKey; const p = this.players[pId]; const modal = document.getElementById('pkmn-select-modal')!; const list = document.getElementById('pkmn-select-list')!; const title = document.getElementById('select-title')!; title.innerText = "Usar em qual Pokémon?"; list.innerHTML = ''; p.team.forEach((mon, idx) => { const div = document.createElement('div'); div.className = `mon-select-item`; div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>(${mon.currentHp}/${mon.maxHp})</small>`; div.onclick = () => { modal.style.display = 'none'; this.applyBoardItemEffect(p, SHOP_ITEMS.find(i=>i.id === itemKey)!, idx); }; list.appendChild(div); }); const cancelBtn = document.createElement('button'); cancelBtn.className = "btn btn-secondary mt-15"; cancelBtn.innerText = "Cancelar"; cancelBtn.onclick = () => { modal.style.display = 'none'; this.pendingHealItem = null; }; list.appendChild(cancelBtn); modal.style.display = 'flex'; }
     static applyBoardItemEffect(p: Player, item: ItemData, targetIdx: number) { let used = false; if (item.type === 'heal') { if (item.id === 'ultrafullrestore') { let count = 0; p.team.forEach(m => { if(!m.isFainted() && m.currentHp < m.maxHp) { m.heal(9999); count++; } }); if(count > 0) { used = true; alert(`${count} Pokémon curados!`); } else alert("Ninguém precisa de cura!"); } else { const target = p.team[targetIdx]; if(target.isFainted()) return alert("Não funciona em Pokémon desmaiado!"); if(target.currentHp >= target.maxHp) return alert("HP já está cheio!"); target.heal(item.val || 20); alert(`Usou ${item.name} em ${target.name}.`); used = true; } } else if (item.type === 'revive') { if (item.id === 'ultramaxrevive') { let count = 0; p.team.forEach(m => { if(m.isFainted()) { m.revive(100); count++; } }); if(count > 0) { used = true; alert(`${count} Pokémon revividos!`); } else alert("Ninguém está desmaiado!"); } else { const target = p.team[targetIdx]; if(!target.isFainted()) return alert("Este Pokémon não está desmaiado!"); target.revive(item.val || 50); alert(`Usou ${item.name} em ${target.name}.`); used = true; } } if (used) { p.items[item.id]--; this.updateHUD(); this.openInventoryModal(p.id); this.saveGame(); if (Network.isOnline) { Network.sendAction('LOG', { msg: `${p.name} usou ${item.name}.` }); Network.syncPlayerState(); } } }
@@ -1197,6 +1255,7 @@ export class Game {
             <div class="hud-actions">
                 <button class="btn btn-secondary btn-mini" onclick="window.openInventory(${i})">🎒 ${totalItems}</button>
                 <button class="btn btn-secondary btn-mini" onclick="window.openCards(${i})">🃏 ${totalCards}</button>
+                <button class="btn btn-mini" style="background:#e74c3c; color:white; border:1px solid #c0392b;" onclick="window.Game.openPokedex(${i})">📖 Dex</button>
             </div>`;
             if(i < Math.ceil(this.players.length/2)) left.appendChild(d); 
             else right.appendChild(d); }); 

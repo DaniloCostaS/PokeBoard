@@ -231,6 +231,14 @@
     </div>
     <div id="shop-modal" class="modal-overlay"><div class="modal-box"><h2 class="text-highlight">🛒 PokéMart</h2><p>Saldo: <span id="shop-gold" class="gold-text">0</span> G</p><div id="shop-items-list" class="scroll-list"></div><br><button class="btn btn-secondary" onclick="window.Shop.close()">Fechar</button></div></div>
     <div id="board-inventory-modal" class="modal-overlay"><div class="modal-box"><h3>🎒 Mochila</h3><div id="board-inventory-list" class="scroll-list"></div><button class="btn btn-secondary mt-15" onclick="document.getElementById('board-inventory-modal').style.display='none'">Fechar</button></div></div>
+    <div id="pokedex-modal" class="modal-overlay" style="z-index: 1500;">
+        <div class="modal-box" style="width: 850px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: #f4f6f7;">
+            <h2 style="color: #e74c3c; margin-top: 0; border-bottom: 2px solid #ccc; padding-bottom: 10px;">📖 Pokédex Regional</h2>
+            <div id="pokedex-list" class="scroll-list" style="flex: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; padding: 10px; max-height: 60vh;">
+                </div>
+            <button class="btn btn-secondary mt-15" onclick="document.getElementById('pokedex-modal').style.display='none'">Fechar</button>
+        </div>
+    </div>
     <div id="board-cards-modal" class="modal-overlay"><div class="modal-box"><h3>🃏 Minhas Cartas (Tabuleiro)</h3><p style="font-size:0.8rem; color:#666;">Apenas cartas do tipo <b>Move</b> podem ser usadas aqui.</p><div id="board-cards-list" class="scroll-list"></div><button class="btn btn-secondary mt-15" onclick="document.getElementById('board-cards-modal').style.display='none'">Fechar</button></div></div>
     <div id="library-modal" class="modal-overlay"><div class="modal-box" style="width: 500px;"><h3>📖 Biblioteca de Cartas</h3><div id="library-list" class="scroll-list" style="max-height: 300px;"></div><button class="btn btn-secondary mt-15" onclick="document.getElementById('library-modal').style.display='none'">Fechar</button></div></div>
     <div id="battle-cards-modal" class="modal-overlay" style="z-index: 1200;"><div class="modal-box"><h3>🃏 Cartas de Batalha</h3><div id="battle-cards-list" class="scroll-list"></div><button class="btn btn-secondary mt-15" onclick="document.getElementById('battle-cards-modal').style.display='none'">Cancelar</button></div></div>

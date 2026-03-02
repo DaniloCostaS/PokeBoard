@@ -336,6 +336,30 @@ export class Pokemon {
                 this.recalculateStats(true); 
 
                 (this as any).faintedThisBattle = false;
+                
+                // ==============================================================
+                // NOVO: POKÉDEX (Registra a Evolução como Visto e Capturado)
+                // ==============================================================
+                if (player) {
+                    if (!player.pokedexData) player.pokedexData = {};
+                    
+                    if (!player.pokedexData[this.id]) {
+                        player.pokedexData[this.id] = { seen: 0, caught: 0, defeated: 0 };
+                    }
+                    
+                    player.pokedexData[this.id].seen += 1;
+                    player.pokedexData[this.id].caught += 1;
+                    
+                    // Salva a alteração na rede imediatamente
+                    const Network = (window as any).Network;
+                    if (Network && Network.isOnline) {
+                        // Se o player evoluindo é o jogador atual, faz o sync do estado
+                        if (player.id === Network.myPlayerId) {
+                            Network.syncPlayerState();
+                        }
+                    }
+                }
+                // ==============================================================
 
                 if(player && !silent) { 
                     const Game = (window as any).Game;

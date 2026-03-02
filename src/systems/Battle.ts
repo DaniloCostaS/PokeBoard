@@ -1176,6 +1176,20 @@ export class Battle {
                 if(Cards) Cards.draw(this.player!);
                 msg += ` e achou uma Carta!`;
             }
+
+            // ==============================================================
+            // NOVO: POKÉDEX (Registra "Derrotado" apenas para Selvagens)
+            // ==============================================================
+            if (this.opponent) {
+                const oppId = this.opponent.id;
+                if (!this.player!.pokedexData) this.player!.pokedexData = {};
+                if (!this.player!.pokedexData[oppId]) {
+                    this.player!.pokedexData[oppId] = { seen: 0, caught: 0, defeated: 0 };
+                }
+                this.player!.pokedexData[oppId].seen += 1;     // <--- SOMA VISTO
+                this.player!.pokedexData[oppId].defeated += 1; // <--- SOMA DERROTADO
+            }
+            // ==============================================================
         } 
         
         this.player!.gold += gain; 
@@ -1221,6 +1235,24 @@ export class Battle {
         if (this.isGym) this.player!.effects.curse = false;
         this.revertMew();
         let msg = "DERROTA... "; 
+
+        // ==============================================================
+        // NOVO: POKÉDEX (Registra "Visto" ao perder a batalha)
+        // Colocamos no topo para garantir que conte mesmo na Derrota Total!
+        // ==============================================================
+        if (!this.isPvP && !this.isGym && !this.isNPC && this.opponent) {
+            const oppId = this.opponent.id;
+            
+            // --- BLINDAGEM ---
+            if (!this.player!.pokedexData) this.player!.pokedexData = {};
+            // -----------------
+            
+            if (!this.player!.pokedexData[oppId]) {
+                this.player!.pokedexData[oppId] = { seen: 0, caught: 0, defeated: 0 };
+            }
+            this.player!.pokedexData[oppId].seen += 1;
+        }
+        // ==============================================================
         
         // --- LÓGICA DE PERDA DE OURO DIVIDIDA (PVP vs PVE) ---
         if (this.isPvP && this.enemyPlayer) {
@@ -1277,7 +1309,7 @@ export class Battle {
                 });
             }
         }
-        
+
         // --- CORREÇÃO DO SALVAMENTO DE GOLD NO PVP ---
         if(Network.isOnline) {
             if (this.isPvP && this.enemyPlayer) {
@@ -1413,6 +1445,28 @@ export class Battle {
                 // SUCESSO
                 this.logBattle("🏃 Escapou com sucesso!", true);
                 this.activeMon!.gainXp(2, this.player!); 
+
+                // ==============================================================
+                // NOVO: POKÉDEX (Registra "Visto" ao Fugir)
+                // ==============================================================
+                if (this.opponent) {
+                    const oppId = this.opponent.id;
+                    
+                    // --- BLINDAGEM ---
+                    if (!this.player!.pokedexData) this.player!.pokedexData = {};
+                    // -----------------
+                    
+                    if (!this.player!.pokedexData[oppId]) {
+                        this.player!.pokedexData[oppId] = { seen: 0, caught: 0, defeated: 0 };
+                    }
+                    this.player!.pokedexData[oppId].seen += 1;
+                    
+                    // Força o salvamento na hora da fuga!
+                    const Network = (window as any).Network;
+                    if (Network.isOnline) Network.syncPlayerState();
+                }
+                // ==============================================================
+                
                 setTimeout(() => this.end(false), 1000);
             } else {
                 // FALHA NA FUGA
@@ -1640,6 +1694,20 @@ export class Battle {
         this.updateUI(); // Opcional, mas ajuda a limpar a HUD visualmente
         // =========================================================================
         
+        // ==============================================================
+        // NOVO: POKÉDEX (Registra "Capturado" apenas para Selvagens)
+        // ==============================================================
+        if (this.opponent) {
+            const oppId = this.opponent.id;
+            if (!this.player!.pokedexData) this.player!.pokedexData = {};
+            if (!this.player!.pokedexData[oppId]) {
+                this.player!.pokedexData[oppId] = { seen: 0, caught: 0, defeated: 0 };
+            }
+            this.player!.pokedexData[oppId].seen += 1;   // <--- SOMA VISTO
+            this.player!.pokedexData[oppId].caught += 1; // <--- SOMA CAPTURADO
+        }
+        // ==============================================================
+
         this.activeMon!.gainXp(5, this.player!); 
 
         if (this.player!.team.length < 6) {

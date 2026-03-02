@@ -86,7 +86,8 @@ export class Network {
                     team: myPlayerObj.team, 
                     skipTurns: 0, 
                     badges: myPlayerObj.badges, 
-                    effects: {} 
+                    effects: {},
+                    pokedexData: myPlayerObj.pokedexData || {}
                 } 
             }, 
             lastAction: { type: "INIT", timestamp: Date.now() } 
@@ -136,7 +137,8 @@ export class Network {
             team: myPlayerObj.team, 
             skipTurns: 0, 
             badges: myPlayerObj.badges, 
-            effects: {} 
+            effects: {},
+            pokedexData: myPlayerObj.pokedexData || {}
         }; 
         
         await set(ref(db, `rooms/${code}/players/${this.myPlayerId}`), newPlayer); 
@@ -203,7 +205,8 @@ export class Network {
             pl.badges = pd.badges || [false,false,false,false,false,false,false,false];
             pl.cards = pd.cards || [];
             pl.effects = pd.effects || {};
-            
+            pl.pokedexData = pd.pokedexData || {};
+
             if(pd.team && pd.team.length > 0) { 
                 pl.team = pd.team.map((td: any) => { 
                     const po = new Pokemon(td.id, td.level, td.isShiny); 
@@ -254,6 +257,7 @@ export class Network {
                     localPlayer.badges = pd.badges || localPlayer.badges; 
                     localPlayer.cards = pd.cards || [];
                     localPlayer.effects = pd.effects || {};
+                    localPlayer.pokedexData = pd.pokedexData || {};
 
                     if(pd.items) localPlayer.items = pd.items; 
                     
@@ -479,7 +483,8 @@ export class Network {
             skipTurns: p.skipTurns, 
             badges: p.badges,
             cards: p.cards && p.cards.length > 0 ? p.cards : null,
-            effects: p.effects
+            effects: p.effects,
+            pokedexData: p.pokedexData || {}
         }); 
     }
 
@@ -506,7 +511,8 @@ export class Network {
             badges: p.badges,
             cards: p.cards && p.cards.length > 0 ? p.cards : null,
             skipTurns: p.skipTurns, 
-            effects: p.effects 
+            effects: p.effects,
+            pokedexData: p.pokedexData || {}
         });
     }
 
@@ -530,7 +536,8 @@ export class Network {
                     skipTurns: p.skipTurns, 
                     badges: p.badges, 
                     cards: p.cards && p.cards.length > 0 ? p.cards : null,
-                    effects: p.effects
+                    effects: p.effects,
+                    pokedexData: p.pokedexData || {}
                 };
             }
         });
