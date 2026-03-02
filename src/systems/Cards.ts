@@ -582,18 +582,20 @@ export class Cards {
         }
 
         // =====================================================================
-        // NOVA LÓGICA DE DEFESA (SUBSTITUI O BLOCO ANTIGO DO JAM)
+        // NOVA LÓGICA DE DEFESA (COM FILTRO DE CARTAS OFENSIVAS)
         // =====================================================================
-        // Verifica se há um alvo (que não seja você mesmo)
-        if (targetId !== null && targetId !== player.id) {
+        // Lista de cartas que realmente usam targetId como um Jogador inimigo
+        const offensiveCards = ['swap', 'slow', 'rocket', 'curse', 'trade_fail', 'new_leader', 'bag', 'troques'];
+
+        // Só verifica defesa SE a carta for ofensiva E tiver um alvo diferente de você
+        if (offensiveCards.includes(cardId) && targetId !== null && targetId !== player.id) {
             const targetP = Game.players.find((p:any) => p.id === targetId);
             
             if (targetP) {
-                // Chama a nova função. Se retornar TRUE, para tudo.
                 const wasBlocked = this.checkAutoDefense(player, targetP, cardId, cardData.name);
                 
                 if (wasBlocked) {
-                    return; // Sai da função activate e impede o efeito da carta!
+                    return; // Sai da função activate e impede o efeito
                 }
             }
         }
