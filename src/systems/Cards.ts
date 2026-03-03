@@ -863,7 +863,90 @@ export class Cards {
                 Battle.logBattle("🧬 DNA Reagiu! Mew assumiu o lugar do seu Pokémon!");
                 break;
             
-                case 'destiny': Battle.activeEffects.destiny = true; Battle.logBattle("🌠 Recompensas dobradas se vencer!"); break;
+            case 'destiny': Battle.activeEffects.destiny = true; Battle.logBattle("🌠 Recompensas dobradas se vencer!"); break;
+            
+            case 'mega_stone':
+                if (!Battle.active || !Battle.activeMon) {
+                    alert("Você só pode Mega Evoluir durante uma batalha!");
+                    return;
+                }
+                
+                // MAPA DE MEGA EVOLUÇÃO
+                // ID Normal -> ID Mega
+                const megaMap: {[key: number]: number} = {
+                    // Kanto
+                    3: 10033,   // Venusaur
+                    6: 10034,   // Charizard -> Mega X
+                    9: 10036,   // Blastoise
+                    15: 10090,  // Beedrill
+                    18: 10073,  // Pidgeot
+                    65: 10037,  // Alakazam
+                    80: 10071,  // Slowbro
+                    94: 10038,  // Gengar
+                    115: 10039, // Kangaskhan
+                    127: 10040, // Pinsir
+                    130: 10041, // Gyarados
+                    142: 10042, // Aerodactyl
+                    150: 10044, // Mewtwo -> Mega Y
+                    
+                    // Johto
+                    181: 10045, // Ampharos
+                    208: 10072, // Steelix
+                    212: 10046, // Scizor
+                    214: 10047, // Heracross
+                    229: 10048, // Houndoom
+                    248: 10049, // Tyranitar
+                    
+                    // Hoenn
+                    254: 10065, // Sceptile
+                    257: 10050, // Blaziken
+                    260: 10064, // Swampert
+                    282: 10051, // Gardevoir
+                    302: 10066, // Sableye
+                    303: 10052, // Mawile
+                    306: 10053, // Aggron
+                    308: 10054, // Medicham
+                    310: 10055, // Manectric
+                    319: 10067, // Sharpedo
+                    323: 10087, // Camerupt
+                    334: 10068, // Altaria
+                    354: 10056, // Banette
+                    359: 10057, // Absol
+                    362: 10074, // Glalie
+                    373: 10089, // Salamence
+                    376: 10076, // Metagross
+                    380: 10062, // Latias
+                    381: 10063, // Latios
+                    384: 10079, // Rayquaza
+                    
+                    // Sinnoh
+                    428: 10088, // Lopunny
+                    445: 10058, // Garchomp
+                    448: 10059, // Lucario
+                    460: 10060, // Abomasnow
+                    475: 10068, // Gallade
+                    
+                    // Unova
+                    531: 10069, // Audino
+                    
+                    // Kalos
+                    719: 10075  // Diancie
+                };
+
+                const currentId = Battle.activeMon.id;
+                const megaId = megaMap[currentId];
+
+                if (!megaId) {
+                    alert("Este Pokémon não pode Mega Evoluir ou não está reagindo à Mega Pedra!");
+                    return;
+                }
+
+                // Chama a função de transformação na Batalha
+                Battle.performMegaEvolution(megaId);
+                
+                effectLog = `💎 A Mega Pedra reagiu! ${Battle.activeMon.name} Mega Evoluiu!`;
+                Game.sendGlobalLog(`💎 ${player.name} ativou a Mega Evolução em batalha!`);
+                break;
 
             case 'rare_candy':
                 if (targetId !== null) {

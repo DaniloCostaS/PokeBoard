@@ -7,6 +7,7 @@ import type { ItemData } from '../constants';
 import { Cards } from './Cards';
 import { db } from './Network'; 
 import { ref, update } from 'firebase/database';
+import { POKEDEX } from '../constants/pokedex';
 
 export class Battle {
     static active: boolean = false; 
@@ -1070,6 +1071,52 @@ export class Battle {
         // Limpeza de segurança
         if (this.player) {
             this.player.team = this.player.team.filter(p => !(p as any).isTemp);
+        }
+    }
+
+    static performMegaEvolution(megaId: number) {
+        const Network = (window as any).Network;
+        
+        // --- CORREÇÃO: Agora usa a POKEDEX importada diretamente ---
+        // Isso garante que ele leia os dados que você acabou de adicionar (Gen 9 + Megas)
+        const megaData = POKEDEX.find((p: any) => p.id === megaId);
+        
+        if (!megaData) {
+            console.error(`ERRO CRÍTICO: Mega ID ${megaId} não encontrado na Pokedex.`);
+            return alert("Dados da Mega Evolução não encontrados! Verifique o arquivo pokedex.ts");
+        }
+
+        // 2. Salva o Pokémon Original
+        this.activeEffects.mewOriginal = this.player!.team[this.player!.team.indexOf(this.activeMon!)];
+        this.activeEffects.mewIndex = this.player!.team.indexOf(this.activeMon!);
+
+        // 3. Cria o objeto do Mega Pokémon
+        // Usa o construtor do Pokémon atual para manter a compatibilidade
+        const PokemonClass = (window as any).Pokemon || this.activeMon!.constructor;
+        const megaMon = new PokemonClass(megaId, this.activeMon!.level, this.activeMon!.isShiny);
+        
+        // Ajusta HP mantendo o dano sofrido (Matemática: MaxHP Novo - Dano Antigo)
+        const damageTaken = this.activeMon!.maxHp - this.activeMon!.currentHp;
+        megaMon.currentHp = Math.max(1, megaMon.maxHp - damageTaken);
+
+        // Marca como temporário para reverter ao final da batalha
+        (megaMon as any).isTemp = true;
+
+        // 4. Substitui na Batalha
+        this.activeMon = megaMon;
+        this.player!.team[this.activeEffects.mewIndex] = megaMon;
+        this.plyTeamList[0] = megaMon; 
+
+        // 5. Atualiza a UI e Logs
+        this.logBattle(`🧬 O elo fortaleceu! Mega Evolução para ${megaMon.name}!`, true);
+        this.updateUI();
+
+        // 6. Sincroniza se estiver Online
+        if(Network.isOnline) {
+            Network.syncPlayerState();
+            Network.sendAction('BATTLE_PLY_SWITCH', { 
+                nextPly: Network.getSanitizedTeam([megaMon])[0] 
+            });
         }
     }
 

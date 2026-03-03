@@ -19,7 +19,6 @@ export const CARDS_DB: CardData[] = [
     { id: 'curse', name: "Maldição", icon: "☠️", desc: "Escolha um jogador: ele causa metade do dano na próxima batalha inteira contra líder de ginasio e não poderá usar itens.", type: 'move' },
     { id: 'holy_water', name: "Água Benta", icon: "🫗", desc: "Remova o efeito da maldição do seu jogador.", type: 'move' },
     { id: 'trade_fail', name: "Troca Mal-Sucedida", icon: "❌", desc: "O jogador alvo perde os 3 próximos turnos.", type: 'move' },
-    { id: 'mew', name: "DNA de Mew", icon: "🧬", desc: "Invoca um MEW para lutar ao seu lado nessa batalha (O nivel dele será o mesmo do seu pokémon ativo).", type: 'battle' },
     { id: 'time', name: "Controle do Tempo", icon: "⏳", desc: "Jogue novamente após este turno.", type: 'move' },
     { id: 'destiny', name: "Destino Selado", icon: "🌠", desc: "Se vencer a batalha, ganhe 2 recompensas (Gold/Carta).", type: 'battle' },
     { id: 'rare_candy', name: "Rare Candy", icon: "🍬", desc: "Suba 1 nível de um pokémon de sua escolha.", type: 'move' },
@@ -28,6 +27,9 @@ export const CARDS_DB: CardData[] = [
     { id: 'doublexp', name: "Double XP", icon: "🚻", desc: "Seus próximos 5 ganhos de XP serão dobrados (XP do dado conta)", type: 'move' },
     { id: 'expshare', name: "Exp Share", icon: "🤩", desc: "Seus próximo 5 ganhos de XP serão igualmente distribuído para todo o time (XP do dado conta)", type: 'move' },
     { id: 'sniper', name: "Sniper Americano", icon: "🎯", desc: "Durante essa batalha seus pokémon não erram golpes.", type: 'battle' },
+    { id: 'mew', name: "DNA de Mew", icon: "🧬", desc: "Invoca um MEW para lutar ao seu lado nessa batalha (O nivel dele será o mesmo do seu pokémon ativo).", type: 'battle' },
+    { id: 'mega_stone', name: "Mega Pedra", icon: "💎", desc: "Mega evolui seu Pokémon durante a batalha.", type: 'battle' },
+
     // Cartas de ativação automatica.
     { id: 'jam', name: "Interferência", icon: "📡", desc: "Anula a carta que um jogador acabou de usar conta você (Ativado automaticamente).", type: 'auto' },
     { id: 'silvertape', name: "Silver Tape", icon: "🚷", desc: "Anula a carta Bolsa furada que um jogador acabou de usar conta você (Ativado automaticamente).", type: 'auto' },
