@@ -455,6 +455,7 @@ export class Network {
             speed: mon.speed,
             stage: mon.stage || 1,
             evoData: mon.evoData || { next: null, trigger: null },
+            megaStone: mon.megaStone || false,
             // --- CORREÇÃO: Enviando as estatísticas base e genéticas (IVs) ---
             ivs: mon.ivs || { hp: 0, atk: 0, def: 0, spd: 0 },
             baseStats: mon.baseStats || { hp: 10, atk: 10, def: 10, spd: 10 },

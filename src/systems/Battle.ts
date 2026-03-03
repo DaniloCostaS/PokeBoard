@@ -6,6 +6,7 @@ import { SHOP_ITEMS } from '../constants';
 import type { ItemData } from '../constants';
 import { Cards } from './Cards';
 import { db } from './Network'; 
+import { MAPA_MEGAS } from '../constants/mapaMegas';
 import { ref, update } from 'firebase/database';
 import { POKEDEX } from '../constants/pokedex';
 
@@ -189,6 +190,9 @@ export class Battle {
         this.active = true; 
         this.activeMon = selectedMon; 
         
+        // Tenta Mega Evoluir ao entrar em campo
+        this.tryTriggerMegaEvolution("ressoou no início da batalha");
+
         this.renderBattleScreen(); 
         
         this.isPlayerTurn = true; 
@@ -249,6 +253,26 @@ export class Battle {
                 currentTerrain: this.currentTerrain 
             });
         } 
+    }
+
+    // --- NOVA FUNÇÃO CENTRALIZADA DE MEGA EVOLUÇÃO ---
+    static tryTriggerMegaEvolution(contextMsg: string = "reagiu durante o combate") {
+        if (!this.activeMon || !this.activeMon.megaStone) return;
+        if ((this.activeMon as any).isTemp) return; // Já está Mega Evoluído
+
+        const megaId = MAPA_MEGAS[this.activeMon.id];
+        
+        // Chance de 20%
+        if (megaId && Math.random() < 0.20) {
+            // Pequeno atraso para não atropelar a renderização ou logs anteriores
+            setTimeout(() => {
+                // Validação dupla caso o pokémon tenha morrido ou trocado nesse meio tempo
+                if (!this.activeMon || (this.activeMon as any).isTemp) return;
+
+                this.performMegaEvolution(megaId);
+                this.logBattle(`💎 A Mega Pedra de ${this.activeMon.name} ${contextMsg}!`, true);
+            }, 1000);
+        }
     }
     
     static updateButtons() { 
@@ -919,6 +943,10 @@ export class Battle {
             setTimeout(() => { this.checkWinCondition(); }, 1000); 
         } 
         else { 
+            // O jogador sobreviveu e a vez vai voltar para ele.
+            // Tenta Mega Evoluir novamente antes de liberar os botões!
+            this.tryTriggerMegaEvolution("reagiu após o ataque");
+            
             if(callback) callback();
         }
     }

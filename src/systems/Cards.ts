@@ -273,7 +273,6 @@ export class Cards {
         list.innerHTML = '';
         
         player.team.forEach((mon: any, index: number) => {
-            // Verifica se a propriedade nextForm NÃO é nula/vazia
             const canEvolve = mon.evoData && mon.evoData.next && mon.evoData.next !== "";
             const div = document.createElement('div');
             
@@ -286,10 +285,55 @@ export class Cards {
                 };
             } else {
                 div.className = `mon-select-item disabled`;
-                // Deixa cinza quem já está na última forma
                 div.innerHTML = `<img src="${mon.getSprite()}" width="40" style="filter: grayscale(100%);"><b>${mon.name}</b> <small>Lv.${mon.level}</small><br><small style="color:#e74c3c">Estágio Máximo</small>`;
             }
-            
+            list.appendChild(div);
+        });
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn btn-secondary mt-15';
+        cancelBtn.innerText = 'Cancelar';
+        cancelBtn.onclick = () => { modal.style.display = 'none'; };
+        list.appendChild(cancelBtn);
+
+        modal.style.display = 'flex';
+    }
+
+    // --- NOVA FUNÇÃO DE SELEÇÃO DE MEGA ---
+    static async openMegaSelection(cardId: string) {
+        const Game = (window as any).Game;
+        const player = Game.getCurrentPlayer();
+        const modal = document.getElementById('pkmn-select-modal')!;
+        const list = document.getElementById('pkmn-select-list')!;
+        const { MAPA_MEGAS } = await import('../constants/mapaMegas'); // Import dinâmico
+
+        document.getElementById('select-title')!.innerText = "Equipar Mega Pedra em quem?";
+        list.innerHTML = '';
+
+        player.team.forEach((mon: any, index: number) => {
+            const div = document.createElement('div');
+            // Verifica na lista de constantes se existe Mega
+            const canMega = !!MAPA_MEGAS[mon.id];
+
+            if (canMega) {
+                if (mon.megaStone) {
+                    // Já tem pedra equipada
+                    div.className = `mon-select-item disabled`;
+                    div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b><br><small style="color:#f1c40f">💎 Já Equipado</small>`;
+                } else {
+                    // Pode equipar
+                    div.className = `mon-select-item`;
+                    div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b><br><small style="color:#2ecc71">Compatível!</small>`;
+                    div.onclick = () => {
+                        modal.style.display = 'none';
+                        this.activate(cardId, index);
+                    };
+                }
+            } else {
+                // Não compatível
+                div.className = `mon-select-item disabled`;
+                div.innerHTML = `<img src="${mon.getSprite()}" width="40" style="filter: grayscale(100%); opacity:0.6;"><b>${mon.name}</b><br><small style="color:#e74c3c">Incompatível</small>`;
+            }
             list.appendChild(div);
         });
 
@@ -564,7 +608,7 @@ export class Cards {
         return false; // Nenhuma defesa encontrada, o ataque prossegue
     }
 
-    static activate(cardId: string, targetId: number | null = null) {
+    static async activate(cardId: string, targetId: number | null = null) {
         const Game = (window as any).Game;
         const Battle = (window as any).Battle;
         const Network = (window as any).Network;
@@ -866,86 +910,45 @@ export class Cards {
             case 'destiny': Battle.activeEffects.destiny = true; Battle.logBattle("🌠 Recompensas dobradas se vencer!"); break;
             
             case 'mega_stone':
-                if (!Battle.active || !Battle.activeMon) {
-                    alert("Você só pode Mega Evoluir durante uma batalha!");
-                    return;
-                }
-                
-                // MAPA DE MEGA EVOLUÇÃO
-                // ID Normal -> ID Mega
-                const megaMap: {[key: number]: number} = {
-                    // Kanto
-                    3: 10033,   // Venusaur
-                    6: 10034,   // Charizard -> Mega X
-                    9: 10036,   // Blastoise
-                    15: 10090,  // Beedrill
-                    18: 10073,  // Pidgeot
-                    65: 10037,  // Alakazam
-                    80: 10071,  // Slowbro
-                    94: 10038,  // Gengar
-                    115: 10039, // Kangaskhan
-                    127: 10040, // Pinsir
-                    130: 10041, // Gyarados
-                    142: 10042, // Aerodactyl
-                    150: 10044, // Mewtwo -> Mega Y
-                    
-                    // Johto
-                    181: 10045, // Ampharos
-                    208: 10072, // Steelix
-                    212: 10046, // Scizor
-                    214: 10047, // Heracross
-                    229: 10048, // Houndoom
-                    248: 10049, // Tyranitar
-                    
-                    // Hoenn
-                    254: 10065, // Sceptile
-                    257: 10050, // Blaziken
-                    260: 10064, // Swampert
-                    282: 10051, // Gardevoir
-                    302: 10066, // Sableye
-                    303: 10052, // Mawile
-                    306: 10053, // Aggron
-                    308: 10054, // Medicham
-                    310: 10055, // Manectric
-                    319: 10067, // Sharpedo
-                    323: 10087, // Camerupt
-                    334: 10068, // Altaria
-                    354: 10056, // Banette
-                    359: 10057, // Absol
-                    362: 10074, // Glalie
-                    373: 10089, // Salamence
-                    376: 10076, // Metagross
-                    380: 10062, // Latias
-                    381: 10063, // Latios
-                    384: 10079, // Rayquaza
-                    
-                    // Sinnoh
-                    428: 10088, // Lopunny
-                    445: 10058, // Garchomp
-                    448: 10059, // Lucario
-                    460: 10060, // Abomasnow
-                    475: 10068, // Gallade
-                    
-                    // Unova
-                    531: 10069, // Audino
-                    
-                    // Kalos
-                    719: 10075  // Diancie
-                };
-
-                const currentId = Battle.activeMon.id;
-                const megaId = megaMap[currentId];
-
-                if (!megaId) {
-                    alert("Este Pokémon não pode Mega Evoluir ou não está reagindo à Mega Pedra!");
+                if (Battle.active) {
+                    alert("Você não pode equipar a Mega Pedra durante a batalha! Use no tabuleiro.");
                     return;
                 }
 
-                // Chama a função de transformação na Batalha
-                Battle.performMegaEvolution(megaId);
-                
-                effectLog = `💎 A Mega Pedra reagiu! ${Battle.activeMon.name} Mega Evoluiu!`;
-                Game.sendGlobalLog(`💎 ${player.name} ativou a Mega Evolução em batalha!`);
+                if (targetId !== null) {
+                    // Lógica de Aplicação da Pedra
+                    const targetMon = player.team[targetId];
+                    if (!targetMon) { consumed = false; break; }
+
+                    // Import dinâmico ou use o import do topo se já tiver
+                    const { MAPA_MEGAS } = await import('../constants/mapaMegas');
+
+                    if (!MAPA_MEGAS[targetMon.id]) {
+                        alert(`O Pokémon ${targetMon.name} não reage a esta Mega Pedra!`);
+                        consumed = false; 
+                        break;
+                    }
+
+                    if (targetMon.megaStone) {
+                        alert(`${targetMon.name} já está segurando uma Mega Pedra!`);
+                        consumed = false;
+                        break;
+                    }
+
+                    // APLICAÇÃO BEM SUCEDIDA
+                    targetMon.megaStone = true;
+                    effectLog = `💎 A Mega Pedra começou a brilhar intensamente junto de ${targetMon.name}!`;
+                    
+                    const boardModal = document.getElementById('board-cards-modal');
+                    if (boardModal) boardModal.style.display = 'none';
+
+                    if (Network.isOnline) Network.syncPlayerState();
+
+                } else {
+                    // Abre seleção filtrando apenas quem pode Mega Evoluir
+                    this.openMegaSelection(cardId);
+                    consumed = false;
+                }
                 break;
 
             case 'rare_candy':

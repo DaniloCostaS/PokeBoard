@@ -1287,6 +1287,8 @@ export class Game {
                     auraClass = 'aura-shiny'; 
                 }
 
+                const megaIcon = m.megaStone ? `<img src="/assets/img/megaStone.png" style="width:16px; height:16px; margin-left:4px;" title="Mega Stone Equipada">` : '';
+
                 // ==================================================================================
                 // CORREÇÃO: Passamos 'i' (Dono) e 'slotIndex' (Posição no time)
                 // ==================================================================================
@@ -1296,6 +1298,7 @@ export class Game {
                     <div class="poke-card-info"> 
                         <div class="poke-header"> 
                             <span>${m.name}</span> 
+                            ${megaIcon}
                             <span class="poke-lvl">Lv.${m.level}</span> 
                         </div> 
                         

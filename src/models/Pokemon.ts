@@ -11,6 +11,7 @@ export class Pokemon {
     stage: number; // Nova propriedade para controlar o estágio
     baseTotal: number;
     isGymLeaderMon: boolean = false;
+    megaStone: boolean = false;
 
     ivs: { hp: number, atk: number, def: number, spd: number };
     baseStats: { hp: number, atk: number, def: number, spd: number };
@@ -33,7 +34,8 @@ export class Pokemon {
         this.stage = template.stage; 
         this.baseTotal = template.BaseTotal || (template.hp + template.atk + template.def + template.spd);
         this.isGymLeaderMon = isGymLeaderMon;
-
+        this.megaStone = false;
+        
         // --- NOVA LÓGICA DO LURE SHINY ---
         let shinyRate = 0.03; // Chance Padrão (3%)
         try {
