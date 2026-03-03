@@ -226,32 +226,28 @@ export class Game {
         return new Pokemon(chosenTemplate.id, globalAvg, null);
     }
 
-    // Adicione dentro da classe Game
-
     static openPokemonDetail(playerIndex: number, slotIndex: number) {
-        // --- CORREÇÃO: Pega o jogador específico pelo ID, não o do turno ---
-        const player = this.players[playerIndex];
-        const mon = player.team[slotIndex];
-        if (!mon) return;
+        // 1. Identifica o Dono do Pokémon (Pode ser eu ou outro jogador)
+        const targetPlayer = this.players[playerIndex];
+        if (!targetPlayer) return console.error("Jogador não encontrado para o índice:", playerIndex);
 
-        const Battle = (window as any).Battle;
-        const POKEDEX = (window as any).POKEDEX || []; // Necessário para varrer os tipos se não estiver importado
+        const mon = targetPlayer.team[slotIndex];
+        if (!mon) return console.error("Pokémon não encontrado no slot:", slotIndex);
 
-        // 1. Dados Básicos
+        // Garante acesso à POKEDEX global (importada ou window)
+        const POKEDEX_GLOBAL = (window as any).POKEDEX || POKEDEX; 
+
+        // --- PREENCHIMENTO VISUAL BÁSICO (Mantém igual) ---
         document.getElementById('detail-id')!.innerText = `#${mon.id.toString().padStart(3, '0')}`;
         document.getElementById('detail-name')!.innerText = mon.name;
         document.getElementById('detail-img')!.setAttribute('src', mon.getSprite());
         document.getElementById('detail-level')!.innerText = mon.level.toString();
         document.getElementById('detail-xp')!.innerText = `${Math.floor(mon.currentXp)} / ${mon.maxXp}`;
         document.getElementById('detail-xp-bar')!.style.width = `${Math.min(100, (mon.currentXp / mon.maxXp) * 100)}%`;
-        
-        const shinyBadge = document.getElementById('detail-shiny')!;
-        shinyBadge.style.display = mon.isShiny ? 'block' : 'none';
+        document.getElementById('detail-shiny')!.style.display = mon.isShiny ? 'block' : 'none';
 
-        // 2. Cores e Tipos
         const colors: any = { "Normal": "#A8A77A", "Fogo": "#EE8130", "Água": "#6390F0", "Elétrico": "#F7D02C", "Grama": "#7AC74C", "Gelo": "#96D9D6", "Lutador": "#C22E28", "Veneno": "#A33EA1", "Terra": "#E2BF65", "Voador": "#A98FF3", "Psíquico": "#F95587", "Inseto": "#A6B91A", "Pedra": "#B6A136", "Fantasma": "#735797", "Dragão": "#6F35FC", "Noturno": "#705746", "Aço": "#B7B7CE", "Fada": "#D685AD" };
-        const mainColor = colors[mon.type] || '#333';
-        document.getElementById('detail-header')!.style.background = mainColor;
+        document.getElementById('detail-header')!.style.background = colors[mon.type] || '#333';
 
         const typeContainer = document.getElementById('detail-types')!;
         typeContainer.innerHTML = '';
@@ -262,43 +258,40 @@ export class Game {
             typeContainer.appendChild(span);
         });
 
-        // 3. Grid de Status
         const ivs = (mon as any).ivs || { hp: 0, atk: 0, def: 0, spd: 0 };
         const bonus = (mon as any).bonusStats || { hp: 0, atk: 0, def: 0, spd: 0 };
-        
-        const createStatRow = (label: string, total: number, iv: number, bon: number, icon: string) => {
-            return `
+        const createStatRow = (label: string, total: number, iv: number, bon: number, icon: string) => `
                 <div style="background: #fff; border: 1px solid #eee; padding: 8px; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
                     <div style="font-weight: bold; margin-bottom: 4px; display:flex; justify-content:space-between; align-items:center;">
                         <span>${icon} ${label}</span>
                         <span style="font-size:1.1rem; color:#2c3e50;">${total}</span>
                     </div>
                     <div style="font-size: 0.7rem; color: #7f8c8d; display:flex; justify-content:space-between; border-top: 1px dashed #eee; padding-top:4px;">
-                        <span title="Valor Individual">🧬 IV: <b style="color:#8e44ad">${iv}</b></span>
-                        <span title="Bônus de Nível" style="color:#2980b9;">⬆️ Up: +${bon}</span>
+                        <span title="IV">🧬 IV: <b style="color:#8e44ad">${iv}</b></span>
+                        <span title="Up" style="color:#2980b9;">⬆️ Up: +${bon}</span>
                     </div>
-                </div>
-            `;
-        };
-
+                </div>`;
         const grid = document.getElementById('detail-stats-grid')!;
         grid.innerHTML = `
-            ${createStatRow("HP Máx", mon.maxHp, ivs.hp, bonus.hp, "❤️")}
-            ${createStatRow("Ataque", mon.atk, ivs.atk, bonus.atk, "⚔️")}
-            ${createStatRow("Defesa", mon.def, ivs.def, bonus.def, "🛡️")}
-            ${createStatRow("Velocidade", mon.speed, ivs.spd, bonus.spd, "💨")}
+            ${createStatRow("HP", mon.maxHp, ivs.hp, bonus.hp, "❤️")}
+            ${createStatRow("Atk", mon.atk, ivs.atk, bonus.atk, "⚔️")}
+            ${createStatRow("Def", mon.def, ivs.def, bonus.def, "🛡️")}
+            ${createStatRow("Vel", mon.speed, ivs.spd, bonus.spd, "💨")}
         `;
 
         // =========================================================================
-        // 4. CÁLCULO DE BUFFS E PROGRESSO DA POKÉDEX
+        // LÓGICA DE CONTAGEM (CORRIGIDA E DEBUGADA)
         // =========================================================================
         let resoText = "0%";
-        let masteryText = "0%";
+        let masteryHTML = ""; 
         
-        if (player.pokedexData) {
-            // A. Ressonância (Status por Captura)
-            const dexEntry = player.pokedexData[mon.id];
-            const caught = dexEntry ? dexEntry.caught : 0;
+        // Verifica se o jogador tem dados na pokedex
+        if (targetPlayer.pokedexData) {
+            
+            // A. Ressonância
+            const dexEntry = targetPlayer.pokedexData[mon.id];
+            const caught = dexEntry ? (dexEntry.caught || 0) : 0;
+            
             if (caught > 1) {
                 const perc = Math.min(100, (caught - 1) * 10);
                 resoText = `${perc}% (+${caught-1} cópias)`;
@@ -306,44 +299,53 @@ export class Game {
                 resoText = `0% (1ª Captura)`;
             }
 
-            // B. Maestria (Dano por Tipos Derrotados)
-            if (Battle && Battle.getTypeMasteryBonus) {
-                // Função auxiliar para contar kills totais desse tipo na Dex
-                const countKills = (type: string) => {
-                    let k = 0;
-                    if (!POKEDEX) return 0;
-                    POKEDEX.forEach((d: any) => {
-                        if ((d.type === type || d.secondType === type) && player.pokedexData[d.id]) {
-                            k += player.pokedexData[d.id].defeated || 0;
+            // B. Maestria (Contagem Manual)
+            // Função interna para contar as kills
+            const countKillsForType = (tType: string) => {
+                let totalKills = 0;
+                
+                // Varre a lista global de pokémons
+                POKEDEX_GLOBAL.forEach((pData: any) => {
+                    // Se o pokemon da lista for do tipo que estamos procurando...
+                    if (pData.type === tType || pData.secondType === tType) {
+                        // ...verifica se o JOGADOR ALVO tem registro dele na pokedex
+                        const pEntry = targetPlayer.pokedexData[pData.id];
+                        if (pEntry && pEntry.defeated) {
+                            totalKills += pEntry.defeated;
                         }
-                    });
-                    return k;
-                };
+                    }
+                });
+                return totalKills;
+            };
 
-                const kills1 = countKills(mon.type);
-                const kills2 = mon.secondType ? countKills(mon.secondType) : 0;
-                
-                // Pega o melhor tipo (o que tem mais kills)
-                let bestType = mon.type;
-                let bestKills = kills1;
-                if (kills2 > kills1) { bestType = mon.secondType; bestKills = kills2; }
-
-                // Calcula o bônus atual (1% a cada 10)
-                const currentBonus = Math.floor(bestKills / 10);
-                
-                // Calcula quanto falta para o próximo
+            const generateLine = (t: string) => {
+                const kills = countKillsForType(t);
+                const currentBonus = Math.floor(kills / 10);
                 const nextCheckpoint = (currentBonus + 1) * 10;
-                
-                masteryText = `+${currentBonus}% (${bestType})`;
-                
-                // Adiciona o contador de progresso visual
-                masteryText += `<div style="font-size:0.7rem; color:#7f8c8d; margin-top:2px;">Abatidos: <b>${bestKills}</b> / ${nextCheckpoint}</div>`;
+                return `
+                    <div style="margin-bottom: 4px; border-bottom: 1px dashed #eee; padding-bottom: 2px;">
+                        <div style="display:flex; justify-content:space-between;">
+                            <span>Tipo ${t}:</span>
+                            <b style="color: ${currentBonus > 0 ? '#27ae60' : '#c0392b'};">+${currentBonus}% Dano</b>
+                        </div>
+                        <div style="font-size:0.7rem; color:#7f8c8d;">
+                            Abatidos: <b>${kills}</b> / ${nextCheckpoint}
+                        </div>
+                    </div>
+                `;
+            };
+
+            masteryHTML += generateLine(mon.type);
+            if (mon.secondType) {
+                masteryHTML += generateLine(mon.secondType);
             }
+        } else {
+            masteryHTML = "<div style='color:#999; font-style:italic;'>Nenhum dado na Pokédex.</div>";
         }
 
         document.getElementById('detail-reso')!.innerText = resoText;
-        document.getElementById('detail-mastery')!.innerHTML = masteryText; // InnerHTML para aceitar a div extra
-        // =========================================================================
+        document.getElementById('detail-mastery')!.innerHTML = masteryHTML;
+        document.getElementById('detail-mastery')!.style.fontWeight = "normal";
 
         document.getElementById('detail-modal')!.style.display = 'flex';
     }

@@ -504,19 +504,34 @@ export class Battle {
         let finalDamage = (baseAtk / 5) - (defender.def / 20);
 
         // =====================================================================
-        // NOVO: CÁLCULO DE DANO COM MAESTRIA (Buff por matar tipo)
+        // CORREÇÃO: CÁLCULO DE DANO COM MAESTRIA (Buff Global por Tipo)
         // =====================================================================
         const attackerPlayer = isPlayerAttacking ? this.player! : (this.enemyPlayer || null);
         let masteryBonus = 0;
         
         if (attackerPlayer) {
-            // Verifica maestria no TIPO DO ATACANTE
-            masteryBonus = this.getTypeMasteryBonus(attackerPlayer, attacker.type);
+            // Verifica maestria no PRIMEIRO tipo do atacante
+            const m1 = this.getTypeMasteryBonus(attackerPlayer, attacker.type);
+            
+            // Verifica maestria no SEGUNDO tipo (se houver)
+            const m2 = attacker.secondType ? this.getTypeMasteryBonus(attackerPlayer, attacker.secondType) : 0;
+            
+            // O Pokémon usa todo seu conhecimento de combate!
+            // Opção A: Pega o maior bônus (Recomendado para balanceamento)
+            masteryBonus = Math.max(m1, m2);
+            
+            // Opção B: Soma os bônus (Fica muito forte, ex: +10% Veneno +10% Noturno = +20%)
+            // masteryBonus = m1 + m2; 
         }
 
         // Fórmula: 1% de dano extra a cada 10 kills
+        // Ex: Se masteryBonus for 5 (50 kills), multiplier vira 1.05
         const masteryMultiplier = 1 + (masteryBonus / 100);
+        
         finalDamage = Math.floor(finalDamage * masteryMultiplier);
+        
+        // Log visual para debug (opcional, aparece no console do navegador)
+        console.log(`Maestria: ${attacker.name} (${attacker.type}/${attacker.secondType}) ganhou +${masteryBonus}% de dano.`);
         // =====================================================================
 
         finalDamage = Math.max(1, finalDamage);
@@ -1116,17 +1131,24 @@ export class Battle {
         }
     }
 
-    // 2. Maestria: Calcula bônus de dano baseado em quantas vezes você DERROTOU aquele TIPO
-    static getTypeMasteryBonus(player: Player, type: string): number {
+    // 2. Maestria: Calcula bônus de dano baseado em quantas vezes você DERROTOU aquele TIPO GLOBALMENTE
+    static getTypeMasteryBonus(player: Player, targetType: string): number {
         if (!player.pokedexData) return 0;
-
+        
+        // Cache simples para não travar o jogo em loops longos
         if (!(this as any)._masteryCache) (this as any)._masteryCache = {};
-        const cacheKey = `${player.id}_${type}`;
-        if ((this as any)._masteryCache[cacheKey]) return (this as any)._masteryCache[cacheKey];
+        const cacheKey = `${player.id}_${targetType}`;
+        
+        // Se quiser recalcular sempre (para atualizar em tempo real), remova estas 2 linhas:
+        // if ((this as any)._masteryCache[cacheKey]) return (this as any)._masteryCache[cacheKey];
 
         let killCount = 0;
+        
+        // Varre a Pokédex inteira (GLOBAL)
+        // Se matei um Gengar (Fantasma/Veneno), ele conta para Fantasma e conta para Veneno.
         POKEDEX.forEach((dexEntry: any) => {
-            if (dexEntry.type === type || dexEntry.secondType === type) {
+            // Verifica se o monstro da Pokedex tem o tipo que estamos calculando
+            if (dexEntry.type === targetType || dexEntry.secondType === targetType) {
                 const entry = player.pokedexData[dexEntry.id];
                 if (entry && entry.defeated) {
                     killCount += entry.defeated;
