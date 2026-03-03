@@ -225,6 +225,128 @@ export class Game {
 
         return new Pokemon(chosenTemplate.id, globalAvg, null);
     }
+
+    // Adicione dentro da classe Game
+
+    static openPokemonDetail(playerIndex: number, slotIndex: number) {
+        // --- CORREÇÃO: Pega o jogador específico pelo ID, não o do turno ---
+        const player = this.players[playerIndex];
+        const mon = player.team[slotIndex];
+        if (!mon) return;
+
+        const Battle = (window as any).Battle;
+        const POKEDEX = (window as any).POKEDEX || []; // Necessário para varrer os tipos se não estiver importado
+
+        // 1. Dados Básicos
+        document.getElementById('detail-id')!.innerText = `#${mon.id.toString().padStart(3, '0')}`;
+        document.getElementById('detail-name')!.innerText = mon.name;
+        document.getElementById('detail-img')!.setAttribute('src', mon.getSprite());
+        document.getElementById('detail-level')!.innerText = mon.level.toString();
+        document.getElementById('detail-xp')!.innerText = `${Math.floor(mon.currentXp)} / ${mon.maxXp}`;
+        document.getElementById('detail-xp-bar')!.style.width = `${Math.min(100, (mon.currentXp / mon.maxXp) * 100)}%`;
+        
+        const shinyBadge = document.getElementById('detail-shiny')!;
+        shinyBadge.style.display = mon.isShiny ? 'block' : 'none';
+
+        // 2. Cores e Tipos
+        const colors: any = { "Normal": "#A8A77A", "Fogo": "#EE8130", "Água": "#6390F0", "Elétrico": "#F7D02C", "Grama": "#7AC74C", "Gelo": "#96D9D6", "Lutador": "#C22E28", "Veneno": "#A33EA1", "Terra": "#E2BF65", "Voador": "#A98FF3", "Psíquico": "#F95587", "Inseto": "#A6B91A", "Pedra": "#B6A136", "Fantasma": "#735797", "Dragão": "#6F35FC", "Noturno": "#705746", "Aço": "#B7B7CE", "Fada": "#D685AD" };
+        const mainColor = colors[mon.type] || '#333';
+        document.getElementById('detail-header')!.style.background = mainColor;
+
+        const typeContainer = document.getElementById('detail-types')!;
+        typeContainer.innerHTML = '';
+        [mon.type, mon.secondType].filter(t => t).forEach(t => {
+            const span = document.createElement('span');
+            span.innerText = t;
+            span.style.cssText = `background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; margin-left: 4px;`;
+            typeContainer.appendChild(span);
+        });
+
+        // 3. Grid de Status
+        const ivs = (mon as any).ivs || { hp: 0, atk: 0, def: 0, spd: 0 };
+        const bonus = (mon as any).bonusStats || { hp: 0, atk: 0, def: 0, spd: 0 };
+        
+        const createStatRow = (label: string, total: number, iv: number, bon: number, icon: string) => {
+            return `
+                <div style="background: #fff; border: 1px solid #eee; padding: 8px; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                    <div style="font-weight: bold; margin-bottom: 4px; display:flex; justify-content:space-between; align-items:center;">
+                        <span>${icon} ${label}</span>
+                        <span style="font-size:1.1rem; color:#2c3e50;">${total}</span>
+                    </div>
+                    <div style="font-size: 0.7rem; color: #7f8c8d; display:flex; justify-content:space-between; border-top: 1px dashed #eee; padding-top:4px;">
+                        <span title="Valor Individual">🧬 IV: <b style="color:#8e44ad">${iv}</b></span>
+                        <span title="Bônus de Nível" style="color:#2980b9;">⬆️ Up: +${bon}</span>
+                    </div>
+                </div>
+            `;
+        };
+
+        const grid = document.getElementById('detail-stats-grid')!;
+        grid.innerHTML = `
+            ${createStatRow("HP Máx", mon.maxHp, ivs.hp, bonus.hp, "❤️")}
+            ${createStatRow("Ataque", mon.atk, ivs.atk, bonus.atk, "⚔️")}
+            ${createStatRow("Defesa", mon.def, ivs.def, bonus.def, "🛡️")}
+            ${createStatRow("Velocidade", mon.speed, ivs.spd, bonus.spd, "💨")}
+        `;
+
+        // =========================================================================
+        // 4. CÁLCULO DE BUFFS E PROGRESSO DA POKÉDEX
+        // =========================================================================
+        let resoText = "0%";
+        let masteryText = "0%";
+        
+        if (player.pokedexData) {
+            // A. Ressonância (Status por Captura)
+            const dexEntry = player.pokedexData[mon.id];
+            const caught = dexEntry ? dexEntry.caught : 0;
+            if (caught > 1) {
+                const perc = Math.min(100, (caught - 1) * 10);
+                resoText = `${perc}% (+${caught-1} cópias)`;
+            } else {
+                resoText = `0% (1ª Captura)`;
+            }
+
+            // B. Maestria (Dano por Tipos Derrotados)
+            if (Battle && Battle.getTypeMasteryBonus) {
+                // Função auxiliar para contar kills totais desse tipo na Dex
+                const countKills = (type: string) => {
+                    let k = 0;
+                    if (!POKEDEX) return 0;
+                    POKEDEX.forEach((d: any) => {
+                        if ((d.type === type || d.secondType === type) && player.pokedexData[d.id]) {
+                            k += player.pokedexData[d.id].defeated || 0;
+                        }
+                    });
+                    return k;
+                };
+
+                const kills1 = countKills(mon.type);
+                const kills2 = mon.secondType ? countKills(mon.secondType) : 0;
+                
+                // Pega o melhor tipo (o que tem mais kills)
+                let bestType = mon.type;
+                let bestKills = kills1;
+                if (kills2 > kills1) { bestType = mon.secondType; bestKills = kills2; }
+
+                // Calcula o bônus atual (1% a cada 10)
+                const currentBonus = Math.floor(bestKills / 10);
+                
+                // Calcula quanto falta para o próximo
+                const nextCheckpoint = (currentBonus + 1) * 10;
+                
+                masteryText = `+${currentBonus}% (${bestType})`;
+                
+                // Adiciona o contador de progresso visual
+                masteryText += `<div style="font-size:0.7rem; color:#7f8c8d; margin-top:2px;">Abatidos: <b>${bestKills}</b> / ${nextCheckpoint}</div>`;
+            }
+        }
+
+        document.getElementById('detail-reso')!.innerText = resoText;
+        document.getElementById('detail-mastery')!.innerHTML = masteryText; // InnerHTML para aceitar a div extra
+        // =========================================================================
+
+        document.getElementById('detail-modal')!.style.display = 'flex';
+    }
     
     // --- NOVA FUNÇÃO DE CHECKPOINT ---
     static getLastCityCoord(p: Player): {x: number, y: number} {
@@ -1128,119 +1250,88 @@ export class Game {
         
         if (!this.players || this.players.length === 0) return; 
 
-        this.players.forEach((p,i) => { const d = document.createElement('div'); d.className = `player-slot ${i===this.turn?'active':''}`; let badgeHTML = '<div class="badges-container">'; for(let b=0; b<8; b++) { const isActive = p.badges[b]; const gData = GYM_DATA.find(g => g.id === b+1); const imgUrl = gData ? `/assets/img/Insignias/${gData.badgeImg}` : ''; const style = isActive ? `background-image: url('${imgUrl}'); background-size: 100% 100%; background-repeat: no-repeat; background-color: transparent;` : `background-color: #ccc;`; badgeHTML += `<div class="badge-slot ${isActive?'active':''}" style="${style}" title="Insígnia ${b+1}"></div>`; } badgeHTML += '</div>'; 
-    
-        const th = p.team.map(m => { 
-            let auraClass = '';
-            // Variável para guardar o estilo da borda de raridade
-            let rarityStyle = ''; 
-
-            // 1. Calcula o total se não vier do servidor (Fallback de segurança)
-            const total = m.baseTotal || (m.maxHp + m.atk + m.def + m.speed);
-
-            if (m.isLegendary) {
-                auraClass = 'aura-legendary'; 
-                // Lendário mantém a aura dourada original
-                 rarityStyle = 'border: 2px solid #A33EA1; box-shadow: 0 0 5px #A33EA1;'; 
+        // O 'i' aqui é o índice do jogador no array (0, 1, 2...)
+        this.players.forEach((p,i) => { 
+            const d = document.createElement('div'); 
+            d.className = `player-slot ${i===this.turn?'active':''}`; 
+            
+            let badgeHTML = '<div class="badges-container">'; 
+            for(let b=0; b<8; b++) { 
+                const isActive = p.badges[b]; 
+                const gData = GYM_DATA.find(g => g.id === b+1); 
+                const imgUrl = gData ? `/assets/img/Insignias/${gData.badgeImg}` : ''; 
+                const style = isActive ? `background-image: url('${imgUrl}'); background-size: 100% 100%; background-repeat: no-repeat; background-color: transparent;` : `background-color: #ccc;`; 
+                badgeHTML += `<div class="badge-slot ${isActive?'active':''}" style="${style}" title="Insígnia ${b+1}"></div>`; 
             } 
-            else {
-                // Lógica de Borda por Raridade (Baseada no Raridades.ts)
-                // Épico (330 - 379) -> Vermelho
-                if (total >= 330) {
-                    rarityStyle = 'border: 2px solid #e74c3c; box-shadow: 0 0 5px #e74c3c;'; 
+            badgeHTML += '</div>'; 
+    
+            const th = p.team.map((m, slotIndex) => { 
+                let auraClass = '';
+                let rarityStyle = ''; 
+
+                const total = m.baseTotal || (m.maxHp + m.atk + m.def + m.speed);
+
+                if (m.isLegendary) {
+                    auraClass = 'aura-legendary'; 
+                    rarityStyle = 'border: 2px solid #A33EA1; box-shadow: 0 0 5px #A33EA1;'; 
+                } 
+                else {
+                    if (total >= 330) { rarityStyle = 'border: 2px solid #e74c3c; box-shadow: 0 0 5px #e74c3c;'; }
+                    else if (total >= 280) { rarityStyle = 'border: 2px solid #3498db; box-shadow: 0 0 5px #3498db;'; }
+                    else if (total >= 220) { rarityStyle = 'border: 2px solid #2ecc71; box-shadow: 0 0 5px #2ecc71;'; }
                 }
-                // Raro (280 - 329) -> Azul Claro
-                else if (total >= 280) {
-                    rarityStyle = 'border: 2px solid #3498db; box-shadow: 0 0 5px #3498db;'; 
+                
+                if (m.isShiny) {
+                    auraClass = 'aura-shiny'; 
                 }
-                // Incomum (220 - 279) -> Verde Claro
-                else if (total >= 220) {
-                    rarityStyle = 'border: 2px solid #2ecc71; box-shadow: 0 0 5px #2ecc71;'; 
-                }
-                // Comum (< 220) -> Sem borda (Padrão)
-            }
+
+                // ==================================================================================
+                // CORREÇÃO: Passamos 'i' (Dono) e 'slotIndex' (Posição no time)
+                // ==================================================================================
+                return ` 
+                <div class="poke-card ${m.isFainted() ? 'fainted' : ''}" style="${rarityStyle}; cursor: pointer;" onclick="window.Game.openPokemonDetail(${i}, ${slotIndex})"> 
+                    <img src="${m.getSprite()}" class="poke-card-img ${auraClass}"> 
+                    <div class="poke-card-info"> 
+                        <div class="poke-header"> 
+                            <span>${m.name}</span> 
+                            <span class="poke-lvl">Lv.${m.level}</span> 
+                        </div> 
+                        
+                        ${m.getTypeBadgesHTML ? m.getTypeBadgesHTML() : ''}
+
+                        <div class="bar-container" title="HP"> 
+                            <div class="bar-fill ${(window as any).Battle.getHpColor(m.currentHp, m.maxHp)}" style="width:${(m.currentHp/m.maxHp)*100}%"></div> 
+                            <div class="bar-text">${m.currentHp}/${m.maxHp}</div> 
+                        </div> 
+                        
+                        <div class="bar-container" title="XP">
+                            <div class="bar-fill xp-bar" style="width:${(m.currentXp/m.maxXp)*100}%"></div>
+                            <div class="bar-text">${Math.floor(m.currentXp)}/${m.maxXp}</div>
+                        </div> 
+
+                        <div class="poke-stats"> 
+                            <div class="stat-item">⚔️${m.atk}</div> 
+                            <div class="stat-item">🛡️${m.def}</div> 
+                            <div class="stat-item">💨${m.speed}</div> 
+                        </div> 
+                </div> </div>`; 
+                // ==================================================================================
+
+            }).join('');
             
-            if (m.isShiny) {
-                auraClass = 'aura-shiny'; 
-                // Shiny mantém a aura original, sem borda extra de raridade
-            }
-
-            return ` 
-            <div class="poke-card ${m.isFainted() ? 'fainted' : ''}" style="${rarityStyle}"> 
-                <img src="${m.getSprite()}" class="poke-card-img ${auraClass}"> 
-                <div class="poke-card-info"> 
-                    <div class="poke-header"> 
-                        <span>${m.name}</span> 
-                        <span class="poke-lvl">Lv.${m.level}</span> 
-                    </div> 
-                    
-                    ${m.getTypeBadgesHTML ? m.getTypeBadgesHTML() : ''}
-
-                    <div class="bar-container" title="HP"> 
-                        <div class="bar-fill ${Battle.getHpColor(m.currentHp, m.maxHp)}" style="width:${(m.currentHp/m.maxHp)*100}%"></div> 
-                        <div class="bar-text">${m.currentHp}/${m.maxHp}</div> 
-                    </div> 
-                    
-                    <div class="bar-container" title="XP">
-                        <div class="bar-fill xp-bar" style="width:${(m.currentXp/m.maxXp)*100}%"></div>
-                        <div class="bar-text">${Math.floor(m.currentXp)}/${m.maxXp}</div>
-                    </div> 
-
-                    <div class="poke-stats"> 
-                        <div class="stat-item">⚔️${m.atk}</div> 
-                        <div class="stat-item">🛡️${m.def}</div> 
-                        <div class="stat-item">💨${m.speed}</div> 
-                    </div> 
-            </div> </div>`; 
-        }).join('');
-            
-            // --- NOVA LÓGICA DE CONTADORES ---
-            // Calcula o total de itens (soma as quantidades) e o total de cartas
+            // ... (O resto do código de Itens, Cartas e Efeitos continua idêntico) ...
             const totalItems = Object.values(p.items).reduce((sum, val) => sum + val, 0);
             const totalCards = p.cards.length;
 
-            // Dentro do loop this.players.forEach((p,i) => { ...
-        
-            // 1. CONSTRUÇÃO DA BARRA DE EFEITOS (BUFFS/DEBUFFS)
             let effectsHTML = `<div style="display:flex; gap:4px; flex-wrap:wrap; margin-top:2px; min-height:18px;">`;
-
-            // 🛑 PERDE A VEZ (Skip Turn)
-            if (p.skipTurns > 0) {
-                effectsHTML += `<span style="background:#c0392b; color:white; font-size:0.65rem; padding:1px 4px; border-radius:4px; display:flex; align-items:center;" title="Paralisado: Perde a vez por ${p.skipTurns} rodadas">🚫 ${p.skipTurns}</span>`;
-            }
-
-            // 🕸️ LENTIDÃO (Slow)
-            if (p.effects.slow && p.effects.slow > 0) {
-                effectsHTML += `<span style="background:#7f8c8d; color:white; font-size:0.65rem; padding:1px 4px; border-radius:4px; display:flex; align-items:center;" title="Lentidão: Anda apenas 1 casa por ${p.effects.slow} turnos">🕸️ ${p.effects.slow}</span>`;
-            }
-
-            // 😈 MALDIÇÃO (Curse)
-            if (p.effects.curse) {
-                effectsHTML += `<span style="background:#2c3e50; color:#e74c3c; font-size:0.65rem; padding:1px 4px; border-radius:4px; display:flex; align-items:center; border:1px solid #e74c3c;" title="Amaldiçoado: Dano reduzido e Itens bloqueados no Ginásio">😈 CURSE</span>`;
-            }
-
-            // ✨ LURE SHINY (Chance Aumentada)
-            if (p.effects.lureShiny && p.effects.lureShiny > 0) {
-                effectsHTML += `<span style="background:#f1c40f; color:#2c3e50; font-size:0.65rem; padding:1px 4px; border-radius:4px; display:flex; align-items:center; font-weight:bold;" title="Shiny Lure: Chance de Shiny aumentada por ${p.effects.lureShiny} turnos">✨ ${p.effects.lureShiny}</span>`;
-            }
-
-            // ⏳ TURNO EXTRA (Time Stop)
-            if (p.effects.extraTurn) {
-                effectsHTML += `<span style="background:#2980b9; color:white; font-size:0.65rem; padding:1px 4px; border-radius:4px; display:flex; align-items:center;" title="Tempo Parado: Jogará novamente">⏳ EXTRA</span>`;
-            }
-
-            // 🚻 DOUBLE XP
-            if (p.effects.doubleXp && p.effects.doubleXp > 0) {
-                effectsHTML += `<span style="background:#8e44ad; color:white; font-size:0.65rem; padding:1px 4px; border-radius:4px; display:flex; align-items:center;" title="Double XP: Próximos ${p.effects.doubleXp} ganhos dobrados">🚻 ${p.effects.doubleXp}</span>`;
-            }
-
-            // 🤩 EXP SHARE
-            if (p.effects.expShare && p.effects.expShare > 0) {
-                effectsHTML += `<span style="background:#27ae60; color:white; font-size:0.65rem; padding:1px 4px; border-radius:4px; display:flex; align-items:center;" title="Exp Share: Próximos ${p.effects.expShare} ganhos divididos">🤝 ${p.effects.expShare}</span>`;
-            }
-
+            if (p.skipTurns > 0) effectsHTML += `<span style="background:#c0392b; color:white; font-size:0.65rem; padding:1px 4px; border-radius:4px;" title="Paralisado">🚫 ${p.skipTurns}</span>`;
+            if (p.effects.slow && p.effects.slow > 0) effectsHTML += `<span style="background:#7f8c8d; color:white; font-size:0.65rem; padding:1px 4px; border-radius:4px;" title="Lentidão">🕸️ ${p.effects.slow}</span>`;
+            if (p.effects.curse) effectsHTML += `<span style="background:#2c3e50; color:#e74c3c; font-size:0.65rem; padding:1px 4px; border-radius:4px; border:1px solid #e74c3c;" title="Amaldiçoado">😈 CURSE</span>`;
+            if (p.effects.lureShiny && p.effects.lureShiny > 0) effectsHTML += `<span style="background:#f1c40f; color:#2c3e50; font-size:0.65rem; padding:1px 4px; border-radius:4px; font-weight:bold;" title="Shiny Lure">✨ ${p.effects.lureShiny}</span>`;
+            if (p.effects.extraTurn) effectsHTML += `<span style="background:#2980b9; color:white; font-size:0.65rem; padding:1px 4px; border-radius:4px;" title="Tempo Parado">⏳ EXTRA</span>`;
+            if (p.effects.doubleXp && p.effects.doubleXp > 0) effectsHTML += `<span style="background:#8e44ad; color:white; font-size:0.65rem; padding:1px 4px; border-radius:4px;" title="Double XP">🚻 ${p.effects.doubleXp}</span>`;
+            if (p.effects.expShare && p.effects.expShare > 0) effectsHTML += `<span style="background:#27ae60; color:white; font-size:0.65rem; padding:1px 4px; border-radius:4px;" title="Exp Share">🤝 ${p.effects.expShare}</span>`;
             effectsHTML += `</div>`;
-            // -----------------------------------------------------------
 
             d.innerHTML = ` 
             <div class="hud-header" style="flex-direction:column; align-items:flex-start; gap:0;">
@@ -1258,39 +1349,22 @@ export class Game {
                 <button class="btn btn-mini" style="background:#e74c3c; color:white; border:1px solid #c0392b;" onclick="window.Game.openPokedex(${i})">📖 Dex</button>
             </div>`;
             if(i < Math.ceil(this.players.length/2)) left.appendChild(d); 
-            else right.appendChild(d); }); 
-            const turnPlayer = this.players[this.turn]; 
-            if (turnPlayer) document.getElementById('turn-indicator')!.innerText = turnPlayer.name; 
+            else right.appendChild(d); 
+        }); 
 
-            // --- NOVO: ATUALIZAR PAINEL DE INFORMAÇÕES GLOBAIS ---
-            const elRound = document.getElementById('round-indicator');
-            if (elRound) elRound.innerText = this.round.toString();
-            
-            // --- NOVO: EXIBIR CÓDIGO DA SALA ---
-            const elRoom = document.getElementById('room-code-indicator');
-            if (elRoom) {
-                // Se estiver online mostra o ID, se não mostra "OFFLINE" ou "LOCAL"
-                elRoom.innerText = Network.isOnline ? Network.currentRoomId : "LOCAL";
-            }
-            // ------------------------------------
-            
-            const avgLvl = this.getGlobalAverageLevel();
-            const elAvg = document.getElementById('avg-lvl-indicator');
-            if (elAvg) elAvg.innerText = `Lv.${avgLvl}`;
-            
-            const elGym = document.getElementById('gym-lvl-indicator');
-            if (elGym) elGym.innerText = `Lv.${avgLvl + 1}`;
-            
-            // Calcula Média de Pokémons da Equipe de forma rápida
-            let totalMons = 0;
-            this.players.forEach(p => totalMons += p.team.length);
-            const avgTeam = Math.max(1, Math.min(6, Math.round(totalMons / Math.max(1, this.players.length))));
-            
-            const elTeam = document.getElementById('npc-team-indicator');
-            if (elTeam) elTeam.innerText = avgTeam.toString();
-            // -----------------------------------------------------
-    
-        }
+        // Atualização dos indicadores globais
+        const turnPlayer = this.players[this.turn]; 
+        if (turnPlayer) document.getElementById('turn-indicator')!.innerText = turnPlayer.name; 
+        const elRound = document.getElementById('round-indicator'); if (elRound) elRound.innerText = this.round.toString();
+        const elRoom = document.getElementById('room-code-indicator');
+        if (elRoom) { const Network = (window as any).Network; elRoom.innerText = Network.isOnline ? Network.currentRoomId : "LOCAL"; }
+        const avgLvl = this.getGlobalAverageLevel();
+        const elAvg = document.getElementById('avg-lvl-indicator'); if (elAvg) elAvg.innerText = `Lv.${avgLvl}`;
+        const elGym = document.getElementById('gym-lvl-indicator'); if (elGym) elGym.innerText = `Lv.${avgLvl + 1}`;
+        let totalMons = 0; this.players.forEach(p => totalMons += p.team.length);
+        const avgTeam = Math.max(1, Math.min(6, Math.round(totalMons / Math.max(1, this.players.length))));
+        const elTeam = document.getElementById('npc-team-indicator'); if (elTeam) elTeam.innerText = avgTeam.toString();
+    }
     
     static renderBoard() { 
         const area = document.getElementById('board-area')!; 

@@ -32,93 +32,63 @@ export class Battle {
 
     static setup(player: Player, enemyMon: any, isPvP: boolean = false, _label: string = "", reward: number = 0, enemyPlayer: Player | null = null, isGym: boolean = false, gymId: number = 0, npcImage: string = "", terrainTile: number = 1) {
         const Game = (window as any).Game;
-        // --- CORREÇÃO: Preserva o efeito da carta "Novo Líder" ---
         const pendingSteal = this.activeEffects.stealBadgeFrom;
-        // ---------------------------------------------------------
+        
         this.player = player; this.isPvP = isPvP; this.isNPC = (reward > 0 && !isPvP); this.isGym = isGym; this.gymId = gymId; this.reward = reward; this.enemyPlayer = enemyPlayer; this.processingAction = false;
         
-        // Limpa efeitos anteriores
         this.activeEffects = {};
 
-        // --- CORREÇÃO CRÍTICA DO ZERO ---
-        // Verifica se é diferente de undefined/null, pois "0" é um ID válido!
         if (pendingSteal !== undefined && pendingSteal !== null) {
             this.activeEffects.stealBadgeFrom = pendingSteal;
         }
-        // --------------------------------
 
         this.battleTitle = isPvP ? "Batalha PvP!" : `Batalha contra ${_label}!`;
         this.isAutoPvE = false;
-        
         this.currentTerrain = terrainTile;
 
-        // --- NOVA LÓGICA DE SELEÇÃO PVP COM NERF NOVO LÍDER ---
+        // --- LÓGICA DE SELEÇÃO DE TIMES (INCLUI NERF NOVO LÍDER) ---
         if (isPvP && enemyPlayer) { 
-            
-            // VERIFICAÇÃO: É uma batalha pela carta "Novo Líder"?
             if (this.activeEffects.stealBadgeFrom !== undefined && this.activeEffects.stealBadgeFrom !== null) {
-                
-                // REGRA ESPECIAL: Sorteia 3 Pokémon de CADA lado (vivos ou mortos)
-                // O sort() com Math.random embaralha a lista completa
                 const myRandomTeam = [...player.team].sort(() => Math.random() - 0.5).slice(0, 3);
                 const oppRandomTeam = [...enemyPlayer.team].sort(() => Math.random() - 0.5).slice(0, 3);
 
-                // RECUPERAÇÃO TOTAL: Cura 100% dos sorteados antes da luta
                 myRandomTeam.forEach(p => p.heal(999));
                 oppRandomTeam.forEach(p => p.heal(999));
 
                 this.plyTeamList = myRandomTeam;
                 this.oppTeamList = oppRandomTeam;
 
-                // Log para avisar os jogadores da regra especial
                 this.logBattle(`⚔️ DUELO DE LIDERANÇA! 3 Pokémon foram sorteados e totalmente curados para o combate!`, true);
                 
-                // Importante: Sincroniza a cura no banco de dados imediatamente
                 const Network = (window as any).Network;
                 if(Network.isOnline) {
                     Network.syncPlayers([player.id, enemyPlayer.id]);
                 }
-
             } else {
-                // --- REGRA PADRÃO (Batalha normal de encontro no mapa) ---
-                
-                // Calcula a quantidade baseada na Rodada (1-19 = 1v1 | 20-39 = 2v2 | etc)
                 const pkmnCount = 1 + Math.floor((Game.round || 1) / 20);
-
-                // Pega apenas os vivos de cada lado
                 let myAlive = player.team.filter(p => !p.isFainted());
                 let oppAlive = enemyPlayer.team.filter(p => !p.isFainted());
 
-                // Embaralha aleatoriamente e corta pelo limite da rodada
                 myAlive = myAlive.sort(() => Math.random() - 0.5).slice(0, pkmnCount);
                 oppAlive = oppAlive.sort(() => Math.random() - 0.5).slice(0, pkmnCount);
 
                 this.plyTeamList = myAlive;
                 this.oppTeamList = oppAlive;
             }
-
-            // Define o oponente inicial
             this.opponent = this.oppTeamList[0]; 
-            
             if (enemyPlayer.effects.curse) { this.logBattle(`☠️ ${enemyPlayer.name} está amaldiçoado! (Dano reduzido)`); }
         } 
-        // ---------------------------------------------
         else if (isGym) {
             const gymData = GYM_DATA.find(g => g.id === gymId);
             const globalAvg = Game.getGlobalAverageLevel();
-            const gymLevel = globalAvg + 1; // Regra 1: Mantém o level como estava
-
-            const teamSize = Math.min(6, Math.max(2, Game.getGlobalAverageTeamSize() + 1)); // Regra 1: Mantém a quantidade
-            
+            const gymLevel = globalAvg + 1; 
+            const teamSize = Math.min(6, Math.max(2, Game.getGlobalAverageTeamSize() + 1));
             const dynamicTeams = Game.gymTeams || {}; 
             let rosterIds = dynamicTeams[gymId] || (gymData ? gymData.teamIds : [130]);
             const battleIds = rosterIds.slice(0, teamSize);
 
-            // --- ATIVANDO O MODO BOSS (Quarto parâmetro = true) ---
-            // Isso diz para o Pokémon que ele é um Líder (IVs 20 e Escala +5)
             this.oppTeamList = battleIds.map((id: number) => new Pokemon(id, gymLevel, false, true));
             this.opponent = this.oppTeamList[0];
-            // ------------------------------------------------------
             
             this.plyTeamList = player.getBattleTeam(true);
             if (this.plyTeamList.length === 0) {
@@ -129,6 +99,26 @@ export class Battle {
             this.opponent = this.oppTeamList[0]; 
             this.plyTeamList = player.getBattleTeam(true); 
         }
+
+        // =====================================================================
+        // NOVO: APLICA BUFFS DA POKÉDEX (RESSONÂNCIA)
+        // =====================================================================
+        this.plyTeamList.forEach(mon => {
+            this.applyResonanceBonus(player, mon);
+        });
+        
+        if (isPvP && enemyPlayer) {
+             this.oppTeamList.forEach(mon => {
+                this.applyResonanceBonus(enemyPlayer, mon);
+            });
+        }
+        
+        // Log para avisar o jogador se houver bônus
+        const activeResonance = (this.plyTeamList[0] as any).resonantBonus;
+        if (activeResonance) {
+            setTimeout(() => this.logBattle(`🧬 Ressonância Genética: ${this.plyTeamList[0].name} está ${activeResonance}% mais forte!`, true), 800);
+        }
+        // =====================================================================
 
         if(this.plyTeamList.length === 0) { 
             Game.handleTotalDefeat(player);
@@ -142,11 +132,9 @@ export class Battle {
             this.logBattle("😈 CUIDADO! Você entrou no Ginásio Amaldiçoado! Dano reduzido e Itens bloqueados!", true);
         }
 
-        // --- BYPASS: Inicia direto sem perguntar no PvP ---
         if (this.isPvP) {
             this.startRound(this.plyTeamList[0]);
         } else {
-            // --- NOVA LÓGICA: TÍTULO DESCRITIVO BASEADO NO TERRENO/INIMIGO ---
             let terrainName = "Terreno Selvagem";
             if (this.currentTerrain === 1) terrainName = "Mato Alto 🌿";
             else if (this.currentTerrain === 2) terrainName = "Águas Profundas 🌊";
@@ -154,25 +142,19 @@ export class Battle {
 
             let contextTitle = "";
             if (this.isGym) {
-                // --- NOVA LÓGICA: BUSCA NOME E TIPOS DIRETAMENTE NO GYM_DATA ---
                 const gymData = GYM_DATA.find(g => g.id === this.gymId);
-                let gymDesc = `Ginásio de ${_label}`; // Fallback de segurança
-                
+                let gymDesc = `Ginásio de ${_label}`; 
                 if (gymData) {
-                    const typesStr = gymData.type.join(" e "); // Junta ["Pedra", "Aço"] em "Pedra e Aço"
+                    const typesStr = gymData.type.join(" e ");
                     gymDesc = `Ginásio do ${gymData.leaderName} de ${typesStr}`;
                 }
-                
                 contextTitle = `🏛️ <b>${gymDesc}</b><br><small style="color:#bdc3c7; font-size:0.9rem;">Escolha seu Pokémon para a batalha!</small>`;
-                // ---------------------------------------------------------------
             } else if (this.isNPC) {
                 contextTitle = `👤 <b>O Treinador ${_label} te desafiou!</b><br><small style="color:#bdc3c7; font-size:0.9rem;">Escolha seu Pokémon para começar.</small>`;
             } else {
                 contextTitle = `🐾 <b>Um Pokémon selvagem apareceu!</b><br><small style="color:#f1c40f; font-size:0.9rem;">Local: ${terrainName}</small>`;
             }
-            
             this.openSelectionModal(contextTitle);
-            // -----------------------------------------------------------------
         }
         this.isAutoPvE = false;
     }
@@ -508,40 +490,45 @@ export class Battle {
     }
 
     static calculateDamage(attacker: Pokemon, defender: Pokemon, isPlayerAttacking: boolean): { damage: number, msg: string, avoided: boolean } { 
-        // 1. CÁLCULO DE ESQUIVA (Mantém igual)
+        // 1. CÁLCULO DE ESQUIVA
         let dodgeChance = (defender.speed - attacker.speed) / 5;
-
-        // Garante que a esquiva nunca seja menor que 10% (A regra do mínimo)
         dodgeChance = Math.max(10, dodgeChance);
-
-        // --- NOVA LÓGICA SNIPER: Ignora a esquiva se tiver a carta ativa ---
         const ignoreDodge = (isPlayerAttacking && this.activeEffects.sniper);
 
         if (!ignoreDodge && Math.random() * 100 <= dodgeChance) {
             return { damage: 0, msg: "💨 ESQUIVOU!", avoided: true };
         }
 
-        // 2. ATAQUE BASE HÍBRIDO (Mantém igual)
-        // Soma ponderada: 65% ATK + 15% SPD + 20% HP
+        // 2. ATAQUE BASE
         const baseAtk = (attacker.atk * 0.65) + (attacker.speed * 0.15) + (attacker.maxHp * 0.2);
-
-        // 3. DANO BASE (Sua fórmula nova)
-        // Dano = (AtaqueBase / 5) - (DEF / 20)
         let finalDamage = (baseAtk / 5) - (defender.def / 20);
 
-        // Garante que o dano base nunca seja negativo antes dos modificadores
-        finalDamage = Math.max(1, finalDamage);
+        // =====================================================================
+        // NOVO: CÁLCULO DE DANO COM MAESTRIA (Buff por matar tipo)
+        // =====================================================================
+        const attackerPlayer = isPlayerAttacking ? this.player! : (this.enemyPlayer || null);
+        let masteryBonus = 0;
+        
+        if (attackerPlayer) {
+            // Verifica maestria no TIPO DO ATACANTE
+            masteryBonus = this.getTypeMasteryBonus(attackerPlayer, attacker.type);
+        }
 
+        // Fórmula: 1% de dano extra a cada 10 kills
+        const masteryMultiplier = 1 + (masteryBonus / 100);
+        finalDamage = Math.floor(finalDamage * masteryMultiplier);
+        // =====================================================================
+
+        finalDamage = Math.max(1, finalDamage);
         let logDetails = "";
 
-        // 4. CRÍTICO E DADO (Mantém igual)
+        // 3. CRÍTICO E DADO
         const spdCritChance = attacker.speed / 8;
         if (Math.random() * 100 <= spdCritChance) {
             finalDamage += 5;
             logDetails += " ⚡Crit.Vel!";
         }
 
-        // 5. DADO D6 (Sorte/Azar)
         const d6 = Math.floor(Math.random() * 6) + 1;
         let rollModifier = 0; 
         if (d6 === 6) { rollModifier = +5; logDetails += " 🎲Crit!"; } 
@@ -551,60 +538,42 @@ export class Battle {
         else if (d6 === 1) rollModifier = -2; 
         finalDamage += rollModifier;
 
-        // =================================================================================
-        // 5. NOVO SISTEMA: MELHOR VANTAGEM (O Pokémon escolhe seu melhor tipo)
-        // =================================================================================
-        
-        // Lista os tipos presentes (remove vazios)
+        // 4. MELHOR VANTAGEM DE TIPO
         const atkTypes = [attacker.type, attacker.secondType].filter(t => t);
         const defTypes = [defender.type, defender.secondType].filter(t => t);
+        let bestMulti = 0; 
 
-        let bestMulti = 0; // Vai guardar a maior vantagem possível
-
-        // O atacante testa mentalmente cada um dos seus tipos para ver qual machuca mais
         atkTypes.forEach(atkT => {
-            let currentTypeMulti = 1; // Começa neutro para este tipo de ataque
-            
-            // Multiplica o efeito contra todos os tipos do defensor (Igual Pokémon Original)
+            let currentTypeMulti = 1; 
             defTypes.forEach(defT => {
                 let factor = 1; 
                 if (TYPE_CHART[atkT] && (TYPE_CHART[atkT] as any)[defT] !== undefined) {
                     const val = (TYPE_CHART[atkT] as any)[defT];
-                    if (val > 1) factor = 1.75;      // Vantagem
-                    else if (val < 1) factor = 0.75; // Desvantagem
+                    if (val > 1) factor = 1.75;      
+                    else if (val < 1) factor = 0.75; 
                 }
                 currentTypeMulti *= factor; 
             });
-
-            // Se esse tipo causou mais dano que o tipo anterior testado, o Pokémon usa ele!
-            if (currentTypeMulti > bestMulti) {
-                bestMulti = currentTypeMulti;
-            }
+            if (currentTypeMulti > bestMulti) bestMulti = currentTypeMulti;
         });
 
         const finalMulti = bestMulti;
-        
-        // Aplica o multiplicador no dano
         finalDamage = Math.floor(finalDamage * finalMulti);
 
-        // Define o ícone do log baseado no resultado final
-        if (finalMulti >= 1.5) logDetails += " 🔥!"; // Muito efetivo (Aparece se for 1.75 ou maior)
-        else if (finalMulti > 1.0) logDetails += " ⚔️"; // Levemente efetivo
-        else if (finalMulti < 1.0) logDetails += " 🛡️."; // Pouco efetivo (Nenhum tipo ajudou)
+        if (finalMulti >= 1.5) logDetails += " 🔥!"; 
+        else if (finalMulti > 1.0) logDetails += " ⚔️"; 
+        else if (finalMulti < 1.0) logDetails += " 🛡️."; 
         
-        // =================================================================================
-
         finalDamage = Math.max(0, Math.floor(finalDamage));
 
-        // Aplica modificadores de cartas (Mantém igual)
+        // 5. MODIFICADORES DE CARTAS
         if (isPlayerAttacking) { 
             if (this.activeEffects.crit > 0) { 
                 finalDamage *= 2; 
-                this.activeEffects.crit--; // Gasta 1 carga
+                this.activeEffects.crit--; 
                 logDetails += ` [2x] (Restam: ${this.activeEffects.crit})`; 
             }
             if (this.activeEffects.focus) { finalDamage *= 4; this.activeEffects.focus = false; logDetails += " [4x]"; } 
-            // --- CORREÇÃO: Maldição só corta o dano se for contra Ginásio ---
             if (this.player?.effects.curse && this.isGym) { 
                 finalDamage = Math.floor(finalDamage / 2); 
                 logDetails += " [😈Amaldiçoado]"; 
@@ -1118,6 +1087,58 @@ export class Battle {
                 nextPly: Network.getSanitizedTeam([megaMon])[0] 
             });
         }
+    }
+
+    // =========================================================================
+    // SISTEMA DE BUFFS DA POKÉDEX (Cole no final da classe Battle)
+    // =========================================================================
+
+    // 1. Ressonância: Aumenta status baseados em quantas vezes você CAPTUROU aquele ID
+    static applyResonanceBonus(player: Player, mon: Pokemon) {
+        if (!player.pokedexData || !player.pokedexData[mon.id]) return;
+
+        const data = player.pokedexData[mon.id];
+        const captures = data.caught || 0;
+
+        // Se tiver mais de 1 captura (repetidos), aplica 10% de bônus por cópia
+        if (captures > 1) {
+            const extraCount = captures - 1;
+            const bonusPercent = Math.min(1.0, extraCount * 0.10); // Máx +100%
+            
+            mon.maxHp = Math.floor(mon.maxHp * (1 + bonusPercent));
+            mon.currentHp = Math.floor(mon.currentHp * (1 + bonusPercent)); 
+            mon.atk = Math.floor(mon.atk * (1 + bonusPercent));
+            mon.def = Math.floor(mon.def * (1 + bonusPercent));
+            mon.speed = Math.floor(mon.speed * (1 + bonusPercent));
+
+            (mon as any).isResonant = true;
+            (mon as any).resonantBonus = Math.floor(bonusPercent * 100);
+        }
+    }
+
+    // 2. Maestria: Calcula bônus de dano baseado em quantas vezes você DERROTOU aquele TIPO
+    static getTypeMasteryBonus(player: Player, type: string): number {
+        if (!player.pokedexData) return 0;
+
+        if (!(this as any)._masteryCache) (this as any)._masteryCache = {};
+        const cacheKey = `${player.id}_${type}`;
+        if ((this as any)._masteryCache[cacheKey]) return (this as any)._masteryCache[cacheKey];
+
+        let killCount = 0;
+        POKEDEX.forEach((dexEntry: any) => {
+            if (dexEntry.type === type || dexEntry.secondType === type) {
+                const entry = player.pokedexData[dexEntry.id];
+                if (entry && entry.defeated) {
+                    killCount += entry.defeated;
+                }
+            }
+        });
+
+        // Fórmula: 1% de dano extra a cada 10 kills
+        const bonus = Math.floor(killCount / 10);
+        
+        (this as any)._masteryCache[cacheKey] = bonus;
+        return bonus;
     }
 
     static win() { 

@@ -1058,8 +1058,8 @@ export const POKEDEX: PokemonData[] = [
   {"id": 663, "name": "Talonflame", "type": "Fogo", "secondType": "Voador", "BaseTotal": 352, "hp": 78, "atk": 78, "def": 70, "spd": 126, "stage": 3, "nextForm": null},
 
   {"id": 664, "name": "Scatterbug", "type": "Inseto", "secondType": "", "BaseTotal": 136, "hp": 38, "atk": 31, "def": 32, "spd": 35, "stage": 1, "nextForm": "Spewpa", "evoTrigger": 5},
-  {"id": 665, "name": "Spewpa", "type": "Inseto", "secondType": "", "BaseTotal": 143, "hp": 45, "atk": 24, "def": 45, "spd": 29, "stage": 2, "nextForm": null, "evoTrigger": 10},
-  {"id": 666, "name": "Vivillon", "type": "Inseto", "secondType": "Voador", "BaseTotal": 290, "hp": 80, "atk": 71, "def": 50, "spd": 89, "stage": 1, "nextForm": null},
+  {"id": 665, "name": "Spewpa", "type": "Inseto", "secondType": "", "BaseTotal": 143, "hp": 45, "atk": 24, "def": 45, "spd": 29, "stage": 2, "nextForm": "Vivillon", "evoTrigger": 10},
+  {"id": 666, "name": "Vivillon", "type": "Inseto", "secondType": "Voador", "BaseTotal": 290, "hp": 80, "atk": 71, "def": 50, "spd": 89, "stage": 3, "nextForm": null},
 
   {"id": 667, "name": "Litleo", "type": "Fogo", "secondType": "Normal", "BaseTotal": 252, "hp": 62, "atk": 62, "def": 56, "spd": 72, "stage": 1, "nextForm": "Pyroar", "evoTrigger": 8},
   {"id": 668, "name": "Pyroar", "type": "Fogo", "secondType": "Normal", "BaseTotal": 349, "hp": 86, "atk": 88, "def": 69, "spd": 106, "stage": 2, "nextForm": null},
@@ -1530,7 +1530,7 @@ export const POKEDEX: PokemonData[] = [
   {"id": 969, "name": "Glimmet", "type": "Pedra", "secondType": "Veneno", "BaseTotal": 229, "hp": 48, "atk": 70, "def": 51, "spd": 60, "stage": 1, "nextForm": "Glimmora", "evoTrigger": 8},
   {"id": 970, "name": "Glimmora", "type": "Pedra", "secondType": "Veneno", "BaseTotal": 347, "hp": 83, "atk": 92, "def": 86, "spd": 86, "stage": 2, "nextForm": null},
 
-    {"id": 971, "name": "Greavard", "type": "Fantasma", "secondType": "", "BaseTotal": 188, "hp": 50, "atk": 46, "def": 58, "spd": 34, "stage": 1, "nextForm": "Houndstone", "evoTrigger": 8},
+  {"id": 971, "name": "Greavard", "type": "Fantasma", "secondType": "", "BaseTotal": 188, "hp": 50, "atk": 46, "def": 58, "spd": 34, "stage": 1, "nextForm": "Houndstone", "evoTrigger": 8},
   {"id": 972, "name": "Houndstone", "type": "Fantasma", "secondType": "", "BaseTotal": 314, "hp": 72, "atk": 76, "def": 98, "spd": 68, "stage": 2, "nextForm": null},
 
   {"id": 973, "name": "Flamigo", "type": "Voador", "secondType": "Lutador", "BaseTotal": 336, "hp": 82, "atk": 95, "def": 69, "spd": 90, "stage": 1, "nextForm": null},
@@ -1610,21 +1610,21 @@ export const MEGA_POKEDEX = [
   { "id": 10090, "name": "Mega Beedrill", "type": "Inseto", "secondType": "Veneno", "BaseTotal": 495, "hp": 65, "atk": 82, "def": 60, "spd": 145, "stage": 4, "nextForm": null },
   { "id": 10073, "name": "Mega Pidgeot", "type": "Voador", "secondType": "Normal", "BaseTotal": 579, "hp": 83, "atk": 107, "def": 80, "spd": 121, "stage": 4, "nextForm": null },
   { "id": 10037, "name": "Mega Alakazam", "type": "Psíquico", "secondType": "", "BaseTotal": 600, "hp": 55, "atk": 112, "def": 85, "spd": 150, "stage": 4, "nextForm": null },
-  { "id": 10071, "name": "Mega Slowbro", "type": "Água", "secondType": "Psíquico", "BaseTotal": 590, "hp": 95, "atk": 102, "def": 130, "spd": 30, "stage": 3, "nextForm": null },
+  { "id": 10071, "name": "Mega Slowbro", "type": "Água", "secondType": "Psíquico", "BaseTotal": 590, "hp": 95, "atk": 102, "def": 130, "spd": 30, "stage": 4, "nextForm": null },
   { "id": 10038, "name": "Mega Gengar", "type": "Fantasma", "secondType": "Veneno", "BaseTotal": 600, "hp": 60, "atk": 112, "def": 87, "spd": 130, "stage": 4, "nextForm": null },
-  { "id": 10039, "name": "Mega Kangaskhan", "type": "Normal", "secondType": "", "BaseTotal": 590, "hp": 105, "atk": 92, "def": 100, "spd": 100, "stage": 2, "nextForm": null },
-  { "id": 10040, "name": "Mega Pinsir", "type": "Inseto", "secondType": "Voador", "BaseTotal": 600, "hp": 65, "atk": 100, "def": 105, "spd": 105, "stage": 2, "nextForm": null },
-  { "id": 10041, "name": "Mega Gyarados", "type": "Água", "secondType": "Noturno", "BaseTotal": 640, "hp": 95, "atk": 110, "def": 119, "spd": 81, "stage": 3, "nextForm": null },
-  { "id": 10042, "name": "Mega Aerodactyl", "type": "Pedra", "secondType": "Voador", "BaseTotal": 615, "hp": 80, "atk": 102, "def": 90, "spd": 150, "stage": 2, "nextForm": null },
-  { "id": 10043, "name": "Mega Mewtwo X", "type": "Psíquico", "secondType": "Lutador", "BaseTotal": 780, "hp": 106, "atk": 172, "def": 100, "spd": 130, "stage": 5, "nextForm": null, "isLegendary": true },
-  { "id": 10044, "name": "Mega Mewtwo Y", "type": "Psíquico", "secondType": "", "BaseTotal": 780, "hp": 106, "atk": 172, "def": 95, "spd": 140, "stage": 5, "nextForm": null, "isLegendary": true },
+  { "id": 10039, "name": "Mega Kangaskhan", "type": "Normal", "secondType": "", "BaseTotal": 590, "hp": 105, "atk": 92, "def": 100, "spd": 100, "stage": 4, "nextForm": null },
+  { "id": 10040, "name": "Mega Pinsir", "type": "Inseto", "secondType": "Voador", "BaseTotal": 600, "hp": 65, "atk": 100, "def": 105, "spd": 105, "stage": 4, "nextForm": null },
+  { "id": 10041, "name": "Mega Gyarados", "type": "Água", "secondType": "Noturno", "BaseTotal": 640, "hp": 95, "atk": 110, "def": 119, "spd": 81, "stage": 4, "nextForm": null },
+  { "id": 10042, "name": "Mega Aerodactyl", "type": "Pedra", "secondType": "Voador", "BaseTotal": 615, "hp": 80, "atk": 102, "def": 90, "spd": 150, "stage": 4, "nextForm": null },
+  { "id": 10043, "name": "Mega Mewtwo X", "type": "Psíquico", "secondType": "Lutador", "BaseTotal": 780, "hp": 106, "atk": 172, "def": 100, "spd": 130, "stage": 4, "nextForm": null, "isLegendary": true },
+  { "id": 10044, "name": "Mega Mewtwo Y", "type": "Psíquico", "secondType": "", "BaseTotal": 780, "hp": 106, "atk": 172, "def": 95, "spd": 140, "stage": 4, "nextForm": null, "isLegendary": true },
 
   // --- JOHTO (Gen 2) ---
   { "id": 10045, "name": "Mega Ampharos", "type": "Elétrico", "secondType": "Dragão", "BaseTotal": 610, "hp": 90, "atk": 130, "def": 107, "spd": 45, "stage": 4, "nextForm": null },
-  { "id": 10072, "name": "Mega Steelix", "type": "Aço", "secondType": "Terra", "BaseTotal": 610, "hp": 75, "atk": 90, "def": 162, "spd": 30, "stage": 3, "nextForm": null },
-  { "id": 10046, "name": "Mega Scizor", "type": "Inseto", "secondType": "Aço", "BaseTotal": 600, "hp": 70, "atk": 102, "def": 120, "spd": 75, "stage": 3, "nextForm": null },
-  { "id": 10047, "name": "Mega Heracross", "type": "Inseto", "secondType": "Lutador", "BaseTotal": 600, "hp": 80, "atk": 112, "def": 110, "spd": 75, "stage": 2, "nextForm": null },
-  { "id": 10048, "name": "Mega Houndoom", "type": "Noturno", "secondType": "Fogo", "BaseTotal": 600, "hp": 75, "atk": 115, "def": 90, "spd": 115, "stage": 3, "nextForm": null },
+  { "id": 10072, "name": "Mega Steelix", "type": "Aço", "secondType": "Terra", "BaseTotal": 610, "hp": 75, "atk": 90, "def": 162, "spd": 30, "stage": 4, "nextForm": null },
+  { "id": 10046, "name": "Mega Scizor", "type": "Inseto", "secondType": "Aço", "BaseTotal": 600, "hp": 70, "atk": 102, "def": 120, "spd": 75, "stage": 4, "nextForm": null },
+  { "id": 10047, "name": "Mega Heracross", "type": "Inseto", "secondType": "Lutador", "BaseTotal": 600, "hp": 80, "atk": 112, "def": 110, "spd": 75, "stage": 4, "nextForm": null },
+  { "id": 10048, "name": "Mega Houndoom", "type": "Noturno", "secondType": "Fogo", "BaseTotal": 600, "hp": 75, "atk": 115, "def": 90, "spd": 115, "stage": 4, "nextForm": null },
   { "id": 10049, "name": "Mega Tyranitar", "type": "Pedra", "secondType": "Noturno", "BaseTotal": 700, "hp": 100, "atk": 129, "def": 135, "spd": 71, "stage": 4, "nextForm": null },
 
   // --- HOENN (Gen 3) ---
@@ -1632,35 +1632,35 @@ export const MEGA_POKEDEX = [
   { "id": 10050, "name": "Mega Blaziken", "type": "Fogo", "secondType": "Lutador", "BaseTotal": 630, "hp": 80, "atk": 145, "def": 80, "spd": 100, "stage": 4, "nextForm": null },
   { "id": 10064, "name": "Mega Swampert", "type": "Água", "secondType": "Terra", "BaseTotal": 635, "hp": 100, "atk": 122, "def": 110, "spd": 70, "stage": 4, "nextForm": null },
   { "id": 10051, "name": "Mega Gardevoir", "type": "Psíquico", "secondType": "Fada", "BaseTotal": 618, "hp": 68, "atk": 125, "def": 100, "spd": 100, "stage": 4, "nextForm": null },
-  { "id": 10066, "name": "Mega Sableye", "type": "Noturno", "secondType": "Fantasma", "BaseTotal": 480, "hp": 50, "atk": 85, "def": 120, "spd": 20, "stage": 2, "nextForm": null },
-  { "id": 10052, "name": "Mega Mawile", "type": "Aço", "secondType": "Fada", "BaseTotal": 480, "hp": 50, "atk": 80, "def": 110, "spd": 50, "stage": 2, "nextForm": null },
+  { "id": 10066, "name": "Mega Sableye", "type": "Noturno", "secondType": "Fantasma", "BaseTotal": 480, "hp": 50, "atk": 85, "def": 120, "spd": 20, "stage": 4, "nextForm": null },
+  { "id": 10052, "name": "Mega Mawile", "type": "Aço", "secondType": "Fada", "BaseTotal": 480, "hp": 50, "atk": 80, "def": 110, "spd": 50, "stage": 4, "nextForm": null },
   { "id": 10053, "name": "Mega Aggron", "type": "Aço", "secondType": "", "BaseTotal": 630, "hp": 70, "atk": 100, "def": 155, "spd": 50, "stage": 4, "nextForm": null },
-  { "id": 10054, "name": "Mega Medicham", "type": "Lutador", "secondType": "Psíquico", "BaseTotal": 510, "hp": 60, "atk": 90, "def": 80, "spd": 100, "stage": 3, "nextForm": null },
-  { "id": 10055, "name": "Mega Manectric", "type": "Elétrico", "secondType": "", "BaseTotal": 575, "hp": 70, "atk": 105, "def": 70, "spd": 135, "stage": 3, "nextForm": null },
-  { "id": 10067, "name": "Mega Sharpedo", "type": "Água", "secondType": "Noturno", "BaseTotal": 560, "hp": 70, "atk": 125, "def": 52, "spd": 105, "stage": 3, "nextForm": null },
-  { "id": 10087, "name": "Mega Camerupt", "type": "Fogo", "secondType": "Terra", "BaseTotal": 560, "hp": 70, "atk": 122, "def": 102, "spd": 20, "stage": 3, "nextForm": null },
-  { "id": 10068, "name": "Mega Altaria", "type": "Dragão", "secondType": "Fada", "BaseTotal": 590, "hp": 75, "atk": 110, "def": 107, "spd": 80, "stage": 3, "nextForm": null },
-  { "id": 10056, "name": "Mega Banette", "type": "Fantasma", "secondType": "", "BaseTotal": 555, "hp": 64, "atk": 129, "def": 79, "spd": 75, "stage": 3, "nextForm": null },
-  { "id": 10057, "name": "Mega Absol", "type": "Noturno", "secondType": "", "BaseTotal": 565, "hp": 65, "atk": 132, "def": 60, "spd": 115, "stage": 2, "nextForm": null },
-  { "id": 10074, "name": "Mega Glalie", "type": "Gelo", "secondType": "", "BaseTotal": 580, "hp": 80, "atk": 120, "def": 80, "spd": 100, "stage": 3, "nextForm": null },
+  { "id": 10054, "name": "Mega Medicham", "type": "Lutador", "secondType": "Psíquico", "BaseTotal": 510, "hp": 60, "atk": 90, "def": 80, "spd": 100, "stage": 4, "nextForm": null },
+  { "id": 10055, "name": "Mega Manectric", "type": "Elétrico", "secondType": "", "BaseTotal": 575, "hp": 70, "atk": 105, "def": 70, "spd": 135, "stage": 4, "nextForm": null },
+  { "id": 10067, "name": "Mega Sharpedo", "type": "Água", "secondType": "Noturno", "BaseTotal": 560, "hp": 70, "atk": 125, "def": 52, "spd": 105, "stage": 4, "nextForm": null },
+  { "id": 10087, "name": "Mega Camerupt", "type": "Fogo", "secondType": "Terra", "BaseTotal": 560, "hp": 70, "atk": 122, "def": 102, "spd": 20, "stage": 4, "nextForm": null },
+  { "id": 10068, "name": "Mega Altaria", "type": "Dragão", "secondType": "Fada", "BaseTotal": 590, "hp": 75, "atk": 110, "def": 107, "spd": 80, "stage": 4, "nextForm": null },
+  { "id": 10056, "name": "Mega Banette", "type": "Fantasma", "secondType": "", "BaseTotal": 555, "hp": 64, "atk": 129, "def": 79, "spd": 75, "stage": 4, "nextForm": null },
+  { "id": 10057, "name": "Mega Absol", "type": "Noturno", "secondType": "", "BaseTotal": 565, "hp": 65, "atk": 132, "def": 60, "spd": 115, "stage": 4, "nextForm": null },
+  { "id": 10074, "name": "Mega Glalie", "type": "Gelo", "secondType": "", "BaseTotal": 580, "hp": 80, "atk": 120, "def": 80, "spd": 100, "stage": 4, "nextForm": null },
   { "id": 10089, "name": "Mega Salamence", "type": "Dragão", "secondType": "Voador", "BaseTotal": 700, "hp": 95, "atk": 132, "def": 110, "spd": 120, "stage": 4, "nextForm": null },
   { "id": 10076, "name": "Mega Metagross", "type": "Aço", "secondType": "Psíquico", "BaseTotal": 700, "hp": 80, "atk": 125, "def": 130, "spd": 110, "stage": 4, "nextForm": null },
-  { "id": 10062, "name": "Mega Latias", "type": "Dragão", "secondType": "Psíquico", "BaseTotal": 700, "hp": 80, "atk": 120, "def": 135, "spd": 110, "stage": 1, "nextForm": null, "isLegendary": true },
-  { "id": 10063, "name": "Mega Latios", "type": "Dragão", "secondType": "Psíquico", "BaseTotal": 700, "hp": 80, "atk": 145, "def": 110, "spd": 110, "stage": 1, "nextForm": null, "isLegendary": true },
-  { "id": 10079, "name": "Mega Rayquaza", "type": "Dragão", "secondType": "Voador", "BaseTotal": 780, "hp": 105, "atk": 180, "def": 100, "spd": 115, "stage": 5, "nextForm": null, "isLegendary": true },
+  { "id": 10062, "name": "Mega Latias", "type": "Dragão", "secondType": "Psíquico", "BaseTotal": 700, "hp": 80, "atk": 120, "def": 135, "spd": 110, "stage": 4, "nextForm": null, "isLegendary": true },
+  { "id": 10063, "name": "Mega Latios", "type": "Dragão", "secondType": "Psíquico", "BaseTotal": 700, "hp": 80, "atk": 145, "def": 110, "spd": 110, "stage": 4, "nextForm": null, "isLegendary": true },
+  { "id": 10079, "name": "Mega Rayquaza", "type": "Dragão", "secondType": "Voador", "BaseTotal": 780, "hp": 105, "atk": 180, "def": 100, "spd": 115, "stage": 4, "nextForm": null, "isLegendary": true },
 
   // --- SINNOH (Gen 4) ---
-  { "id": 10088, "name": "Mega Lopunny", "type": "Normal", "secondType": "Lutador", "BaseTotal": 580, "hp": 65, "atk": 95, "def": 95, "spd": 135, "stage": 3, "nextForm": null },
+  { "id": 10088, "name": "Mega Lopunny", "type": "Normal", "secondType": "Lutador", "BaseTotal": 580, "hp": 65, "atk": 95, "def": 95, "spd": 135, "stage": 4, "nextForm": null },
   { "id": 10058, "name": "Mega Garchomp", "type": "Dragão", "secondType": "Terra", "BaseTotal": 700, "hp": 108, "atk": 145, "def": 105, "spd": 92, "stage": 4, "nextForm": null },
-  { "id": 10059, "name": "Mega Lucario", "type": "Lutador", "secondType": "Aço", "BaseTotal": 625, "hp": 70, "atk": 142, "def": 79, "spd": 112, "stage": 3, "nextForm": null },
-  { "id": 10060, "name": "Mega Abomasnow", "type": "Grama", "secondType": "Gelo", "BaseTotal": 594, "hp": 90, "atk": 132, "def": 105, "spd": 30, "stage": 3, "nextForm": null },
+  { "id": 10059, "name": "Mega Lucario", "type": "Lutador", "secondType": "Aço", "BaseTotal": 625, "hp": 70, "atk": 142, "def": 79, "spd": 112, "stage": 4, "nextForm": null },
+  { "id": 10060, "name": "Mega Abomasnow", "type": "Grama", "secondType": "Gelo", "BaseTotal": 594, "hp": 90, "atk": 132, "def": 105, "spd": 30, "stage": 4, "nextForm": null },
   { "id": 10068, "name": "Mega Gallade", "type": "Psíquico", "secondType": "Lutador", "BaseTotal": 618, "hp": 68, "atk": 115, "def": 105, "spd": 110, "stage": 4, "nextForm": null },
 
   // --- UNOVA (Gen 5) ---
-  { "id": 10069, "name": "Mega Audino", "type": "Normal", "secondType": "Fada", "BaseTotal": 545, "hp": 103, "atk": 70, "def": 126, "spd": 50, "stage": 2, "nextForm": null },
+  { "id": 10069, "name": "Mega Audino", "type": "Normal", "secondType": "Fada", "BaseTotal": 545, "hp": 103, "atk": 70, "def": 126, "spd": 50, "stage": 4, "nextForm": null },
 
   // --- KALOS (Gen 6) ---
-  { "id": 10075, "name": "Mega Diancie", "type": "Pedra", "secondType": "Fada", "BaseTotal": 700, "hp": 50, "atk": 160, "def": 110, "spd": 110, "stage": 2, "nextForm": null, "isLegendary": true }
+  { "id": 10075, "name": "Mega Diancie", "type": "Pedra", "secondType": "Fada", "BaseTotal": 700, "hp": 50, "atk": 160, "def": 110, "spd": 110, "stage": 4, "nextForm": null, "isLegendary": true }
 ];
 
 POKEDEX.push(...MEGA_POKEDEX);

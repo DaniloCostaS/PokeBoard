@@ -244,7 +244,57 @@
     <div id="battle-cards-modal" class="modal-overlay" style="z-index: 1200;"><div class="modal-box"><h3>🃏 Cartas de Batalha</h3><div id="battle-cards-list" class="scroll-list"></div><button class="btn btn-secondary mt-15" onclick="document.getElementById('battle-cards-modal').style.display='none'">Cancelar</button></div></div>
     <div id="swap-modal" class="modal-overlay" style="z-index: 1300;"><div class="modal-box"><h3>⚠️ Time Cheio!</h3><p>Seu time já tem 6 Pokémons.</p><p style="font-size:0.9rem;">Clique em um Pokémon para <strong>SOLTAR</strong> (abandonar) e manter o resto.</p><div id="swap-list" class="scroll-list"></div></div></div>
     <div id="pkmn-select-modal" class="modal-overlay z-high"><div class="modal-box"><h3 id="select-title">Escolha</h3><div id="pkmn-select-list" class="scroll-list text-left"></div></div></div>
-    
+    <div id="detail-modal" class="modal-overlay" style="z-index: 2000;">
+        <div class="modal-box" style="width: 450px; text-align: left; padding: 0; overflow: hidden; border-radius: 12px;">
+            
+            <div id="detail-header" style="background: #333; padding: 15px; display: flex; align-items: center; justify-content: space-between; color: white;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span id="detail-id" style="opacity: 0.7; font-size: 0.8rem;">#001</span>
+                    <h2 id="detail-name" style="margin:0; font-size: 1.4rem;">Bulbasaur</h2>
+                </div>
+                <div id="detail-types" style="display: flex; gap: 5px;"></div>
+            </div>
+
+            <div style="padding: 15px; background: #fdfdfd;">
+                <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+                    <div style="position: relative;">
+                        <img id="detail-img" src="" style="width: 100px; height: 100px; image-rendering: pixelated; border: 2px solid #ddd; border-radius: 8px; background: #eee;">
+                        <div id="detail-shiny" style="display:none; position:absolute; top:-5px; right:-5px;">✨</div>
+                    </div>
+                    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 5px;">
+                        <div style="font-size: 0.9rem; color: #555;">Nível <b id="detail-level" style="color: black;">5</b></div>
+                        <div style="font-size: 0.9rem; color: #555;">XP: <span id="detail-xp">0 / 100</span></div>
+                        <div class="xp-bar-bg" style="height: 6px; background: #ddd; border-radius: 3px; width: 100%; overflow: hidden;">
+                            <div id="detail-xp-bar" style="height: 100%; background: #3498db; width: 0%;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <h4 style="margin: 0 0 10px 0; border-bottom: 1px solid #eee; padding-bottom: 5px; color: #e67e22;">📊 Status de Combate</h4>
+                
+                <div id="detail-stats-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.85rem; margin-bottom: 15px;">
+                    </div>
+
+                <h4 style="margin: 0 0 10px 0; border-bottom: 1px solid #eee; padding-bottom: 5px; color: #8e44ad;">🧬 Genética & Maestria (Dex)</h4>
+                <div style="background: #f4f6f7; padding: 10px; border-radius: 6px; font-size: 0.85rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span>🧬 Ressonância (Capturas):</span>
+                        <b id="detail-reso" style="color: #27ae60;">+0% Status</b>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>⚔️ Maestria de Tipo (Kills):</span>
+                        <b id="detail-mastery" style="color: #c0392b;">+0% Dano</b>
+                    </div>
+                    <div style="margin-top: 8px; font-size: 0.75rem; color: #7f8c8d; font-style: italic;">
+                        *Buffs baseados no seu progresso na Pokédex.
+                    </div>
+                </div>
+
+            </div>
+
+            <button onclick="document.getElementById('detail-modal').style.display='none'" style="width: 100%; padding: 15px; border: none; background: #bdc3c7; color: #333; font-weight: bold; cursor: pointer;">FECHAR</button>
+        </div>
+    </div>
     <div id="battle-modal" class="modal-overlay">
         <div class="modal-box battle-box">
             <h2 id="battle-title">⚔️ Batalha!</h2>
