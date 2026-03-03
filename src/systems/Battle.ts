@@ -489,55 +489,47 @@ export class Battle {
         scene.style.backgroundPosition = 'center';
     }
 
-    static calculateDamage(attacker: Pokemon, defender: Pokemon, isPlayerAttacking: boolean): { damage: number, msg: string, avoided: boolean } { 
+    static calculateDamage(attacker: Pokemon, defender: Pokemon, isPlayerAttacking: boolean): { damage: number, msg: string, avoided: boolean, reflected: number } { 
         // 1. CÁLCULO DE ESQUIVA
         let dodgeChance = (defender.speed - attacker.speed) / 5;
         dodgeChance = Math.max(10, dodgeChance);
+
         const ignoreDodge = (isPlayerAttacking && this.activeEffects.sniper);
 
         if (!ignoreDodge && Math.random() * 100 <= dodgeChance) {
-            return { damage: 0, msg: "💨 ESQUIVOU!", avoided: true };
+            return { damage: 0, msg: "💨 ESQUIVOU!", avoided: true, reflected: 0 };
         }
 
-        // 2. ATAQUE BASE
+        // 2. NOVO: CÁLCULO DE BLOQUEIO (DEFESA PURA)
+        // Fórmula: (DEF - ATK) / 5. Máximo de 90% de chance.
+        let blockChance = (defender.def - attacker.atk) / 5;
+        blockChance = Math.max(0, Math.min(90, blockChance));
+
+        if (Math.random() * 100 <= blockChance) {
+            return { damage: 0, msg: "🛡️ BLOQUEIO TOTAL!", avoided: true, reflected: 0 };
+        }
+
+        // 3. ATAQUE BASE
         const baseAtk = (attacker.atk * 0.65) + (attacker.speed * 0.15) + (attacker.maxHp * 0.2);
         let finalDamage = (baseAtk / 5) - (defender.def / 20);
 
-        // =====================================================================
-        // CORREÇÃO: CÁLCULO DE DANO COM MAESTRIA (Buff Global por Tipo)
-        // =====================================================================
+        // Lógica de Maestria (Mantida do seu código)
         const attackerPlayer = isPlayerAttacking ? this.player! : (this.enemyPlayer || null);
         let masteryBonus = 0;
         
         if (attackerPlayer) {
-            // Verifica maestria no PRIMEIRO tipo do atacante
             const m1 = this.getTypeMasteryBonus(attackerPlayer, attacker.type);
-            
-            // Verifica maestria no SEGUNDO tipo (se houver)
             const m2 = attacker.secondType ? this.getTypeMasteryBonus(attackerPlayer, attacker.secondType) : 0;
-            
-            // O Pokémon usa todo seu conhecimento de combate!
-            // Opção A: Pega o maior bônus (Recomendado para balanceamento)
             masteryBonus = Math.max(m1, m2);
-            
-            // Opção B: Soma os bônus (Fica muito forte, ex: +10% Veneno +10% Noturno = +20%)
-            // masteryBonus = m1 + m2; 
         }
 
-        // Fórmula: 1% de dano extra a cada 10 kills
-        // Ex: Se masteryBonus for 5 (50 kills), multiplier vira 1.05
         const masteryMultiplier = 1 + (masteryBonus / 100);
-        
         finalDamage = Math.floor(finalDamage * masteryMultiplier);
-        
-        // Log visual para debug (opcional, aparece no console do navegador)
-        console.log(`Maestria: ${attacker.name} (${attacker.type}/${attacker.secondType}) ganhou +${masteryBonus}% de dano.`);
-        // =====================================================================
-
         finalDamage = Math.max(1, finalDamage);
+
         let logDetails = "";
 
-        // 3. CRÍTICO E DADO
+        // 4. CRÍTICO E DADO
         const spdCritChance = attacker.speed / 8;
         if (Math.random() * 100 <= spdCritChance) {
             finalDamage += 5;
@@ -553,7 +545,7 @@ export class Battle {
         else if (d6 === 1) rollModifier = -2; 
         finalDamage += rollModifier;
 
-        // 4. MELHOR VANTAGEM DE TIPO
+        // 5. VANTAGEM DE TIPO
         const atkTypes = [attacker.type, attacker.secondType].filter(t => t);
         const defTypes = [defender.type, defender.secondType].filter(t => t);
         let bestMulti = 0; 
@@ -581,7 +573,7 @@ export class Battle {
         
         finalDamage = Math.max(0, Math.floor(finalDamage));
 
-        // 5. MODIFICADORES DE CARTAS
+        // 6. MODIFICADORES DE CARTAS
         if (isPlayerAttacking) { 
             if (this.activeEffects.crit > 0) { 
                 finalDamage *= 2; 
@@ -598,7 +590,18 @@ export class Battle {
             if (this.enemyPlayer && this.enemyPlayer.effects.curse) { finalDamage = Math.floor(finalDamage / 2); } 
         } 
         
-        return { damage: finalDamage, msg: `(🎲${d6})${logDetails}`, avoided: false };
+        // 7. NOVO: REFLEXÃO DE DANO (Counter)
+        let reflectedAmount = 0;
+        // Se a Defesa for 50% maior que o Ataque (ex: 150 Def vs 100 Atk)
+        if (defender.def > (attacker.atk * 1.5)) {
+            // 15% de chance de devolver o dano
+            if (Math.random() * 100 <= 15) {
+                reflectedAmount = finalDamage;
+                logDetails += " 🔄REFLETIDO!";
+            }
+        }
+
+        return { damage: finalDamage, msg: `(🎲${d6})${logDetails}`, avoided: false, reflected: reflectedAmount };
     }
     
     // =========================================================================================
@@ -607,9 +610,13 @@ export class Battle {
 
     static attack() { 
         const Network = (window as any).Network; 
+        // Segurança: Só o dono do turno pode executar
         if(Network.isOnline && this.player && this.player.id !== Network.myPlayerId) return;
 
-        if(!this.activeMon || !this.opponent) return; 
+        if(!this.active || !this.activeMon || !this.opponent) return; 
+        
+        // Evita spam de cliques
+        if (this.processingAction) return;
 
         this.processingAction = true; 
         this.updateButtons(); 
@@ -618,24 +625,32 @@ export class Battle {
         const enemySpeed = this.opponent.speed;
         let playerGoesFirst = true;
 
+        // Decisão de Velocidade
         if (playerSpeed > enemySpeed) playerGoesFirst = true;
         else if (enemySpeed > playerSpeed) playerGoesFirst = false;
         else playerGoesFirst = Math.random() > 0.5;
 
-        // --- FUNÇÃO AUXILIAR PARA FINALIZAR O TURNO E VERIFICAR AUTO ---
+        this.logBattle(`Velocidade: ${this.activeMon.name}(${playerSpeed}) vs ${this.opponent.name}(${enemySpeed})`, true);
+
+        // --- FUNÇÃO PARA FINALIZAR O ROUND ---
         const finishTurnSequence = () => {
             this.processingAction = false;
             this.updateButtons();
 
-            // Lógica de PvP Automático (Já existente)
-            if (this.isPvP) {
-                setTimeout(() => this.autoAttackNext(), 1500);
+            // Sincronização Online (Se houver)
+            if (this.isPvP && Network.isOnline) {
+                 Network.syncPlayerState();
             }
-            // Lógica de PvE Automático (NOVA)
+
+            // Lógica de Auto Battle
+            if (this.isPvP) {
+                 // Se estiver em auto-pvp (lógica específica)
+                 setTimeout(() => this.autoAttackNext(), 1500);
+            }
             else if (this.isAutoPvE) {
                 // Só continua se ambos estiverem vivos
                 if (this.activeMon!.currentHp > 0 && this.opponent!.currentHp > 0) {
-                    setTimeout(() => this.attack(), 1500); // Delay para dar tempo de ler o dano
+                    setTimeout(() => this.attack(), 1500);
                 } else {
                     // Se alguém morreu, o handleFaint ou win vai rodar.
                     // Nós desligamos o Auto aqui para o jogador ter controle na troca.
@@ -648,34 +663,39 @@ export class Battle {
                 }
             }
         };
-        // -------------------------------------------------------------
 
-        this.logBattle(`Velocidade: ${this.activeMon.name}(${playerSpeed}) vs ${this.opponent.name}(${enemySpeed})`, true);
-
+        // --- EXECUÇÃO DA SEQUÊNCIA DE ATAQUES ---
         if (playerGoesFirst) {
             this.logBattle(`💨 ${this.activeMon.name} é mais rápido!`, true);
+            
+            // 1. Jogador Ataca
             this.performPlayerAttack(() => {
+                // Se o oponente sobreviveu, ele revida
                 if (this.opponent && this.opponent.currentHp > 0) {
                     setTimeout(() => {
                         this.performEnemyAttack(() => {
-                            finishTurnSequence(); // <--- CHAMA O FINALIZADOR AQUI
+                            finishTurnSequence(); // Fim do Round (Ambos atacaram)
                         });
                     }, 1000);
                 } else {
-                    finishTurnSequence(); // <--- OU AQUI SE O INIMIGO MORREU NO PRIMEIRO HIT
+                    finishTurnSequence(); // Fim do Round (Inimigo morreu no 1º hit)
                 }
             });
+
         } else {
             this.logBattle(`💨 ${this.opponent.name} é mais rápido!`, true);
+            
+            // 1. Inimigo Ataca
             this.performEnemyAttack(() => {
+                // Se o jogador sobreviveu, ele revida
                 if (this.activeMon && this.activeMon.currentHp > 0) {
                     setTimeout(() => {
                         this.performPlayerAttack(() => {
-                            finishTurnSequence(); // <--- CHAMA O FINALIZADOR AQUI
+                            finishTurnSequence(); // Fim do Round (Ambos atacaram)
                         });
                     }, 1000);
                 } else {
-                    finishTurnSequence(); // <--- OU AQUI SE VOCÊ MORREU NO PRIMEIRO HIT
+                    finishTurnSequence(); // Fim do Round (Jogador morreu no 1º hit)
                 }
             });
         }
@@ -689,25 +709,33 @@ export class Battle {
         // --- CÁLCULO DO PRIMEIRO ATAQUE ---
         let calc1 = this.calculateDamage(this.activeMon, this.opponent, true); 
         let totalDmg = calc1.damage;
+        
+        // [NOVO] Acumula o dano refletido (se houver)
+        let totalReflected = calc1.reflected || 0; 
+        
         let logMsg = `${this.activeMon.name} atacou! `;
 
         if (calc1.avoided) {
             logMsg += `${calc1.msg}`;
         } else {
             logMsg += `💥${calc1.damage} ${calc1.msg}`;
+            if (calc1.reflected > 0) logMsg += " [🔄Refletido!]";
         }
 
         // --- CÁLCULO DO ATAQUE DUPLO (SPEED) ---
         // Se SPD >= 50% maior que oponente -> 20% chance de atacar duas vezes
         if (!calc1.avoided && this.activeMon.speed >= (this.opponent.speed * 1.5)) {
             if (Math.random() * 100 <= 20) {
-                // Removemos a variável isDouble aqui
                 let calc2 = this.calculateDamage(this.activeMon, this.opponent, true);
                 
-                // Se o segundo não for esquivado, soma
                 if (!calc2.avoided) {
                     totalDmg += calc2.damage;
+                    
+                    // [NOVO] Soma o reflexo do segundo ataque também
+                    totalReflected += (calc2.reflected || 0);
+                    
                     logMsg += ` + ⚔️DUPLO! 💥${calc2.damage}`;
+                    if (calc2.reflected > 0) logMsg += " [🔄Refletido!]";
                 } else {
                     logMsg += ` + ⚔️DUPLO! (Errou)`;
                 }
@@ -715,7 +743,15 @@ export class Battle {
         }
         // ----------------------------------------
         
+        // 1. Aplica o Dano no Inimigo
         this.opponent.currentHp = Math.max(0, this.opponent.currentHp - totalDmg); 
+
+        // [NOVO] 2. Aplica o Dano Refletido no Jogador (Se houver)
+        if (totalReflected > 0) {
+            this.activeMon.currentHp = Math.max(0, this.activeMon.currentHp - totalReflected);
+            logMsg += ` (Sofreu ${totalReflected} de volta!)`;
+        }
+
         this.logBattle(logMsg); 
         this.updateUI(); 
 
@@ -730,14 +766,39 @@ export class Battle {
             }
         }
 
+        // --- VERIFICAÇÕES DE MORTE ---
+
+        // 1. Oponente Morreu (Vitória)
         if(this.opponent.currentHp <= 0) { 
             const oppStats = this.opponent.maxHp + this.opponent.atk + this.opponent.def + this.opponent.speed;
             const xpGain = Math.max(1, Math.floor(oppStats / 15));
             this.activeMon.gainXp(xpGain, this.player!);
+            
+            // [MANTIDO] Se for PvP, o perdedor (inimigo) também ganha um pouco de XP?
+            // Adicionei aqui para garantir consistência com o que você pediu:
+            if (this.isPvP && this.enemyPlayer) {
+                const plyStats = this.activeMon.maxHp + this.activeMon.atk + this.activeMon.def + this.activeMon.speed;
+                const loserXp = Math.max(1, Math.floor(plyStats / 45)); // XP Reduzido pra quem perde
+                this.opponent.gainXp(loserXp, this.enemyPlayer);
+                if (Network.isOnline) Network.syncSpecificPlayer(this.enemyPlayer.id);
+            }
+
             this.updateUI(); 
             if (Network.isOnline) Network.syncPlayerState();
             setTimeout(() => { this.checkWinCondition(); }, 1000); 
-        } else {
+        } 
+        // 2. Jogador Morreu pelo Reflexo (Derrota)
+        else if (this.activeMon.currentHp <= 0) {
+            // [MANTIDO] Jogador ganha XP de consolação
+            const oppStats = this.opponent.maxHp + this.opponent.atk + this.opponent.def + this.opponent.speed;
+            const xpGain = Math.max(1, Math.floor(oppStats / 45));
+            this.activeMon.gainXp(xpGain, this.player!);
+
+            this.updateUI();
+            if (Network.isOnline) Network.syncPlayerState();
+            setTimeout(() => { this.handleFaint(); }, 1000);
+        }
+        else {
             if(callback) callback();
         }
     }
@@ -757,12 +818,17 @@ export class Battle {
         // --- CÁLCULO DO PRIMEIRO ATAQUE ---
         let calc1 = this.calculateDamage(this.opponent, this.activeMon, false); 
         let totalDmg = calc1.damage;
+        
+        // [NOVO] Acumula reflexo
+        let totalReflected = calc1.reflected || 0;
+
         let logMsg = `${this.opponent.name} atacou! `;
 
         if (calc1.avoided) {
             logMsg += `${calc1.msg}`;
         } else {
             logMsg += `💥${calc1.damage} ${calc1.msg}`;
+            if (calc1.reflected > 0) logMsg += " [🔄Refletido!]";
         }
 
         // --- CÁLCULO DO ATAQUE DUPLO (SPEED) ---
@@ -771,7 +837,12 @@ export class Battle {
                 let calc2 = this.calculateDamage(this.opponent, this.activeMon, false);
                 if (!calc2.avoided) {
                     totalDmg += calc2.damage;
+                    
+                    // [NOVO] Soma reflexo do ataque duplo
+                    totalReflected += (calc2.reflected || 0);
+
                     logMsg += ` + ⚔️DUPLO! 💥${calc2.damage}`;
+                    if (calc2.reflected > 0) logMsg += " [🔄Refletido!]";
                 } else {
                     logMsg += ` + ⚔️DUPLO! (Errou)`;
                 }
@@ -779,11 +850,19 @@ export class Battle {
         }
         // ----------------------------------------
         
+        // 1. Aplica dano no Jogador
         this.activeMon.currentHp = Math.max(0, this.activeMon.currentHp - totalDmg); 
+        
+        // [NOVO] 2. Aplica dano Refletido no Inimigo
+        if (totalReflected > 0) {
+            this.opponent.currentHp = Math.max(0, this.opponent.currentHp - totalReflected);
+            logMsg += ` (Sofreu ${totalReflected} de volta!)`;
+        }
+
         this.logBattle(logMsg); 
         this.updateUI(); 
         
-        // Lógica de Counter (Reflete o dano total recebido)
+        // Lógica de Counter (Carta)
         if (this.activeEffects.counter && this.activeEffects.counter > 0) { 
             const reflect = Math.floor(totalDmg * 0.5); 
             if (reflect > 0) { 
@@ -802,11 +881,16 @@ export class Battle {
             Network.syncPlayerState();
         } 
         
+        // --- VERIFICAÇÕES DE MORTE ---
+
+        // 1. Jogador Morreu (Derrota)
         if(this.activeMon.currentHp <= 0) { 
+            // [MANTIDO] O Jogador perdeu, mas ganha XP de consolação (conforme seu código original)
             const oppStats = this.opponent.maxHp + this.opponent.atk + this.opponent.def + this.opponent.speed;
             const xpGain = Math.max(1, Math.floor(oppStats / 45));
             this.activeMon.gainXp(xpGain, this.player!);
 
+            // [MANTIDO] Inimigo venceu (ganha XP de vitória no PvP)
             if (this.isPvP && this.enemyPlayer) {
                 const plyStats = this.activeMon.maxHp + this.activeMon.atk + this.activeMon.def + this.activeMon.speed;
                 const oppXpGain = Math.max(1, Math.floor(plyStats / 15));
@@ -817,7 +901,27 @@ export class Battle {
             this.updateUI(); 
             if (Network.isOnline) Network.syncPlayerState();
             setTimeout(() => { this.handleFaint(); }, 1000); 
-        } else { 
+        } 
+        // 2. Inimigo Morreu (Pelo Reflexo ou Counter) - Vitória do Jogador
+        else if (this.opponent.currentHp <= 0) {
+            // [MANTIDO] Jogador ganha XP de vitória
+            const oppStats = this.opponent.maxHp + this.opponent.atk + this.opponent.def + this.opponent.speed;
+            const xpGain = Math.max(1, Math.floor(oppStats / 15)); 
+            this.activeMon.gainXp(xpGain, this.player!);
+            
+            // [MANTIDO] Oponente (Perdedor) ganha XP de consolação no PvP
+             if (this.isPvP && this.enemyPlayer) {
+                const plyStats = this.activeMon.maxHp + this.activeMon.atk + this.activeMon.def + this.activeMon.speed;
+                const loserXp = Math.max(1, Math.floor(plyStats / 45)); 
+                this.opponent.gainXp(loserXp, this.enemyPlayer);
+                if (Network.isOnline) Network.syncSpecificPlayer(this.enemyPlayer.id);
+            }
+
+            this.updateUI(); 
+            if (Network.isOnline) Network.syncPlayerState();
+            setTimeout(() => { this.checkWinCondition(); }, 1000); 
+        } 
+        else { 
             if(callback) callback();
         }
     }
