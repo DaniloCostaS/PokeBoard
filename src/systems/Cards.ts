@@ -714,6 +714,24 @@ export class Cards {
                     consumed = false; 
                 }
                 break;
+            
+            case 'holy_water':
+                // 1. Validação: Verifica se o jogador realmente tem a maldição
+                if (!player.effects.curse) {
+                    alert("Você não está amaldiçoado! Guarde a Água Benta para quando precisar.");
+                    return; // Retorna aqui para NÃO gastar a carta
+                }
+
+                // 2. Aplica o efeito: Remove a maldição
+                player.effects.curse = false;
+                
+                // 3. Logs e Feedback
+                effectLog = `✨ ${player.name} se banhou com Água Benta!`;
+                Game.sendGlobalLog(`✨ ${player.name} usou Água Benta e purificou sua alma da Maldição!`);
+                
+                // Atualiza o HUD imediatamente para sumir o ícone de caveira
+                Game.updateHUD();
+                break;
 
             case 'trade_fail': 
                 if (targetId !== null) {

@@ -51,21 +51,52 @@ export class Battle {
         
         this.currentTerrain = terrainTile;
 
-        // --- NOVA LÓGICA DE SELEÇÃO AUTOMÁTICA PVP ---
+        // --- NOVA LÓGICA DE SELEÇÃO PVP COM NERF NOVO LÍDER ---
         if (isPvP && enemyPlayer) { 
-            // Calcula a quantidade (Rodada 1-19 = 1v1 | 20-39 = 2v2 | 40-59 = 3v3 ...)
-            const pkmnCount = 1 + Math.floor((Game.round || 1) / 20);
+            
+            // VERIFICAÇÃO: É uma batalha pela carta "Novo Líder"?
+            if (this.activeEffects.stealBadgeFrom !== undefined && this.activeEffects.stealBadgeFrom !== null) {
+                
+                // REGRA ESPECIAL: Sorteia 3 Pokémon de CADA lado (vivos ou mortos)
+                // O sort() com Math.random embaralha a lista completa
+                const myRandomTeam = [...player.team].sort(() => Math.random() - 0.5).slice(0, 3);
+                const oppRandomTeam = [...enemyPlayer.team].sort(() => Math.random() - 0.5).slice(0, 3);
 
-            // Pega apenas os vivos de cada lado
-            let myAlive = player.team.filter(p => !p.isFainted());
-            let oppAlive = enemyPlayer.team.filter(p => !p.isFainted());
+                // RECUPERAÇÃO TOTAL: Cura 100% dos sorteados antes da luta
+                myRandomTeam.forEach(p => p.heal(999));
+                oppRandomTeam.forEach(p => p.heal(999));
 
-            // Embaralha aleatoriamente e corta pelo limite da rodada
-            myAlive = myAlive.sort(() => Math.random() - 0.5).slice(0, pkmnCount);
-            oppAlive = oppAlive.sort(() => Math.random() - 0.5).slice(0, pkmnCount);
+                this.plyTeamList = myRandomTeam;
+                this.oppTeamList = oppRandomTeam;
 
-            this.plyTeamList = myAlive;
-            this.oppTeamList = oppAlive;
+                // Log para avisar os jogadores da regra especial
+                this.logBattle(`⚔️ DUELO DE LIDERANÇA! 3 Pokémon foram sorteados e totalmente curados para o combate!`, true);
+                
+                // Importante: Sincroniza a cura no banco de dados imediatamente
+                const Network = (window as any).Network;
+                if(Network.isOnline) {
+                    Network.syncPlayers([player.id, enemyPlayer.id]);
+                }
+
+            } else {
+                // --- REGRA PADRÃO (Batalha normal de encontro no mapa) ---
+                
+                // Calcula a quantidade baseada na Rodada (1-19 = 1v1 | 20-39 = 2v2 | etc)
+                const pkmnCount = 1 + Math.floor((Game.round || 1) / 20);
+
+                // Pega apenas os vivos de cada lado
+                let myAlive = player.team.filter(p => !p.isFainted());
+                let oppAlive = enemyPlayer.team.filter(p => !p.isFainted());
+
+                // Embaralha aleatoriamente e corta pelo limite da rodada
+                myAlive = myAlive.sort(() => Math.random() - 0.5).slice(0, pkmnCount);
+                oppAlive = oppAlive.sort(() => Math.random() - 0.5).slice(0, pkmnCount);
+
+                this.plyTeamList = myAlive;
+                this.oppTeamList = oppAlive;
+            }
+
+            // Define o oponente inicial
             this.opponent = this.oppTeamList[0]; 
             
             if (enemyPlayer.effects.curse) { this.logBattle(`☠️ ${enemyPlayer.name} está amaldiçoado! (Dano reduzido)`); }
