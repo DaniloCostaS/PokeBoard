@@ -614,9 +614,6 @@ export class Battle {
         if(Network.isOnline && this.player && this.player.id !== Network.myPlayerId) return;
 
         if(!this.active || !this.activeMon || !this.opponent) return; 
-        
-        // Evita spam de cliques
-        if (this.processingAction) return;
 
         this.processingAction = true; 
         this.updateButtons(); 
