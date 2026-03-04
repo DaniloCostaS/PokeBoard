@@ -262,8 +262,8 @@ export class Battle {
 
         const megaId = MAPA_MEGAS[this.activeMon.id];
         
-        // Chance de 20%
-        if (megaId && Math.random() < 0.20) {
+        // Chance de 10%
+        if (megaId && Math.random() < 0.10) {
             // Pequeno atraso para não atropelar a renderização ou logs anteriores
             setTimeout(() => {
                 // Validação dupla caso o pokémon tenha morrido ou trocado nesse meio tempo
