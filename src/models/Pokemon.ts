@@ -12,6 +12,7 @@ export class Pokemon {
     baseTotal: number;
     isGymLeaderMon: boolean = false;
     megaStone: boolean = false;
+    isMegaEvolution: boolean = false;
 
     ivs: { hp: number, atk: number, def: number, spd: number };
     baseStats: { hp: number, atk: number, def: number, spd: number };
@@ -35,7 +36,7 @@ export class Pokemon {
         this.baseTotal = template.BaseTotal || (template.hp + template.atk + template.def + template.spd);
         this.isGymLeaderMon = isGymLeaderMon;
         this.megaStone = false;
-        
+
         // --- NOVA LÓGICA DO LURE SHINY ---
         let shinyRate = 0.03; // Chance Padrão (3%)
         try {
@@ -146,9 +147,10 @@ export class Pokemon {
         // --- NOVOS MULTIPLICADORES DE FORÇA ---
         const shinyBonus = this.isShiny ? 1.20 : 1.0;       // Shiny é 20% mais forte
         const legendaryBonus = this.isLegendary ? 1.10 : 1.0; // Lendário é 10% mais forte
+        const megaBonus = this.isMegaEvolution ? 1.20 : 1.0; // Mega é 20% mais forte
         
         // Se por um milagre o jogador achar um Lendário Shiny, os bônus se acumulam!
-        const totalMultiplier = shinyBonus * legendaryBonus; 
+        const totalMultiplier = shinyBonus * legendaryBonus * megaBonus;
         
         // A fórmula agora aplica o multiplicador total nos status
         const calc = (base: number, iv: number, bonus: number) => Math.floor((base + iv + bonus) * totalMultiplier);

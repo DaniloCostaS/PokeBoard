@@ -946,7 +946,7 @@ export class Battle {
             // O jogador sobreviveu e a vez vai voltar para ele.
             // Tenta Mega Evoluir novamente antes de liberar os botões!
             this.tryTriggerMegaEvolution("reagiu após o ataque");
-            
+
             if(callback) callback();
         }
     }
@@ -1208,9 +1208,11 @@ export class Battle {
         const PokemonClass = (window as any).Pokemon || this.activeMon!.constructor;
         const megaMon = new PokemonClass(megaId, this.activeMon!.level, this.activeMon!.isShiny);
         
-        // Ajusta HP mantendo o dano sofrido (Matemática: MaxHP Novo - Dano Antigo)
-        const damageTaken = this.activeMon!.maxHp - this.activeMon!.currentHp;
-        megaMon.currentHp = Math.max(1, megaMon.maxHp - damageTaken);
+        // 1. Ativa o bônus de 10%
+        (megaMon as any).isMegaEvolution = true;
+
+        // 2. Recalcula Status e CURA TOTALMENTE (resetHp = true)
+        megaMon.recalculateStats(true);
 
         // Marca como temporário para reverter ao final da batalha
         (megaMon as any).isTemp = true;
