@@ -1100,7 +1100,12 @@ export class Battle {
         document.getElementById('ply-stats')!.innerHTML = `<span>⚔️${this.activeMon.atk}</span> <span>🛡️${this.activeMon.def}</span> <span>💨${this.activeMon.speed}</span>`; 
         
         document.getElementById('opp-name')!.innerText = this.opponent.name; 
-        document.getElementById('opp-lvl')!.innerText = `Lv.${this.opponent.level}`; 
+        document.getElementById('opp-lvl')!.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: center;">
+                <span>Lv.${this.opponent.level}</span>
+                <button class="btn btn-mini" style="font-size:0.7rem; padding:1px 5px; margin-left:6px; background-color:#3498db; border:none; border-radius:4px; color:white; cursor:pointer;" onclick="window.Game.openPokedexEntry(${this.opponent.id})" title="Ver na Pokédex">📖</button>
+            </div>
+        `;
         
         // --- BLINDAGEM 2: Tipos do Oponente (Opcional, mas recomendado) ---
         const oppTypesEl = document.getElementById('opp-types');

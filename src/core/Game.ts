@@ -1,5 +1,6 @@
 import { TILE, NPC_DATA, SHOP_ITEMS } from '../constants';
 import { POKEDEX } from '../constants/pokedex';
+import { TYPE_CHART } from '../constants/typeChart';
 import { PLAYER_COLORS } from '../constants/playerColors';
 import { GYM_DATA } from '../constants/gyms';
 import { ref, update } from 'firebase/database';
@@ -1105,30 +1106,68 @@ export class Game {
     static importSave(i: HTMLInputElement) { const f = i.files?.[0]; if(!f)return; const r = new FileReader(); r.onload=e=>{ localStorage.setItem('pk_save', e.target?.result as string); this.loadGame(); }; r.readAsText(f); }
     static openInventoryModal(pId: number) { const p = this.players[pId]; const list = document.getElementById('board-inventory-list')!; list.innerHTML = ''; const canUse = (this.canAct() && this.turn === pId); Object.keys(p.items).forEach(key => { if(p.items[key] > 0) { const item = SHOP_ITEMS.find(i => i.id === key); if(item) { const d = document.createElement('div'); d.className='shop-item'; let btnHTML = ''; if(canUse && (item.type === 'heal' || item.type === 'revive')) { btnHTML = `<button class="btn btn-mini" style="width:auto;" onclick="window.Game.useItemBoard('${key}', ${pId})">Usar</button>`; } d.innerHTML = `<div style="display:flex; align-items:center;"><img src="/assets/img/Itens/${item.icon}" class="item-icon-mini"><span>${item.name} x${p.items[key]}</span></div>${btnHTML}`; list.appendChild(d); } } }); document.getElementById('board-inventory-modal')!.style.display='flex'; }
     
-    static openPokedex(pId: number) {
+    static openPokedexEntry(targetId: number) {
+        this.openPokedex(this.turn, targetId);
+    }
+
+    static openPokedex(pId: number, filterId: number | null = null) {
         const p = this.players[pId];
         const list = document.getElementById('pokedex-list')!;
         list.innerHTML = '';
         
-        // Cores dos tipos padronizadas
         const colors: any = { "Normal": "#A8A77A", "Fogo": "#EE8130", "Água": "#6390F0", "Elétrico": "#F7D02C", "Grama": "#7AC74C", "Gelo": "#96D9D6", "Lutador": "#C22E28", "Veneno": "#A33EA1", "Terra": "#E2BF65", "Voador": "#A98FF3", "Psíquico": "#F95587", "Inseto": "#A6B91A", "Pedra": "#B6A136", "Fantasma": "#735797", "Dragão": "#6F35FC", "Noturno": "#705746", "Aço": "#B7B7CE", "Fada": "#D685AD" };
 
         POKEDEX.forEach(mon => {
-            // Busca o registro do jogador, se não existir, cria um zerado visualmente
+            // Filtro para mostrar apenas um Pokémon (Ex: Inimigo na batalha)
+            if (filterId !== null && mon.id !== filterId) return;
+
             const dexEntry = p.pokedexData[mon.id] || { seen: 0, caught: 0, defeated: 0 };
             
-            // Monta as tags de Tipo
             const c1 = colors[mon.type] || "#777";
             let typeHtml = `<span style="background-color:${c1}; color:white; padding:2px 6px; border-radius:4px; font-size:0.6rem; text-shadow:1px 1px 1px rgba(0,0,0,0.5);">${mon.type}</span>`;
             if (mon.secondType) {
                 const c2 = colors[mon.secondType] || "#777";
-                typeHtml += `<span style="background-color:${c2}; color:white; padding:2px 6px; border-radius:4px; font-size:0.6rem; text-shadow:1px 1px 1px rgba(0,0,0,0.5);">${mon.secondType}</span>`;
+                typeHtml += ` <span style="background-color:${c2}; color:white; padding:2px 6px; border-radius:4px; font-size:0.6rem; text-shadow:1px 1px 1px rgba(0,0,0,0.5);">${mon.secondType}</span>`;
             }
+
+            // --- CÁLCULO DE VANTAGENS E DESVANTAGENS (Defensivas) ---
+            const weaknesses: string[] = [];
+            const resistances: string[] = [];
+
+            // Itera sobre todos os tipos de ataque possíveis na Tabela
+            for (const atkType in TYPE_CHART) {
+                let multiplier = 1;
+
+                // Aplica multiplicador do Tipo 1
+                if (TYPE_CHART[atkType] && (TYPE_CHART[atkType] as any)[mon.type]) {
+                    multiplier *= (TYPE_CHART[atkType] as any)[mon.type];
+                }
+
+                // Aplica multiplicador do Tipo 2 (se existir)
+                if (mon.secondType && TYPE_CHART[atkType] && (TYPE_CHART[atkType] as any)[mon.secondType]) {
+                    multiplier *= (TYPE_CHART[atkType] as any)[mon.secondType];
+                }
+
+                if (multiplier > 1) weaknesses.push(atkType);
+                if (multiplier < 1 && multiplier > 0) resistances.push(atkType);
+            }
+
+            // Formata HTML das fraquezas e resistências
+            const formatTypeList = (types: string[], label: string, titleColor: string) => {
+                if (types.length === 0) return '';
+                
+                const badges = types.map(t => {
+                    const typeColor = colors[t] || "#777";
+                    return `<span style="background-color:${typeColor}; color:white; padding:2px 5px; border-radius:4px; font-size:0.6rem; text-shadow:1px 1px 1px rgba(0,0,0,0.5); margin-right:3px; display:inline-block; margin-bottom:2px;">${t}</span>`;
+                }).join('');
+
+                return `<div style="margin-top:4px; font-size:0.7rem; color:${titleColor};"><b>${label}:</b><br>${badges}</div>`;
+            };
+            // --------------------------------------------------------
 
             const d = document.createElement('div');
             d.className = 'dex-card';
             
-            // Efeito visual: Se o jogador nunca viu nem capturou, o Pokémon fica em tons de cinza!
             const isDiscovered = dexEntry.seen > 0 || dexEntry.caught > 0;
             const imgFilter = isDiscovered ? '' : 'filter: brightness(0) opacity(0.4);';
             const displayName = isDiscovered ? mon.name : '???';
@@ -1146,6 +1185,11 @@ export class Game {
                     <span title="Velocidade Base">💨 ${mon.spd}</span>
                 </div>
                 
+                <div style="margin-top:5px; text-align:left; width:100%; padding:0 5px;">
+                    ${formatTypeList(weaknesses, 'Fraquezas', '#c0392b')}
+                    ${formatTypeList(resistances, 'Resistências', '#27ae60')}
+                </div>
+
                 <div style="font-size: 0.75rem; color: #8e44ad; margin-top: 6px; text-align: center; min-height: 15px;">
                     ${mon.nextForm ? `Evolui: <b>${mon.nextForm}</b> (Lv.${mon.evoTrigger})` : '<b>Estágio Final</b>'}
                 </div>
