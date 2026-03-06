@@ -52,9 +52,10 @@ export class Battle {
             if (this.activeEffects.stealBadgeFrom !== undefined && this.activeEffects.stealBadgeFrom !== null) {
                 const myRandomTeam = [...player.team].sort(() => Math.random() - 0.5).slice(0, 3);
                 const oppRandomTeam = [...enemyPlayer.team].sort(() => Math.random() - 0.5).slice(0, 3);
-
-                myRandomTeam.forEach(p => p.heal(999));
-                oppRandomTeam.forEach(p => p.heal(999));
+            
+                // Força a cura máxima burlando qualquer trava de desmaio
+                myRandomTeam.forEach(p => p.currentHp = p.maxHp);
+                oppRandomTeam.forEach(p => p.currentHp = p.maxHp);
 
                 this.plyTeamList = myRandomTeam;
                 this.oppTeamList = oppRandomTeam;
@@ -1610,6 +1611,11 @@ export class Battle {
         this.active = false; 
         this.opponent = null; 
         this.oppTeamList = []; // Limpando lista de pokemons.
+
+        // CORREÇÃO: Limpa todos os efeitos (incluindo o roubo de insígnia)
+        // para não vazar para os próximos PvPs normais do tabuleiro.
+        this.activeEffects = {};
+        
         document.getElementById('battle-modal')!.style.display = 'none'; 
         if(!isRemote) { 
             if(Network.isOnline) Network.sendAction('BATTLE_END', {}); Game.nextTurn(); 
