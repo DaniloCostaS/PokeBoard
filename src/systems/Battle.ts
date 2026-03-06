@@ -1162,34 +1162,42 @@ export class Battle {
     static renderTeamIcons(elId: string, list: Pokemon[]) { document.getElementById(elId)!.innerHTML = list.map(p => `<div class="ball-icon ${p.isFainted() ? 'lost' : ''}"></div>`).join(''); }
     
     static revertMew() {
+        // 1. Tenta restaurar pelo backup (cenário ideal)
         if (this.activeEffects && this.activeEffects.mewOriginal && this.player) {
-            // Acha onde o Mew está escondido na equipe
-            const mewIndex = this.player.team.findIndex(p => (p as any).isTemp);
+            const original = this.activeEffects.mewOriginal;
             
-            // Devolve o Pokémon original para a vaga exata
-            if (mewIndex !== -1) {
-                this.player.team[mewIndex] = this.activeEffects.mewOriginal;
-            } else if (this.activeEffects.mewIndex !== undefined) {
-                this.player.team[this.activeEffects.mewIndex] = this.activeEffects.mewOriginal;
+            // Encontra onde está o Mega/Mew/Temp no time atual
+            const tempIndex = this.player.team.findIndex(p => (p as any).isTemp || p.isMegaEvolution);
+            
+            if (tempIndex !== -1) {
+                // Se encontrou, substitui de volta pelo original
+                this.player.team[tempIndex] = original;
+            } else if (this.activeEffects.mewIndex !== undefined && this.player.team[this.activeEffects.mewIndex]) {
+                // Fallback pelo índice salvo
+                this.player.team[this.activeEffects.mewIndex] = original;
             }
             
-            // Devolve o original para as bolinhas do HUD
-            const plyIdx = this.plyTeamList.findIndex(p => (p as any).isTemp);
-            if (plyIdx !== -1) {
-                this.plyTeamList[plyIdx] = this.activeEffects.mewOriginal;
+            // Restaura o ActiveMon se ele for o Mega
+            if (this.activeMon && ((this.activeMon as any).isTemp || this.activeMon.isMegaEvolution)) {
+                this.activeMon = original;
             }
-            
-            // Garante que o jogador volte a controlar o original
-            if (this.activeMon && (this.activeMon as any).isTemp) {
-                this.activeMon = this.activeEffects.mewOriginal;
-            }
-            
+
             this.activeEffects.mewOriginal = null;
         }
         
-        // Limpeza de segurança
+        // 2. VARREDURA DE SEGURANÇA (Se o passo 1 falhar ou duplicar)
+        // Isso corrige o bug de "Status Surreal" e "Duplicação"
         if (this.player) {
+            // Remove duplicatas (filtra qualquer isTemp que tenha sobrado)
             this.player.team = this.player.team.filter(p => !(p as any).isTemp);
+
+            // Se por acaso o "Original" foi perdido e sobrou o Mega salvo como permanente:
+            this.player.team.forEach(mon => {
+                // Chama a função de autocorreção criada no Pokemon.ts
+                if (typeof mon.validateAndFix === 'function') {
+                    mon.validateAndFix();
+                }
+            });
         }
     }
 
@@ -1294,7 +1302,10 @@ export class Battle {
         });
 
         // Fórmula: 1% de dano extra a cada 10 kills
-        const bonus = Math.floor(killCount / 10);
+        //const bonus = Math.floor(killCount / 10);
+
+        // Fórmula: 1% de dano extra a cada 1 kill
+        const bonus = killCount;
         
         (this as any)._masteryCache[cacheKey] = bonus;
         return bonus;

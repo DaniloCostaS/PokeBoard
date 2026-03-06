@@ -1,5 +1,6 @@
 import { POKEDEX } from '../constants/pokedex';
 import type { Player } from './Player';
+import { MAPA_MEGAS } from '../constants/mapaMegas';
 
 export class Pokemon {
     id: number; name: string; type: string; secondType: string; 
@@ -141,6 +142,36 @@ export class Pokemon {
             }
         }
         return gains;
+    }
+
+    // --- MÉTODO DE SEGURANÇA: CORRIGE MEGAS PRESAS ---
+    validateAndFix() {
+        // Se for um ID de Mega Evolução (geralmente > 10000 no seu mapa)
+        if (this.id > 10000) {
+            // Procura qual ID normal vira essa Mega (Engenharia Reversa)
+            const originalIdStr = Object.keys(MAPA_MEGAS).find(key => MAPA_MEGAS[parseInt(key)] === this.id);
+            
+            if (originalIdStr) {
+                const originalId = parseInt(originalIdStr);
+                console.warn(`🚑 CORREÇÃO: Revertendo ${this.name} (Mega presa) para ID ${originalId}`);
+                
+                // Restaura ID e Dados Básicos
+                this.id = originalId;
+                const template = POKEDEX.find(p => p.id === this.id);
+                if (template) {
+                    this.name = template.name;
+                    this.baseStats = { hp: template.hp, atk: template.atk, def: template.def, spd: template.spd };
+                }
+                
+                // Limpa flags de Mega
+                this.megaStone = true; // Devolve a pedra pro Pokémon (já que ele perdeu a transformação)
+                this.isMegaEvolution = false;
+                (this as any).isTemp = false;
+                
+                // Recalcula status limpos
+                this.recalculateStats(false);
+            }
+        }
     }
 
     recalculateStats(resetHp: boolean = false) {

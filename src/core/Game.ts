@@ -321,8 +321,8 @@ export class Game {
 
             const generateLine = (t: string) => {
                 const kills = countKillsForType(t);
-                const currentBonus = Math.floor(kills / 10);
-                const nextCheckpoint = (currentBonus + 1) * 10;
+                const currentBonus = kills; // 1% por kill
+                const nextCheckpoint = kills + 1; // O próximo marco é sempre a próxima kill
                 return `
                     <div style="margin-bottom: 4px; border-bottom: 1px dashed #eee; padding-bottom: 2px;">
                         <div style="display:flex; justify-content:space-between;">
@@ -1295,6 +1295,17 @@ export class Game {
         right.innerHTML = ''; 
         
         if (!this.players || this.players.length === 0) return; 
+
+        // --- CORREÇÃO DE INICIALIZAÇÃO ---
+        // Garante que nenhum Mega bugado exista no time de nenhum jogador ao atualizar a tela
+        this.players.forEach(p => {
+            if (p.team) {
+                p.team.forEach(mon => { 
+                    if(mon.validateAndFix) mon.validateAndFix(); 
+                });
+            }
+        });
+        // ---------------------------------
 
         // O 'i' aqui é o índice do jogador no array (0, 1, 2...)
         this.players.forEach((p,i) => { 
