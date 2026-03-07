@@ -1145,7 +1145,8 @@ export class Cards {
 
             // Abre a pop-up na tela (Exceto no New Leader, pois ele já abre a tela de Batalha!)
             if (cardId !== 'new_leader') {
-                Game.showGlobalAlert(fullMsg, player.name, true, false);
+                //Game.showGlobalAlert(fullMsg, player.name, true, false);
+                Game.showGlobalAlert(fullMsg + `||CARD:${cardId}`, player.name, true, false);
             }
 
             if (Network.isOnline) {
@@ -1153,7 +1154,8 @@ export class Cards {
                 
                 if (cardId !== 'new_leader') {
                     Network.sendAction('SHOW_ALERT', { 
-                        msg: fullMsg, 
+                        //msg: fullMsg, 
+                        msg: fullMsg + `||CARD:${cardId}`,
                         playerName: player.name, 
                         endsTurn: false 
                     });

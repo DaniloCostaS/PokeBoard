@@ -1684,8 +1684,49 @@ export class Battle {
         const list = document.getElementById('battle-bag-list')!; 
         list.innerHTML = ''; Object.keys(this.player!.items).forEach(key => { if(this.player!.items[key] > 0) { const item = SHOP_ITEMS.find(i => i.id === key); if(item) { const btn = document.createElement('button'); btn.className = 'btn'; btn.innerHTML = `<img src="/assets/img/Itens/${item.icon}" class="item-icon-mini"> ${item.name} x${this.player!.items[key]}`; btn.onclick = () => this.useItem(key, item); list.appendChild(btn); } } }); document.getElementById('battle-bag')!.style.display = 'block'; }
     
-    static openCardSelection() { if (!this.isPlayerTurn || this.processingAction) return; const list = document.getElementById('battle-cards-list')!; list.innerHTML = ''; const battleCards = this.player!.cards.filter(c => c.type === 'battle'); if(battleCards.length === 0) { list.innerHTML = "<em>Sem cartas de batalha.</em>"; } else { battleCards.forEach(c => { const d = document.createElement('div'); d.className='card-item'; d.innerHTML = `<div class="card-info"><span class="card-name">${c.icon} ${c.name} <span class="card-type-badge type-battle">BATTLE</span></span><span class="card-desc">${c.desc}</span></div><button class="btn-use-card" onclick="window.Battle.useCard('${c.id}')">USAR</button>`; list.appendChild(d); }); } document.getElementById('battle-cards-modal')!.style.display = 'flex'; }
-    
+    //static openCardSelection() { if (!this.isPlayerTurn || this.processingAction) return; const list = document.getElementById('battle-cards-list')!; list.innerHTML = ''; const battleCards = this.player!.cards.filter(c => c.type === 'battle'); if(battleCards.length === 0) { list.innerHTML = "<em>Sem cartas de batalha.</em>"; } else { battleCards.forEach(c => { const d = document.createElement('div'); d.className='card-item'; d.innerHTML = `<div class="card-info"><span class="card-name">${c.icon} ${c.name} <span class="card-type-badge type-battle">BATTLE</span></span><span class="card-desc">${c.desc}</span></div><button class="btn-use-card" onclick="window.Battle.useCard('${c.id}')">USAR</button>`; list.appendChild(d); }); } document.getElementById('battle-cards-modal')!.style.display = 'flex'; }
+    static openCardSelection() { 
+        if (!this.isPlayerTurn || this.processingAction) return; 
+        const list = document.getElementById('battle-cards-list')!; 
+        list.innerHTML = ''; 
+        
+        // Ajuste no contêiner do Modal de Batalha
+        const modalContent = document.querySelector('#battle-cards-modal .modal-content') as HTMLElement;
+        if (modalContent) {
+            modalContent.style.width = "90%";
+            modalContent.style.maxWidth = "1100px";
+            modalContent.style.maxHeight = "85vh"; // Altura maior para ver o corpo da carta
+            modalContent.style.padding = "25px";
+            modalContent.style.overflowY = "auto";
+        }
+
+        const battleCards = this.player!.cards.filter(c => c.type === 'battle'); 
+        
+        if(battleCards.length === 0) { 
+            list.innerHTML = "<em>Sem cartas de batalha.</em>"; 
+            list.style.display = 'block';
+        } else { 
+            list.style.display = 'grid';
+            // Ajustado para preencher o espaço e aumentar o tamanho mínimo das cartas
+            list.style.gridTemplateColumns = 'repeat(auto-fill, minmax(180px, 1fr))';
+            list.style.gap = '20px';
+            list.style.padding = '20px';
+            list.style.width = '100%';
+
+            battleCards.forEach(c => { 
+                const d = document.createElement('div'); 
+                d.style.cssText = "display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);";
+                
+                d.innerHTML = `
+                    <img src="/assets/img/Cartas/${c.id}.jpg" alt="${c.name}" title="${c.desc}" style="width: 100%; aspect-ratio: 2.5/3.5; object-fit: fill; border-radius: 6px; border: 2px solid #8d99ae;">
+                    <button class="btn" style="width:100%; margin-top:8px; padding:8px; background:#e74c3c; border:none; border-radius:4px; color:white; font-weight:bold; cursor:pointer;" onclick="window.Battle.useCard('${c.id}')">USAR</button>
+                `; 
+                list.appendChild(d); 
+            }); 
+        } 
+        document.getElementById('battle-cards-modal')!.style.display = 'flex'; 
+    }
+
     // =========================================================================================
     // NOVA LÓGICA DE FUGA - 50% BASE + D20
     // =========================================================================================

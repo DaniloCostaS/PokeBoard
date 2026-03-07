@@ -27,6 +27,7 @@ export class Game {
     static traps: {x: number, y: number, ownerId: number}[] = [];
     static pendingHealItem: string | null = null;
     static gymTeams: { [id: number]: number[] } = {};
+    static pendingCardAnimation: {id: string, player: string} | null = null;
 
     static init(players: Player[], mapSize: number) { 
         this.players = players; 
@@ -405,16 +406,34 @@ export class Game {
     static openCardLibrary() { 
         const list = document.getElementById('library-list')!; 
         list.innerHTML = ''; 
+        
+        // --- BIBLIOTECA EM TELA CHEIA ---
+        const modalContent = document.querySelector('#library-modal .modal-content') as HTMLElement;
+        if (modalContent) {
+            modalContent.style.width = "98%";
+            modalContent.style.maxWidth = "1400px";
+            modalContent.style.maxHeight = "95vh"; 
+            modalContent.style.padding = "30px";
+            modalContent.style.overflowY = "auto";
+        }
+
+        list.style.display = 'grid';
+        // Usamos auto-fill com um tamanho mínimo maior para as imagens crescerem
+        list.style.gridTemplateColumns = 'repeat(auto-fill, minmax(180px, 1fr))';
+        list.style.gap = '25px';
+        list.style.padding = '20px';
+        list.style.width = '100%';
+
         import('../constants').then(({CARDS_DB}) => { 
             CARDS_DB.forEach(c => { 
                 const d = document.createElement('div'); 
-                d.className = 'card-item'; 
-                
-                let typeClass = 'type-battle'; let typeLabel = 'BATTLE';
-                if (c.type === 'move') { typeClass = 'type-move'; typeLabel = 'MOVE'; }
-                else if (c.type === 'auto') { typeClass = 'type-auto'; typeLabel = 'AUTO'; }
-                
-                d.innerHTML = `<div class="card-info"><span class="card-name">${c.icon} ${c.name} <span class="card-type-badge ${typeClass}">${typeLabel}</span></span><span class="card-desc">${c.desc}</span></div>`; 
+                //d.style.cssText = "display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);";
+                d.style.cssText = "display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); width: 100%; box-sizing: border-box;";
+
+                d.innerHTML = `
+                    <img src="/assets/img/Cartas/${c.id}.jpg" alt="${c.name}" title="${c.desc}" style="width: 100%; aspect-ratio: 2.5/3.5; object-fit: fill; border-radius: 6px; border: 2px solid #8d99ae;">
+                    <div style="margin-top: 8px; font-size: 0.8rem; text-align: center; color: #edf2f4;"><b>${c.name}</b></div>
+                `; 
                 list.appendChild(d); 
             }); 
         }); 
@@ -427,39 +446,49 @@ export class Game {
     static openBoardCards(pId: number) { 
         const Network = (window as any).Network;
         
-        // Validação de segurança (já existente)
+        // Ajuste no contêiner do Modal (O quadrado que mostra as cartas)
+        const modalContent = document.querySelector('#board-cards-modal .modal-content') as HTMLElement;
+        if (modalContent) {
+            modalContent.style.width = "95%";        // Quase toda a largura da tela
+            modalContent.style.maxWidth = "1200px";  // Permite mais cartas por linha
+            modalContent.style.maxHeight = "90vh";   // Aumenta a altura para ver a carta inteira
+            modalContent.style.padding = "30px";     // Mais respiro nas bordas
+            modalContent.style.overflowY = "auto";
+        }
+
+        // Validação de segurança
         if(Network.isOnline && pId !== Network.myPlayerId) return alert("Privado!"); 
         
         const p = this.players[pId]; 
         const list = document.getElementById('board-cards-list')!; 
         list.innerHTML = ''; 
         
-        // =====================================================================
-        // NOVO: BOTÃO DE SACRIFÍCIO (Aparece no topo da lista)
-        // =====================================================================
-        // Verifica se sou eu mesmo olhando minhas cartas
+        // --- NOVA EXIBIÇÃO EM GRID PARA AS IMAGENS DAS CARTAS ---
+        list.style.display = 'grid';
+        // Usamos auto-fill com um tamanho mínimo maior para as imagens crescerem
+        list.style.gridTemplateColumns = 'repeat(auto-fill, minmax(180px, 1fr))';
+        list.style.gap = '25px';
+        list.style.padding = '20px';
+        list.style.width = '100%';
+        // --------------------------------------------------------
+
         const isMe = !Network.isOnline || (p.id === Network.myPlayerId);
         
-        // Só mostra o botão se eu tiver pelo menos 2 cartas para sacrificar
+        // Botão de sacrifício
         if (isMe && p.cards.length >= 2) {
             const sacBtn = document.createElement('button');
             sacBtn.className = 'btn btn-sacrifice';
+            sacBtn.style.gridColumn = '1 / -1'; // FORÇA A OCUPAR A TELA TODA NO GRID
             sacBtn.innerHTML = `<span>🔥 SACRIFICAR CARTAS (2 ➡ 1)</span>`;
             sacBtn.onclick = () => {
-                // Fecha o modal atual
                 document.getElementById('board-cards-modal')!.style.display = 'none';
-                
-                // Abre o modal de sacrifício (que criamos no passo anterior na classe Cards)
-                // Usamos (window as any) para garantir acesso global
                 (window as any).Cards.openSacrificeModal();
             };
             list.appendChild(sacBtn);
         }
-        // =====================================================================
 
         if(p.cards.length === 0) {
-            // Se não tiver cartas, avisa (mas se tiver botão ele já apareceu acima, difícil acontecer pq precisa de 2 cartas)
-            if (list.innerHTML === '') list.innerHTML = "<em>Sem cartas.</em>"; 
+            if (list.innerHTML === '') list.innerHTML = "<em style='grid-column: 1/-1;'>Sem cartas.</em>"; 
         }
         
         const isMyTurn = this.canAct() && this.turn === pId; 
@@ -467,23 +496,24 @@ export class Game {
         
         p.cards.forEach(c => { 
             const d = document.createElement('div'); 
-            d.className = 'card-item'; 
-            
-            let typeClass = 'type-battle'; let typeLabel = 'BATTLE';
-            if (c.type === 'move') { typeClass = 'type-move'; typeLabel = 'MOVE'; }
-            else if (c.type === 'auto') { typeClass = 'type-auto'; typeLabel = 'AUTO'; }
+            //d.style.cssText = "display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);";
+            d.style.cssText = "display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); width: 100%; box-sizing: border-box;";
 
             let actionBtn = ''; 
             if (c.type === 'move') { 
-                if (canUseMove) actionBtn = `<button class="btn-use-card" onclick="window.Cards.activate('${c.id}')">USAR</button>`; 
-                else actionBtn = `<button class="btn-use-card" disabled title="Só antes de rolar">USAR</button>`; 
+                if (canUseMove) actionBtn = `<button class="btn" style="width:100%; margin-top:8px; padding:8px; background:#2ecc71; border:none; border-radius:4px; color:white; font-weight:bold; cursor:pointer;" onclick="window.Cards.activate('${c.id}')">USAR</button>`; 
+                else actionBtn = `<button class="btn" disabled style="width:100%; margin-top:8px; padding:8px; background:#7f8c8d; border:none; border-radius:4px; color:white; font-weight:bold; cursor:not-allowed;" title="Só pode usar antes de rolar o dado">USAR</button>`; 
             } else if (c.type === 'auto') {
-                actionBtn = `<button class="btn-use-card" disabled style="background:#8e44ad" title="Ativação Automática">AUTO</button>`; 
+                actionBtn = `<button class="btn" disabled style="width:100%; margin-top:8px; padding:8px; background:#8e44ad; border:none; border-radius:4px; color:white; font-weight:bold; cursor:not-allowed;" title="Esta carta ativa automaticamente">AUTO</button>`; 
             } else { 
-                actionBtn = `<button class="btn-use-card" disabled style="background:#555" title="Só em batalha">BATTLE</button>`; 
+                actionBtn = `<button class="btn" disabled style="width:100%; margin-top:8px; padding:8px; background:#555; border:none; border-radius:4px; color:white; font-weight:bold; cursor:not-allowed;" title="Esta carta só pode ser usada em Batalha">BATTLE</button>`; 
             } 
             
-            d.innerHTML = `<div class="card-info"><span class="card-name">${c.icon} ${c.name} <span class="card-type-badge ${typeClass}">${typeLabel}</span></span><span class="card-desc">${c.desc}</span></div>${actionBtn}`; 
+            // O caminho da imagem (.jpg) - Coloquei um title para a pessoa poder ler a descrição da carta se deixar o mouse em cima
+            d.innerHTML = `
+                <img src="/assets/img/Cartas/${c.id}.jpg" alt="${c.name}" title="${c.desc}" style="width: 100%; aspect-ratio: 2.5/3.5; object-fit: fill; border-radius: 6px; border: 2px solid #8d99ae;">
+                ${actionBtn}
+            `;
             list.appendChild(d); 
         }); 
         
@@ -1598,6 +1628,17 @@ export class Game {
     static showGlobalAlert(msg: string, playerName: string, isMyTurn: boolean, endsTurn: boolean = true) {
         this.alertEndsTurn = endsTurn; // Salva se deve pular a vez
         
+        // --- NOVA LÓGICA DO MARCADOR DE CARTA ---
+        let displayMsg = msg;
+        if (msg.includes('||CARD:')) {
+            const parts = msg.split('||CARD:');
+            displayMsg = parts[0]; // Pega só o texto limpo
+            this.pendingCardAnimation = { id: parts[1], player: playerName }; // Salva a carta
+        } else {
+            this.pendingCardAnimation = null;
+        }
+        // ----------------------------------------
+
         let modal = document.getElementById('custom-global-alert');
         if (!modal) {
             modal = document.createElement('div');
@@ -1613,7 +1654,8 @@ export class Game {
             document.body.appendChild(modal);
         }
 
-        document.getElementById('cga-msg')!.innerText = msg;
+        //document.getElementById('cga-msg')!.innerText = msg;
+        document.getElementById('cga-msg')!.innerText = displayMsg;
         const controls = document.getElementById('cga-controls')!;
 
         if (isMyTurn) {
@@ -1650,5 +1692,54 @@ export class Game {
     static closeGlobalAlert() {
         const modal = document.getElementById('custom-global-alert');
         if (modal) modal.style.display = 'none';
+
+        // --- GATILHO DA ANIMAÇÃO CINEMÁTICA ---
+        if (this.pendingCardAnimation) {
+            this.playCardCinematic(this.pendingCardAnimation.id, this.pendingCardAnimation.player);
+            this.pendingCardAnimation = null; // Limpa para não repetir
+        }
+    }
+
+    // --- NOVA ANIMAÇÃO GIGANTE NA TELA ---
+    static playCardCinematic(cardId: string, playerName: string) {
+        let modal = document.getElementById('card-cinematic');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'card-cinematic';
+            modal.style.cssText = "position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.85); display:flex; justify-content:center; align-items:center; flex-direction:column; z-index:99999; opacity:0; transition: opacity 0.3s ease; cursor: pointer;";
+            modal.innerHTML = `
+                <h2 id="card-cine-title" style="color:#f1c40f; font-size: 2.5rem; text-shadow: 2px 2px 4px #000; margin-bottom: 20px; font-weight: bold; text-align: center;"></h2>
+                <img id="card-cine-img" src="" style="height: 65vh; max-height: 800px; border-radius: 12px; box-shadow: 0 0 40px rgba(241, 196, 15, 0.6); transform: scale(0.5); transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+                <div style="color: #bdc3c7; margin-top: 20px; font-size: 1rem; opacity: 0.7;">(Clique em qualquer lugar para fechar)</div>
+            `;
+            document.body.appendChild(modal);
+
+            // Permite pular a animação clicando
+            modal.onclick = () => {
+                modal!.style.opacity = '0';
+                document.getElementById('card-cine-img')!.style.transform = 'scale(0.5)';
+                setTimeout(() => { modal!.style.display = 'none'; }, 300);
+            };
+        }
+
+        document.getElementById('card-cine-title')!.innerHTML = `🃏 <span style="color:#fff">${playerName}</span> usou:`;
+        document.getElementById('card-cine-img')!.setAttribute('src', `/assets/img/Cartas/${cardId}.jpg`);
+
+        modal.style.display = 'flex';
+
+        // Animação de Entrada (Zoom In)
+        setTimeout(() => {
+            modal!.style.opacity = '1';
+            document.getElementById('card-cine-img')!.style.transform = 'scale(1)';
+        }, 50);
+
+        // Auto Fechar após 3 segundos
+        setTimeout(() => {
+            if (modal!.style.display !== 'none') {
+                modal!.style.opacity = '0';
+                document.getElementById('card-cine-img')!.style.transform = 'scale(0.5)';
+                setTimeout(() => { modal!.style.display = 'none'; }, 300);
+            }
+        }, 3000);
     }
 }

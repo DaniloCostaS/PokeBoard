@@ -277,12 +277,34 @@ body {
 /* Modais */
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; display: none; justify-content: center; align-items: center; }
 .z-high { z-index: 1100; }
-.modal-box { background: #fff; padding: 25px; border-radius: 12px; width: 600px; max-width: 95%; text-align: center; position: relative; box-shadow: 0 0 30px rgba(0,0,0,0.5); }
-.battle-box { background: #2c3e50; color: white; border: 3px solid #fff; max-width: 950px; } /* LARGURA AUMENTADA */
+
+.modal-box { 
+    background: #fff; 
+    padding: 20px; 
+    border-radius: 12px; 
+    width: 90%;
+    height: 90%;
+    max-width: 1200px;
+    max-height: 85vh;
+    overflow-y: auto;
+    text-align: center; 
+    position: relative; 
+    box-shadow: 0 0 30px rgba(0,0,0,0.5); 
+}
+
+.battle-box { 
+    background: #2c3e50; 
+    color: white; 
+    border: 3px solid #fff; 
+    max-width: 700px !important;
+    max-height: 600px !important; 
+}
 
 .text-highlight { color: var(--highlight); }
 .gold-text { color: goldenrod; font-weight: bold; font-size: 1.2rem; }
-.scroll-list { max-height: 200px; overflow-y: auto; text-align: left; }
+
+.scroll-list { max-height: 100%; max-width: 99.8%; overflow-y: auto; text-align: left; }
+
 .shop-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; align-items: center; }
 .item-icon { font-size: 1.5rem; margin-right: 10px; }
 .inventory-section { margin-top: 15px; background: #f9f9f9; padding: 10px; border-radius: 8px; }
@@ -319,7 +341,7 @@ body {
     background: rgba(0,0,0,0.2); 
     border-radius: 8px;
     border: 1px solid #555;
-    height: 250px; /* Altura fixa para scroll */
+    height: 540px;
 }
 
 .battle-scene { 
@@ -532,7 +554,7 @@ body {
 
     .setup-row input { width: 80px !important; }
     .player-slot { min-width: 200px; min-height: auto; }
-    .modal-box { width: 95%; padding: 15px; }
+    
     .battle-wrapper { flex-direction: column; }
     .battle-scene {
         height: auto;        /* Deixa a altura crescer conforme o conteúdo */
@@ -970,4 +992,34 @@ body {
     justify-content: space-around;
     font-size: 0.85rem;
     font-weight: bold;
+}
+
+/* Garante que a lista de cartas ocupe 100% da largura do novo modal expandido */
+#board-cards-list, #battle-cards-list, #library-list {
+    display: grid;
+    /* Aumentamos o minmax para 180px para as imagens crescerem */
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important; 
+    gap: 20px;
+    width: 100%;
+    height: 80%;
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+
+/* Força as imagens das cartas a acompanharem o redimensionamento */
+.card-item img {
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 2.5 / 3.5; /* Mantém a proporção de carta de baralho */
+    object-fit: fill; /* Garante que a arte da carta preencha o shape */
+}
+
+/* Força as imagens das cartas a esticarem para preencher a coluna do grid */
+#board-cards-list img, 
+#battle-cards-list img, 
+#library-list img {
+    width: 100% !important;
+    height: auto !important;
+    display: block;
 }
