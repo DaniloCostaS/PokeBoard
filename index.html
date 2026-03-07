@@ -230,7 +230,7 @@
     <div id="pokedex-modal" class="modal-overlay" style="z-index: 1500;">
         <div class="modal-box" style="width: 850px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: #f4f6f7;">
             <h2 style="color: #e74c3c; margin-top: 0; border-bottom: 2px solid #ccc; padding-bottom: 10px;">📖 Pokédex Regional</h2>
-            <div id="pokedex-list" class="scroll-list" style="flex: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; padding: 10px; max-height: 60vh;">
+            <div id="pokedex-list" class="scroll-list" style="flex: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; padding: 10px; max-height: 90%;">
                 </div>
             <button class="btn btn-secondary mt-15" onclick="document.getElementById('pokedex-modal').style.display='none'">Fechar</button>
         </div>
@@ -241,7 +241,7 @@
     <div id="swap-modal" class="modal-overlay" style="z-index: 1300;"><div class="modal-box"><h3>⚠️ Time Cheio!</h3><p>Seu time já tem 6 Pokémons.</p><p style="font-size:0.9rem;">Clique em um Pokémon para <strong>SOLTAR</strong> (abandonar) e manter o resto.</p><div id="swap-list" class="scroll-list"></div></div></div>
     <div id="pkmn-select-modal" class="modal-overlay z-high"><div class="modal-box"><h3 id="select-title">Escolha</h3><div id="pkmn-select-list" class="scroll-list text-left"></div></div></div>
     <div id="detail-modal" class="modal-overlay" style="z-index: 2000;">
-        <div class="modal-box" style="width: 450px; text-align: left; padding: 0; overflow: hidden; border-radius: 12px;">
+        <div class="modal-box" style="width: 450px; max-height: 660px; text-align: left; padding: 0; overflow: hidden; border-radius: 12px;">
             
             <div id="detail-header" style="background: #333; padding: 15px; display: flex; align-items: center; justify-content: space-between; color: white;">
                 <div style="display: flex; align-items: center; gap: 10px;">

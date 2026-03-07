@@ -52,7 +52,7 @@ export class Player {
             }
             
             // remover depois, começar con todas as cartas.
-            this.cards = JSON.parse(JSON.stringify(CARDS_DB));
+            //this.cards = JSON.parse(JSON.stringify(CARDS_DB));
 
             // 3. Pokemon Inicial (com chance de Shiny)
             const starters = [1, 4, 7, 152, 155, 158, 252, 255, 258, 387, 390, 393, 650, 653, 656, 722, 725, 728, 810, 813, 816, 906, 909, 912]; 
