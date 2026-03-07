@@ -1115,6 +1115,16 @@ export class Game {
         const list = document.getElementById('pokedex-list')!;
         list.innerHTML = '';
         
+        // --- NOVA BARRA DE BUSCA ---
+        if (filterId === null) {
+            const searchContainer = document.createElement('div');
+            // Removemos o sticky e os efeitos visuais de card. Adicionamos grid-column para forçar a quebra de linha.
+            searchContainer.style.cssText = "width: 100%; grid-column: 1 / -1; margin-bottom: 20px;";
+            searchContainer.innerHTML = `<input type="text" id="pokedex-search" placeholder="🔍 Buscar Pokémon por nome..." style="width: 100%; padding: 12px 15px; border-radius: 4px; border: 2px solid #8d99ae; font-size: 1rem; box-sizing: border-box; background: #fff; color: #2c3e50; outline: none; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);" onkeyup="window.Game.filterPokedex()">`;
+            list.appendChild(searchContainer);
+        }
+        // ---------------------------
+
         const colors: any = { "Normal": "#A8A77A", "Fogo": "#EE8130", "Água": "#6390F0", "Elétrico": "#F7D02C", "Grama": "#7AC74C", "Gelo": "#96D9D6", "Lutador": "#C22E28", "Veneno": "#A33EA1", "Terra": "#E2BF65", "Voador": "#A98FF3", "Psíquico": "#F95587", "Inseto": "#A6B91A", "Pedra": "#B6A136", "Fantasma": "#735797", "Dragão": "#6F35FC", "Noturno": "#705746", "Aço": "#B7B7CE", "Fada": "#D685AD" };
 
         POKEDEX.forEach(mon => {
@@ -1131,8 +1141,8 @@ export class Game {
             }
 
             // --- CÁLCULO DE VANTAGENS E DESVANTAGENS (Defensivas) ---
-            const weaknesses: string[] = [];
-            const resistances: string[] = [];
+            const weaknesses: {type: string, multi: number}[] = [];
+            const resistances: {type: string, multi: number}[] = [];
 
             // Itera sobre todos os tipos de ataque possíveis na Tabela
             for (const atkType in TYPE_CHART) {
@@ -1148,17 +1158,25 @@ export class Game {
                     multiplier *= (TYPE_CHART[atkType] as any)[mon.secondType];
                 }
 
-                if (multiplier > 1) weaknesses.push(atkType);
-                if (multiplier < 1 && multiplier > 0) resistances.push(atkType);
+                if (multiplier > 1) weaknesses.push({ type: atkType, multi: multiplier });
+                if (multiplier < 1) resistances.push({ type: atkType, multi: multiplier }); // Agora engloba imunidade (0) também
             }
 
             // Formata HTML das fraquezas e resistências
-            const formatTypeList = (types: string[], label: string, titleColor: string) => {
+            const formatTypeList = (types: {type: string, multi: number}[], label: string, titleColor: string) => {
                 if (types.length === 0) return '';
                 
                 const badges = types.map(t => {
-                    const typeColor = colors[t] || "#777";
-                    return `<span style="background-color:${typeColor}; color:white; padding:2px 5px; border-radius:4px; font-size:0.6rem; text-shadow:1px 1px 1px rgba(0,0,0,0.5); margin-right:3px; display:inline-block; margin-bottom:2px;">${t}</span>`;
+                    const typeColor = colors[t.type] || "#777";
+                    
+                    // Converte 0.5 e 0.25 para frações bonitinhas
+                    let multiStr = `x${t.multi}`;
+                    if (t.multi === 0.5) multiStr = 'x½';
+                    else if (t.multi === 0.25) multiStr = 'x¼';
+
+                    return `<span style="background-color:${typeColor}; color:white; padding:2px 5px; border-radius:4px; font-size:0.6rem; text-shadow:1px 1px 1px rgba(0,0,0,0.5); margin-right:3px; display:inline-block; margin-bottom:2px; display: inline-flex; align-items: center; gap: 3px;">
+                        ${t.type} <b style="background:rgba(0,0,0,0.3); padding:1px 3px; border-radius:3px; font-size: 0.55rem;">${multiStr}</b>
+                    </span>`;
                 }).join('');
 
                 return `<div style="margin-top:4px; font-size:0.7rem; color:${titleColor};"><b>${label}:</b><br>${badges}</div>`;
@@ -1167,10 +1185,12 @@ export class Game {
 
             const d = document.createElement('div');
             d.className = 'dex-card';
+            d.setAttribute('data-name', mon.name);
             
             const isDiscovered = dexEntry.seen > 0 || dexEntry.caught > 0;
             const imgFilter = isDiscovered ? '' : 'filter: brightness(0) opacity(0.4);';
-            const displayName = isDiscovered ? mon.name : '???';
+            //const displayName = isDiscovered ? mon.name : '???';
+            const displayName = mon.name;
 
             d.innerHTML = `
                 <div style="font-weight: bold; color: #7f8c8d; width: 100%; text-align: left; font-size: 0.8rem;">#${mon.id.toString().padStart(3, '0')}</div>
@@ -1204,6 +1224,26 @@ export class Game {
         });
 
         document.getElementById('pokedex-modal')!.style.display = 'flex';
+    }
+
+    static filterPokedex() {
+        const input = document.getElementById('pokedex-search') as HTMLInputElement;
+        if (!input) return;
+        
+        const filter = input.value.toUpperCase();
+        const cards = document.getElementsByClassName('dex-card');
+        
+        for (let i = 0; i < cards.length; i++) {
+            const card = cards[i] as HTMLElement;
+            const name = card.getAttribute('data-name');
+            
+            // Se encontrou o texto digitado em qualquer parte do nome
+            if (name && name.toUpperCase().indexOf(filter) > -1) {
+                card.style.display = ""; // Mostra
+            } else {
+                card.style.display = "none"; // Esconde
+            }
+        }
     }
 
     static useItemBoard(key: string, pId: number) { const p = this.players[pId]; const item = SHOP_ITEMS.find(i => i.id === key); if (!item || p.items[key] <= 0) return; if (item.type === 'heal') { if (item.id === 'ultrafullrestore') { this.applyBoardItemEffect(p, item, -1); return; } this.openHealSelector(pId, key); } else if (item.type === 'revive') { if (item.id === 'ultramaxrevive') { this.applyBoardItemEffect(p, item, -1); return; } this.openHealSelector(pId, key); } }
