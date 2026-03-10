@@ -147,7 +147,7 @@ export class Pokemon {
     // --- MÉTODO DE SEGURANÇA: CORRIGE MEGAS PRESAS ---
     validateAndFix() {
         // Se for um ID de Mega Evolução (geralmente > 10000 no seu mapa)
-        if (this.id > 10000) {
+        if (this.id > 10000 && !(this as any).isTemp) {
             // Procura qual ID normal vira essa Mega (Engenharia Reversa)
             const originalIdStr = Object.keys(MAPA_MEGAS).find(key => MAPA_MEGAS[parseInt(key)] === this.id);
             
