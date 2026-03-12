@@ -28,6 +28,8 @@ export class Game {
     static pendingHealItem: string | null = null;
     static gymTeams: { [id: number]: number[] } = {};
     static pendingCardAnimation: {id: string, player: string} | null = null;
+    static pendingLegendaryEncounter: { mon: Pokemon, type: number } | null = null;
+    static pendingLegendaryAlert: {monName: string, player: string, isMyEncounter: boolean} | null = null;
 
     static init(players: Player[], mapSize: number) { 
         this.players = players; 
@@ -154,6 +156,10 @@ export class Game {
     //static generateWildPokemon(): Pokemon { const stage1Mons = POKEDEX.filter(p => p.stage === 1); const legendaries = stage1Mons.filter(p => p.isLegendary); const regulars = stage1Mons.filter(p => !p.isLegendary); let chosenTemplate; if (Math.random() < 0.02 && legendaries.length > 0) { chosenTemplate = legendaries[Math.floor(Math.random() * legendaries.length)]; } else { chosenTemplate = regulars[Math.floor(Math.random() * regulars.length)]; } let level = this.getGlobalAverageLevel(); if (level < 1) level = 1; return new Pokemon(chosenTemplate.id, level, null); }
     
     static generateWildPokemon(tileType: number): Pokemon {
+        // --- MODO DE TESTE: FORÇAR MOLTRES (ID 146) ---
+        //return new Pokemon(493, this.getGlobalAverageLevel(), null);
+        // ----------------------------------------------
+        
         // 1. Filtros de Terreno
         let allowedTypes: string[] = [];
         switch (tileType) {
@@ -946,7 +952,24 @@ export class Game {
             if (Math.random() < 0.8) { 
                 //const wildMon = this.generateWildPokemon(); 
                 const wildMon = this.generateWildPokemon(type);
-                Battle.setup(p, wildMon, false, "Selvagem", 0, null, false, 0, "", type); 
+                if (wildMon.isLegendary) {
+                    // Armazena o monstro real na memória temporária para usar pós-cinemática
+                    this.pendingLegendaryEncounter = { mon: wildMon, type: type };
+                    
+                    const msgLocal = `⚠️ ALERTA LENDÁRIO!\n\nVocê encontrou um ${wildMon.name} selvagem!||LEGENDARY:${wildMon.name}||MY_ENCOUNTER`;
+                    const msgGlobal = `⚠️ ALERTA LENDÁRIO! ${p.name} encontrou um ${wildMon.name} selvagem!||LEGENDARY:${wildMon.name}`;
+
+                    this.log(msgLocal.replace(/\n\n/g, ' ').split('||')[0]);
+                    this.showGlobalAlert(msgLocal, p.name, true, false); // false para não passar turno direto
+
+                    const Network = (window as any).Network;
+                    if(Network.isOnline) {
+                        Network.sendAction('LOG', { msg: msgGlobal.split('||')[0] });
+                        Network.sendAction('SHOW_ALERT', { msg: msgGlobal, playerName: p.name, endsTurn: false });
+                    }
+                } else {
+                    Battle.setup(p, wildMon, false, "Selvagem", 0, null, false, 0, "", type); 
+                }
             } 
             else { 
                 const messages = [ "Você procurou, mas nenhum Pokémon selvagem apareceu dessa vez!", "O mato se mexeu... mas era só o vento 😅", "Nada de Pokémon por aqui... talvez na próxima!", "Está tudo muito quieto...", "Um Pidgey voou longe, você não alcançou." ]; 
@@ -1634,8 +1657,21 @@ export class Game {
             const parts = msg.split('||CARD:');
             displayMsg = parts[0]; // Pega só o texto limpo
             this.pendingCardAnimation = { id: parts[1], player: playerName }; // Salva a carta
-        } else {
+        } else if (msg.includes('||LEGENDARY:')) {
+            const parts = msg.split('||LEGENDARY:');
+            displayMsg = parts[0];
+            let monName = parts[1];
+            let isMyEncounter = false;
+
+            if (monName.includes('||MY_ENCOUNTER')) {
+                monName = monName.split('||MY_ENCOUNTER')[0];
+                isMyEncounter = true;
+            }
+
+            this.pendingLegendaryAlert = { monName: monName, player: playerName, isMyEncounter: isMyEncounter };
+        }else {
             this.pendingCardAnimation = null;
+            this.pendingLegendaryAlert = null;
         }
         // ----------------------------------------
 
@@ -1697,7 +1733,65 @@ export class Game {
         if (this.pendingCardAnimation) {
             this.playCardCinematic(this.pendingCardAnimation.id, this.pendingCardAnimation.player);
             this.pendingCardAnimation = null; // Limpa para não repetir
+        }else if (this.pendingLegendaryAlert) {
+            this.playLegendaryCinematic(this.pendingLegendaryAlert.player, this.pendingLegendaryAlert.monName, this.pendingLegendaryAlert.isMyEncounter);
+            this.pendingLegendaryAlert = null;
         }
+    }
+
+    // --- NOVA ANIMAÇÃO GIGANTE DE LENDÁRIO ---
+    static playLegendaryCinematic(playerName: string, monName: string, isMyEncounter: boolean) {
+        let modal = document.getElementById('legendary-cinematic');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'legendary-cinematic';
+            modal.style.cssText = "position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.92); display:flex; justify-content:center; align-items:center; flex-direction:column; z-index:99999; opacity:0; transition: opacity 0.5s ease; cursor: pointer;";
+            modal.innerHTML = `
+                <h2 style="color:#e74c3c; font-size: 3rem; text-shadow: 0 0 20px #c0392b, 2px 2px 4px #000; margin-bottom: 20px; font-weight: bold; text-align: center; text-transform: uppercase; letter-spacing: 5px;">ENCONTRO LENDÁRIO!</h2>
+                <div style="font-size: 1.5rem; color: #f1c40f; margin-bottom: 30px; text-shadow: 1px 1px 2px #000;" id="leg-cine-subtitle"></div>
+                <img id="leg-cine-img" src="" style="height: 45vh; max-height: 500px; filter: drop-shadow(0 0 30px rgba(255,255,255,0.8)); transform: scale(0.5); transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+                <div id="leg-cine-name" style="color: #fff; font-size: 2.5rem; margin-top: 30px; font-weight: bold; text-shadow: 2px 2px 4px #000;"></div>
+                <div style="color: #bdc3c7; margin-top: 30px; font-size: 1rem; opacity: 0.7;">(Clique para continuar)</div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        document.getElementById('leg-cine-subtitle')!.innerText = `${playerName} encontrou um Pokémon mítico!`;
+        document.getElementById('leg-cine-name')!.innerText = monName;
+        
+        document.getElementById('leg-cine-img')!.setAttribute('src', `/assets/gif/lendarios/${monName}.gif`);
+
+        modal.style.display = 'flex';
+
+        setTimeout(() => {
+            modal!.style.opacity = '1';
+            document.getElementById('leg-cine-img')!.style.transform = 'scale(1.3)';
+        }, 50);
+
+        const closeAndBattle = () => {
+            modal!.style.opacity = '0';
+            document.getElementById('leg-cine-img')!.style.transform = 'scale(0.5)';
+            setTimeout(() => { 
+                modal!.style.display = 'none'; 
+                
+                // Apenas se for o SEU encontro, a batalha é armada para você usando o Pokémon da memória
+                if (isMyEncounter && this.pendingLegendaryEncounter) {
+                    const player = this.players.find(p => p.name === playerName);
+                    if (player) {
+                        Battle.setup(player, this.pendingLegendaryEncounter.mon, false, "Selvagem", 0, null, false, 0, "", this.pendingLegendaryEncounter.type);
+                    }
+                    this.pendingLegendaryEncounter = null;
+                }
+            }, 500);
+        };
+
+        modal.onclick = closeAndBattle;
+
+        setTimeout(() => {
+            if (modal!.style.display !== 'none') {
+                closeAndBattle();
+            }
+        }, 4000);
     }
 
     // --- NOVA ANIMAÇÃO GIGANTE NA TELA ---

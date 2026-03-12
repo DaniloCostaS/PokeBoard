@@ -1593,9 +1593,9 @@ export const POKEDEX: PokemonData[] = [
 
   {"id": 1004, "name": "Chi-Yu", "type": "Noturno", "secondType": "Fogo", "BaseTotal": 363, "hp": 55, "atk": 108, "def": 100, "spd": 100, "stage": 1, "nextForm": null, "isLegendary": true},
 
-  {"id": 1005, "name": "Roaring Moon", "type": "Dragão", "secondType": "Noturno", "BaseTotal": 407, "hp": 105, "atk": 97, "def": 86, "spd": 119, "stage": 1, "nextForm": null},
+  {"id": 1005, "name": "Roaring Moon", "type": "Dragão", "secondType": "Noturno", "BaseTotal": 407, "hp": 105, "atk": 97, "def": 86, "spd": 119, "stage": 1, "nextForm": null, "isLegendary": true},
 
-  {"id": 1006, "name": "Iron Valiant", "type": "Fada", "secondType": "Lutador", "BaseTotal": 390, "hp": 74, "atk": 125, "def": 75, "spd": 116, "stage": 1, "nextForm": null},
+  {"id": 1006, "name": "Iron Valiant", "type": "Fada", "secondType": "Lutador", "BaseTotal": 390, "hp": 74, "atk": 125, "def": 75, "spd": 116, "stage": 1, "nextForm": null, "isLegendary": true},
 
   {"id": 1007, "name": "Koraidon", "type": "Lutador", "secondType": "Dragão", "BaseTotal": 453, "hp": 100, "atk": 110, "def": 108, "spd": 135, "stage": 1, "nextForm": null, "isLegendary": true},
 
