@@ -377,7 +377,7 @@ export const POKEDEX: PokemonData[] = [
 
   {"id": 236, "name": "Tyrogue", "type": "Lutador", "secondType": "", "BaseTotal": 140, "hp": 35, "atk": 35, "def": 35, "spd": 35, "stage": 1, "nextForm": null},
 
-  {"id": 237, "name": "Hitmontop", "type": "Lutador", "secondType": "", "BaseTotal": 287, "hp": 50, "atk": 65, "def": 102, "spd": 70, "stage": 1, "nextForm": null},
+  {"id": 237, "name": "Hitmontop", "type": "Lutador", "secondType": "", "BaseTotal": 287, "hp": 50, "atk": 65, "def": 102, "spd": 70, "stage": 2, "nextForm": null},
 
   {"id": 238, "name": "Smoochum", "type": "Gelo", "secondType": "Psíquico", "BaseTotal": 208, "hp": 45, "atk": 58, "def": 40, "spd": 65, "stage": 1, "nextForm": "Jynx", "evoTrigger": 8},
 

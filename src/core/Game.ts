@@ -3,7 +3,7 @@ import { POKEDEX } from '../constants/pokedex';
 import { TYPE_CHART } from '../constants/typeChart';
 import { PLAYER_COLORS } from '../constants/playerColors';
 import { GYM_DATA } from '../constants/gyms';
-import { ref, update } from 'firebase/database';
+import { ref, update, get } from 'firebase/database';
 import { db, Network } from '../systems/Network';
 import { Player } from '../models/Player';
 import { Pokemon } from '../models/Pokemon';
@@ -31,6 +31,21 @@ export class Game {
     static pendingLegendaryEncounter: { mon: Pokemon, type: number } | null = null;
     static pendingLegendaryAlert: {monName: string, player: string, isMyEncounter: boolean} | null = null;
 
+    // --- VARIÁVEIS DOS EVENTOS GLOBAIS ---
+    static currentGlobalEvent: any = null;
+    static eventEndRound: number = 0;
+    static GLOBAL_EVENTS = [
+        { id: 'DROUGHT', icon: '☀️', name: 'Onda de Calor', desc: 'Fogo/Planta +25% Dano. Água -25%.' },
+        { id: 'RAIN', icon: '🌧️', name: 'Chuva Torrencial', desc: 'Água/Elétrico +25% Dano. Fogo -25%.' },
+        { id: 'SANDSTORM', icon: '🌪️', name: 'Tempestade Areia', desc: 'Não-Pedra/Terra/Aço perdem 10% HP no início da luta.' },
+        { id: 'SHINY_FEVER', icon: '✨', name: 'Febre Shiny', desc: 'Surtos de Shinys na natureza!' },
+        { id: 'GOLD_RUSH', icon: '💰', name: 'Dia de Pagamento', desc: 'Recompensas em Ouro x2 em vitórias!' },
+        { id: 'AIRDROP', icon: '🎒', name: 'Chuva de Suprimentos', desc: 'Casas vazias podem conter itens gratuitos!' },
+        { id: 'BLOOD_MOON', icon: '🌑', name: 'Lua Sangrenta', desc: 'Fantasma/Noturno +20% Dano. Roubos (PvP/Trap) x2!' },
+        { id: 'EMP', icon: '📡', name: 'Tempestade EMP', desc: 'Cartas e Centros Pokémon estão BLOQUEADOS!' },
+        { id: 'ROCKET', icon: '🚀', name: 'Invasão Rocket', desc: 'Perder para selvagem faz eles roubarem um Pokémon seu!' }
+    ];
+
     static init(players: Player[], mapSize: number) { 
         this.players = players; 
         
@@ -42,13 +57,27 @@ export class Game {
             this.generateGymTeams();
         }
 
-        if(Network.isOnline && Network.isHost) { 
-            if(db) update(ref(db, `rooms/${Network.currentRoomId}`), { 
+        const NetworkObj = (window as any).Network || Network;
+        if(NetworkObj.isOnline && NetworkObj.isHost) { 
+            if(db) update(ref(db, `rooms/${NetworkObj.currentRoomId}`), { 
                 grid: MapSystem.grid, 
                 gymLocations: MapSystem.gymLocations, 
                 gymTeams: this.gymTeams
             }); 
-        } 
+        }
+
+        // --- RECUPERA O EVENTO GLOBAL CASO ALGUÉM DÊ F5 ---
+        if(NetworkObj.isOnline && db) {
+            get(ref(db, `rooms/${NetworkObj.currentRoomId}`)).then(snap => {
+                const data = snap.val();
+                if (data && data.currentEventId) {
+                    this.currentGlobalEvent = this.GLOBAL_EVENTS.find(e => e.id === data.currentEventId) || null;
+                    this.eventEndRound = data.eventEndRound || 0;
+                    this.updateHUD(); // Força a caixinha aparecer de novo
+                }
+            });
+        }
+        // --------------------------------------------------
 
         this.renderBoard(); 
         this.updateHUD(); 
@@ -231,7 +260,15 @@ export class Game {
         const finalPool = rarityPool.length > 0 ? rarityPool : validCandidates;
         const chosenTemplate = finalPool[Math.floor(Math.random() * finalPool.length)];
 
-        return new Pokemon(chosenTemplate.id, globalAvg, null);
+        const wildMon = new Pokemon(chosenTemplate.id, globalAvg, null);
+
+        // EVENTO: FEBRE SHINY (Aumenta absurdamente a chance do monstro nascer brilhante)
+        if (this.currentGlobalEvent?.id === 'SHINY_FEVER' && Math.random() <= 0.30) {
+            wildMon.isShiny = true;
+            wildMon.recalculateStats(true);
+        }
+
+        return wildMon;
     }
 
     static openPokemonDetail(playerIndex: number, slotIndex: number) {
@@ -449,6 +486,59 @@ export class Game {
     static openXpRules() { document.getElementById('xp-rules-modal')!.style.display = 'flex'; }
     static openCaptureRules() { const modal = document.getElementById('capture-rules-modal'); if (modal) modal.style.display = 'flex'; }
 
+    // --- NOVO: BÔNUS DA RODADA DEZ ---
+    static triggerDecadeBonus(p: Player) {
+        const roll = Math.random();
+        
+        // 25% de chance de ir para Ginásio
+        if (roll <= 0.25) {
+            const undefeatedGyms: {x: number, y: number, id: number}[] = [];
+            for (const key in MapSystem.gymLocations) {
+                const id = MapSystem.gymLocations[key];
+                if (!p.badges[id - 1]) {
+                    const [gx, gy] = key.split(',').map(Number);
+                    undefeatedGyms.push({x: gx, y: gy, id: id});
+                }
+            }
+            
+            if (undefeatedGyms.length > 0) {
+                const randomGym = undefeatedGyms[Math.floor(Math.random() * undefeatedGyms.length)];
+                
+                // Puxa o jogador
+                p.x = randomGym.x;
+                p.y = randomGym.y;
+                this.moveVisuals();
+                this.hasRolled = true; // Impede de rolar o dado
+                
+                const msgLocal = `🌀 VÓRTICE DA RODADA ${this.round}!\n\nVocê foi sugado diretamente para as portas de um Ginásio invicto!`;
+                this.pendingTileEvent = true; // Ativará o Ginásio ao fechar o OK
+                this.showGlobalAlert(msgLocal, p.name, true, false);
+                
+                const Network = (window as any).Network;
+                if (Network.isOnline) {
+                    Network.syncPlayerState();
+                    Network.sendAction('LOG', { msg: `🌀 VÓRTICE! ${p.name} foi sugado para um Ginásio na Rodada ${this.round}!` });
+                }
+                return;
+            }
+        }
+        
+        // Se já venceu os ginásios ou rolou os outros 75% -> Ganha 2 Cartas
+        const Cards = (window as any).Cards;
+        const c1 = Cards.draw(p, true);
+        const c2 = Cards.draw(p, true);
+        
+        const msgLocal = `🎁 BÔNUS DA RODADA ${this.round}!\n\nVocê recebeu suporte aéreo e ganhou 2 cartas:\n- ${c1.name}\n- ${c2.name}`;
+        this.updateHUD();
+        this.showGlobalAlert(msgLocal, p.name, true, false); // false = não encerra a vez, ele joga normal depois!
+        
+        const Network = (window as any).Network;
+        if (Network.isOnline) {
+             Network.syncPlayerState();
+             Network.sendAction('LOG', { msg: `🎁 ${p.name} recebeu 2 Cartas bônus da Rodada ${this.round}!` });
+        }
+    }
+
     static openBoardCards(pId: number) { 
         const Network = (window as any).Network;
         
@@ -656,7 +746,9 @@ export class Game {
                 
                 if (!Network.isOnline || pId === Network.myPlayerId) {
                     // --- NOVAS RECOMPENSAS DE VOLTA COMPLETA ---
-                    p.gold += 500; 
+                    let lapGold = 500;
+                    if (this.currentGlobalEvent?.id === 'GOLD_RUSH') lapGold *= 2; // Evento Ouro em Dobro!
+                    p.gold += lapGold; 
                     Cards.draw(p); 
                     Cards.draw(p); // Compra a segunda carta
                     
@@ -688,7 +780,10 @@ export class Game {
                 let stolenGold = 0;
                 if (p.gold > 0) {
                     // --- ALTERAÇÃO: Agora rouba 20% do ouro total da vítima ---
-                    stolenGold = Math.floor(p.gold * 0.20);
+                    let tax = 0.20;
+                    if (this.currentGlobalEvent?.id === 'BLOOD_MOON') tax = 0.40; // Evento Lua Sangrenta (Rouba o Dobro!)
+
+                    stolenGold = Math.floor(p.gold * tax);
                     // Garante que roube pelo menos 1 moeda se a conta der zero (ex: 20% de 4 = 0.8)
                     if (stolenGold === 0 && p.gold > 0) stolenGold = 1;
 
@@ -988,14 +1083,29 @@ export class Game {
                 // O turno agora só passa quando o jogador clicar no botão "OK".
             } 
         } 
-        else { this.nextTurn(); }
+        else { 
+            // EVENTO: CHUVA DE SUPRIMENTOS (Airdrop em casas vazias)
+            if (this.currentGlobalEvent?.id === 'AIRDROP' && Math.random() <= 0.33) {
+                const normalItems = SHOP_ITEMS.filter(i => !['ultrafullrestore', 'ultramaxrevive', 'masterball'].includes(i.id));
+                const randomItem = normalItems[Math.floor(Math.random() * normalItems.length)];
+                this.addItem(p, randomItem.id, 1);
+                this.sendGlobalLog(`🎒 AIRDROP! ${p.name} tropeçou em um(a) ${randomItem.name} caído(a) no caminho!`);
+            }
+            this.nextTurn(); 
+        }
     }
-    
+
     // =========================================================================================
     // CORREÇÃO: Lógica de Cura Completa (Revive + Heal All)
     // =========================================================================================
     static handleCityChoice(c: string) { 
         const player = this.getCurrentPlayer();
+
+        // EVENTO EMP: Bloqueia o Centro Pokémon
+        if (this.currentGlobalEvent?.id === 'EMP' && c !== 'shop') {
+            this.showGlobalAlert("📡 A Tempestade Eletromagnética derrubou a energia do Centro Pokémon! Cura e Compra de Cartas inoperantes.", player.name, true, false);
+            return;
+        }
 
         if (c === 'heal') { 
             // Cura o time
@@ -1089,13 +1199,68 @@ export class Game {
         this.sendGlobalLog(`🛑 Fim do turno de ${currentP.name} 🛑`);
         // ------------------------------------------
 
-        // --- NOVA LÓGICA DE RODADA ---
+        // --- NOVA LÓGICA DE RODADA E EVENTOS ---
         const nextTurnIdx = (this.turn + 1) % this.players.length; 
         if (nextTurnIdx === 0) {
             this.round++; // Completou um ciclo inteiro, aumenta a rodada!
+            const Network = (window as any).Network;
+            
+            // 1. Limpa evento antigo
+            if (this.currentGlobalEvent && this.round >= this.eventEndRound) {
+                this.currentGlobalEvent = null;
+                this.sendGlobalLog("🌍 O clima do mundo voltou à normalidade.");
+                
+                // Salva a limpeza online
+                if (Network.isOnline && this.turn === Network.myPlayerId && db) {
+                    update(ref(db, `rooms/${Network.currentRoomId}`), { currentEventId: null, eventEndRound: 0 });
+                }
+            }
+            
+            // 2. Rola um Novo Evento (A cada 10 rodadas)
+            if (this.round > 1 && this.round % 10 === 0) {
+                // Apenas quem finalizou a rodada anterior sorteia e avisa para não duplicar na rede
+                if (!Network.isOnline || this.turn === Network.myPlayerId) {
+                    const ev = this.GLOBAL_EVENTS[Math.floor(Math.random() * this.GLOBAL_EVENTS.length)];
+                    const msgLocal = `🌍 ANOMALIA DETECTADA!\n\n${ev.icon} ${ev.name}\n${ev.desc}||EVENT:${ev.id}`;
+                    const msgGlobal = `🌍 ALERTA GLOBAL! O evento ${ev.name} começou!||EVENT:${ev.id}`;
+                    
+                    this.showGlobalAlert(msgLocal, "Sistema", true, false);
+                    this.log(msgGlobal.split('||')[0]); // <--- IMPRIME NO LOG
+                    
+                    // --- SALVA ONLINE O EVENTO SORTEADO ---
+                    this.currentGlobalEvent = ev;
+                    this.eventEndRound = this.round + (ev.id === 'SHINY_FEVER' || ev.id === 'AIRDROP' ? 3 : 2);
+                    if (Network.isOnline && db) {
+                        update(ref(db, `rooms/${Network.currentRoomId}`), { 
+                            currentEventId: ev.id, 
+                            eventEndRound: this.eventEndRound 
+                        });
+                    }
+                    // --------------------------------------
+
+                    if(Network.isOnline) {
+                        Network.sendAction('LOG', { msg: msgGlobal.split('||')[0] });
+                        Network.sendAction('SHOW_ALERT', { msg: msgGlobal, playerName: "Sistema", endsTurn: false });
+                    }
+                }
+            }
         }
         this.turn = nextTurnIdx; 
         this.hasRolled = false; 
+        
+        // 3. A BÊNÇÃO DA RODADA 10 (Sorteio individual para quem vai jogar agora)
+        const nextP = this.players[this.turn];
+        if (this.round > 1 && this.round % 10 === 0) {
+            if (nextP.skipTurns > 0) {
+                this.sendGlobalLog(`❌ ${nextP.name} está paralisado e não pôde receber o bônus da Rodada ${this.round}!`);
+            } else {
+                const Network = (window as any).Network;
+                // O dono do turno avalia sua própria sorte
+                if (!Network.isOnline || this.turn === Network.myPlayerId) {
+                    setTimeout(() => { this.triggerDecadeBonus(nextP); }, 1500);
+                }
+            }
+        } 
         
         if(Network.isOnline) { 
             Network.syncTurn(this.turn, this.round); // Agora envia a rodada junto!
@@ -1510,6 +1675,29 @@ export class Game {
         if (turnPlayer) document.getElementById('turn-indicator')!.innerText = turnPlayer.name; 
         const elRound = document.getElementById('round-indicator'); if (elRound) elRound.innerText = this.round.toString();
         const elRoom = document.getElementById('room-code-indicator');
+
+        // Renderiza o aviso do Clima atual abaixo do time inimigo
+        let eventEl = document.getElementById('global-event-indicator');
+        if (!eventEl) {
+            const infoSec = document.querySelector('.info-section');
+            if (infoSec) {
+                eventEl = document.createElement('div');
+                eventEl.id = 'global-event-indicator';
+                infoSec.appendChild(eventEl);
+            }
+        }
+        if (eventEl) {
+            if (this.currentGlobalEvent) {
+                eventEl.innerHTML = `
+                <div style="margin-top: 10px; padding: 5px; background: rgba(231, 76, 60, 0.15); border: 1px dashed #e74c3c; border-radius: 4px; color: #fff; font-size: 0.8rem; text-align: center; animation: pulseShiny 2s infinite alternate;">
+                    <b style="color: #f1c40f;">${this.currentGlobalEvent.icon} ${this.currentGlobalEvent.name}</b><br>
+                    <span style="font-size: 0.65rem; color: #bdc3c7;">Termina na rodada ${this.eventEndRound}</span>
+                </div>`;
+            } else {
+                eventEl.innerHTML = '';
+            }
+        }
+
         if (elRoom) { const Network = (window as any).Network; elRoom.innerText = Network.isOnline ? Network.currentRoomId : "LOCAL"; }
         const avgLvl = this.getGlobalAverageLevel();
         const elAvg = document.getElementById('avg-lvl-indicator'); if (elAvg) elAvg.innerText = `Lv.${avgLvl}`;
@@ -1657,7 +1845,16 @@ export class Game {
             const parts = msg.split('||CARD:');
             displayMsg = parts[0]; // Pega só o texto limpo
             this.pendingCardAnimation = { id: parts[1], player: playerName }; // Salva a carta
-        } else if (msg.includes('||LEGENDARY:')) {
+        } 
+        else if (msg.includes('||EVENT:')) {
+            const parts = msg.split('||EVENT:');
+            displayMsg = parts[0];
+            const eventId = parts[1];
+            this.currentGlobalEvent = this.GLOBAL_EVENTS.find(e => e.id === eventId);
+            this.eventEndRound = this.round + (this.currentGlobalEvent.id === 'SHINY_FEVER' || this.currentGlobalEvent.id === 'AIRDROP' ? 3 : 2); // Dura de 2 a 3 rodadas completas
+            this.updateHUD(); // Atualiza a caixinha do evento na hora
+        }
+        else if (msg.includes('||LEGENDARY:')) {
             const parts = msg.split('||LEGENDARY:');
             displayMsg = parts[0];
             let monName = parts[1];

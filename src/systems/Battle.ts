@@ -134,6 +134,18 @@ export class Battle {
             this.logBattle("😈 CUIDADO! Você entrou no Ginásio Amaldiçoado! Dano reduzido e Itens bloqueados!", true);
         }
 
+        // EVENTO: TEMPESTADE DE AREIA (Machuca no início)
+        if (Game.currentGlobalEvent?.id === 'SANDSTORM') {
+            const hurtSand = (mon: Pokemon) => {
+                if (!['Pedra', 'Terra', 'Aço'].includes(mon.type) && (!mon.secondType || !['Pedra', 'Terra', 'Aço'].includes(mon.secondType))) {
+                    mon.currentHp = Math.max(1, Math.floor(mon.currentHp * 0.9)); // Perde 10%
+                }
+            };
+            this.plyTeamList.forEach(hurtSand);
+            this.oppTeamList.forEach(hurtSand);
+            setTimeout(() => this.logBattle("🌪️ A Tempestade de Areia corta os Pokémons em campo!", true), 1000);
+        }
+
         if (this.isPvP) {
             this.startRound(this.plyTeamList[0]);
         } else {
@@ -589,12 +601,28 @@ export class Battle {
             if (currentTypeMulti > bestMulti) bestMulti = currentTypeMulti;
         });
 
-        const finalMulti = bestMulti;
+        let finalMulti = bestMulti; // <--- CORREÇÃO AQUI: Trocado de const para let
+        // EVENTOS CLIMÁTICOS GLOBAIS (Soma ou Deduz Multiplicadores)
+        const Game = (window as any).Game;
+        const ev = Game.currentGlobalEvent?.id;
+        let weatherSign = "";
+
+        if (ev === 'DROUGHT') {
+            if (atkTypes.includes('Fogo') || atkTypes.includes('Grama')) { finalMulti += 0.25; weatherSign = "[Sol☀️]"; }
+            if (atkTypes.includes('Água')) { finalMulti -= 0.25; weatherSign = "[Sol🥵]"; }
+        } else if (ev === 'RAIN') {
+            if (atkTypes.includes('Água') || atkTypes.includes('Elétrico')) { finalMulti += 0.25; weatherSign = "[Chuva🌧️]"; }
+            if (atkTypes.includes('Fogo')) { finalMulti -= 0.25; weatherSign = "[Chuva💧]"; }
+        } else if (ev === 'BLOOD_MOON') {
+            if (atkTypes.includes('Fantasma') || atkTypes.includes('Noturno')) { finalMulti += 0.20; weatherSign = "[Lua🌑]"; }
+        }
+
         finalDamage = Math.floor(finalDamage * finalMulti);
 
         if (finalMulti >= 1.5) logDetails += " 🔥!"; 
         else if (finalMulti > 1.0) logDetails += " ⚔️"; 
         else if (finalMulti < 1.0) logDetails += " 🛡️."; 
+        logDetails += weatherSign;
         
         finalDamage = Math.max(0, Math.floor(finalDamage));
 
@@ -1405,7 +1433,10 @@ export class Battle {
         
         if(this.isPvP && this.enemyPlayer) { 
             if(this.enemyPlayer.gold > 0) { 
-                gain = Math.floor(this.enemyPlayer.gold * 0.3); 
+                let pct = 0.3;
+                if (Game.currentGlobalEvent?.id === 'BLOOD_MOON') pct = 0.6; // O Roubo em PvP é DOBRADO
+
+                gain = Math.floor(this.enemyPlayer.gold * pct); 
                 this.enemyPlayer.gold -= gain; 
                 msg += `Roubou ${gain}G!`; 
                 Game.sendGlobalLog(`💰 [Extrato] Transferência de ${gain}G de ${this.enemyPlayer.name} para ${this.player!.name} (Luta PvP).`);
@@ -1429,17 +1460,17 @@ export class Battle {
                 });
             } 
         } else if (this.isGym) { 
-            gain = 1000; 
+            gain = (Game.currentGlobalEvent?.id === 'GOLD_RUSH') ? 2000 : 1000; // Dobro no Dia de Pagamento
             Game.sendGlobalLog(`💰 [Extrato] ${this.player!.name} recebeu +${gain}G (Líder de Ginásio).`);
             if (!this.player!.badges[this.gymId - 1]) { this.player!.badges[this.gymId - 1] = true; msg += ` Insígnia ${this.gymId}!`; } 
         } else if (this.isNPC) { 
-            gain = this.reward; 
+            gain = (Game.currentGlobalEvent?.id === 'GOLD_RUSH') ? this.reward * 2 : this.reward; 
             Game.sendGlobalLog(`💰 [Extrato] ${this.player!.name} recebeu +${gain}G (Treinador NPC).`);
             if(Cards) Cards.draw(this.player!); 
             msg += ` e ganhou uma Carta!`;
         } 
         else { 
-            gain = 150; 
+            gain = (Game.currentGlobalEvent?.id === 'GOLD_RUSH') ? 300 : 150; 
             Game.sendGlobalLog(`💰 [Extrato] ${this.player!.name} recebeu +${gain}G (Pokémon Selvagem).`);
             if (Math.random() <= 0.25) { 
                 if(Cards) Cards.draw(this.player!);
@@ -1522,11 +1553,13 @@ export class Battle {
             this.player!.pokedexData[oppId].seen += 1;
         }
         // ==============================================================
-        
+
         // --- LÓGICA DE PERDA DE OURO DIVIDIDA (PVP vs PVE) ---
         if (this.isPvP && this.enemyPlayer) {
             // Se for aposta pelo "Novo Líder", a punição é 50%, senão 30%
-            const penaltyRate = (this.activeEffects.stealBadgeFrom === this.enemyPlayer.id) ? 0.5 : 0.3;
+            let penaltyRate = (this.activeEffects.stealBadgeFrom === this.enemyPlayer.id) ? 0.5 : 0.3;
+            if (Game.currentGlobalEvent?.id === 'BLOOD_MOON') penaltyRate = Math.min(1.0, penaltyRate * 2); // Dobra punição também!
+
             let lostGold = 0;
             
             if (this.player!.gold > 0) {
@@ -1541,13 +1574,26 @@ export class Battle {
                 Game.sendGlobalLog(`💰 [Extrato] ${this.player!.name} já estava falido e não perdeu ouro no PvP.`);
             }
         } else {
-            // Em PvE (Selvagem/Ginásio/NPC), perde apenas até 100G fixos
-            const lostGold = this.player!.gold >= 100 ? 100 : this.player!.gold;
-            this.player!.gold = Math.max(0, this.player!.gold - 100); 
-            
-            if (lostGold > 0) {
-                Game.sendGlobalLog(`💰 [Extrato] ${this.player!.name} deixou cair -${lostGold}G enquanto fugia.`);
-                Game.sendGlobalLog(`💰 [Extrato] Novo Saldo: ${this.player!.gold}G.`);
+            // EVENTO ROCKET: Se perder no mato ou NPC, eles roubam um Pokémon!
+            if (!this.isGym && Game.currentGlobalEvent?.id === 'ROCKET') {
+                if (this.player!.team.length > 3) {
+                    // Pega um alvo que não seja o falecido principal se possível, para drama!
+                    const stolenIdx = Math.floor(Math.random() * this.player!.team.length);
+                    const stolenMon = this.player!.team.splice(stolenIdx, 1)[0];
+                    Game.sendGlobalLog(`🚀 INVASÃO ROCKET! Eles emboscaram e roubararam o ${stolenMon.name} de ${this.player!.name}!!`);
+                    msg += ` e a Rocket te roubou!`;
+                } else {
+                    Game.sendGlobalLog(`🚀 A Equipe Rocket tentou roubar o único Pokémon de ${this.player!.name}, mas ele sobreviveu por pouco!`);
+                }
+            } else {
+                // Em PvE Normal, perde apenas até 100G fixos
+                const lostGold = this.player!.gold >= 100 ? 100 : this.player!.gold;
+                this.player!.gold = Math.max(0, this.player!.gold - 100); 
+                
+                if (lostGold > 0) {
+                    Game.sendGlobalLog(`💰 [Extrato] ${this.player!.name} deixou cair -${lostGold}G enquanto fugia.`);
+                    Game.sendGlobalLog(`💰 [Extrato] Novo Saldo: ${this.player!.gold}G.`);
+                }
             }
         }
         // -----------------------------------------------------
@@ -1686,6 +1732,13 @@ export class Battle {
     
     //static openCardSelection() { if (!this.isPlayerTurn || this.processingAction) return; const list = document.getElementById('battle-cards-list')!; list.innerHTML = ''; const battleCards = this.player!.cards.filter(c => c.type === 'battle'); if(battleCards.length === 0) { list.innerHTML = "<em>Sem cartas de batalha.</em>"; } else { battleCards.forEach(c => { const d = document.createElement('div'); d.className='card-item'; d.innerHTML = `<div class="card-info"><span class="card-name">${c.icon} ${c.name} <span class="card-type-badge type-battle">BATTLE</span></span><span class="card-desc">${c.desc}</span></div><button class="btn-use-card" onclick="window.Battle.useCard('${c.id}')">USAR</button>`; list.appendChild(d); }); } document.getElementById('battle-cards-modal')!.style.display = 'flex'; }
     static openCardSelection() { 
+        
+        const Game = (window as any).Game;
+        if (Game.currentGlobalEvent?.id === 'EMP') {
+            alert("📡 Cartas bloqueadas pela Tempestade Eletromagnética!");
+            return;
+        }
+
         if (!this.isPlayerTurn || this.processingAction) return; 
         const list = document.getElementById('battle-cards-list')!; 
         list.innerHTML = ''; 
