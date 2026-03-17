@@ -1573,6 +1573,24 @@ export class Battle {
             } else {
                 Game.sendGlobalLog(`💰 [Extrato] ${this.player!.name} já estava falido e não perdeu ouro no PvP.`);
             }
+
+            // --- CORREÇÃO: Sincroniza o PVP antes de verificar se o time todo morreu ---
+            if(Network.isOnline) {
+                // Salva o estado do INIMIGO (ganhou ouro) DIRETAMENTE NO FIREBASE
+                Network.syncSpecificPlayer(this.enemyPlayer.id); 
+                
+                // Manda o aviso visual para o cliente dele
+                Network.sendAction('PVP_SYNC_DAMAGE', { 
+                    targetId: this.enemyPlayer.id, 
+                    team: this.enemyPlayer.team, 
+                    gold: this.enemyPlayer.gold,
+                    badges: this.enemyPlayer.badges,
+                    resetPos: false, 
+                    skipTurn: false 
+                });
+            }
+            // ------------------------
+
         } else {
             // EVENTO ROCKET: Se perder no mato ou NPC, eles roubam um Pokémon!
             if (!this.isGym && Game.currentGlobalEvent?.id === 'ROCKET') {
@@ -1612,41 +1630,12 @@ export class Battle {
         this.player!.skipTurns += 1; 
         
         if (this.isPvP && this.enemyPlayer) { 
-            msg += ` ${this.enemyPlayer.name} venceu!`; 
-            if(Network.isOnline) {
-                Network.sendAction('PVP_SYNC_DAMAGE', { 
-                    targetId: this.enemyPlayer.id, 
-                    team: this.enemyPlayer.team, 
-                    gold: this.enemyPlayer.gold, 
-                    badges: this.enemyPlayer.badges,
-                    resetPos: false, 
-                    skipTurn: false 
-                });
-            }
+            msg += ` ${this.enemyPlayer.name} venceu!`;
         }
 
         // --- CORREÇÃO DO SALVAMENTO DE GOLD NO PVP ---
         if(Network.isOnline) {
-            if (this.isPvP && this.enemyPlayer) {
-                // 1. Salva o MEU estado (perdi ouro)
-                Network.syncPlayerState();
-                
-                // 2. Salva o estado do INIMIGO (ganhou ouro) DIRETAMENTE NO FIREBASE
-                // Isso garante que o ouro entre mesmo se o inimigo estiver lagado ou offline
-                Network.syncSpecificPlayer(this.enemyPlayer.id); 
-                
-                // 3. Manda o aviso visual para o cliente dele
-                Network.sendAction('PVP_SYNC_DAMAGE', { 
-                    targetId: this.enemyPlayer.id, 
-                    team: this.enemyPlayer.team, 
-                    gold: this.enemyPlayer.gold,
-                    badges: this.enemyPlayer.badges,
-                    resetPos: false, 
-                    skipTurn: false 
-                });
-            } else {
-                Network.syncPlayerState(); 
-            }
+            Network.syncPlayerState(); 
         }
         // ---------------------------------------------
         

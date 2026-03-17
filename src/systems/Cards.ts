@@ -726,6 +726,15 @@ export class Cards {
                             player.cards.push(stolenCard);
                             effectLog = `🚀 BINGO! Uma carta foi roubada e foi parar na mão de ${player.name}!`;
                             
+                            // --- ENVIO DO AVISO PRIVADO PARA A VÍTIMA ---
+                            const privateMsg = `🕵️ ALERTA: A Equipe Rocket roubou sua carta [${stolenCard.name}]!||PRIVATE:${target.id}`;
+                            if (Network.isOnline) {
+                                Network.sendAction('LOG', { msg: privateMsg });
+                            } else {
+                                Game.log(`🕵️ ALERTA: A Equipe Rocket roubou a carta [${stolenCard.name}] de ${target.name}!`);
+                            }
+                            // --------------------------------------------
+                            
                             // CORREÇÃO: Sincronização atômica para não perder a carta localmente!
                             if(Network.isOnline) {
                                 if ((Network as any).syncPlayers) {

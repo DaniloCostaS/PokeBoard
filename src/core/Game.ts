@@ -271,7 +271,7 @@ export class Game {
         return wildMon;
     }
 
-    static openPokemonDetail(playerIndex: number, slotIndex: number) {
+    static async openPokemonDetail(playerIndex: number, slotIndex: number) {
         // 1. Identifica o Dono do Pokémon (Pode ser eu ou outro jogador)
         const targetPlayer = this.players[playerIndex];
         if (!targetPlayer) return console.error("Jogador não encontrado para o índice:", playerIndex);
@@ -280,7 +280,8 @@ export class Game {
         if (!mon) return console.error("Pokémon não encontrado no slot:", slotIndex);
 
         // Garante acesso à POKEDEX global (importada ou window)
-        const POKEDEX_GLOBAL = (window as any).POKEDEX || POKEDEX; 
+        const POKEDEX_GLOBAL = (window as any).POKEDEX || POKEDEX;
+        const { MAPA_MEGAS } = await import('../constants/mapaMegas');
 
         // --- PREENCHIMENTO VISUAL BÁSICO (Mantém igual) ---
         document.getElementById('detail-id')!.innerText = `#${mon.id.toString().padStart(3, '0')}`;
@@ -391,6 +392,108 @@ export class Game {
         document.getElementById('detail-reso')!.innerText = resoText;
         document.getElementById('detail-mastery')!.innerHTML = masteryHTML;
         document.getElementById('detail-mastery')!.style.fontWeight = "normal";
+
+        // =========================================================================
+        // NOVO: LINHA EVOLUTIVA E MEGAS NO DETAIL MODAL
+        // =========================================================================
+        let evoContainer = document.getElementById('detail-evolution-chain');
+        if (!evoContainer) {
+            evoContainer = document.createElement('div');
+            evoContainer.id = 'detail-evolution-chain';
+            evoContainer.style.cssText = "margin-top: 15px;";
+            
+            // Adiciona o novo painel no final do modal (abaixo do bloco de maestria)
+            const masteryBlock = document.getElementById('detail-mastery')!.parentElement;
+            if (masteryBlock && masteryBlock.parentElement) {
+                masteryBlock.parentElement.appendChild(evoContainer);
+            }
+        }
+
+        const chain: { id: number, name: string, trigger: string, isMega: boolean }[] = [];
+        let currentDex = POKEDEX_GLOBAL.find((p: any) => p.id === mon.id);
+        
+        if (currentDex) {
+            // Adiciona a forma em que o Pokémon está no momento
+            chain.push({ id: currentDex.id, name: currentDex.name, trigger: 'Forma Atual', isMega: !!(mon as any).isMegaEvolution });
+            
+            let nextName = currentDex.nextForm;
+            let triggerLevel = currentDex.evoTrigger;
+
+            // Busca todas as próximas evoluções normais pra frente
+            while (nextName) {
+                let nextDex = POKEDEX_GLOBAL.find((p: any) => p.name === nextName);
+                if (!nextDex) break;
+                
+                chain.push({ id: nextDex.id, name: nextDex.name, trigger: `Lv.${triggerLevel}`, isMega: false });
+                
+                triggerLevel = nextDex.evoTrigger;
+                nextName = nextDex.nextForm;
+            }
+
+            // Verifica se a ÚLTIMA forma da cadeia montada possui Mega Evolução!
+            const finalEvo = chain[chain.length - 1];
+            const megaId = MAPA_MEGAS[finalEvo.id];
+            
+            if (megaId && !finalEvo.isMega) { // Evita duplicar se quem o jogador clicou já for o mega
+                const megaDex = POKEDEX_GLOBAL.find((p: any) => p.id === megaId);
+                if (megaDex) {
+                     chain.push({ id: megaDex.id, name: "Mega " + finalEvo.name, trigger: '💎 Mega Pedra', isMega: true });
+                }
+            }
+        }
+
+        // Monta o HTML visual da Cadeia Evolutiva
+        if (chain.length > 1) { 
+            let chainHTML = `
+                <div style="font-weight: bold; color: #8e44ad; font-size: 0.9rem; margin-bottom: 8px; display: flex; align-items: center; gap: 5px;">
+                    🧬 Caminho Evolutivo Previsto
+                </div>
+                <div style="display: flex; justify-content: center; align-items: center; background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px solid #eee; overflow-x: auto; gap: 5px;">
+            `;
+
+            chain.forEach((stage, idx) => {
+                const isCurrent = stage.id === mon.id;
+                const filterStyle = stage.isMega ? 'filter: drop-shadow(0 0 5px #f1c40f);' : '';
+                const highlightBorder = isCurrent ? 'border: 2px solid #2ecc71; background: #e8f8f5;' : 'border: 2px solid transparent;';
+                
+                chainHTML += `
+                    <div style="display: flex; flex-direction: column; align-items: center; padding: 5px; border-radius: 8px; ${highlightBorder} min-width: 60px;">
+                        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${stage.id}.png" style="width: 50px; height: 50px; image-rendering: pixelated; ${filterStyle}">
+                        <span style="font-size: 0.65rem; font-weight: bold; color: #2c3e50; text-align: center; line-height: 1;">${stage.name}</span>
+                        <span style="font-size: 0.55rem; color: ${stage.isMega ? '#f39c12' : '#7f8c8d'}; font-weight: bold; background: ${stage.isMega ? '#fef9e7' : '#e0e6ed'}; padding: 2px 4px; border-radius: 4px; margin-top: 4px; white-space: nowrap;">${stage.trigger}</span>
+                    </div>
+                `;
+
+                if (idx < chain.length - 1) {
+                    chainHTML += `<div style="color: #bdc3c7; font-size: 1.2rem; font-weight: bold;">➔</div>`;
+                }
+            });
+
+            chainHTML += `</div>`;
+            evoContainer.innerHTML = chainHTML;
+            evoContainer.style.display = 'block';
+        } else {
+            // Se o Pokémon não tem evolução e nem Mega, exibe uma mensagem neutra
+            evoContainer.innerHTML = `
+                <div style="font-weight: bold; color: #8e44ad; font-size: 0.9rem; margin-bottom: 8px; display: flex; align-items: center; gap: 5px;">
+                    🧬 Caminho Evolutivo Previsto
+                </div>
+                <div style="text-align: center; background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px solid #eee; font-size: 0.8rem; color: #7f8c8d;">
+                    Estágio Final alcançado.
+                </div>
+            `;
+            evoContainer.style.display = 'block';
+        }
+        // ==================================================
+
+        // --- AJUSTE DE TELA: Habilita barra de rolagem se o conteúdo ficar gigante ---
+        // Pega a div interna do modal (normalmente usa a classe .modal-content)
+        const modalContent = document.querySelector('#detail-modal .modal-content') as HTMLElement || document.querySelector('#detail-modal > div') as HTMLElement;
+        if (modalContent) {
+            modalContent.style.maxHeight = "90vh";
+            modalContent.style.overflowY = "auto";
+        }
+        // ------------------------------------------------
 
         document.getElementById('detail-modal')!.style.display = 'flex';
     }
@@ -1794,18 +1897,34 @@ export class Game {
     static getCurrentPlayer() { return this.players[this.turn]; }
 
     static log(m: string) { 
+        // --- SISTEMA DE LOG PRIVADO ---
+        if (m.includes('||PRIVATE:')) {
+            const parts = m.split('||PRIVATE:');
+            const cleanMsg = parts[0];
+            const targetId = parseInt(parts[1], 10);
+
+            const Network = (window as any).Network;
+            // Se estiver online e eu não for o alvo, eu IGNORO a mensagem completamente!
+            if (Network && Network.isOnline && Network.myPlayerId !== targetId) return; 
+            
+            m = cleanMsg; // Se for para mim, limpo a tag para mostrar o texto bonitinho
+        }
+        // ------------------------------
+
         let customStyle = "";
         
         if (m.includes("Fim do turno de")) {
             customStyle = "text-align: center; color: #f39c12; font-weight: bold; margin: 15px 0 5px 0; border-bottom: 2px dashed #7f8c8d; padding-bottom: 5px;";
         }
+
+        // Deixa a mensagem vermelha para a vítima ver que foi roubada
+        if (m.includes("🕵️ ALERTA:")) {
+            customStyle += "color: #e74c3c; font-weight: bold; background: rgba(231, 76, 60, 0.1); border-left: 3px solid #e74c3c; padding-left: 5px;";
+        }
         
         const container = document.getElementById('log-container');
         if (container) {
-            // 'afterbegin' coloca a nova mensagem no topo
             container.insertAdjacentHTML('afterbegin', `<div class="log-entry" style="${customStyle}">${m}</div>`); 
-            
-            // Força a barra de rolagem a ficar colada no topo
             container.scrollTop = 0;
         }
     }
