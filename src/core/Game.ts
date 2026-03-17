@@ -1229,7 +1229,7 @@ export class Game {
                     
                     // --- SALVA ONLINE O EVENTO SORTEADO ---
                     this.currentGlobalEvent = ev;
-                    this.eventEndRound = this.round + (ev.id === 'SHINY_FEVER' || ev.id === 'AIRDROP' ? 3 : 2);
+                    this.eventEndRound = this.round + 3; // EVENTOS AGORA DURAM 3 RODADAS EXATAS
                     if (Network.isOnline && db) {
                         update(ref(db, `rooms/${Network.currentRoomId}`), { 
                             currentEventId: ev.id, 
@@ -1247,20 +1247,6 @@ export class Game {
         }
         this.turn = nextTurnIdx; 
         this.hasRolled = false; 
-        
-        // 3. A BÊNÇÃO DA RODADA 10 (Sorteio individual para quem vai jogar agora)
-        const nextP = this.players[this.turn];
-        if (this.round > 1 && this.round % 10 === 0) {
-            if (nextP.skipTurns > 0) {
-                this.sendGlobalLog(`❌ ${nextP.name} está paralisado e não pôde receber o bônus da Rodada ${this.round}!`);
-            } else {
-                const Network = (window as any).Network;
-                // O dono do turno avalia sua própria sorte
-                if (!Network.isOnline || this.turn === Network.myPlayerId) {
-                    setTimeout(() => { this.triggerDecadeBonus(nextP); }, 1500);
-                }
-            }
-        } 
         
         if(Network.isOnline) { 
             Network.syncTurn(this.turn, this.round); // Agora envia a rodada junto!
@@ -1285,11 +1271,35 @@ export class Game {
         const me = Network.myPlayerId; 
         const ind = document.getElementById('online-indicator'); 
         
+        // --- 1. LIMPEZA DO EVENTO PARA TODOS OS CLIENTES ---
+        if (this.currentGlobalEvent && this.round >= this.eventEndRound) {
+            this.currentGlobalEvent = null;
+            this.eventEndRound = 0;
+            this.updateHUD(); 
+        }
+
+        // --- 2. GATILHO INDIVIDUAL DO BÔNUS DA RODADA 10, 20... ---
+        const processDecadeBonus = (player: Player) => {
+            if (this.round > 1 && this.round % 10 === 0) {
+                if ((player as any).bonusClaimedForRound !== this.round) {
+                    (player as any).bonusClaimedForRound = this.round;
+                    
+                    if (player.skipTurns === 0) {
+                        setTimeout(() => { this.triggerDecadeBonus(player); }, 1000);
+                    } else {
+                        this.log(`❌ ${player.name} está paralisado e perdeu o bônus da Rodada ${this.round}!`);
+                    }
+                }
+            }
+        };
+
         if(Network.isOnline) { 
             if(ind) ind.innerText = "FIREBASE"; 
             if (this.turn === me) { 
                 const myPlayer = this.players[me];
                 
+                processDecadeBonus(myPlayer);
+
                 if (myPlayer.skipTurns > 0) {
                     btn.disabled = true;
                     btn.innerText = `Pulando vez... (${myPlayer.skipTurns})`;
@@ -1311,6 +1321,10 @@ export class Game {
             } 
         } else { 
             if(ind) ind.innerText = "OFFLINE"; 
+
+            const currP = this.players[this.turn];
+            processDecadeBonus(currP); // <--- AVALIA O BÔNUS NO MODO OFFLINE
+            
             btn.disabled = false; 
         } 
     }
@@ -1851,7 +1865,7 @@ export class Game {
             displayMsg = parts[0];
             const eventId = parts[1];
             this.currentGlobalEvent = this.GLOBAL_EVENTS.find(e => e.id === eventId);
-            this.eventEndRound = this.round + (this.currentGlobalEvent.id === 'SHINY_FEVER' || this.currentGlobalEvent.id === 'AIRDROP' ? 3 : 2); // Dura de 2 a 3 rodadas completas
+            this.eventEndRound = this.round + 3; // EVENTOS AGORA DURAM 3 RODADAS EXATAS
             this.updateHUD(); // Atualiza a caixinha do evento na hora
         }
         else if (msg.includes('||LEGENDARY:')) {
