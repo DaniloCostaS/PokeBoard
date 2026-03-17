@@ -524,7 +524,6 @@ export class Game {
         }
         
         // Se já venceu os ginásios ou rolou os outros 75% -> Ganha 2 Cartas
-        const Cards = (window as any).Cards;
         const c1 = Cards.draw(p, true);
         const c2 = Cards.draw(p, true);
         
@@ -1285,7 +1284,8 @@ export class Game {
                     (player as any).bonusClaimedForRound = this.round;
                     
                     if (player.skipTurns === 0) {
-                        setTimeout(() => { this.triggerDecadeBonus(player); }, 1000);
+                        // Delay de 3.5s para garantir que o jogador consiga ler o aviso do Evento Global antes de pular o Bônus na tela!
+                        setTimeout(() => { this.triggerDecadeBonus(player); }, 3500);
                     } else {
                         this.log(`❌ ${player.name} está paralisado e perdeu o bônus da Rodada ${this.round}!`);
                     }
@@ -1324,7 +1324,7 @@ export class Game {
 
             const currP = this.players[this.turn];
             processDecadeBonus(currP); // <--- AVALIA O BÔNUS NO MODO OFFLINE
-            
+
             btn.disabled = false; 
         } 
     }
