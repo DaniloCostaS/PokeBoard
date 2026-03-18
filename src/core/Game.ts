@@ -61,8 +61,19 @@ export class Game {
             get(ref(db, `rooms/${NetworkObj.currentRoomId}`)).then(snap => {
                 const data = snap.val();
                 if (data && data.currentEventId) {
-                    this.currentGlobalEvent = GLOBAL_EVENTS.find(e => e.id === data.currentEventId) || null;
-                    this.eventEndRound = data.eventEndRound || 0;
+                    // --- BLINDAGEM: Se o evento salvo já expirou na rodada atual, ignora! ---
+                    if (this.round >= data.eventEndRound) {
+                        this.currentGlobalEvent = null;
+                        this.eventEndRound = 0;
+                        
+                        // Força a limpeza no banco para consertar o que ficou preso para todos
+                        update(ref(db, `rooms/${NetworkObj.currentRoomId}`), { currentEventId: null, eventEndRound: 0 });
+                    } else {
+                        // Se estiver válido, carrega normal
+                        this.currentGlobalEvent = GLOBAL_EVENTS.find((e: any) => e.id === data.currentEventId) || null;
+                        this.eventEndRound = data.eventEndRound || 0;
+                    }
+                    // -----------------------------------------------
                     this.updateHUD(); // Força a caixinha aparecer de novo
                 }
             });
@@ -1800,6 +1811,17 @@ export class Game {
             }
         }
         if (eventEl) {
+            // --- BLINDAGEM VISUAL: Se a rodada atual passou do limite, extermina o evento! ---
+            if (this.currentGlobalEvent && this.round >= this.eventEndRound) {
+                this.currentGlobalEvent = null;
+                this.eventEndRound = 0;
+                
+                const Network = (window as any).Network;
+                if (Network && Network.isOnline && db) {
+                    update(ref(db, `rooms/${Network.currentRoomId}`), { currentEventId: null, eventEndRound: 0 });
+                }
+            }
+            // --------------------------------------------
             if (this.currentGlobalEvent) {
                 // Calcula quantas rodadas faltam visualmente para o jogador não se perder
                 const roundsLeft = this.eventEndRound - this.round;
