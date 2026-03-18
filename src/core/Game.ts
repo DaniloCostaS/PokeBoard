@@ -1323,11 +1323,11 @@ export class Game {
                 // Apenas quem finalizou a rodada anterior sorteia e avisa para não duplicar na rede
                 if (!Network.isOnline || this.turn === Network.myPlayerId) {
                     const ev = this.GLOBAL_EVENTS[Math.floor(Math.random() * this.GLOBAL_EVENTS.length)];
-                    const msgLocal = `🌍 ANOMALIA DETECTADA!\n\n${ev.icon} ${ev.name}\n${ev.desc}||EVENT:${ev.id}`;
+                    //const msgLocal = `🌍 ANOMALIA DETECTADA!\n\n${ev.icon} ${ev.name}\n${ev.desc}||EVENT:${ev.id}`;
                     const msgGlobal = `🌍 ALERTA GLOBAL! O evento ${ev.name} começou!||EVENT:${ev.id}`;
                     
-                    this.showGlobalAlert(msgLocal, "Sistema", true, false);
-                    this.log(msgGlobal.split('||')[0]); // <--- IMPRIME NO LOG
+                    //this.showGlobalAlert(msgLocal, "Sistema", true, false);
+                    //this.log(msgGlobal.split('||')[0]); // <--- IMPRIME NO LOG
                     
                     // --- SALVA ONLINE O EVENTO SORTEADO ---
                     this.currentGlobalEvent = ev;
@@ -1339,6 +1339,9 @@ export class Game {
                         });
                     }
                     // --------------------------------------
+
+                    // Registra no Log Local (que agora também ativa a caixinha)
+                    this.log(msgGlobal);
 
                     if(Network.isOnline) {
                         Network.sendAction('LOG', { msg: msgGlobal.split('||')[0] });
@@ -1904,12 +1907,23 @@ export class Game {
             const targetId = parseInt(parts[1], 10);
 
             const Network = (window as any).Network;
-            // Se estiver online e eu não for o alvo, eu IGNORO a mensagem completamente!
             if (Network && Network.isOnline && Network.myPlayerId !== targetId) return; 
             
-            m = cleanMsg; // Se for para mim, limpo a tag para mostrar o texto bonitinho
+            m = cleanMsg; 
         }
         // ------------------------------
+
+        // --- NOVO: EVENTO GLOBAL SILENCIOSO ---
+        if (m.includes('||EVENT:')) {
+            const parts = m.split('||EVENT:');
+            m = parts[0]; // Limpa a tag secreta para exibir bonito no chat
+            const eventId = parts[1];
+            
+            this.currentGlobalEvent = this.GLOBAL_EVENTS.find(e => e.id === eventId);
+            this.eventEndRound = this.round + 3; // Eventos duram 3 rodadas
+            this.updateHUD(); // Força a caixinha do clima atualizar na mesma hora pra todos!
+        }
+        // --------------------------------------
 
         let customStyle = "";
         
@@ -1917,13 +1931,18 @@ export class Game {
             customStyle = "text-align: center; color: #f39c12; font-weight: bold; margin: 15px 0 5px 0; border-bottom: 2px dashed #7f8c8d; padding-bottom: 5px;";
         }
 
-        // Deixa a mensagem vermelha para a vítima ver que foi roubada
         if (m.includes("🕵️ ALERTA:")) {
             customStyle += "color: #e74c3c; font-weight: bold; background: rgba(231, 76, 60, 0.1); border-left: 3px solid #e74c3c; padding-left: 5px;";
+        }
+
+        // Destaque visual lindo para o Evento Global no Log
+        if (m.includes("🌍 ALERTA GLOBAL!")) {
+            customStyle += "color: #f1c40f; font-weight: bold; background: rgba(241, 196, 15, 0.1); border-left: 3px solid #f1c40f; padding-left: 5px;";
         }
         
         const container = document.getElementById('log-container');
         if (container) {
+            m = m.replace(/\n/g, '<br>'); // Troca quebra de linha de código para HTML
             container.insertAdjacentHTML('afterbegin', `<div class="log-entry" style="${customStyle}">${m}</div>`); 
             container.scrollTop = 0;
         }
@@ -1979,14 +1998,6 @@ export class Game {
             displayMsg = parts[0]; // Pega só o texto limpo
             this.pendingCardAnimation = { id: parts[1], player: playerName }; // Salva a carta
         } 
-        else if (msg.includes('||EVENT:')) {
-            const parts = msg.split('||EVENT:');
-            displayMsg = parts[0];
-            const eventId = parts[1];
-            this.currentGlobalEvent = this.GLOBAL_EVENTS.find(e => e.id === eventId);
-            this.eventEndRound = this.round + 3; // EVENTOS AGORA DURAM 3 RODADAS EXATAS
-            this.updateHUD(); // Atualiza a caixinha do evento na hora
-        }
         else if (msg.includes('||LEGENDARY:')) {
             const parts = msg.split('||LEGENDARY:');
             displayMsg = parts[0];

@@ -92,14 +92,18 @@ export class Battle {
             this.oppTeamList = battleIds.map((id: number) => new Pokemon(id, gymLevel, false, true));
             this.opponent = this.oppTeamList[0];
             
-            this.plyTeamList = player.getBattleTeam(true);
+            //this.plyTeamList = player.getBattleTeam(true);
+            // --- CORREÇÃO: Garante que o jogador use TODO o time vivo no Ginásio ---
+            this.plyTeamList = player.team.filter(p => !p.isFainted());
             if (this.plyTeamList.length === 0) {
                  this.plyTeamList = player.team.filter(p => !p.isFainted());
             }
         } else { 
             this.oppTeamList = Array.isArray(enemyMon) ? enemyMon : [enemyMon]; 
             this.opponent = this.oppTeamList[0]; 
-            this.plyTeamList = player.getBattleTeam(true); 
+            //this.plyTeamList = player.getBattleTeam(true); 
+            // --- CORREÇÃO: Garante que o jogador use TODO o time vivo no PvE ---
+            this.plyTeamList = player.team.filter(p => !p.isFainted());
         }
 
         // =====================================================================
@@ -1033,8 +1037,15 @@ export class Battle {
         }
         // ---------------------------------------
 
-        if (this.activeMon && (this.activeMon as any).isTemp) {
-            this.logBattle("🧬 O DNA de Mew se esgotou e o Pokémon original retornou!");
+        if (this.activeMon && ((this.activeMon as any).isTemp || (this.activeMon as any).isMegaEvolution)) {
+            const isMega = (this.activeMon as any).isMegaEvolution;
+            
+            if (isMega) {
+                this.logBattle("🧬 A Mega Evolução não resistiu e o Pokémon original retornou à batalha!");
+            } else {
+                this.logBattle("🧬 O DNA de Mew se esgotou e o Pokémon original retornou!");
+            }
+
             this.revertMew();
             this.updateUI();
             if (this.activeMon.currentHp <= 0) { } 
@@ -1205,6 +1216,15 @@ export class Battle {
                 this.player.team[this.activeEffects.mewIndex] = original;
             }
             
+            // --- CORREÇÃO: Restaurar o Original na Lista de Batalha ---
+            const plyListIdx = this.plyTeamList.findIndex(p => (p as any).isTemp || (p as any).isMegaEvolution);
+            if (plyListIdx !== -1) {
+                this.plyTeamList[plyListIdx] = original;
+            } else {
+                this.plyTeamList[0] = original;
+            }
+            // ----------------------------------------------------------
+
             // Restaura o ActiveMon se ele for o Mega
             if (this.activeMon && ((this.activeMon as any).isTemp || this.activeMon.isMegaEvolution)) {
                 this.activeMon = original;
@@ -1263,6 +1283,15 @@ export class Battle {
         this.activeMon = megaMon;
         this.player!.team[this.activeEffects.mewIndex] = megaMon;
         this.plyTeamList[0] = megaMon; 
+
+        // --- CORREÇÃO: Substitui na posição correta da lista de combate ---
+        const plyListIdx = this.plyTeamList.findIndex(p => p.id === this.activeEffects.mewOriginal.id);
+        if (plyListIdx !== -1) {
+            this.plyTeamList[plyListIdx] = megaMon;
+        } else {
+            this.plyTeamList[0] = megaMon;
+        }
+        // -------------------------------------------------------
 
         // 5. Atualiza a UI e Logs
         this.logBattle(`🧬 O elo fortaleceu! Mega Evolução para ${megaMon.name}!`, true);
@@ -1996,11 +2025,11 @@ export class Battle {
         } else {
             let chance = item.rate || 0;
             const hpPercent = (opponent.currentHp / opponent.maxHp) * 100;
-            if (hpPercent < 15) chance += 50; else if (hpPercent < 60) chance += 25;
+            if (hpPercent < 20) chance += 50; else if (hpPercent < 60) chance += 25;
             if (activeMon.level > opponent.level) chance += 5; 
             else if (activeMon.level < opponent.level) chance -= 5;
             const oppStats = opponent.maxHp + opponent.atk + opponent.def + opponent.speed;
-            const powerPenalty = Math.floor(oppStats / 25);
+            const powerPenalty = Math.floor(oppStats / 15);
             chance -= powerPenalty;
             if (opponent.isLegendary) chance -= 20;
             if (opponent.isShiny) chance -= 10;
@@ -2008,7 +2037,7 @@ export class Battle {
             const diceBonus = (d6 * 4) - 14; 
             chance += diceBonus;
             // --- CORREÇÃO: Taxa mínima de 10% ---
-            chance = Math.max(10, Math.min(95, chance));
+            chance = Math.max(15, Math.min(95, chance));
 
             // Log atualizado para mostrar a resistência aos jogadores
             this.logBattle(`(Chance Final: ${chance}% | Resistência: -${powerPenalty}% | Sorte: ${diceBonus > 0 ? '+' : ''}${diceBonus}%)`, true);

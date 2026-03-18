@@ -1554,29 +1554,29 @@ export const POKEDEX: PokemonData[] = [
 
   {"id": 983, "name": "Kingambit", "type": "Noturno", "secondType": "Aço", "BaseTotal": 350, "hp": 100, "atk": 98, "def": 102, "spd": 50, "stage": 3, "nextForm": null},
 
-  {"id": 984, "name": "Great Tusk", "type": "Terra", "secondType": "Lutador", "BaseTotal": 386, "hp": 115, "atk": 92, "def": 92, "spd": 87, "stage": 1, "nextForm": null},
+  {"id": 984, "name": "Great Tusk", "type": "Terra", "secondType": "Lutador", "BaseTotal": 386, "hp": 115, "atk": 92, "def": 92, "spd": 87, "stage": 3, "nextForm": null},
 
-  {"id": 985, "name": "Scream Tail", "type": "Fada", "secondType": "Psíquico", "BaseTotal": 398, "hp": 115, "atk": 65, "def": 107, "spd": 111, "stage": 1, "nextForm": null},
+  {"id": 985, "name": "Scream Tail", "type": "Fada", "secondType": "Psíquico", "BaseTotal": 398, "hp": 115, "atk": 65, "def": 107, "spd": 111, "stage": 3, "nextForm": null},
 
-  {"id": 986, "name": "Brute Bonnet", "type": "Grama", "secondType": "Noturno", "BaseTotal": 368, "hp": 111, "atk": 103, "def": 99, "spd": 55, "stage": 1, "nextForm": null},
+  {"id": 986, "name": "Brute Bonnet", "type": "Grama", "secondType": "Noturno", "BaseTotal": 368, "hp": 111, "atk": 103, "def": 99, "spd": 55, "stage": 3, "nextForm": null},
 
-  {"id": 987, "name": "Flutter Mane", "type": "Fada", "secondType": "Fantasma", "BaseTotal": 380, "hp": 55, "atk": 95, "def": 95, "spd": 135, "stage": 1, "nextForm": null},
+  {"id": 987, "name": "Flutter Mane", "type": "Fada", "secondType": "Fantasma", "BaseTotal": 380, "hp": 55, "atk": 95, "def": 95, "spd": 135, "stage": 3, "nextForm": null},
 
-  {"id": 988, "name": "Slither Wing", "type": "Inseto", "secondType": "Lutador", "BaseTotal": 368, "hp": 85, "atk": 110, "def": 92, "spd": 81, "stage": 1, "nextForm": null},
+  {"id": 988, "name": "Slither Wing", "type": "Inseto", "secondType": "Lutador", "BaseTotal": 368, "hp": 85, "atk": 110, "def": 92, "spd": 81, "stage": 3, "nextForm": null},
 
-  {"id": 989, "name": "Sandy Shocks", "type": "Elétrico", "secondType": "Terra", "BaseTotal": 378, "hp": 85, "atk": 101, "def": 91, "spd": 101, "stage": 1, "nextForm": null},
+  {"id": 989, "name": "Sandy Shocks", "type": "Elétrico", "secondType": "Terra", "BaseTotal": 378, "hp": 85, "atk": 101, "def": 91, "spd": 101, "stage": 3, "nextForm": null},
 
-  {"id": 990, "name": "Iron Treads", "type": "Terra", "secondType": "Aço", "BaseTotal": 383, "hp": 90, "atk": 92, "def": 95, "spd": 106, "stage": 1, "nextForm": null},
+  {"id": 990, "name": "Iron Treads", "type": "Terra", "secondType": "Aço", "BaseTotal": 383, "hp": 90, "atk": 92, "def": 95, "spd": 106, "stage": 3, "nextForm": null},
 
-  {"id": 991, "name": "Iron Bundle", "type": "Gelo", "secondType": "Água", "BaseTotal": 381, "hp": 56, "atk": 102, "def": 87, "spd": 136, "stage": 1, "nextForm": null},
+  {"id": 991, "name": "Iron Bundle", "type": "Gelo", "secondType": "Água", "BaseTotal": 381, "hp": 56, "atk": 102, "def": 87, "spd": 136, "stage": 3, "nextForm": null},
 
-  {"id": 992, "name": "Iron Hands", "type": "Lutador", "secondType": "Elétrico", "BaseTotal": 387, "hp": 154, "atk": 95, "def": 88, "spd": 50, "stage": 1, "nextForm": null},
+  {"id": 992, "name": "Iron Hands", "type": "Lutador", "secondType": "Elétrico", "BaseTotal": 387, "hp": 154, "atk": 95, "def": 88, "spd": 50, "stage": 3, "nextForm": null},
 
-  {"id": 993, "name": "Iron Jugulis", "type": "Noturno", "secondType": "Voador", "BaseTotal": 386, "hp": 94, "atk": 101, "def": 83, "spd": 108, "stage": 1, "nextForm": null},
+  {"id": 993, "name": "Iron Jugulis", "type": "Noturno", "secondType": "Voador", "BaseTotal": 386, "hp": 94, "atk": 101, "def": 83, "spd": 108, "stage": 3, "nextForm": null},
 
-  {"id": 994, "name": "Iron Moth", "type": "Fogo", "secondType": "Veneno", "BaseTotal": 380, "hp": 80, "atk": 105, "def": 85, "spd": 110, "stage": 1, "nextForm": null},
+  {"id": 994, "name": "Iron Moth", "type": "Fogo", "secondType": "Veneno", "BaseTotal": 380, "hp": 80, "atk": 105, "def": 85, "spd": 110, "stage": 3, "nextForm": null},
 
-  {"id": 995, "name": "Iron Thorns", "type": "Pedra", "secondType": "Elétrico", "BaseTotal": 371, "hp": 100, "atk": 102, "def": 97, "spd": 72, "stage": 1, "nextForm": null},
+  {"id": 995, "name": "Iron Thorns", "type": "Pedra", "secondType": "Elétrico", "BaseTotal": 371, "hp": 100, "atk": 102, "def": 97, "spd": 72, "stage": 3, "nextForm": null},
 
   {"id": 996, "name": "Frigibax", "type": "Dragão", "secondType": "Gelo", "BaseTotal": 220, "hp": 65, "atk": 55, "def": 45, "spd": 55, "stage": 1, "nextForm": "Arctibax", "evoTrigger": 5},
   {"id": 997, "name": "Arctibax", "type": "Dragão", "secondType": "Gelo", "BaseTotal": 288, "hp": 90, "atk": 70, "def": 66, "spd": 62, "stage": 2, "nextForm": "Baxcalibur", "evoTrigger": 10},
@@ -1593,9 +1593,9 @@ export const POKEDEX: PokemonData[] = [
 
   {"id": 1004, "name": "Chi-Yu", "type": "Noturno", "secondType": "Fogo", "BaseTotal": 363, "hp": 55, "atk": 108, "def": 100, "spd": 100, "stage": 1, "nextForm": null, "isLegendary": true},
 
-  {"id": 1005, "name": "Roaring Moon", "type": "Dragão", "secondType": "Noturno", "BaseTotal": 407, "hp": 105, "atk": 97, "def": 86, "spd": 119, "stage": 1, "nextForm": null, "isLegendary": true},
+  {"id": 1005, "name": "Roaring Moon", "type": "Dragão", "secondType": "Noturno", "BaseTotal": 407, "hp": 105, "atk": 97, "def": 86, "spd": 119, "stage": 3, "nextForm": null, "isLegendary": true},
 
-  {"id": 1006, "name": "Iron Valiant", "type": "Fada", "secondType": "Lutador", "BaseTotal": 390, "hp": 74, "atk": 125, "def": 75, "spd": 116, "stage": 1, "nextForm": null, "isLegendary": true},
+  {"id": 1006, "name": "Iron Valiant", "type": "Fada", "secondType": "Lutador", "BaseTotal": 390, "hp": 74, "atk": 125, "def": 75, "spd": 116, "stage": 3, "nextForm": null, "isLegendary": true},
 
   {"id": 1007, "name": "Koraidon", "type": "Lutador", "secondType": "Dragão", "BaseTotal": 453, "hp": 100, "atk": 110, "def": 108, "spd": 135, "stage": 1, "nextForm": null, "isLegendary": true},
 
