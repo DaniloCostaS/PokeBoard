@@ -1799,19 +1799,24 @@ export class Game {
         // Renderiza o aviso do Clima atual abaixo do time inimigo
         let eventEl = document.getElementById('global-event-indicator');
         if (!eventEl) {
-            const infoSec = document.querySelector('.info-section');
+            // Busca a section de info, se não achar, gruda direto na coluna direita da HUD (Segurança)
+            const infoSec = document.querySelector('.info-section') || document.getElementById('hud-col-right');
             if (infoSec) {
                 eventEl = document.createElement('div');
                 eventEl.id = 'global-event-indicator';
-                infoSec.appendChild(eventEl);
+                // Adiciona no topo se for a coluna direita, ou no final se for info-section
+                if (infoSec.id === 'hud-col-right') infoSec.insertBefore(eventEl, infoSec.firstChild);
+                else infoSec.appendChild(eventEl);
             }
         }
         if (eventEl) {
             if (this.currentGlobalEvent) {
+                // Calcula quantas rodadas faltam visualmente para o jogador não se perder
+                const roundsLeft = this.eventEndRound - this.round;
                 eventEl.innerHTML = `
                 <div style="margin-top: 10px; padding: 5px; background: rgba(231, 76, 60, 0.15); border: 1px dashed #e74c3c; border-radius: 4px; color: #fff; font-size: 0.8rem; text-align: center; animation: pulseShiny 2s infinite alternate;">
                     <b style="color: #f1c40f;">${this.currentGlobalEvent.icon} ${this.currentGlobalEvent.name}</b><br>
-                    <span style="font-size: 0.65rem; color: #bdc3c7;">Termina na rodada ${this.eventEndRound}</span>
+                    <span style="font-size: 0.65rem; color: #bdc3c7;">Faltam ${roundsLeft} rodada(s)</span>
                 </div>`;
             } else {
                 eventEl.innerHTML = '';
