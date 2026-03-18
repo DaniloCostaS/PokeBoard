@@ -24,6 +24,7 @@ export class Player {
         lureShiny?: number;
         doubleXp?: number;
         expShare?: number;
+        lastBonusRound?: number;
     } = {};
 
     // --- NOVA ESTRUTURA PARA A POKÉDEX FUTURA ---

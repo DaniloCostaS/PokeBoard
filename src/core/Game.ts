@@ -61,7 +61,13 @@ export class Game {
         if(NetworkObj.isOnline && db) {
             get(ref(db, `rooms/${NetworkObj.currentRoomId}`)).then(snap => {
                 const data = snap.val();
-                if (data && data.currentEventId) {
+                if (data) {
+                    // --- SINCRONIZA A RODADA CORRETA DO FIREBASE ---
+                    if (data.round && data.round > this.round) {
+                        this.round = data.round;
+                    }
+                }
+                if (data.currentEventId) {
                     // --- BLINDAGEM: Se o evento salvo já expirou na rodada atual, ignora! ---
                     if (this.round >= data.eventEndRound) {
                         this.currentGlobalEvent = null;
@@ -1309,6 +1315,13 @@ export class Game {
             this.round++; // Completou um ciclo inteiro, aumenta a rodada!
             const Network = (window as any).Network;
             
+            // --- NOVO: SINCRONIZA A RODADA PARA OS AMIGOS IMEDIATAMENTE ---
+            if (Network.isOnline) {
+                Network.sendAction('LOG', { msg: `||ROUND:${this.round}` });
+                if (db) update(ref(db, `rooms/${Network.currentRoomId}`), { round: this.round });
+            }
+            // -------------------------------------------------------------
+
             // 1. Limpa evento antigo
             if (this.currentGlobalEvent && this.round >= this.eventEndRound) {
                 this.currentGlobalEvent = null;
@@ -1389,16 +1402,19 @@ export class Game {
         // --- 2. GATILHO INDIVIDUAL DO BÔNUS DA RODADA 10, 20... ---
         const processDecadeBonus = (player: Player) => {
             if (this.round > 1 && this.round % 10 === 0) {
-                // Checa no cofre da máquina atual se o bônus já foi pego
-                if (this.lastBonusRoundClaimed !== this.round) {
-                    this.lastBonusRoundClaimed = this.round;
+                // O SEGREDO: Salvar DENTRO de "effects" porque temos certeza que o Network.ts salva isso no Firebase!
+                if (player.effects.lastBonusRound !== this.round) {
+                    player.effects.lastBonusRound = this.round;
                     
                     if (player.skipTurns === 0) {
-                        // Sem delay! O Evento Global não trava mais a tela, 
-                        // então o bônus dispara na mesma hora com 100% de garantia.
+                        // Sem setTimeout! Entrega imediata para evitar atropelamento de rede
                         this.triggerDecadeBonus(player);
                     } else {
                         this.log(`❌ ${player.name} está paralisado e perdeu o bônus da Rodada ${this.round}!`);
+                        
+                        // Força o salvamento para o paralisado também não farmar com F5
+                        const Network = (window as any).Network;
+                        if (Network && Network.isOnline) Network.syncSpecificPlayer(player.id);
                     }
                 }
             }
@@ -1926,6 +1942,18 @@ export class Game {
     static getCurrentPlayer() { return this.players[this.turn]; }
 
     static log(m: string) { 
+        // --- SINCRONIZADOR INVISÍVEL DE RODADA ---
+        if (m.includes('||ROUND:')) {
+            const r = parseInt(m.split('||ROUND:')[1]);
+            if (r > this.round) {
+                this.round = r;
+                this.updateHUD();
+                this.checkTurnControl(); // A mágica: Re-checa o bônus com a rodada certa!
+            }
+            return; // Esconde do chat
+        }
+        // -----------------------------------------
+
         // --- SISTEMA DE LOG PRIVADO ---
         if (m.includes('||PRIVATE:')) {
             const parts = m.split('||PRIVATE:');
