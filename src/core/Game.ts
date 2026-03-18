@@ -13,6 +13,7 @@ import { Shop } from '../systems/Shop';
 import { Cards } from '../systems/Cards';
 import type { ItemData } from '../constants';
 import { RARIDADE_DATA } from '../constants/Raridades';
+import { GLOBAL_EVENTS } from '../constants/globalEvents';
 
 export class Game {
     static players: Player[] = []; 
@@ -34,17 +35,6 @@ export class Game {
     // --- VARIÁVEIS DOS EVENTOS GLOBAIS ---
     static currentGlobalEvent: any = null;
     static eventEndRound: number = 0;
-    static GLOBAL_EVENTS = [
-        { id: 'DROUGHT', icon: '☀️', name: 'Onda de Calor', desc: 'Fogo/Planta +25% Dano. Água -25%.' },
-        { id: 'RAIN', icon: '🌧️', name: 'Chuva Torrencial', desc: 'Água/Elétrico +25% Dano. Fogo -25%.' },
-        { id: 'SANDSTORM', icon: '🌪️', name: 'Tempestade Areia', desc: 'Não-Pedra/Terra/Aço perdem 10% HP no início da luta.' },
-        { id: 'SHINY_FEVER', icon: '✨', name: 'Febre Shiny', desc: 'Surtos de Shinys na natureza!' },
-        { id: 'GOLD_RUSH', icon: '💰', name: 'Dia de Pagamento', desc: 'Recompensas em Ouro x2 em vitórias!' },
-        { id: 'AIRDROP', icon: '🎒', name: 'Chuva de Suprimentos', desc: 'Casas vazias podem conter itens gratuitos!' },
-        { id: 'BLOOD_MOON', icon: '🌑', name: 'Lua Sangrenta', desc: 'Fantasma/Noturno +20% Dano. Roubos (PvP/Trap) x2!' },
-        { id: 'EMP', icon: '📡', name: 'Tempestade EMP', desc: 'Cartas e Centros Pokémon estão BLOQUEADOS!' },
-        { id: 'ROCKET', icon: '🚀', name: 'Invasão Rocket', desc: 'Perder para selvagem faz eles roubarem um Pokémon seu!' }
-    ];
 
     static init(players: Player[], mapSize: number) { 
         this.players = players; 
@@ -71,7 +61,7 @@ export class Game {
             get(ref(db, `rooms/${NetworkObj.currentRoomId}`)).then(snap => {
                 const data = snap.val();
                 if (data && data.currentEventId) {
-                    this.currentGlobalEvent = this.GLOBAL_EVENTS.find(e => e.id === data.currentEventId) || null;
+                    this.currentGlobalEvent = GLOBAL_EVENTS.find(e => e.id === data.currentEventId) || null;
                     this.eventEndRound = data.eventEndRound || 0;
                     this.updateHUD(); // Força a caixinha aparecer de novo
                 }
@@ -1322,7 +1312,7 @@ export class Game {
             if (this.round > 1 && this.round % 10 === 0) {
                 // Apenas quem finalizou a rodada anterior sorteia e avisa para não duplicar na rede
                 if (!Network.isOnline || this.turn === Network.myPlayerId) {
-                    const ev = this.GLOBAL_EVENTS[Math.floor(Math.random() * this.GLOBAL_EVENTS.length)];
+                    const ev = GLOBAL_EVENTS[Math.floor(Math.random() * GLOBAL_EVENTS.length)];
                     //const msgLocal = `🌍 ANOMALIA DETECTADA!\n\n${ev.icon} ${ev.name}\n${ev.desc}||EVENT:${ev.id}`;
                     const msgGlobal = `🌍 ALERTA GLOBAL! O evento ${ev.name} começou!||EVENT:${ev.id}`;
                     
@@ -1924,7 +1914,7 @@ export class Game {
             m = parts[0]; // Limpa a tag secreta para exibir bonito no chat
             const eventId = parts[1];
             
-            this.currentGlobalEvent = this.GLOBAL_EVENTS.find(e => e.id === eventId);
+            this.currentGlobalEvent = GLOBAL_EVENTS.find(e => e.id === eventId);
             this.eventEndRound = this.round + 4; // Eventos duram 3 rodadas
             this.updateHUD(); // Força a caixinha do clima atualizar na mesma hora pra todos!
         }

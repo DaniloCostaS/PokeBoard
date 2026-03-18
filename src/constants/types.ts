@@ -31,6 +31,13 @@ export interface RaridadeData {
     rate?: number;
 }
 
+export interface GlobalEvent {
+    id: string;
+    icon: string;
+    name: string;
+    desc: string;
+}
+
 export interface CardData {
     id: string;
     name: string;

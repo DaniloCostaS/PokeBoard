@@ -1453,12 +1453,15 @@ export class Battle {
         // =========================================================================
 
         if (this.activeEffects.destiny) { 
-            this.player!.gold += 200; 
-            if(Cards) Cards.draw(this.player!); 
-            msg += " (+200G +Carta)"; 
-            Game.sendGlobalLog(`💰 [Extrato] ${this.player!.name} recebeu +200G (Carta Destiny).`); 
+            this.player!.gold += 500; // <--- Aumentado para 500G
+            if(Cards) {
+                Cards.draw(this.player!); // Puxa a 1ª Carta
+                Cards.draw(this.player!); // Puxa a 2ª Carta
+            }
+            msg += " (+500G +2 Cartas)"; // <--- Atualiza a mensagem na tela
+            Game.sendGlobalLog(`💰 [Extrato] ${this.player!.name} recebeu +500G (Carta Destiny).`); 
             Game.sendGlobalLog(`💰 [Extrato] Novo Saldo: ${this.player!.gold}G.`);
-        } 
+        }
         
         if(this.isPvP && this.enemyPlayer) { 
             if(this.enemyPlayer.gold > 0) { 
