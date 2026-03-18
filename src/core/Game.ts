@@ -35,6 +35,7 @@ export class Game {
     // --- VARIÁVEIS DOS EVENTOS GLOBAIS ---
     static currentGlobalEvent: any = null;
     static eventEndRound: number = 0;
+    static lastBonusRoundClaimed: number = 0; // Armazena o bônus localmente de forma segura
 
     static init(players: Player[], mapSize: number) { 
         this.players = players; 
@@ -1345,8 +1346,9 @@ export class Game {
                     this.log(msgGlobal);
 
                     if(Network.isOnline) {
-                        Network.sendAction('LOG', { msg: msgGlobal.split('||')[0] });
-                        Network.sendAction('SHOW_ALERT', { msg: msgGlobal, playerName: "Sistema", endsTurn: false });
+                        //Network.sendAction('LOG', { msg: msgGlobal.split('||')[0] });
+                        Network.sendAction('LOG', { msg: msgGlobal });
+                        //Network.sendAction('SHOW_ALERT', { msg: msgGlobal, playerName: "Sistema", endsTurn: false });
                     }
                 }
             }
@@ -1387,12 +1389,14 @@ export class Game {
         // --- 2. GATILHO INDIVIDUAL DO BÔNUS DA RODADA 10, 20... ---
         const processDecadeBonus = (player: Player) => {
             if (this.round > 1 && this.round % 10 === 0) {
-                if ((player as any).bonusClaimedForRound !== this.round) {
-                    (player as any).bonusClaimedForRound = this.round;
+                // Checa no cofre da máquina atual se o bônus já foi pego
+                if (this.lastBonusRoundClaimed !== this.round) {
+                    this.lastBonusRoundClaimed = this.round;
                     
                     if (player.skipTurns === 0) {
-                        // Delay de 3.5s para garantir que o jogador consiga ler o aviso do Evento Global antes de pular o Bônus na tela!
-                        setTimeout(() => { this.triggerDecadeBonus(player); }, 3500);
+                        // Sem delay! O Evento Global não trava mais a tela, 
+                        // então o bônus dispara na mesma hora com 100% de garantia.
+                        this.triggerDecadeBonus(player);
                     } else {
                         this.log(`❌ ${player.name} está paralisado e perdeu o bônus da Rodada ${this.round}!`);
                     }
@@ -1440,7 +1444,12 @@ export class Game {
     static getSaveData() { return { players: this.players, turn: this.turn, mapSize: MapSystem.size, grid: MapSystem.grid, gymLoc: MapSystem.gymLocations }; }
     static saveGame() { localStorage.setItem('pk_save', JSON.stringify(this.getSaveData())); }
     static loadGame() { const json=localStorage.getItem('pk_save'); if(json) this.loadGameFromData(JSON.parse(json)); }
-    static loadGameFromData(d: any) { MapSystem.size=d.mapSize; MapSystem.grid=d.grid; MapSystem.gymLocations=d.gymLoc || {}; this.players = d.players.map((pd:any) => { const file = pd.avatar.split('/').pop(); const pl = new Player(pd.id, pd.name, file, true); Object.assign(pl, pd); pl.avatar = `/assets/img/Treinadores/${file}`; pl.team = pd.team.map((td:any) => { const po=new Pokemon(td.id, td.level, td.isShiny); Object.assign(po, td); return po; }); return pl; }); this.turn = d.turn; document.getElementById('setup-screen')!.style.display='none'; document.getElementById('game-container')!.style.display='flex'; Game.init(this.players, d.mapSize); }
+    //static loadGameFromData(d: any) { MapSystem.size=d.mapSize; MapSystem.grid=d.grid; MapSystem.gymLocations=d.gymLoc || {}; this.players = d.players.map((pd:any) => { const file = pd.avatar.split('/').pop(); const pl = new Player(pd.id, pd.name, file, true); Object.assign(pl, pd); pl.avatar = `/assets/img/Treinadores/${file}`; pl.team = pd.team.map((td:any) => { const po=new Pokemon(td.id, td.level, td.isShiny); Object.assign(po, td); return po; }); return pl; }); this.turn = d.turn; document.getElementById('setup-screen')!.style.display='none'; document.getElementById('game-container')!.style.display='flex'; Game.init(this.players, d.mapSize); }
+    static loadGameFromData(d: any) { 
+        MapSystem.size=d.mapSize; MapSystem.grid=d.grid; MapSystem.gymLocations=d.gymLoc || {}; 
+        this.lastBonusRoundClaimed = d.lastBonusRoundClaimed || 0;
+        this.players = d.players.map((pd:any) => { const file = pd.avatar.split('/').pop(); const pl = new Player(pd.id, pd.name, file, true); Object.assign(pl, pd); pl.avatar = `/assets/img/Treinadores/${file}`; pl.team = pd.team.map((td:any) => { const po=new Pokemon(td.id, td.level, td.isShiny); Object.assign(po, td); return po; }); return pl; }); this.turn = d.turn; document.getElementById('setup-screen')!.style.display='none'; document.getElementById('game-container')!.style.display='flex'; Game.init(this.players, d.mapSize); 
+    }
     static exportSave() { const d = localStorage.getItem('pk_save'); if(!d)return alert("Vazio"); const b = new Blob([d], {type:'text/plain'}); const a = document.createElement('a'); a.href=URL.createObjectURL(b); a.download='save.txt'; a.click(); }
     static importSave(i: HTMLInputElement) { const f = i.files?.[0]; if(!f)return; const r = new FileReader(); r.onload=e=>{ localStorage.setItem('pk_save', e.target?.result as string); this.loadGame(); }; r.readAsText(f); }
     static openInventoryModal(pId: number) { const p = this.players[pId]; const list = document.getElementById('board-inventory-list')!; list.innerHTML = ''; const canUse = (this.canAct() && this.turn === pId); Object.keys(p.items).forEach(key => { if(p.items[key] > 0) { const item = SHOP_ITEMS.find(i => i.id === key); if(item) { const d = document.createElement('div'); d.className='shop-item'; let btnHTML = ''; if(canUse && (item.type === 'heal' || item.type === 'revive')) { btnHTML = `<button class="btn btn-mini" style="width:auto;" onclick="window.Game.useItemBoard('${key}', ${pId})">Usar</button>`; } d.innerHTML = `<div style="display:flex; align-items:center;"><img src="/assets/img/Itens/${item.icon}" class="item-icon-mini"><span>${item.name} x${p.items[key]}</span></div>${btnHTML}`; list.appendChild(d); } } }); document.getElementById('board-inventory-modal')!.style.display='flex'; }
