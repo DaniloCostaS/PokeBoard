@@ -1331,7 +1331,7 @@ export class Game {
                     
                     // --- SALVA ONLINE O EVENTO SORTEADO ---
                     this.currentGlobalEvent = ev;
-                    this.eventEndRound = this.round + 3; // EVENTOS AGORA DURAM 3 RODADAS EXATAS
+                    this.eventEndRound = this.round + 4; // EVENTOS AGORA DURAM 3 RODADAS EXATAS
                     if (Network.isOnline && db) {
                         update(ref(db, `rooms/${Network.currentRoomId}`), { 
                             currentEventId: ev.id, 
@@ -1920,7 +1920,7 @@ export class Game {
             const eventId = parts[1];
             
             this.currentGlobalEvent = this.GLOBAL_EVENTS.find(e => e.id === eventId);
-            this.eventEndRound = this.round + 3; // Eventos duram 3 rodadas
+            this.eventEndRound = this.round + 4; // Eventos duram 3 rodadas
             this.updateHUD(); // Força a caixinha do clima atualizar na mesma hora pra todos!
         }
         // --------------------------------------
