@@ -1319,6 +1319,12 @@ export class Battle {
 
         // Se tiver mais de 1 captura (repetidos), aplica 10% de bônus por cópia
         if (captures > 1) {
+
+            // --- BLINDAGEM ANTI-SNOWBALL ---
+            // Limpa qualquer buff antigo resetando para os status puros do Level
+            mon.recalculateStats(false);
+            // -------------------------------
+
             const extraCount = captures - 1;
             const bonusPercent = Math.min(1.0, extraCount * 0.10); // Máx +100%
             
@@ -1608,8 +1614,15 @@ export class Battle {
 
             // --- CORREÇÃO: Sincroniza o PVP antes de verificar se o time todo morreu ---
             if(Network.isOnline) {
-                // Salva o estado do INIMIGO (ganhou ouro) DIRETAMENTE NO FIREBASE
-                Network.syncSpecificPlayer(this.enemyPlayer.id); 
+                // O SEGREDO: Salvar o Atacante (que perdeu o ouro) JUNTO com o Inimigo de forma atômica!
+                // Isso impede que o Firebase devolva o ouro velho antes da tela de derrota.
+                const NetworkObj = (window as any).Network;
+                if (NetworkObj.syncPlayers) {
+                    NetworkObj.syncPlayers([this.player!.id, this.enemyPlayer.id]);
+                } else {
+                    NetworkObj.syncPlayerState();
+                    NetworkObj.syncSpecificPlayer(this.enemyPlayer.id);
+                }
                 
                 // Manda o aviso visual para o cliente dele
                 Network.sendAction('PVP_SYNC_DAMAGE', { 
@@ -1644,6 +1657,11 @@ export class Battle {
                     Game.sendGlobalLog(`💰 [Extrato] ${this.player!.name} deixou cair -${lostGold}G enquanto fugia.`);
                     Game.sendGlobalLog(`💰 [Extrato] Novo Saldo: ${this.player!.gold}G.`);
                 }
+            }
+            
+            // Garante o salvamento imediato do PvE também!
+            if (Network.isOnline) {
+                Network.syncPlayerState();
             }
         }
         // -----------------------------------------------------
@@ -1689,6 +1707,19 @@ export class Battle {
         this.active = false; 
         this.opponent = null; 
         this.oppTeamList = []; // Limpando lista de pokemons.
+
+        // --- BLINDAGEM: LAVA OS STATUS DE VOLTA AO NORMAL ---
+        // Quando a luta acaba, tira a ressonância para salvar limpo no banco!
+        if (this.player && this.player.team) {
+            this.player.team.forEach(mon => {
+                if ((mon as any).isResonant) {
+                    mon.recalculateStats(false);
+                    (mon as any).isResonant = false;
+                    (mon as any).resonantBonus = 0;
+                }
+            });
+        }
+        // ----------------------------------------------------
 
         // CORREÇÃO: Limpa todos os efeitos (incluindo o roubo de insígnia)
         // para não vazar para os próximos PvPs normais do tabuleiro.

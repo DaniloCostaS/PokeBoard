@@ -25,6 +25,7 @@ export class Player {
         doubleXp?: number;
         expShare?: number;
         lastBonusRound?: number;
+        escapedGym?: boolean;
     } = {};
 
     // --- NOVA ESTRUTURA PARA A POKÉDEX FUTURA ---

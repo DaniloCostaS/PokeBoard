@@ -1325,6 +1325,13 @@ export class Game {
                 effectsChanged = true;
             }
             
+            // --- LIMPEZA DA IMUNIDADE DE FUGA ---
+            if (currentP.effects.escapedGym) {
+                currentP.effects.escapedGym = false;
+                effectsChanged = true; // Força o Firebase a salvar que ele perdeu a imunidade
+            }
+            // ------------------------------------
+            
             // Salva a contagem atualizada no Firebase se algum efeito foi gasto
             if (effectsChanged) {
                 const Network = (window as any).Network;
@@ -1469,13 +1476,18 @@ export class Game {
                 if (type === TILE.GYM && !this.pendingTileEvent) {
                     const gymId = MapSystem.gymLocations[`${myPlayer.x},${myPlayer.y}`];
                     if (gymId && !myPlayer.badges[gymId - 1]) {
-                        btn.disabled = true;
-                        btn.innerText = "EM BATALHA";
-                        
-                        // Trava para não abrir a batalha 2x se ele já estiver lutando
-                        const BattleObj = (window as any).Battle;
-                        if (!BattleObj.active) this.handleTile(myPlayer);
-                        return;
+                        // --- EXCEÇÃO: IMUNIDADE DE FUGA (FUMAÇA NINJA) ---
+                        if (myPlayer.effects.escapedGym) {
+                            // Imunidade ativa! Deixa ele rolar o dado em paz para ir embora.
+                        } else {
+                            btn.disabled = true;
+                            btn.innerText = "EM BATALHA";
+                            
+                            // Trava para não abrir a batalha 2x se ele já estiver lutando
+                            const BattleObj = (window as any).Battle;
+                            if (!BattleObj.active) this.handleTile(myPlayer);
+                            return;
+                        }
                     }
                 }
                 // ----------------------------------------------
@@ -1511,12 +1523,17 @@ export class Game {
             if (type === TILE.GYM && !this.pendingTileEvent) {
                 const gymId = MapSystem.gymLocations[`${currP.x},${currP.y}`];
                 if (gymId && !currP.badges[gymId - 1]) {
-                    btn.disabled = true;
-                    btn.innerText = "EM BATALHA";
-                    
-                    const BattleObj = (window as any).Battle;
-                    if (!BattleObj.active) this.handleTile(currP);
-                    return;
+                    // --- EXCEÇÃO: IMUNIDADE DE FUGA (FUMAÇA NINJA) ---
+                    if (currP.effects.escapedGym) {
+                        // Imunidade ativa! Deixa ele rolar o dado em paz.
+                    } else {
+                        btn.disabled = true;
+                        btn.innerText = "EM BATALHA";
+                        
+                        const BattleObj = (window as any).Battle;
+                        if (!BattleObj.active) this.handleTile(currP);
+                        return;
+                    }
                 }
             }
             // -----------------------------------------

@@ -885,7 +885,12 @@ export class Cards {
                 consumed = false; 
                 break;
             
-            case 'run': Battle.logBattle("💨 Fugiu com estilo!"); Battle.end(false); break;
+            case 'run': 
+                player.effects.escapedGym = true; // <--- PASSO 4: IMUNIDADE NINJA AQUI!
+                Battle.logBattle("💨 Fugiu com estilo!"); 
+                Battle.end(false); 
+                break;
+                
             case 'guard': Battle.activeEffects.guard = true; Battle.logBattle("🛡️ Escudo ativado! (-50% dano recebido)"); break;
             case 'focus': Battle.activeEffects.focus = true; Battle.logBattle("🎯 Foco Total! Próximo ataque 4x dano."); break;
             case 'status': Battle.activeEffects.stunOpponent = 2; Battle.logBattle("⚡ Inimigo atordoado por 2 turnos!"); break;
