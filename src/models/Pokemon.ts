@@ -230,16 +230,16 @@ export class Pokemon {
             // Verifica o Double XP
             if (player.effects.doubleXp && player.effects.doubleXp > 0) {
                 finalAmount *= 2;
-                player.effects.doubleXp--;
+                // player.effects.doubleXp--; <--- REMOVIDO! (Desconta por turno no Game.ts)
                 usedEffect = true;
-                if (player.effects.doubleXp === 0) Game.sendGlobalLog(`🛑 O efeito Double XP de ${player.name} acabou!`);
+                // Mensagem de fim de efeito removida daqui também!
             }
 
             // Verifica o Exp Share
             if (player.effects.expShare && player.effects.expShare > 0) {
-                player.effects.expShare--;
+                // player.effects.expShare--; <--- REMOVIDO! (Desconta por turno no Game.ts)
                 usedEffect = true;
-                if (player.effects.expShare === 0) Game.sendGlobalLog(`🛑 O efeito Exp Share de ${player.name} acabou!`);
+                // Mensagem de fim de efeito removida daqui também!
                 
                 const aliveTeam = player.team.filter(p => !p.isFainted());
                 

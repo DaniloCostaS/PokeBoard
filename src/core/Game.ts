@@ -215,6 +215,12 @@ export class Game {
         else if (globalAvg >= 5 && globalAvg < 10) { allowedStages = [1, 2]; allowLegendaries = true; } 
         else { allowedStages = [1, 2, 3]; allowLegendaries = true; }
 
+        // --- EVENTO: FEBRE LENDÁRIA (Ignora a trava de nível baixo) ---
+        if (this.currentGlobalEvent?.id === 'LEGENDARY_FEVER') {
+            allowLegendaries = true;
+        }
+        // --------------------------------------------------------------
+
         // 3. Pool de Candidatos Válidos
         const validCandidates = POKEDEX.filter(p => {
             // Verifica se ALGUM dos dois tipos bate com o terreno
@@ -241,6 +247,14 @@ export class Game {
                 break;
             }
         }
+
+        // --- EVENTO: FEBRE LENDÁRIA (Força o resultado do dado) ---
+        // Se o evento estiver ativo, existe 30% de chance do jogo jogar 
+        // a roleta normal no lixo e invocar um Lendário diretamente!
+        if (this.currentGlobalEvent?.id === 'LEGENDARY_FEVER' && Math.random() <= 0.30) {
+            selectedRarityId = 'Lendário';
+        }
+        // ----------------------------------------------------------
 
         const rarityInfo = RARIDADE_DATA.find(r => r.id === selectedRarityId);
 
@@ -599,6 +613,13 @@ export class Game {
 
     // --- NOVO: BÔNUS DA RODADA DEZ ---
     static triggerDecadeBonus(p: Player) {
+        // --- BLINDAGEM MÁXIMA ABSOLUTA ---
+        // Um computador nunca poderá gerar e enviar bônus na rede para outro jogador.
+        if (Network && Network.isOnline && p.id !== Network.myPlayerId) {
+            return;
+        }
+        // ---------------------------------
+        
         const roll = Math.random();
         
         // 25% de chance de ir para Ginásio
@@ -625,7 +646,7 @@ export class Game {
                 this.pendingTileEvent = true; // Ativará o Ginásio ao fechar o OK
                 this.showGlobalAlert(msgLocal, p.name, true, false);
                 
-                const Network = (window as any).Network;
+                //const Network = (window as any).Network;
                 if (Network.isOnline) {
                     Network.syncPlayerState();
                     Network.sendAction('LOG', { msg: `🌀 VÓRTICE! ${p.name} foi sugado para um Ginásio na Rodada ${this.round}!` });
@@ -642,7 +663,7 @@ export class Game {
         this.updateHUD();
         this.showGlobalAlert(msgLocal, p.name, true, false); // false = não encerra a vez, ele joga normal depois!
         
-        const Network = (window as any).Network;
+        //const Network = (window as any).Network;
         if (Network.isOnline) {
              Network.syncPlayerState();
              Network.sendAction('LOG', { msg: `🎁 ${p.name} recebeu 2 Cartas bônus da Rodada ${this.round}!` });
@@ -1281,20 +1302,36 @@ export class Game {
         const currentP = this.getCurrentPlayer();
         currentP.resetTurnFlags();
 
-        // --- CORREÇÃO LURE SHINY: Só decrementa se o jogador ROLOU O DADO ---
-        // Se ele pulou a vez (skipTurns), o efeito não é gasto!
-        if (this.hasRolled && currentP.effects && currentP.effects.lureShiny && currentP.effects.lureShiny > 0) {
-            currentP.effects.lureShiny--;
-            
-            if (currentP.effects.lureShiny === 0) {
-                this.sendGlobalLog(`✨ O efeito Lure Shiny de ${currentP.name} perdeu a força.`);
+        // --- DECREMENTO DE EFEITOS POR TURNO (Lure, Double XP e Exp Share) ---
+        // Só decrementa se o jogador ROLOU O DADO. Se pulou a vez, congela os efeitos!
+        if (this.hasRolled && currentP.effects) {
+            let effectsChanged = false;
+
+            if (currentP.effects.lureShiny && currentP.effects.lureShiny > 0) {
+                currentP.effects.lureShiny--;
+                if (currentP.effects.lureShiny === 0) this.sendGlobalLog(`✨ Lure Shiny de ${currentP.name} perdeu a força.`);
+                effectsChanged = true;
+            }
+
+            if (currentP.effects.doubleXp && currentP.effects.doubleXp > 0) {
+                currentP.effects.doubleXp--;
+                if (currentP.effects.doubleXp === 0) this.sendGlobalLog(`📉 O efeito Double XP de ${currentP.name} acabou.`);
+                effectsChanged = true;
+            }
+
+            if (currentP.effects.expShare && currentP.effects.expShare > 0) {
+                currentP.effects.expShare--;
+                if (currentP.effects.expShare === 0) this.sendGlobalLog(`📉 O efeito Exp. Share de ${currentP.name} acabou.`);
+                effectsChanged = true;
             }
             
-            // Salva a contagem atualizada no Firebase
-            const Network = (window as any).Network;
-            if (Network && Network.isOnline) Network.syncSpecificPlayer(currentP.id);
+            // Salva a contagem atualizada no Firebase se algum efeito foi gasto
+            if (effectsChanged) {
+                const Network = (window as any).Network;
+                if (Network && Network.isOnline) Network.syncSpecificPlayer(currentP.id);
+            }
         }
-        // ---------------------------------------------------------------------
+        // ----------------------------------------------------------
 
         if (currentP.effects.extraTurn) {
             currentP.effects.extraTurn = false;

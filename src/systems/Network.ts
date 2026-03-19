@@ -233,7 +233,10 @@ export class Network {
         onValue(ref(db, `rooms/${this.currentRoomId}/turn`), (snapshot) => { const turn = snapshot.val(); if(turn !== null) { Game.turn = turn; Game.updateHUD(); Game.checkTurnControl(); } }); 
         onValue(ref(db, `rooms/${this.currentRoomId}/round`), (snapshot) => { 
             const round = snapshot.val(); 
-            if(round !== null) { Game.round = round; Game.updateHUD(); } 
+            if(round !== null) { 
+                Game.round = round; 
+                Game.updateHUD();
+            } 
         });
         onValue(ref(db, `rooms/${this.currentRoomId}/players`), (snapshot) => { 
             const playersData = snapshot.val(); 
