@@ -890,7 +890,7 @@ export class Cards {
                 Battle.logBattle("💨 Fugiu com estilo!"); 
                 Battle.end(false); 
                 break;
-                
+
             case 'guard': Battle.activeEffects.guard = true; Battle.logBattle("🛡️ Escudo ativado! (-50% dano recebido)"); break;
             case 'focus': Battle.activeEffects.focus = true; Battle.logBattle("🎯 Foco Total! Próximo ataque 4x dano."); break;
             case 'status': Battle.activeEffects.stunOpponent = 2; Battle.logBattle("⚡ Inimigo atordoado por 2 turnos!"); break;
@@ -1157,11 +1157,12 @@ export class Cards {
             Game.log(logMsg);
             if (effectLog) Game.log(effectLog);
 
-            // Abre a pop-up na tela (Exceto no New Leader, pois ele já abre a tela de Batalha!)
-            if (cardId !== 'new_leader') {
-                //Game.showGlobalAlert(fullMsg, player.name, true, false);
+            // --- BLINDAGEM ANTI-CHOQUE DE JANELAS ---
+            // Ignora o pop-up local para cartas que já abrem suas próprias janelas interativas na mesma hora.
+            if (cardId !== 'new_leader' && cardId !== 'reroll' && cardId !== 'dice') {
                 Game.showGlobalAlert(fullMsg + `||CARD:${cardId}`, player.name, true, false);
             }
+            // ----------------------------------------
 
             if (Network.isOnline) {
                 Network.syncPlayerState();
