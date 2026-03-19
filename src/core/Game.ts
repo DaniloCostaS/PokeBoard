@@ -1462,6 +1462,24 @@ export class Game {
             if (this.turn === me) { 
                 const myPlayer = this.players[me];
                 
+                // --- BLINDAGEM ANTI-F5 (VÓRTICE DO GINÁSIO) ---
+                // Se o jogador der F5 para fugir, ele nasce em cima do ginásio invicto.
+                // Isso tira o botão de rolar e força ele a lutar na mesma hora!
+                const type = MapSystem.grid[myPlayer.y][myPlayer.x];
+                if (type === TILE.GYM && !this.pendingTileEvent) {
+                    const gymId = MapSystem.gymLocations[`${myPlayer.x},${myPlayer.y}`];
+                    if (gymId && !myPlayer.badges[gymId - 1]) {
+                        btn.disabled = true;
+                        btn.innerText = "EM BATALHA";
+                        
+                        // Trava para não abrir a batalha 2x se ele já estiver lutando
+                        const BattleObj = (window as any).Battle;
+                        if (!BattleObj.active) this.handleTile(myPlayer);
+                        return;
+                    }
+                }
+                // ----------------------------------------------
+
                 processDecadeBonus(myPlayer);
 
                 if (myPlayer.skipTurns > 0) {
@@ -1487,6 +1505,22 @@ export class Game {
             if(ind) ind.innerText = "OFFLINE"; 
 
             const currP = this.players[this.turn];
+
+            // --- BLINDAGEM ANTI-F5 NO MODO OFFLINE ---
+            const type = MapSystem.grid[currP.y][currP.x];
+            if (type === TILE.GYM && !this.pendingTileEvent) {
+                const gymId = MapSystem.gymLocations[`${currP.x},${currP.y}`];
+                if (gymId && !currP.badges[gymId - 1]) {
+                    btn.disabled = true;
+                    btn.innerText = "EM BATALHA";
+                    
+                    const BattleObj = (window as any).Battle;
+                    if (!BattleObj.active) this.handleTile(currP);
+                    return;
+                }
+            }
+            // -----------------------------------------
+            
             processDecadeBonus(currP); // <--- AVALIA O BÔNUS NO MODO OFFLINE
 
             btn.disabled = false; 
