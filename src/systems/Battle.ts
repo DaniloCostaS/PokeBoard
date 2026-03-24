@@ -30,6 +30,7 @@ export class Battle {
     static activeEffects: any = {};
     static currentTerrain: number = 0;
     static isAutoPvE: boolean = false;
+    static isChampion: boolean = false;
 
     static setup(player: Player, enemyMon: any, isPvP: boolean = false, _label: string = "", reward: number = 0, enemyPlayer: Player | null = null, isGym: boolean = false, gymId: number = 0, npcImage: string = "", terrainTile: number = 1) {
         const Game = (window as any).Game;
@@ -177,6 +178,40 @@ export class Battle {
         this.isAutoPvE = false;
     }
 
+    static startChampionBattle(player: Player, championData: any) {
+        this.active = true;
+        this.isPvP = false;
+        this.isNPC = true; 
+        this.isGym = false;
+        this.isChampion = true; // <--- LIGA O MODO FINAL!
+
+        this.player = player;
+        
+        // --- CORREÇÃO: Pega todo o time vivo igual no Ginásio ---
+        this.plyTeamList = player.team.filter(p => !p.isFainted()); 
+
+        // Recria o time do campeão usando os dados do Firebase
+        const PokemonClass = (window as any).Pokemon || player.team[0].constructor;
+        this.oppTeamList = championData.team.map((td: any) => {
+            const po = new PokemonClass(td.id, td.level, td.isShiny);
+            Object.assign(po, td);
+            po.currentHp = po.maxHp; // Cura total do chefão
+            return po;
+        });
+        this.opponent = this.oppTeamList[0];
+
+        this.battleTitle = `🏆 CAMPEÃO ATUAL: ${championData.name.toUpperCase()} 🏆`;
+        
+        // --- CORREÇÃO: Chama a tela de escolha em vez de travar a batalha ---
+        const contextTitle = `🏆 <b>DESAFIO AO CAMPEÃO ${championData.name.toUpperCase()}!</b><br><small style="color:#f1c40f; font-size:0.9rem;">Escolha seu Pokémon para a Batalha Final!</small>`;
+        this.openSelectionModal(contextTitle);
+        // ------------------------------------------------------------------
+        
+        const Game = (window as any).Game;
+        Game.sendGlobalLog(`⚔️ O DESAFIO FINAL! ${player.name} está enfrentando o Campeão ${championData.name}!`);
+        this.logBattle(`🏆 DESAFIO AO CAMPEÃO 🏆\nSem Itens. Sem Cartas. Apenas força bruta!`);
+    }
+
     static openSelectionModal(title: string) { 
         const modal = document.getElementById('pkmn-select-modal')!; 
         const list = document.getElementById('pkmn-select-list')!; 
@@ -316,11 +351,14 @@ export class Battle {
         const autoBtn = document.getElementById('btn-auto-pve') as HTMLButtonElement;
 
         // Regras de visibilidade e bloqueio específicas
-        if(this.isPvP) { 
-            runBtn.disabled = true; 
+        if(this.isChampion) {
+            if(runBtn) runBtn.disabled = true; // Impede fugir do Campeão
+            if(autoBtn) autoBtn.style.display = 'block';
+        } else if(this.isPvP) { 
+            if(runBtn) runBtn.disabled = true; 
             if(autoBtn) autoBtn.style.display = 'none'; // Esconde Auto PvE no PvP
         } else if (this.isGym) {
-            runBtn.disabled = true;
+            if(runBtn) runBtn.disabled = true;
             if(autoBtn) autoBtn.style.display = 'block';
         } else {
             if(autoBtn) autoBtn.style.display = 'block';
@@ -1379,6 +1417,21 @@ export class Battle {
         const Network = (window as any).Network; 
         const Cards = (window as any).Cards; 
         
+        // --- VITÓRIA NO DESAFIO DO CAMPEÃO ---
+        if (this.isChampion) {
+            Game.sendGlobalLog(`🎉 INACREDITÁVEL! ${this.player!.name} DERROTOU O CAMPEÃO E VENCEU O JOGO! 🎉`);
+            
+            if (Network && Network.isOnline) {
+                Network.saveGlobalChampion(this.player!); // Salva ele no Firebase global
+                Network.sendAction('GAME_WIN', { winnerId: this.player!.id });
+            }
+            
+            this.end(false);
+            Game.triggerVictory(this.player!.id);
+            return;
+        }
+        // ------------------------------------
+
         // Segurança: Se eu sou o inimigo (cliente passivo), não executo a lógica de vitória do atacante
         if(Network.isOnline && this.isPvP && Network.myPlayerId === this.enemyPlayer?.id) return;
 
@@ -1550,12 +1603,12 @@ export class Battle {
             }
         }
         
-        if (this.player!.badges.every(b => b === true)) {
-            document.getElementById('battle-modal')!.style.display = 'none';
-            this.active = false; Game.triggerVictory(this.player!.id);
-            if(Network.isOnline) Network.sendAction('GAME_WIN', { winnerId: this.player!.id });
-            return; 
-        }
+        // if (this.player!.badges.every(b => b === true)) {
+        //     document.getElementById('battle-modal')!.style.display = 'none';
+        //     this.active = false; Game.triggerVictory(this.player!.id);
+        //     if(Network.isOnline) Network.sendAction('GAME_WIN', { winnerId: this.player!.id });
+        //     return; 
+        // }
 
         setTimeout(() => {
             this.logBattle(`🏆 ${msg}`, true); 
@@ -1707,6 +1760,7 @@ export class Battle {
         this.active = false; 
         this.opponent = null; 
         this.oppTeamList = []; // Limpando lista de pokemons.
+        this.isChampion = false;
 
         // --- BLINDAGEM: LAVA OS STATUS DE VOLTA AO NORMAL ---
         // Quando a luta acaba, tira a ressonância para salvar limpo no banco!
@@ -1908,11 +1962,13 @@ export class Battle {
     // =========================================================================================
 
     static useItem(key: string, data: ItemData) {
+        if (this.isChampion) return alert("🚫 As regras da Liga proíbem o uso de Itens de Cura no Desafio do Campeão!");
+
         if (data.type === 'revive') {
             alert("Você não pode reviver Pokémon durante a batalha!");
             return;
         }
-
+        
         const Network = (window as any).Network;
         document.getElementById('battle-bag')!.style.display = 'none';
 

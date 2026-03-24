@@ -32,6 +32,7 @@ export class Network {
     
     static async createRoom() { 
         if(!this.checkInput()) return; 
+        await this.loadGlobalChampion();
 
         // --- NOVA LÓGICA DE CÓDIGO MANUAL ---
         const customInput = (document.getElementById('custom-room-code') as HTMLInputElement);
@@ -175,7 +176,8 @@ export class Network {
     }
 
     static async initializeGameFromFirebase() { 
-        const Game = (window as any).Game; 
+        const Game = (window as any).Game;
+        await this.loadGlobalChampion();
         const snapshot = await get(ref(db, `rooms/${this.currentRoomId}`)); 
         const data = snapshot.val(); 
         Game.round = data.round || 1;
@@ -467,6 +469,40 @@ export class Network {
             wins: mon.wins || 0
         }));
     }
+
+    // ==========================================
+    // SISTEMA DE CAMPEÃO GLOBAL (HALL DA FAMA)
+    // ==========================================
+    static async loadGlobalChampion() {
+        try {
+            const snap = await get(ref(db, 'global/champion'));
+            const Game = (window as any).Game; // <--- Pega a referência do Jogo
+            
+            if (snap.exists()) {
+                Game.globalChampion = snap.val();
+            } else {
+                Game.globalChampion = null;
+            }
+            
+            // --- ATUALIZA A TELA ASSIM QUE BAIXAR OS DADOS ---
+            if (Game.renderChampionBanner) Game.renderChampionBanner();
+            // -------------------------------------------------
+            
+        } catch (e) { console.error("Erro ao carregar campeão", e); }
+    }
+
+    static async saveGlobalChampion(player: Player) {
+        try {
+            const championData = {
+                name: player.name,
+                avatar: player.avatar.split('/').pop(),
+                team: this.getSanitizedTeam(player.team)
+            };
+            // Salva FORA da pasta rooms!
+            await set(ref(db, 'global/champion'), championData);
+        } catch (e) { console.error("Erro ao salvar campeão", e); }
+    }
+    // ==========================================
 
     static syncPlayerState() { 
         if(!this.isOnline) return; 

@@ -614,6 +614,10 @@ export class Cards {
         const Network = (window as any).Network;
         const player: Player = Game.getCurrentPlayer();
 
+        if ((window as any).Battle && (window as any).Battle.isChampion) {
+            return alert("🚫 As regras da Liga proíbem o uso de Cartas no Desafio do Campeão!");
+        }
+        
         const cardData = CARDS_DB.find(c => c.id === cardId);
         if (!cardData) return;
 

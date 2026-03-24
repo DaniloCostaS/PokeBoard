@@ -91,7 +91,7 @@ export class Game {
         this.updateHUD(); 
         this.moveVisuals(); 
         this.checkTurnControl(); 
-        this.renderDebugPanel(); 
+        //this.renderDebugPanel(); 
     }
 
     // --- NOVA FUNÇÃO GERADORA DE TIMES DE GINÁSIO ---
@@ -569,7 +569,7 @@ export class Game {
         }
     }
     
-    static renderDebugPanel() { const container = document.querySelector('.extra-space'); if(container) { container.innerHTML = ` <button class="btn btn-secondary" onclick="window.Game.openCardLibrary()">📖 Ver Todas as Cartas</button> <button class="btn btn-secondary" style="background: #27ae60;" onclick="window.Game.openXpRules()">📘 Regras de XP</button> <button class="btn btn-secondary" style="background: #e67e22;" onclick="window.Game.openCaptureRules()">🦅 Regras de Captura</button> <div style="margin-top:10px; font-size:0.7rem; color:#aaa;">DEBUG MOVE</div> <div style="display:flex; gap:5px; justify-content:center;"> <input type="number" id="debug-input" value="1" min="1" max="50" style="width:50px; text-align:center; border:none; padding:5px; border-radius:4px;"> <button class="btn" style="width:auto; margin:0; padding:5px 10px;" onclick="window.Game.debugMove()">GO</button> </div> <button class="btn" style="margin-top:5px; background: #e67e22;" onclick="window.Game.exportSave()">💾 DEBUG SAVE</button> <div style="margin-top:5px;"><small id="online-indicator" style="color:cyan;">OFFLINE</small></div> `; } }
+    //static renderDebugPanel() { const container = document.querySelector('.extra-space'); if(container) { container.innerHTML = ` <button class="btn btn-secondary" onclick="window.Game.openCardLibrary()">📖 Ver Todas as Cartas</button> <button class="btn btn-secondary" style="background: #27ae60;" onclick="window.Game.openXpRules()">📘 Regras de XP</button> <button class="btn btn-secondary" style="background: #e67e22;" onclick="window.Game.openCaptureRules()">🦅 Regras de Captura</button> <div style="margin-top:10px; font-size:0.7rem; color:#aaa;">DEBUG MOVE</div> <div style="display:flex; gap:5px; justify-content:center;"> <input type="number" id="debug-input" value="1" min="1" max="50" style="width:50px; text-align:center; border:none; padding:5px; border-radius:4px;"> <button class="btn" style="width:auto; margin:0; padding:5px 10px;" onclick="window.Game.debugMove()">GO</button> </div> <button class="btn" style="margin-top:5px; background: #e67e22;" onclick="window.Game.exportSave()">💾 DEBUG SAVE</button> <div style="margin-top:5px;"><small id="online-indicator" style="color:cyan;">OFFLINE</small></div> `; } }
     
     static openCardLibrary() { 
         const list = document.getElementById('library-list')!; 
@@ -783,6 +783,40 @@ export class Game {
     
     static async rollDice() { 
         if(!this.canAct() || this.hasRolled) return; 
+
+        // Pega o jogador atual logo no início para fazermos a checagem das insígnias
+        const p = this.getCurrentPlayer(); 
+
+        // ===============================================================
+        // NOVO: CHECAGEM DO CAMPEÃO (8 INSÍGNIAS) ANTES DE ROLAR O DADO
+        // ===============================================================
+        const badgesCount = p.badges.filter((b: boolean) => b).length;
+        if (badgesCount === 8) {
+            const GameClass = (window as any).Game || this;
+            if (GameClass.globalChampion) {
+                // Pergunta se ele quer lutar agora ou continuar farmando
+                const querLutar = confirm(`🏆 VOCÊ TEM AS 8 INSÍGNIAS!\n\nDeseja desafiar o Campeão Atual (${GameClass.globalChampion.name}) agora?\n\n(Regras: Sem itens, sem cartas. Vencer = Fim de Jogo!)\n\nClique OK para Lutar ou Cancelar para rolar o dado e se preparar mais.`);
+                
+                if (querLutar) {
+                    const Battle = (window as any).Battle;
+                    Battle.startChampionBattle(p, GameClass.globalChampion);
+                    return; // Interrompe o giro do dado! Ele vai pra luta!
+                }
+            } else {
+                // Se não tem ninguém no banco de dados (Primeira partida da história)
+                alert("🏆 PARABÉNS! Você conseguiu as 8 Insígnias e é o Primeiro Campeão da Liga!");
+                const NetworkObj = (window as any).Network;
+                if (NetworkObj && NetworkObj.isOnline) {
+                    NetworkObj.saveGlobalChampion(p); // Grava ele como o 1º Campeão
+                    NetworkObj.sendAction('GAME_WIN', { winnerId: p.id });
+                }
+                this.triggerVictory(p.id);
+                return; // Interrompe o giro do dado!
+            }
+        }
+        // ===============================================================
+
+        // Se ele não tem 8 insígnias, ou se escolheu "Cancelar" a luta, o jogo continua normal:
         this.hasRolled = true; 
         let result = 0; 
         
@@ -791,7 +825,6 @@ export class Game {
             this.forcedDiceValue = 0; 
             this.log("🔮 Dado Mágico usado!"); 
         } else { 
-            const p = this.getCurrentPlayer(); 
             if (p.effects.slow && p.effects.slow > 0) { 
                 // Efeito Slow agora anda de 1 a 1 casa
                 result = 1; 
@@ -803,10 +836,13 @@ export class Game {
             } 
         } 
         
-        if(Network.isOnline) { 
-            Network.sendAction('ROLL', { result: result }); 
+        // Dispara o resultado para a rede e roda a animação
+        const NetworkObj = (window as any).Network || Network;
+        if(NetworkObj.isOnline) { 
+            NetworkObj.sendAction('ROLL', { result: result }); 
         } 
-        const playerId = Network.isOnline ? Network.myPlayerId : this.turn; 
+        
+        const playerId = NetworkObj.isOnline ? NetworkObj.myPlayerId : this.turn; 
         this.animateDice(result, playerId); 
     }
 
@@ -1778,6 +1814,76 @@ export class Game {
         if(Network.isOnline) Network.syncPlayerState();
         
         setTimeout(() => Battle.end(false), 500); 
+    }
+
+    // ==========================================
+    // UI: BANNER DO CAMPEÃO GLOBAL
+    // ==========================================
+    // ==========================================
+    // UI: BANNER DO CAMPEÃO GLOBAL (FIXO NA BARRA LATERAL)
+    // ==========================================
+    static renderChampionBanner() {
+        // Ignora a burocracia do TypeScript puxando o Game globalmente
+        const GameObj = (window as any).Game || this;
+        const champion = GameObj.globalChampion;
+        
+        // Agora ele procura a div exata que você colocou no HTML
+        let banner = document.getElementById('champion-global-banner');
+        if (!banner) return; // Segurança caso o HTML ainda não tenha atualizado
+        
+        // Se não existir campeão (primeira partida do servidor), esconde o banner
+        if (!champion || !champion.team || champion.team.length === 0) {
+            banner.style.display = 'none';
+            return;
+        }
+        
+        // NOVO ESTILO: Sem flutuação. Encaixado na barra lateral!
+        banner.style.cssText = `
+            background: linear-gradient(135deg, rgba(0,0,0,0.9) 0%, rgba(44,62,80,0.9) 100%);
+            border: 2px solid #f1c40f;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 15px; /* Espaço entre o banner e o botão debaixo */
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5), 0 0 8px rgba(241, 196, 15, 0.4);
+            cursor: pointer;
+            transition: transform 0.2s;
+            width: 100%;
+            box-sizing: border-box;
+        `;
+        
+        // Efeito de hover e clique para ver o time
+        banner.onmouseover = () => banner!.style.transform = 'scale(1.03)';
+        banner.onmouseout = () => banner!.style.transform = 'scale(1)';
+        banner.onclick = () => {
+            if (champion && champion.team) {
+                // Formata o time para mostrar na pop-up
+                const teamList = champion.team.map((p: any) => `Lv.${p.level} ${p.name} ${p.isShiny ? '✨' : ''}`).join('\n');
+                GameObj.showGlobalAlert(`🏆 TIME DO CAMPEÃO 🏆\n\nPrepare-se bem antes de conseguir a 8ª Insígnia! O Campeão Atual usa:\n\n${teamList}`, champion.name, true, false);
+            }
+        };
+        
+        // Monta o conteúdo interno com a foto do líder e o Pokémon principal
+        const leadMon = champion.team[0];
+        const avatarStr = champion.avatar || 'Red.jpg'; // Avatar genérico caso falhe
+        const avatarSrc = avatarStr.includes('/') ? avatarStr : `/assets/img/Treinadores/${avatarStr}`;
+        const leadSprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${leadMon.isShiny ? 'shiny/' : ''}${leadMon.id}.png`;
+        
+        banner.innerHTML = `
+            <div style="text-align: left; text-shadow: 1px 1px 2px black;">
+                <div style="color: #f1c40f; font-weight: 900; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px;">Rei da Liga</div>
+                <div style="font-size: 1.1rem; font-weight: bold; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${champion.name || 'Desconhecido'}</div>
+            </div>
+            <div style="position: relative; width: 50px; height: 50px; flex-shrink: 0;">
+                <img src="${avatarSrc}" style="width: 50px; height: 50px; border-radius: 50%; border: 2px solid #ecf0f1; object-fit: cover;">
+                <img src="${leadSprite}" style="position: absolute; bottom: -10px; left: -15px; width: 45px; filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.8));">
+            </div>
+        `;
+        
+        banner.style.display = 'flex';
     }
 
     static updateHUD() { 
