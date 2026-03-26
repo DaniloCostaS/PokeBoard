@@ -38,6 +38,7 @@ export class Game {
     static lastBonusRoundClaimed: number = 0; // Armazena o bônus localmente de forma segura
 
     static activeGyms: number[] = [];
+    static globalLogs: {text: string, style: string}[] = [];
 
     static init(players: Player[], mapSize: number) { 
         // --- NOVO: GARANTE O SORTEIO NO MODO OFFLINE ---
@@ -2210,6 +2211,15 @@ export class Game {
         const container = document.getElementById('log-container');
         if (container) {
             m = m.replace(/\n/g, '<br>'); // Troca quebra de linha de código para HTML
+
+            this.globalLogs.unshift({ text: m, style: customStyle });
+            if (this.globalLogs.length > 50) this.globalLogs.pop();
+            
+            const Network = (window as any).Network;
+            if (Network && Network.isOnline && typeof Network.syncLogs === 'function') {
+                Network.syncLogs(this.globalLogs);
+            }
+
             container.insertAdjacentHTML('afterbegin', `<div class="log-entry" style="${customStyle}">${m}</div>`); 
             container.scrollTop = 0;
         }

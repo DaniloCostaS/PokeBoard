@@ -155,7 +155,7 @@ body {
 /* PAINEL DIREITO */
 #right-panel { width: 280px; height: 100%; background: #1a1a1a; border-left: 2px solid #444; display: flex; flex-direction: column; z-index: 20; }
 .panel-header { padding: 15px; background: #333; color: #fff; font-weight: bold; text-align: center; border-bottom: 1px solid #555; letter-spacing: 1px; }
-#log-container { flex: 1; padding: 15px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.85rem; color: #eee; display: flex; flex-direction: column-reverse; gap: 8px; }
+#log-container { flex: 1; padding: 15px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.85rem; color: #eee; display: flex; flex-direction: column; gap: 8px; }
 #log-container::-webkit-scrollbar { width: 6px; }
 #log-container::-webkit-scrollbar-thumb { background: #555; border-radius: 3px; }
 .log-entry { padding-bottom: 8px; border-bottom: 1px solid #333; line-height: 1.4; }
@@ -515,7 +515,7 @@ body {
         margin-bottom: 10px;
     }
 
-    /* 6 - Demais Informações (Log de Batalha, Regras, Debug) */
+    /* 6 - Demais Informações (Log da partida, Regras, Debug) */
     .panel-header {
         order: 6;
         border-radius: 8px 8px 0 0;

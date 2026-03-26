@@ -204,6 +204,17 @@ export class Network {
         // --- CARREGA OS GINÁSIOS SORTEADOS ---
         Game.activeGyms = data.activeGyms || [1, 2, 3, 4, 5, 6, 7, 8]; // Fallback
         // -------------------------------------
+
+        if (data.logs) {
+            Game.globalLogs = data.logs;
+            const container = document.getElementById('log-container');
+            if (container) {
+                container.innerHTML = '';
+                Game.globalLogs.forEach((l: any) => {
+                    container.insertAdjacentHTML('beforeend', `<div class="log-entry" style="${l.style}">${l.text}</div>`);
+                });
+            }
+        }
         
         if (data.map) { MapSystem.size = data.map.size; MapSystem.grid = data.map.grid; MapSystem.gymLocations = data.map.gymLocations || {}; } else { return; } 
         const playerArray = Object.values(data.players).map((pd: any) => { 
@@ -595,6 +606,11 @@ export class Network {
         update(ref(db), updates);
     }
     // --------------------------------------------
+
+    static syncLogs(logs: any[]) {
+        if(!this.isOnline) return;
+        update(ref(db, `rooms/${this.currentRoomId}`), { logs: logs });
+    }
 
     static syncTurn(newTurn: number, newRound: number = 1) { 
         if(!this.isOnline) return; 
