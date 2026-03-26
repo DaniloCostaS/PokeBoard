@@ -635,6 +635,15 @@ export class Cards {
         // Lista de cartas que realmente usam targetId como um Jogador inimigo
         const offensiveCards = ['swap', 'slow', 'rocket', 'curse', 'trade_fail', 'new_leader', 'bag', 'troques'];
 
+        // LIMITADOR DE 3 CARTAS OFENSIVAS POR TURNO
+        if (offensiveCards.includes(cardId)) {
+            if (!player.effects) player.effects = {};
+            if ((player.effects.offensiveCardsUsed || 0) >= 3) {
+                alert("Você atingiu o limite máximo de 3 cartas contra outros jogadores neste turno! Você só pode usar cartas de benefício próprio agora.");
+                return;
+            }
+        }
+
         // Só verifica defesa SE a carta for ofensiva E tiver um alvo diferente de você
         if (offensiveCards.includes(cardId) && targetId !== null && targetId !== player.id) {
             const targetP = Game.players.find((p:any) => p.id === targetId);
@@ -643,6 +652,8 @@ export class Cards {
                 const wasBlocked = this.checkAutoDefense(player, targetP, cardId, cardData.name);
                 
                 if (wasBlocked) {
+                    player.effects.offensiveCardsUsed = (player.effects.offensiveCardsUsed || 0) + 1; // Falhou, mas consumiu!
+                    if(Network.isOnline) Network.syncPlayerState();
                     return; // Sai da função activate e impede o efeito
                 }
             }

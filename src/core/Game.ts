@@ -1460,10 +1460,15 @@ export class Game {
                 }
             }
         }
+        // Zera o contador de limite de cartas ofensivas do PRÓXIMO jogador
+        const nextP = this.players[nextTurnIdx];
+        if (nextP && nextP.effects) nextP.effects.offensiveCardsUsed = 0;
+
         this.turn = nextTurnIdx; 
         this.hasRolled = false; 
         
         if(Network.isOnline) { 
+            Network.syncSpecificPlayer(nextP.id);
             Network.syncTurn(this.turn, this.round); // Agora envia a rodada junto!
         } else {
             const nextP = this.players[this.turn];

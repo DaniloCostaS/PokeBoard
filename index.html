@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PokéBoard V65</title>
+    <title>PokéBoard V66</title>
     <link rel="stylesheet" href="style.css">
-    
+
     <script type="importmap">
       {
         "imports": {
@@ -15,56 +16,66 @@
       }
     </script>
 </head>
+
 <body>
 
     <div id="setup-screen">
-        <h1 class="title-highlight">PokéBoard V65</h1>
+        <h1 class="title-highlight">PokéBoard V66</h1>
         <p class="subtitle">Rei da liga - Novos lideres.</p>
-        
+
         <div id="menu-phase-1">
             <button class="btn" onclick="window.Setup.showOfflineSetup()">🏠 JOGAR OFFLINE</button>
-            <button class="btn" style="background:#8e44ad;" onclick="window.Setup.showOnlineMenu()">🌐 JOGAR ONLINE</button>
-            <div id="reconnect-area" style="display:none; margin-top:10px; padding:10px; background:#e8f8f5; border:1px solid #2ecc71; border-radius:5px;">
+            <button class="btn" style="background:#8e44ad;" onclick="window.Setup.showOnlineMenu()">🌐 JOGAR
+                ONLINE</button>
+            <div id="reconnect-area"
+                style="display:none; margin-top:10px; padding:10px; background:#e8f8f5; border:1px solid #2ecc71; border-radius:5px;">
                 <p style="margin:0; color:#27ae60;">Sessão anterior encontrada!</p>
-                <button class="btn" style="background:#27ae60; margin-top:5px;" onclick="window.Network.reconnect()">🔄 RECONECTAR</button>
+                <button class="btn" style="background:#27ae60; margin-top:5px;" onclick="window.Network.reconnect()">🔄
+                    RECONECTAR</button>
             </div>
             <div style="margin-top:15px; border-top:1px solid #eee; padding-top:10px;">
                 <p style="font-size:0.8rem; color:#777;">Gerenciamento de Save</p>
                 <button class="btn btn-secondary" onclick="window.Game.exportSave()">💾 Baixar Save (.txt)</button>
-                <button class="btn btn-secondary" onclick="document.getElementById('file-input').click()">📂 Carregar Save (.txt)</button>
+                <button class="btn btn-secondary" onclick="document.getElementById('file-input').click()">📂 Carregar
+                    Save (.txt)</button>
                 <input type="file" id="file-input" style="display:none" onchange="window.Game.importSave(this)">
             </div>
         </div>
 
         <div id="menu-phase-online" style="display:none;">
             <h3>Modo Online (Firebase)</h3>
-            
+
             <div class="setup-group">
                 <label>Seu Nome:</label>
-                <input type="text" id="online-player-name" placeholder="Ex: Ash Ketchum" style="width:90%; padding:10px; font-weight:bold; margin-bottom: 10px;">
-                
+                <input type="text" id="online-player-name" placeholder="Ex: Ash Ketchum"
+                    style="width:90%; padding:10px; font-weight:bold; margin-bottom: 10px;">
+
                 <label>Seu Avatar:</label>
                 <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
                     <img id="online-avatar-preview" src="/assets/img/Treinadores/Ash.png" class="avatar-preview">
-                    <select id="online-avatar-select" onchange="window.Setup.updateOnlinePreview()" style="flex:1; padding:8px;">
-                        </select>
+                    <select id="online-avatar-select" onchange="window.Setup.updateOnlinePreview()"
+                        style="flex:1; padding:8px;">
+                    </select>
                 </div>
             </div>
 
-            <div id="online-lobby-controls">  
+            <div id="online-lobby-controls">
                 <div style="margin-bottom: 10px;">
-                    <input type="text" id="custom-room-code" placeholder="Cód. Sala (Opcional)" maxlength="10" style="padding: 10px; text-transform: uppercase; width: 150px; text-align: center;">
+                    <input type="text" id="custom-room-code" placeholder="Cód. Sala (Opcional)" maxlength="10"
+                        style="padding: 10px; text-transform: uppercase; width: 150px; text-align: center;">
                 </div>
                 <button id="btn-create-room" class="btn" onclick="Network.createRoom()">Criar Sala</button>
                 <div style="display:flex; gap:5px; margin-top:10px;">
                     <input type="text" id="room-code-input" placeholder="Código da Sala" style="flex:1; padding:10px;">
-                    <button class="btn" style="width:auto; margin:0;" onclick="window.Network.joinRoom()">Entrar</button>
+                    <button class="btn" style="width:auto; margin:0;"
+                        onclick="window.Network.joinRoom()">Entrar</button>
                 </div>
             </div>
-            
+
             <div id="lobby-status" style="display:none;"></div>
-            
-            <div id="online-lobby-list" class="scroll-list" style="max-height: 150px; margin-top:10px; display:none;"></div>
+
+            <div id="online-lobby-list" class="scroll-list" style="max-height: 150px; margin-top:10px; display:none;">
+            </div>
 
             <div id="host-controls" style="display:none; margin-top:15px; border-top:1px solid #eee; padding-top:10px;">
                 <label>Tamanho do Mapa:</label>
@@ -73,7 +84,8 @@
                     <option value="20" selected>Médio (20x20)</option>
                     <option value="30">Grande (30x30)</option>
                 </select>
-                <button class="btn" style="margin-top:10px; background:#27ae60;" onclick="window.Setup.startOnlineGame()">🚀 INICIAR JOGO (TODOS)</button>
+                <button class="btn" style="margin-top:10px; background:#27ae60;"
+                    onclick="window.Setup.startOnlineGame()">🚀 INICIAR JOGO (TODOS)</button>
             </div>
 
             <button class="btn btn-secondary" style="margin-top:15px;" onclick="location.reload()">Voltar</button>
@@ -103,7 +115,7 @@
             <div id="player-slots-container"></div>
             <button id="btn-start-game" class="btn" onclick="window.Setup.start()">🚀 INICIAR JORNADA</button>
         </div>
-    </div> 
+    </div>
 
     <div id="game-container">
         <div id="left-panel">
@@ -113,7 +125,9 @@
             </div>
 
             <div class="panel-box info-section" style="font-size: 0.85rem; text-align: left; line-height: 1.6;">
-                <div style="color: var(--gold); font-weight: bold; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.2); margin-bottom: 5px; padding-bottom: 5px;">🌍 Status do Mundo</div>
+                <div
+                    style="color: var(--gold); font-weight: bold; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.2); margin-bottom: 5px; padding-bottom: 5px;">
+                    🌍 Status do Mundo</div>
                 <div class="info-panel">
                     <div class="info-item">
                         <span class="info-label">🏠 SALA: </span>
@@ -125,21 +139,26 @@
                 <div>🏛️ Líder Ginásio: <b id="gym-lvl-indicator" style="color:#fff;">Lv.2</b></div>
                 <div>👥 Time Inimigo: <b id="npc-team-indicator" style="color:#fff;">1</b> PKMN</div>
             </div>
-            
+
             <div class="panel-box dice-section">
                 <div id="d20-display">🎲 6</div>
                 <button id="roll-btn" class="btn btn-roll" onclick="window.Game.rollDice()">ROLAR</button>
             </div>
-            
+
             <div class="panel-box extra-space">
                 <div id="champion-global-banner" style="display: none;"></div>
-                <button class="btn btn-secondary" onclick="window.Game.openCardLibrary()">📖 Ver Todas as Cartas</button>
-                <button class="btn btn-secondary" style="background: #27ae60;" onclick="window.Game.openXpRules()">📘 Regras de XP</button>
-                <button class="btn btn-secondary" style="background: #e67e22;" onclick="window.Game.openCaptureRules()">🦅 Regras de Captura</button>
+                <button class="btn btn-secondary" onclick="window.Game.openCardLibrary()">📖 Ver Todas as
+                    Cartas</button>
+                <button class="btn btn-secondary" style="background: #27ae60;" onclick="window.Game.openXpRules()">📘
+                    Regras de XP</button>
+                <button class="btn btn-secondary" style="background: #e67e22;"
+                    onclick="window.Game.openCaptureRules()">🦅 Regras de Captura</button>
                 <div style="margin-top:10px; font-size:0.7rem; color:#aaa;">DEBUG MOVE</div>
                 <div style="display:flex; gap:5px; justify-content:center;">
-                    <input type="number" id="debug-input" value="1" min="1" max="50" style="width:50px; text-align:center; border:none; padding:5px; border-radius:4px;">
-                    <button class="btn" style="width:auto; margin:0; padding:5px 10px;" onclick="window.Game.debugMove()">GO</button>
+                    <input type="number" id="debug-input" value="1" min="1" max="50"
+                        style="width:50px; text-align:center; border:none; padding:5px; border-radius:4px;">
+                    <button class="btn" style="width:auto; margin:0; padding:5px 10px;"
+                        onclick="window.Game.debugMove()">GO</button>
                 </div>
                 <div style="margin-top:5px;"><small id="online-indicator" style="color:cyan;">OFFLINE</small></div>
             </div>
@@ -147,7 +166,9 @@
 
         <div id="center-stage">
             <div id="hud-col-left" class="hud-column"></div>
-            <div id="board-wrapper"><div id="board-area"></div></div>
+            <div id="board-wrapper">
+                <div id="board-area"></div>
+            </div>
             <div id="hud-col-right" class="hud-column"></div>
         </div>
 
@@ -160,10 +181,13 @@
                     <li><strong>Ataque Base:</strong> Híbrido! Soma de (65% Atk) + (15% Spd) + (20% HP).</li>
                     <li><strong>Defesa:</strong> Redução percentual. Dano = (Base / 5) - (Def / 20).</li>
                     <li><strong>🛡️ Bloqueio:</strong> (Def - Atk) / 5 = % Chance Bloqueio Total (Máx 90%).</li>
-                    <li><strong>🛡️ Reflexão:</strong> Se a Def for 50% maior que o Atk, há 15% de chance de devolver o dano.</li>
-                    <li><strong>⚡ Esquiva:</strong> ((SpdA - SpdD) / 5)% de chance de evitar 100% do dano (Mínimo 10%).</li>
+                    <li><strong>🛡️ Reflexão:</strong> Se a Def for 50% maior que o Atk, há 15% de chance de devolver o
+                        dano.</li>
+                    <li><strong>⚡ Esquiva:</strong> ((SpdA - SpdD) / 5)% de chance de evitar 100% do dano (Mínimo 10%).
+                    </li>
                     <li><strong>⚡ Crítico Veloz:</strong> (Spd / 8)% de chance de causar +5 de dano fixo.</li>
-                    <li><strong>⚡ Ataque Duplo:</strong> Se sua Spd for 50% maior que a do rival, tem 20% de chance de atacar 2x!</li>
+                    <li><strong>⚡ Ataque Duplo:</strong> Se sua Spd for 50% maior que a do rival, tem 20% de chance de
+                        atacar 2x!</li>
                     <li><strong>Multiplicadores:</strong> Vantagem (x1.75), Normal (x1), Desvantagem (x0.75).</li>
                     <li><strong>Sorte (Dado d6):</strong> 1:(-2), 2:(-1), 3:(0), 4:(+2), 5:(+3), 6:(+5 Crítico💥).</li>
                 </ul>
@@ -184,10 +208,11 @@
                 <li><strong>PvP:</strong> Ao nocautear o amigo, ganha XP baseado na força do Pokémon dele!</li>
                 <li><strong>Ações Extras:</strong> Fuga +2 XP | Captura +5 XP de Bônus</li>
             </ul>
-            <button class="btn btn-secondary mt-15" onclick="document.getElementById('xp-rules-modal').style.display='none'">Fechar</button>
+            <button class="btn btn-secondary mt-15"
+                onclick="document.getElementById('xp-rules-modal').style.display='none'">Fechar</button>
         </div>
     </div>
-    
+
     <div id="capture-rules-modal" class="modal-overlay">
         <div class="modal-box" style="text-align: left;">
             <h3 style="text-align:center; color: #e67e22;">🦅 Regras de Captura</h3>
@@ -206,7 +231,8 @@
                 <li><strong>Master Ball:</strong> 100% Garantido</li>
                 <li><strong>Não Master Ball:</strong> 95% Máximo</li>
             </ul>
-            <button class="btn btn-secondary mt-15" onclick="document.getElementById('capture-rules-modal').style.display='none'">Fechar</button>
+            <button class="btn btn-secondary mt-15"
+                onclick="document.getElementById('capture-rules-modal').style.display='none'">Fechar</button>
         </div>
     </div>
 
@@ -214,36 +240,91 @@
         <div class="modal-box">
             <h2 style="color: #3498db;">🏙️ Centro Pokémon</h2>
             <p>O que deseja fazer?</p>
-            
+
             <div style="display:flex; flex-direction:column; gap:10px; justify-content:center; margin-top:20px;">
                 <div style="display:flex; gap:10px;">
-                    <button class="btn" style="background:#2ecc71;" onclick="window.Game.handleCityChoice('heal')">❤️ Curar Time</button>
-                    <button class="btn btn-shop" onclick="window.Game.handleCityChoice('shop')">🛒 Loja de Itens</button>
+                    <button class="btn" style="background:#2ecc71;" onclick="window.Game.handleCityChoice('heal')">❤️
+                        Curar Time</button>
+                    <button class="btn btn-shop" onclick="window.Game.handleCityChoice('shop')">🛒 Loja de
+                        Itens</button>
                 </div>
-                
-                <button class="btn btn-cards" onclick="window.Game.handleCityChoice('card')">🃏 Comprar Carta Misteriosa (500G)</button>
+
+                <button class="btn btn-cards" onclick="window.Game.handleCityChoice('card')">🃏 Comprar Carta Misteriosa
+                    (500G)</button>
             </div>
         </div>
     </div>
-    <div id="shop-modal" class="modal-overlay"><div class="modal-box"><h2 class="text-highlight">🛒 PokéMart</h2><p>Saldo: <span id="shop-gold" class="gold-text">0</span> G</p><div id="shop-items-list" class="scroll-list"></div><br><button class="btn btn-secondary" onclick="window.Shop.close()">Fechar</button></div></div>
-    <div id="board-inventory-modal" class="modal-overlay"><div class="modal-box"><h3>🎒 Mochila</h3><div id="board-inventory-list" class="scroll-list"></div><button class="btn btn-secondary mt-15" onclick="document.getElementById('board-inventory-modal').style.display='none'">Fechar</button></div></div>
-    <div id="pokedex-modal" class="modal-overlay" style="z-index: 1500;">
-        <div class="modal-box" style="width: 850px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: #f4f6f7;">
-            <h2 style="color: #e74c3c; margin-top: 0; border-bottom: 2px solid #ccc; padding-bottom: 10px;">📖 Pokédex Regional</h2>
-            <div id="pokedex-list" class="scroll-list" style="flex: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; padding: 10px; max-height: 90%;">
-                </div>
-            <button class="btn btn-secondary mt-15" onclick="document.getElementById('pokedex-modal').style.display='none'">Fechar</button>
+    <div id="shop-modal" class="modal-overlay">
+        <div class="modal-box">
+            <h2 class="text-highlight">🛒 PokéMart</h2>
+            <p>Saldo: <span id="shop-gold" class="gold-text">0</span> G</p>
+            <div id="shop-items-list" class="scroll-list"></div><br><button class="btn btn-secondary"
+                onclick="window.Shop.close()">Fechar</button>
         </div>
     </div>
-    <div id="board-cards-modal" class="modal-overlay"><div class="modal-box"><h3>🃏 Minhas Cartas (Tabuleiro)</h3><p style="font-size:0.8rem; color:#666;">Apenas cartas do tipo <b>Move</b> podem ser usadas aqui.</p><div id="board-cards-list" class="scroll-list"></div><button class="btn btn-secondary mt-15" onclick="document.getElementById('board-cards-modal').style.display='none'">Fechar</button></div></div>
-    <div id="library-modal" class="modal-overlay"><div class="modal-box" style="width: 1200px;"><h3>📖 Biblioteca de Cartas</h3><div id="library-list" class="scroll-list" style="max-height: 80%;"></div><button class="btn btn-secondary mt-15" onclick="document.getElementById('library-modal').style.display='none'">Fechar</button></div></div>
-    <div id="battle-cards-modal" class="modal-overlay" style="z-index: 1200;"><div class="modal-box"><h3>🃏 Cartas de Batalha</h3><div id="battle-cards-list" class="scroll-list"></div><button class="btn btn-secondary mt-15" onclick="document.getElementById('battle-cards-modal').style.display='none'">Cancelar</button></div></div>
-    <div id="swap-modal" class="modal-overlay" style="z-index: 1300;"><div class="modal-box"><h3>⚠️ Time Cheio!</h3><p>Seu time já tem 6 Pokémons.</p><p style="font-size:0.9rem;">Clique em um Pokémon para <strong>SOLTAR</strong> (abandonar) e manter o resto.</p><div id="swap-list" class="scroll-list"></div></div></div>
-    <div id="pkmn-select-modal" class="modal-overlay z-high"><div class="modal-box"><h3 id="select-title">Escolha</h3><div id="pkmn-select-list" class="scroll-list text-left"></div></div></div>
+    <div id="board-inventory-modal" class="modal-overlay">
+        <div class="modal-box">
+            <h3>🎒 Mochila</h3>
+            <div id="board-inventory-list" class="scroll-list"></div><button class="btn btn-secondary mt-15"
+                onclick="document.getElementById('board-inventory-modal').style.display='none'">Fechar</button>
+        </div>
+    </div>
+    <div id="pokedex-modal" class="modal-overlay" style="z-index: 1500;">
+        <div class="modal-box"
+            style="width: 850px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: #f4f6f7;">
+            <h2 style="color: #e74c3c; margin-top: 0; border-bottom: 2px solid #ccc; padding-bottom: 10px;">📖 Pokédex
+                Regional</h2>
+            <div id="pokedex-list" class="scroll-list"
+                style="flex: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; padding: 10px; max-height: 90%;">
+            </div>
+            <button class="btn btn-secondary mt-15"
+                onclick="document.getElementById('pokedex-modal').style.display='none'">Fechar</button>
+        </div>
+    </div>
+    <div id="board-cards-modal" class="modal-overlay">
+        <div class="modal-box">
+            <h3>🃏 Minhas Cartas (Tabuleiro)</h3>
+            <p style="font-size:0.8rem; color:#666;">Apenas cartas do tipo <b>Move</b> podem ser usadas aqui.</p>
+            <div id="board-cards-list" class="scroll-list"></div><button class="btn btn-secondary mt-15"
+                onclick="document.getElementById('board-cards-modal').style.display='none'">Fechar</button>
+        </div>
+    </div>
+    <div id="library-modal" class="modal-overlay">
+        <div class="modal-box" style="width: 1200px;">
+            <h3>📖 Biblioteca de Cartas</h3>
+            <div id="library-list" class="scroll-list" style="max-height: 80%;"></div><button
+                class="btn btn-secondary mt-15"
+                onclick="document.getElementById('library-modal').style.display='none'">Fechar</button>
+        </div>
+    </div>
+    <div id="battle-cards-modal" class="modal-overlay" style="z-index: 1200;">
+        <div class="modal-box">
+            <h3>🃏 Cartas de Batalha</h3>
+            <div id="battle-cards-list" class="scroll-list"></div><button class="btn btn-secondary mt-15"
+                onclick="document.getElementById('battle-cards-modal').style.display='none'">Cancelar</button>
+        </div>
+    </div>
+    <div id="swap-modal" class="modal-overlay" style="z-index: 1300;">
+        <div class="modal-box">
+            <h3>⚠️ Time Cheio!</h3>
+            <p>Seu time já tem 6 Pokémons.</p>
+            <p style="font-size:0.9rem;">Clique em um Pokémon para <strong>SOLTAR</strong> (abandonar) e manter o resto.
+            </p>
+            <div id="swap-list" class="scroll-list"></div>
+        </div>
+    </div>
+    <div id="pkmn-select-modal" class="modal-overlay z-high">
+        <div class="modal-box">
+            <h3 id="select-title">Escolha</h3>
+            <div id="pkmn-select-list" class="scroll-list text-left"></div>
+        </div>
+    </div>
     <div id="detail-modal" class="modal-overlay" style="z-index: 2000;">
-        <div class="modal-box" style="width: 450px; max-height: 660px; text-align: left; padding: 0; overflow: hidden; border-radius: 12px;">
-            
-            <div id="detail-header" style="background: #333; padding: 15px; display: flex; align-items: center; justify-content: space-between; color: white;">
+        <div class="modal-box"
+            style="width: 450px; max-height: 660px; text-align: left; padding: 0; overflow: hidden; border-radius: 12px;">
+
+            <div id="detail-header"
+                style="background: #333; padding: 15px; display: flex; align-items: center; justify-content: space-between; color: white;">
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <span id="detail-id" style="opacity: 0.7; font-size: 0.8rem;">#001</span>
                     <h2 id="detail-name" style="margin:0; font-size: 1.4rem;">Bulbasaur</h2>
@@ -254,24 +335,30 @@
             <div style="padding: 15px; background: #fdfdfd;">
                 <div style="display: flex; gap: 15px; margin-bottom: 15px;">
                     <div style="position: relative;">
-                        <img id="detail-img" src="" style="width: 100px; height: 100px; image-rendering: pixelated; border: 2px solid #ddd; border-radius: 8px; background: #eee;">
+                        <img id="detail-img" src=""
+                            style="width: 100px; height: 100px; image-rendering: pixelated; border: 2px solid #ddd; border-radius: 8px; background: #eee;">
                         <div id="detail-shiny" style="display:none; position:absolute; top:-5px; right:-5px;">✨</div>
                     </div>
                     <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 5px;">
-                        <div style="font-size: 0.9rem; color: #555;">Nível <b id="detail-level" style="color: black;">5</b></div>
+                        <div style="font-size: 0.9rem; color: #555;">Nível <b id="detail-level"
+                                style="color: black;">5</b></div>
                         <div style="font-size: 0.9rem; color: #555;">XP: <span id="detail-xp">0 / 100</span></div>
-                        <div class="xp-bar-bg" style="height: 6px; background: #ddd; border-radius: 3px; width: 100%; overflow: hidden;">
+                        <div class="xp-bar-bg"
+                            style="height: 6px; background: #ddd; border-radius: 3px; width: 100%; overflow: hidden;">
                             <div id="detail-xp-bar" style="height: 100%; background: #3498db; width: 0%;"></div>
                         </div>
                     </div>
                 </div>
 
-                <h4 style="margin: 0 0 10px 0; border-bottom: 1px solid #eee; padding-bottom: 5px; color: #e67e22;">📊 Status de Combate</h4>
-                
-                <div id="detail-stats-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.85rem; margin-bottom: 15px;">
-                    </div>
+                <h4 style="margin: 0 0 10px 0; border-bottom: 1px solid #eee; padding-bottom: 5px; color: #e67e22;">📊
+                    Status de Combate</h4>
 
-                <h4 style="margin: 0 0 10px 0; border-bottom: 1px solid #eee; padding-bottom: 5px; color: #8e44ad;">🧬 Genética & Maestria (Dex)</h4>
+                <div id="detail-stats-grid"
+                    style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.85rem; margin-bottom: 15px;">
+                </div>
+
+                <h4 style="margin: 0 0 10px 0; border-bottom: 1px solid #eee; padding-bottom: 5px; color: #8e44ad;">🧬
+                    Genética & Maestria (Dex)</h4>
                 <div style="background: #f4f6f7; padding: 10px; border-radius: 6px; font-size: 0.85rem;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
                         <span>🧬 Ressonância (Capturas):</span>
@@ -288,7 +375,8 @@
 
             </div>
 
-            <button onclick="document.getElementById('detail-modal').style.display='none'" style="width: 100%; padding: 15px; border: none; background: #bdc3c7; color: #333; font-weight: bold; cursor: pointer;">FECHAR</button>
+            <button onclick="document.getElementById('detail-modal').style.display='none'"
+                style="width: 100%; padding: 15px; border: none; background: #bdc3c7; color: #333; font-weight: bold; cursor: pointer;">FECHAR</button>
         </div>
     </div>
     <div id="battle-modal" class="modal-overlay">
@@ -303,35 +391,39 @@
                                 <img id="ply-trainer-img" class="trainer-battle-img" src="">
                                 <img id="ply-img" class="pokemon-battle-img" src="">
                             </div>
-                            
+
                             <div class="hp-container">
                                 <div id="ply-hp" class="hp-fill"></div>
                                 <span id="ply-hp-text" class="hp-overlay-text">100/100</span>
                             </div>
-                            
-                            <div style="width: 100%; height: 4px; background: #222; border-radius: 2px; margin-top: 2px; border: 1px solid #000;">
-                                <div id="ply-xp" style="height: 100%; background: #3498db; width: 0%; border-radius: 1px;"></div>
+
+                            <div
+                                style="width: 100%; height: 4px; background: #222; border-radius: 2px; margin-top: 2px; border: 1px solid #000;">
+                                <div id="ply-xp"
+                                    style="height: 100%; background: #3498db; width: 0%; border-radius: 1px;"></div>
                             </div>
 
                             <div class="battle-info-box">
                                 <div style="display:flex; align-items:baseline;">
-                                    <span id="ply-name" style="font-size: 1.1em; color: #fff; font-weight:bold;"></span> 
-                                    <span id="ply-lvl" style="color:#f1c40f; margin-left: 5px; font-weight:bold;"></span>
+                                    <span id="ply-name" style="font-size: 1.1em; color: #fff; font-weight:bold;"></span>
+                                    <span id="ply-lvl"
+                                        style="color:#f1c40f; margin-left: 5px; font-weight:bold;"></span>
                                 </div>
                                 <div id="ply-types"></div>
 
-                                <div id="ply-shiny-tag" class="shiny-tag" style="display:none; margin-top:3px;">✨ SHINY ✨</div>
+                                <div id="ply-shiny-tag" class="shiny-tag" style="display:none; margin-top:3px;">✨ SHINY
+                                    ✨</div>
                                 <div class="battle-stats" id="ply-stats" style="margin-top:3px;"></div>
                             </div>
                             <div id="ply-team-indicator" class="battle-team-indicator"></div>
                         </div>
 
                         <div class="battler self-start">
-                             <div class="battler-images">
+                            <div class="battler-images">
                                 <img id="opp-trainer-img" class="trainer-battle-img" src="">
                                 <img id="opp-img" class="pokemon-battle-img" src="">
                             </div>
-                            
+
                             <div class="hp-container">
                                 <div id="opp-hp" class="hp-fill"></div>
                                 <span id="opp-hp-text" class="hp-overlay-text">100/100</span>
@@ -339,46 +431,54 @@
 
                             <div class="battle-info-box">
                                 <div style="display:flex; align-items:baseline;">
-                                    <span id="opp-name" style="font-size: 1.1em; color: #fff; font-weight:bold;"></span> 
-                                    <span id="opp-lvl" style="color:#f1c40f; margin-left: 5px; font-weight:bold;"></span>
+                                    <span id="opp-name" style="font-size: 1.1em; color: #fff; font-weight:bold;"></span>
+                                    <span id="opp-lvl"
+                                        style="color:#f1c40f; margin-left: 5px; font-weight:bold;"></span>
                                 </div>
                                 <div id="opp-types"></div>
 
-                                <div id="opp-shiny-tag" class="shiny-tag" style="display:none; margin-top:3px;">✨ SHINY ✨</div>
+                                <div id="opp-shiny-tag" class="shiny-tag" style="display:none; margin-top:3px;">✨ SHINY
+                                    ✨</div>
                                 <div class="battle-stats" id="opp-stats" style="margin-top:3px;"></div>
                             </div>
                             <div id="opp-team-indicator" class="battle-team-indicator"></div>
                         </div>
 
                     </div>
-                    
+
                     <div id="battle-msg">...</div>
-                    
+
                     <div class="battle-actions">
                         <button class="btn btn-attack" onclick="window.Battle.attack()">⚔️ Atacar</button>
                         <button class="btn btn-items" onclick="window.Battle.openBag()">🎒 Itens</button>
                         <button class="btn btn-cards" onclick="window.Battle.openCardSelection()">🃏 Cartas</button>
                         <button id="btn-run" class="btn btn-run" onclick="window.Battle.run()">🏃 Fugir</button>
-                        <button id="btn-auto-pve" class="btn btn-auto" style="grid-column: span 2;" onclick="window.Battle.toggleAutoPvE()">⚡ Auto Atacar</button>
+                        <button id="btn-auto-pve" class="btn btn-auto" style="grid-column: span 2;"
+                            onclick="window.Battle.toggleAutoPvE()">⚡ Auto Atacar</button>
                     </div>
                 </div>
 
                 <div class="battle-log-column">
-                    <div class="panel-header" style="font-size:0.9rem; padding:10px; background: rgba(0,0,0,0.4); border-radius: 5px 5px 0 0;">📜 Histórico</div>
+                    <div class="panel-header"
+                        style="font-size:0.9rem; padding:10px; background: rgba(0,0,0,0.4); border-radius: 5px 5px 0 0;">
+                        📜 Histórico</div>
                     <div id="battle-log-history" class="scroll-list log-history-content">
-                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div id="battle-bag" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(44, 62, 80, 0.95); z-index:20; padding:20px; box-sizing:border-box; border-radius:10px;">
-                <h3>Usar Item (Batalha)</h3><div id="battle-bag-list" class="scroll-list"></div><button class="btn btn-secondary mt-15" onclick="document.getElementById('battle-bag').style.display='none'">Cancelar</button>
+            <div id="battle-bag"
+                style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(44, 62, 80, 0.95); z-index:20; padding:20px; box-sizing:border-box; border-radius:10px;">
+                <h3>Usar Item (Batalha)</h3>
+                <div id="battle-bag-list" class="scroll-list"></div><button class="btn btn-secondary mt-15"
+                    onclick="document.getElementById('battle-bag').style.display='none'">Cancelar</button>
             </div>
         </div>
     </div>
     <div id="victory-modal" class="modal-overlay" style="z-index: 2000; background: rgba(0,0,0,0.95);">
         <div class="modal-box victory-box">
             <h1 class="victory-title">🏆 CAMPEÃO DA LIGA! 🏆</h1>
-            
+
             <div class="winner-profile">
                 <img id="win-avatar" src="" alt="Avatar">
                 <h2 id="win-name">Nome do Jogador</h2>
@@ -386,15 +486,17 @@
 
             <h3>👑 Hall da Fama</h3>
             <div id="win-team-container" class="win-team-grid">
-                </div>
+            </div>
 
             <h3>🏅 Insígnias Conquistadas</h3>
             <div id="win-badges-container" class="win-badges-grid">
-                </div>
+            </div>
 
-            <button class="btn btn-shop" style="margin-top:20px;" onclick="location.reload()">🔄 Jogar Novamente</button>
+            <button class="btn btn-shop" style="margin-top:20px;" onclick="location.reload()">🔄 Jogar
+                Novamente</button>
         </div>
     </div>
     <script type="module" src="/src/main.ts"></script>
 </body>
+
 </html>

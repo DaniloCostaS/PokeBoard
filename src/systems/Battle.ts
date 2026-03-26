@@ -253,6 +253,7 @@ export class Battle {
         
         // Tenta Mega Evoluir ao entrar em campo
         this.tryTriggerMegaEvolution("ressoou no início da batalha");
+        if (this.isPvP) this.tryOpponentMegaEvolution("ressoou no início da batalha");
 
         this.renderBattleScreen(); 
         
@@ -335,6 +336,21 @@ export class Battle {
             }, 1000);
         }
     }
+
+    // --- NOVA FUNÇÃO CENTRALIZADA DE MEGA EVOLUÇÃO (OPONENTE) ---
+    static tryOpponentMegaEvolution(contextMsg: string = "reagiu durante o combate") {
+        if (!this.isPvP || !this.opponent || !this.opponent.megaStone) return;
+        if ((this.opponent as any).isTemp) return; 
+
+        const megaId = MAPA_MEGAS[this.opponent.id];
+        if (megaId && Math.random() < 0.10) {
+            setTimeout(() => {
+                if (!this.opponent || (this.opponent as any).isTemp) return;
+                this.performOpponentMegaEvolution(megaId);
+                this.logBattle(`💎 A Mega Pedra de ${this.opponent.name} (Inimigo) ${contextMsg}!`, true);
+            }, 1000);
+        }
+    }
     
     static updateButtons() { 
         const Network = (window as any).Network; 
@@ -408,6 +424,12 @@ export class Battle {
 
     static autoAttackNext() {
         if (!this.active || !this.isPvP) return;
+        
+        // --- TENTA MEGA EVOLUIR ANTES DO PRÓXIMO GOLPE ---
+        this.tryTriggerMegaEvolution("ressoou no decorrer do combate");
+        this.tryOpponentMegaEvolution("ressoou no decorrer do combate");
+        // -------------------------------------------------
+        
         if (this.activeMon && this.activeMon.currentHp > 0 && this.opponent && this.opponent.currentHp > 0) {
             this.attack(); 
         }
@@ -1026,6 +1048,7 @@ export class Battle {
             // O jogador sobreviveu e a vez vai voltar para ele.
             // Tenta Mega Evoluir novamente antes de liberar os botões!
             this.tryTriggerMegaEvolution("reagiu após o ataque");
+            if (this.isPvP) this.tryOpponentMegaEvolution("reagiu após o ataque");
 
             if(callback) callback();
         }
@@ -1041,6 +1064,14 @@ export class Battle {
         }
         // ---------------------------------------------------
         
+        // --- SE O INIMIGO ERA MEGA, REVERTE ANTES DE PROCURAR O PRÓXIMO ---
+        if (this.opponent && ((this.opponent as any).isTemp || (this.opponent as any).isMegaEvolution)) {
+            const megaDied = this.opponent.currentHp <= 0;
+            this.revertOpponentMew();
+            if (megaDied) this.opponent.currentHp = 0;
+            this.logBattle("🧬 A Mega Evolução inimiga desfez após a derrota!");
+        }
+
         const nextOpp = this.oppTeamList.find(p => !p.isFainted() && p !== this.opponent); 
         
         if (nextOpp) { 
@@ -1093,9 +1124,12 @@ export class Battle {
                 this.logBattle("🧬 O DNA de Mew se esgotou e o Pokémon original retornou!");
             }
 
+            const megaDied = this.activeMon.currentHp <= 0;
             this.revertMew();
+            if (megaDied) this.activeMon.currentHp = 0;
+
             this.updateUI();
-            if (this.activeMon.currentHp <= 0) { } 
+            if (this.activeMon.currentHp <= 0) { }
             else {
                 this.processingAction = false;
                 this.updateButtons();
@@ -1355,6 +1389,76 @@ export class Battle {
             Network.syncPlayerState();
             Network.sendAction('BATTLE_PLY_SWITCH', { 
                 nextPly: Network.getSanitizedTeam([megaMon])[0] 
+            });
+        }
+    }
+
+    // --- MEGA EVOLUÇÃO E REVERSÃO PARA O OPONENTE (PVP) ---
+    static performOpponentMegaEvolution(megaId: number) {
+        const Network = (window as any).Network;
+        // Wait, in Battle.ts POKEDEX is imported na linha 1! I can just use it.
+        const megaData = (window as any).POKEDEX ? (window as any).POKEDEX.find((p: any) => p.id === megaId) : { id: megaId }; // Fallback simples
+        if (!megaData) return;
+
+        if (!this.activeEffects) this.activeEffects = {};
+        this.activeEffects.opponentMewOriginal = this.enemyPlayer!.team[this.enemyPlayer!.team.indexOf(this.opponent!)];
+        this.activeEffects.opponentMewIndex = this.enemyPlayer!.team.indexOf(this.opponent!);
+
+        const PokemonClass = (window as any).Pokemon || this.opponent!.constructor;
+        const megaMon = new PokemonClass(megaId, this.opponent!.level, this.opponent!.isShiny);
+        
+        (megaMon as any).isMegaEvolution = true;
+        megaMon.recalculateStats(true);
+        (megaMon as any).isTemp = true;
+
+        this.opponent = megaMon;
+        if (this.activeEffects.opponentMewIndex !== undefined && this.activeEffects.opponentMewIndex !== -1) {
+            this.enemyPlayer!.team[this.activeEffects.opponentMewIndex] = megaMon;
+        }
+
+        const oppListIdx = this.oppTeamList.findIndex(p => p.id === this.activeEffects.opponentMewOriginal.id);
+        if (oppListIdx !== -1) {
+            this.oppTeamList[oppListIdx] = megaMon;
+        } else {
+            const activeIndex = this.oppTeamList.findIndex(p => p === this.activeEffects.opponentMewOriginal);
+            if (activeIndex !== -1) this.oppTeamList[activeIndex] = megaMon;
+        }
+
+        this.logBattle(`🧬 O elo inimigo fortaleceu! Mega Evolução para ${megaMon.name}!`, true);
+        this.updateUI();
+        
+        if (Network.isOnline && this.isPvP && this.enemyPlayer) {
+            Network.syncSpecificPlayer(this.enemyPlayer.id);
+        }
+    }
+
+    static revertOpponentMew() {
+        if (this.activeEffects && this.activeEffects.opponentMewOriginal && this.enemyPlayer) {
+            const original = this.activeEffects.opponentMewOriginal;
+            
+            const tempIndex = this.enemyPlayer.team.findIndex(p => (p as any).isTemp || p.isMegaEvolution);
+            if (tempIndex !== -1) {
+                this.enemyPlayer.team[tempIndex] = original;
+            } else if (this.activeEffects.opponentMewIndex !== undefined && this.enemyPlayer.team[this.activeEffects.opponentMewIndex]) {
+                this.enemyPlayer.team[this.activeEffects.opponentMewIndex] = original;
+            }
+            
+            const oppListIdx = this.oppTeamList.findIndex(p => (p as any).isTemp || (p as any).isMegaEvolution);
+            if (oppListIdx !== -1) {
+                this.oppTeamList[oppListIdx] = original;
+            }
+
+            if (this.opponent && ((this.opponent as any).isTemp || (this.opponent as any).isMegaEvolution)) {
+                this.opponent = original;
+            }
+
+            this.activeEffects.opponentMewOriginal = null;
+        }
+        
+        if (this.enemyPlayer) {
+            this.enemyPlayer.team = this.enemyPlayer.team.filter(p => !(p as any).isTemp);
+            this.enemyPlayer.team.forEach(mon => {
+                if (typeof mon.validateAndFix === 'function') mon.validateAndFix();
             });
         }
     }
@@ -1660,24 +1764,35 @@ export class Battle {
         }
         // ==============================================================
 
-        // --- LÓGICA DE PERDA DE OURO DIVIDIDA (PVP vs PVE) ---
+        // --- LÓGICA DE PERDA DE OURO/INSÍGNIA DIVIDIDA (PVP vs PVE) ---
         if (this.isPvP && this.enemyPlayer) {
-            // Se for aposta pelo "Novo Líder", a punição é 50%, senão 30%
-            let penaltyRate = (this.activeEffects.stealBadgeFrom === this.enemyPlayer.id) ? 0.5 : 0.3;
-            if (Game.currentGlobalEvent?.id === 'BLOOD_MOON') penaltyRate = Math.min(1.0, penaltyRate * 2); // Dobra punição também!
-
-            let lostGold = 0;
-            
-            if (this.player!.gold > 0) {
-                lostGold = Math.floor(this.player!.gold * penaltyRate);
-                this.player!.gold -= lostGold;
-                this.enemyPlayer.gold += lostGold; // O inimigo recebe o ouro visualmente
-                
-                Game.sendGlobalLog(`💰 [Extrato] Transferência de ${lostGold}G de ${this.player!.name} para ${this.enemyPlayer.name} (${penaltyRate === 0.5 ? 'Aposta Novo Líder' : 'Luta PvP'}).`);
-                Game.sendGlobalLog(`💰 [Extrato] Novo Saldo de ${this.player!.name}: ${this.player!.gold}G.`);
-                Game.sendGlobalLog(`💰 [Extrato] Novo Saldo de ${this.enemyPlayer.name}: ${this.enemyPlayer.gold}G.`);
+            if (this.activeEffects.stealBadgeFrom === this.enemyPlayer.id) {
+                // Aposta Novo Líder: Perde insígnia aleatória em vez de ouro
+                const unlockedBadges = this.player!.badges.map((b, i) => b ? i : -1).filter(i => i !== -1);
+                if (unlockedBadges.length > 0) {
+                    const randomBadgeIndex = unlockedBadges[Math.floor(Math.random() * unlockedBadges.length)];
+                    this.player!.badges[randomBadgeIndex] = false;
+                    Game.sendGlobalLog(`💥 [Derrota no Desafio] ${this.player!.name} apostou alto e perdeu uma Insígnia permanentemente!`);
+                } else {
+                    Game.sendGlobalLog(`💥 [Derrota no Desafio] Como ${this.player!.name} não possuía nenhuma Insígnia, ele saiu ileso da aposta.`);
+                }
             } else {
-                Game.sendGlobalLog(`💰 [Extrato] ${this.player!.name} já estava falido e não perdeu ouro no PvP.`);
+                // Luta PvP Normal: Perde Ouro
+                let penaltyRate = 0.3;
+                if (Game.currentGlobalEvent?.id === 'BLOOD_MOON') penaltyRate = 0.6; // Dobra punição na Lua Sangrenta
+
+                let lostGold = 0;
+                if (this.player!.gold > 0) {
+                    lostGold = Math.floor(this.player!.gold * penaltyRate);
+                    this.player!.gold -= lostGold;
+                    this.enemyPlayer.gold += lostGold; // O inimigo recebe o ouro visualmente
+                    
+                    Game.sendGlobalLog(`💰 [Extrato] Transferência de ${lostGold}G de ${this.player!.name} para ${this.enemyPlayer.name} (Luta PvP).`);
+                    Game.sendGlobalLog(`💰 [Extrato] Novo Saldo de ${this.player!.name}: ${this.player!.gold}G.`);
+                    Game.sendGlobalLog(`💰 [Extrato] Novo Saldo de ${this.enemyPlayer.name}: ${this.enemyPlayer.gold}G.`);
+                } else {
+                    Game.sendGlobalLog(`💰 [Extrato] ${this.player!.name} já estava falido e não perdeu ouro no PvP.`);
+                }
             }
 
             // --- CORREÇÃO: Sincroniza o PVP antes de verificar se o time todo morreu ---
