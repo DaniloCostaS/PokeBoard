@@ -2062,7 +2062,7 @@ export class Game {
                 // Calcula quantas rodadas faltam visualmente para o jogador não se perder
                 const roundsLeft = this.eventEndRound - this.round;
                 eventEl.innerHTML = `
-                <div style="margin-top: 10px; padding: 5px; background: rgba(231, 76, 60, 0.15); border: 1px dashed #e74c3c; border-radius: 4px; color: #fff; font-size: 0.8rem; text-align: center; animation: pulseShiny 2s infinite alternate;">
+                <div style="margin-top: 10px; padding: 5px; background: rgba(231, 76, 60, 0.15); border: 1px dashed #e74c3c; border-radius: 4px; color: #fff; font-size: 0.8rem; text-align: center; animation: pulseShiny 2s infinite alternate; cursor: pointer;" onclick="window.Game.showEventDetails()">
                     <b style="color: #f1c40f;">${this.currentGlobalEvent.icon} ${this.currentGlobalEvent.name}</b><br>
                     <span style="font-size: 0.65rem; color: #bdc3c7;">Faltam ${roundsLeft} rodada(s)</span>
                 </div>`;
@@ -2078,6 +2078,26 @@ export class Game {
         let totalMons = 0; this.players.forEach(p => totalMons += p.team.length);
         const avgTeam = Math.max(1, Math.min(6, Math.round(totalMons / Math.max(1, this.players.length))));
         const elTeam = document.getElementById('npc-team-indicator'); if (elTeam) elTeam.innerText = avgTeam.toString();
+    }
+
+    static showEventDetails() {
+        if(!this.currentGlobalEvent) return;
+        let modal = document.getElementById('event-details-modal');
+        if(!modal) {
+            modal = document.createElement('div');
+            modal.id = 'event-details-modal';
+            modal.className = 'modal-overlay';
+            modal.style.zIndex = '9999';
+            document.body.appendChild(modal);
+        }
+        modal.innerHTML = `
+            <div class="modal-box" style="text-align: center;">
+                <h3 style="color:#f1c40f;">${this.currentGlobalEvent.icon} ${this.currentGlobalEvent.name}</h3>
+                <p style="font-size: 1.1rem; line-height: 1.5; margin: 20px 0; color: #fff; text-shadow: 1px 1px 2px #000;">${this.currentGlobalEvent.desc}</p>
+                <button class="btn btn-secondary mt-15" onclick="document.getElementById('event-details-modal').style.display='none'">Fechar</button>
+            </div>
+        `;
+        modal.style.display = 'flex';
     }
     
     static renderBoard() { 

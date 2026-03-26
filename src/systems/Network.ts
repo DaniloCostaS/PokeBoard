@@ -261,6 +261,18 @@ export class Network {
                 Game.updateHUD();
             } 
         });
+
+        onValue(ref(db, `rooms/${this.currentRoomId}/battleActive`), (snapshot) => {
+            const isBattle = snapshot.val();
+            const BattleObj = (window as any).Battle;
+            
+            // Fixes the frozen screen bug when a mobile browser wakes up and missed BATTLE_END
+            if (isBattle === false && BattleObj && BattleObj.active) {
+                document.getElementById('battle-modal')!.style.display = 'none';
+                BattleObj.active = false;
+            }
+        });
+
         onValue(ref(db, `rooms/${this.currentRoomId}/players`), (snapshot) => { 
             const playersData = snapshot.val(); 
             if(!playersData) return; 
@@ -458,7 +470,15 @@ export class Network {
         } 
     }
 
-    static sendAction(type: string, payload: any) { if(!this.isOnline) return; const actionData = { type: type, payload: payload, playerId: this.myPlayerId, timestamp: Date.now() }; update(ref(db, `rooms/${this.currentRoomId}`), { lastAction: actionData }); }
+    static sendAction(type: string, payload: any) { 
+        if(!this.isOnline) return; 
+        const actionData = { type: type, payload: payload, playerId: this.myPlayerId, timestamp: Date.now() }; 
+        const updates: any = {};
+        updates['lastAction'] = actionData;
+        if (type === 'BATTLE_START') updates['battleActive'] = true;
+        if (type === 'BATTLE_END') updates['battleActive'] = false;
+        update(ref(db, `rooms/${this.currentRoomId}`), updates); 
+    }
     
     // --- FUNÇÃO AUXILIAR PARA BLINDAR A REDE ---
     static getSanitizedTeam(team: any[]) {
