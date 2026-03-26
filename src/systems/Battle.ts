@@ -1270,8 +1270,6 @@ export class Battle {
             const plyListIdx = this.plyTeamList.findIndex(p => (p as any).isTemp || (p as any).isMegaEvolution);
             if (plyListIdx !== -1) {
                 this.plyTeamList[plyListIdx] = original;
-            } else {
-                this.plyTeamList[0] = original;
             }
             // ----------------------------------------------------------
 
@@ -1331,15 +1329,20 @@ export class Battle {
 
         // 4. Substitui na Batalha
         this.activeMon = megaMon;
-        this.player!.team[this.activeEffects.mewIndex] = megaMon;
-        this.plyTeamList[0] = megaMon; 
+        if (this.activeEffects.mewIndex !== undefined && this.activeEffects.mewIndex !== -1) {
+            this.player!.team[this.activeEffects.mewIndex] = megaMon;
+        }
 
         // --- CORREÇÃO: Substitui na posição correta da lista de combate ---
         const plyListIdx = this.plyTeamList.findIndex(p => p.id === this.activeEffects.mewOriginal.id);
         if (plyListIdx !== -1) {
             this.plyTeamList[plyListIdx] = megaMon;
         } else {
-            this.plyTeamList[0] = megaMon;
+            // Em caso de emergência, acha pelo objeto exato:
+            const activeIndex = this.plyTeamList.findIndex(p => p === this.activeEffects.mewOriginal);
+            if (activeIndex !== -1) {
+                this.plyTeamList[activeIndex] = megaMon;
+            }
         }
         // -------------------------------------------------------
 
