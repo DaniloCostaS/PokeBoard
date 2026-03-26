@@ -59,7 +59,7 @@ export class Pokemon {
         }
         // ---------------------------------
 
-        this.level = targetLevel; 
+        this.level = Math.min(targetLevel, 25); 
         this.currentXp = 0; 
         this.wins = 0;
         this.evoData = { next: template.nextForm || "", trigger: template.evoTrigger || 999 };
@@ -220,7 +220,7 @@ export class Pokemon {
     }
     
     gainXp(amount: number, player: Player) { 
-        if(this.level >= 100) return; 
+        if(this.level >= 25) return; 
 
         let finalAmount = amount;
         let usedEffect = false;
@@ -265,12 +265,11 @@ export class Pokemon {
         }
     }
 
-    // --- NOVA FUNÇÃO INTERNA: Entrega o XP bruto sem ativar as cartas de novo ---
     _applyXp(amount: number, player: Player) {
         (window as any).Game.sendGlobalLog(`💹 ${this.name} ganhou ${amount} XP!`);
         this.currentXp += amount; 
         
-        while(this.currentXp >= this.maxXp && this.level < 100) { 
+        while(this.currentXp >= this.maxXp && this.level < 25) { 
             this.currentXp -= this.maxXp; 
             this.levelUp(player); 
         } 
@@ -294,6 +293,7 @@ export class Pokemon {
     }
 
     forceLevel(targetLevel: number) { 
+        targetLevel = Math.min(targetLevel, 25);
         const diff = targetLevel - this.level;
         if (diff > 0) {
             for (let i = 0; i < diff; i++) {

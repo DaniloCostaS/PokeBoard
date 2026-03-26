@@ -82,12 +82,18 @@ export class Battle {
             if (enemyPlayer.effects.curse) { this.logBattle(`☠️ ${enemyPlayer.name} está amaldiçoado! (Dano reduzido)`); }
         } 
         else if (isGym) {
-            const gymData = GYM_DATA.find(g => g.id === gymId);
+            // --- TRADUTOR DE GINÁSIOS ---
+            const actualGymId = Game.activeGyms ? Game.activeGyms[gymId - 1] : gymId;
+            const gymData = GYM_DATA.find(g => g.id === actualGymId);
+            // ----------------------------
+
             const globalAvg = Game.getGlobalAverageLevel();
             const gymLevel = globalAvg + 1; 
             const teamSize = Math.min(6, Math.max(2, Game.getGlobalAverageTeamSize() + 1));
             const dynamicTeams = Game.gymTeams || {}; 
-            let rosterIds = dynamicTeams[gymId] || (gymData ? gymData.teamIds : [130]);
+            
+            // Usa o actualGymId para puxar a equipe correta
+            let rosterIds = dynamicTeams[actualGymId] || (gymData ? gymData.teamIds : [130]);
             const battleIds = rosterIds.slice(0, teamSize);
 
             this.oppTeamList = battleIds.map((id: number) => new Pokemon(id, gymLevel, false, true));
@@ -161,7 +167,10 @@ export class Battle {
 
             let contextTitle = "";
             if (this.isGym) {
-                const gymData = GYM_DATA.find(g => g.id === this.gymId);
+                const Game = (window as any).Game;
+                const actualGymId = Game.activeGyms ? Game.activeGyms[this.gymId - 1] : this.gymId;
+                const gymData = GYM_DATA.find(g => g.id === actualGymId);
+                
                 let gymDesc = `Ginásio de ${_label}`; 
                 if (gymData) {
                     const typesStr = gymData.type.join(" e ");
@@ -1208,7 +1217,10 @@ export class Battle {
             oppTrainer.style.display = 'block'; 
         } 
         else if (this.isGym) { 
-            const gData = GYM_DATA.find(g => g.id === this.gymId); 
+            const Game = (window as any).Game;
+            const actualGymId = Game.activeGyms ? Game.activeGyms[this.gymId - 1] : this.gymId;
+            const gData = GYM_DATA.find(g => g.id === actualGymId); 
+            
             if(gData) oppTrainer.src = `/assets/img/LideresGym/${gData.leaderImg}`; 
             oppTrainer.style.display = 'block'; 
         } 

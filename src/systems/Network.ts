@@ -63,11 +63,17 @@ export class Network {
         const Game = (window as any).Game;
         Game.generateGymTeams(); 
 
+        // --- SORTEIO GLOBAL DE GINÁSIOS ---
+        const allGyms = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18];
+        const shuffledGyms = allGyms.sort(() => Math.random() - 0.5).slice(0, 8);
+        // ----------------------------------
+
         const initialData = { 
             status: "LOBBY", 
             turn: 0, 
             round: 1,
             mapSize: 20,
+            activeGyms: shuffledGyms,
             map: {
                 size: 20,
                 grid: MapSystem.grid,
@@ -195,6 +201,10 @@ export class Network {
         }
         // -----------------------------------
 
+        // --- CARREGA OS GINÁSIOS SORTEADOS ---
+        Game.activeGyms = data.activeGyms || [1, 2, 3, 4, 5, 6, 7, 8]; // Fallback
+        // -------------------------------------
+        
         if (data.map) { MapSystem.size = data.map.size; MapSystem.grid = data.map.grid; MapSystem.gymLocations = data.map.gymLocations || {}; } else { return; } 
         const playerArray = Object.values(data.players).map((pd: any) => { 
             // CORREÇÃO DOS AVATARES: Pega só o nome do arquivo para não duplicar

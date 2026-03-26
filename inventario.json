@@ -1,0 +1,100 @@
+{
+  "nomeProjeto": "PokéBoard V64",
+  "descricao": "Jogo de tabuleiro estratégico inspirado em Pokémon, jogável via navegador com suporte a multiplayer (Firebase).",
+  "versao": "0.0.0",
+  "tecnologias": [
+    "HTML5",
+    "CSS3",
+    "TypeScript",
+    "Vite",
+    "Firebase Realtime Database",
+    "Rolldown Vite"
+  ],
+  "estruturaProjeto": {
+    "arquivosRaiz": [
+      {
+        "nome": "index.html",
+        "tipo": "arquivo",
+        "descricao": "Ponto de entrada do jogo. Contém todo o layout base, modais (Batalha, Pokedex, Loja, etc.) e dependências do Firebase."
+      },
+      {
+        "nome": "package.json",
+        "tipo": "arquivo",
+        "descricao": "Arquivo de manifesto do npm com scripts (dev, build, preview) e dependências (typescript, vite, firebase)."
+      },
+      {
+        "nome": "tsconfig.json",
+        "tipo": "arquivo",
+        "descricao": "Configurações do compilador TypeScript para o projeto."
+      },
+      {
+        "nome": "firebase.json",
+        "tipo": "arquivo",
+        "descricao": "Configuração de roteamento e deploy para o Firebase."
+      },
+      {
+        "nome": "README.md",
+        "tipo": "arquivo",
+        "descricao": "Documentação principal do projeto."
+      },
+      {
+        "nome": "inventario.json",
+        "tipo": "arquivo",
+        "descricao": "Este arquivo, mapeando informações, tecnologias originais e a estrutura do projeto."
+      }
+    ],
+    "diretoriosPrincipais": [
+      {
+        "nome": "src",
+        "tipo": "diretório",
+        "descricao": "Código fonte principal em TypeScript.",
+        "componentes": [
+          {
+            "nome": "main.ts / style.css",
+            "descricao": "Bootstrap lógico do jogo e arquivo CSS contendo componentes globais de interface."
+          },
+          {
+            "nome": "core (Game.ts, Setup.ts)",
+            "descricao": "Lógica principal responsável pelo andamento global do Game."
+          },
+          {
+            "nome": "systems (Battle.ts, Cards.ts, MapSystem.ts, Network.ts, Shop.ts)",
+            "descricao": "Sistemas vitais encapsulados em módulos independentes."
+          },
+          {
+            "nome": "constants",
+            "descricao": "Variáveis estáticas, dados e constantes de configuração (Pokédex, NPCs, Ginásios, Itens, Tipos, etc)."
+          },
+          {
+            "nome": "models",
+            "descricao": "Contém todas as interfaces dadas pelo TypeScript e Modelos abstratos de objetos estruturados."
+          }
+        ]
+      },
+      {
+        "nome": "public",
+        "tipo": "diretório",
+        "descricao": "Pasta para arquivos estáticos intocados contendo diretório assets com imagens em geral (Treinadores, Pokemons)."
+      },
+      {
+        "nome": "docs",
+        "tipo": "diretório",
+        "descricao": "Repositório de informações da aplicação e referências de desenvolvimento."
+      },
+      {
+        "nome": "dist",
+        "tipo": "diretório",
+        "descricao": "Diretório auto-gerado pelo Vite que retém os assets do projeto minimificados em ambiente de build."
+      }
+    ]
+  },
+  "scripts": {
+    "dev": "Inicia servidor de desenvolvimento local",
+    "build": "Compila arquivos estritos TypeScript e gera os arquivos finais na pasta dist de produção",
+    "preview": "Testa o build final de produção simulando um servidor local"
+  },
+  "informacoesAdicionais": {
+    "mecanicasAtuais": "Batalhas contam com mitigação, chance de crítico, esquiva e bloqueio. Ambiente multiplayer online sincronizando estados pelo Firebase em Salas. Geração inteligente e procedural da grade de mapa na tela",
+    "autor": "Danilo Costa S"
+  }
+}

@@ -37,7 +37,16 @@ export class Game {
     static eventEndRound: number = 0;
     static lastBonusRoundClaimed: number = 0; // Armazena o bônus localmente de forma segura
 
+    static activeGyms: number[] = [];
+
     static init(players: Player[], mapSize: number) { 
+        // --- NOVO: GARANTE O SORTEIO NO MODO OFFLINE ---
+        if (!this.activeGyms || this.activeGyms.length === 0) {
+            const allGyms = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18];
+            this.activeGyms = allGyms.sort(() => Math.random() - 0.5).slice(0, 8);
+        }
+        // -----------------------------------------------
+
         this.players = players; 
         
         if(MapSystem.grid.length === 0) { 
@@ -176,13 +185,17 @@ export class Game {
         badgeContainer.innerHTML = '';
         
         // Renderiza as 8 insígnias (se ele ganhou, ele tem todas)
-        GYM_DATA.forEach(gym => {
-            const img = document.createElement('img');
-            img.src = `/assets/img/Insignias/${gym.badgeImg}`;
-            img.className = 'win-badge-img';
-            img.title = `Insígnia ${gym.type}`;
-            badgeContainer.appendChild(img);
-        });
+        for (let i = 0; i < 8; i++) {
+            const actualGymId = this.activeGyms ? this.activeGyms[i] : (i + 1);
+            const gym = GYM_DATA.find(g => g.id === actualGymId);
+            if (gym) {
+                const img = document.createElement('img');
+                img.src = `/assets/img/Insignias/${gym.badgeImg}`;
+                img.className = 'win-badge-img';
+                img.title = `Insígnia ${gym.type}`;
+                badgeContainer.appendChild(img);
+            }
+        }
 
         // 4. Mostrar Tela
         document.getElementById('victory-modal')!.style.display = 'flex';
@@ -1913,12 +1926,15 @@ export class Game {
             let badgeHTML = '<div class="badges-container">'; 
             for(let b=0; b<8; b++) { 
                 const isActive = p.badges[b]; 
-                const gData = GYM_DATA.find(g => g.id === b+1); 
+                // --- TRADUTOR DE HUD ---
+                const actualGymId = this.activeGyms ? this.activeGyms[b] : (b + 1);
+                const gData = GYM_DATA.find(g => g.id === actualGymId); 
+                // -----------------------
                 const imgUrl = gData ? `/assets/img/Insignias/${gData.badgeImg}` : ''; 
                 const style = isActive ? `background-image: url('${imgUrl}'); background-size: 100% 100%; background-repeat: no-repeat; background-color: transparent;` : `background-color: #ccc;`; 
                 badgeHTML += `<div class="badge-slot ${isActive?'active':''}" style="${style}" title="Insígnia ${b+1}"></div>`; 
             } 
-            badgeHTML += '</div>'; 
+            badgeHTML += '</div>';
     
             const th = p.team.map((m, slotIndex) => { 
                 let auraClass = '';
@@ -2118,7 +2134,10 @@ export class Game {
                 if(t===TILE.GYM) { 
                     const gid = MapSystem.gymLocations[`${x},${y}`]; 
                     if(gid) { 
-                        const gData = GYM_DATA.find(g => g.id === gid); 
+                        // --- TRADUTOR DE TABULEIRO ---
+                        const actualGymId = this.activeGyms ? this.activeGyms[gid - 1] : gid;
+                        const gData = GYM_DATA.find(g => g.id === actualGymId); 
+                        // -----------------------------
                         if(gData) { 
                             d.style.backgroundImage = `url('/assets/img/Ginasios/${gData.gymImg}')`; 
                             d.style.backgroundSize = '100% 100%'; 
@@ -2128,7 +2147,7 @@ export class Game {
                         d.innerText = ""; 
                     } 
                 } 
-                area.appendChild(d); 
+                area.appendChild(d);
             } 
         } 
     }
