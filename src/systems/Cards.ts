@@ -1146,6 +1146,67 @@ export class Cards {
                 }
                 break;
 
+            case 'imposto':
+                // 1. Consume a carta PRIMEIRO do jogador que ativou
+                const impIdx = player.cards.findIndex(c => c.id === cardId);
+                if (impIdx > -1) player.cards.splice(impIdx, 1);
+                
+                // 2. Afeta TODOS os jogadores
+                let totalCardsLost = 0;
+                let totalItemsLost = 0;
+
+                Game.players.forEach((p: any) => {
+                    // Metade das cartas
+                    const cardsToRemove = Math.floor(p.cards.length / 2);
+                    if (cardsToRemove > 0) {
+                        for (let i = 0; i < cardsToRemove; i++) {
+                            const randIdx = Math.floor(Math.random() * p.cards.length);
+                            p.cards.splice(randIdx, 1);
+                            totalCardsLost++;
+                        }
+                    }
+
+                    // Metade de CADA item
+                    Object.keys(p.items).forEach(itemKey => {
+                        if (p.items[itemKey] > 0) {
+                            const itemsToRemove = Math.floor(p.items[itemKey] / 2);
+                            p.items[itemKey] -= itemsToRemove;
+                            totalItemsLost += itemsToRemove;
+                        }
+                    });
+
+                    if (Network.isOnline && p.id !== player.id) {
+                        Network.syncSpecificPlayer(p.id); 
+                    }
+                });
+                
+                effectLog = `📜 A RECEITA FEDERAL CHEGOU! O Leão abocanhou a conta de todos na mesa! (${totalCardsLost} cartas e ${totalItemsLost} itens foram retidos como impostos!)`;
+                consumed = false; 
+                
+                // 3. Atualiza UI e envia os Logs
+                Game.updateHUD(); 
+                const boardModalI = document.getElementById('board-cards-modal');
+                if (boardModalI) boardModalI.style.display = 'none';
+
+                const logMsgI = `🃏 ${player.name} ativou a carta GLOBAL: [${cardData.name}]!`;
+                const fullMsgI = `${logMsgI}\n\n${effectLog}`;
+
+                Game.log(logMsgI);
+                Game.log(effectLog);
+                Game.showGlobalAlert(fullMsgI + `||CARD:${cardId}`, player.name, true, false);
+
+                if (Network.isOnline) {
+                    Network.syncPlayerState();
+                    Network.sendAction('SHOW_ALERT', { 
+                        msg: fullMsgI + `||CARD:${cardId}`,
+                        playerName: player.name, 
+                        endsTurn: false 
+                    });
+                    Network.sendAction('LOG', { msg: logMsgI });
+                    Network.sendAction('LOG', { msg: effectLog });
+                }
+                break;
+
             case 'doublexp': 
                 player.effects.doubleXp = 5; 
                 effectLog = `🚻 O conhecimento flui! Os próximos 5 ganhos de XP de ${player.name} serão em dobro!`; 
