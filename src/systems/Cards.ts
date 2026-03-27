@@ -1087,15 +1087,15 @@ export class Cards {
             // =========================================================
 
             case 'communism':
-                // 1. Remove a própria carta da mão de quem usou ANTES de juntar tudo
+                // 1. Remove a própria carta da mão de quem usou
                 const comIdx = player.cards.findIndex(c => c.id === cardId);
                 if (comIdx > -1) player.cards.splice(comIdx, 1);
                 
-                // 2. Coleta TODAS as cartas de TODOS os jogadores em um pool central
+                // 2. Coleta TODAS as cartas de TODOS os jogadores em um pool central e esvazia mãos
                 let cardPool: any[] = [];
                 Game.players.forEach((p: any) => {
                     cardPool = [...cardPool, ...p.cards];
-                    p.cards = []; // Esvazia a mão de todo mundo completamente
+                    p.cards.length = 0; // LIMPEZA RADICAL: Esvazia o array mantendo a referência
                 });
 
                 // 3. Embaralha o pool central (Fisher-Yates)
@@ -1116,11 +1116,13 @@ export class Cards {
                             p.cards.push(cardPool.pop());
                         }
                     }
-                    // Força a sincronia individual de cada um na rede
-                    if (Network.isOnline) {
-                        Network.syncSpecificPlayer(p.id); 
-                    }
                 });
+
+                // 6. Sincronização Atômica: Força o estado de TODOS os jogadores de uma só vez
+                if (Network.isOnline) {
+                    const allIds = Game.players.map((p: any) => p.id);
+                    Network.syncPlayers(allIds); 
+                }
                 
                 effectLog = `☭ REVOLUÇÃO GLOBAL! As cartas de todos foram coletadas e redistribuídas igualmente! Cada jogador agora tem ${share} cartas. (${burned} foram destruídas para manter a ordem)`;
                 consumed = false; 
