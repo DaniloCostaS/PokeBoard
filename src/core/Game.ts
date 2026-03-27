@@ -892,6 +892,36 @@ export class Game {
         this.log(`${this.players[playerId].name} tirou ${result}`); 
         
         const Network = (window as any).Network;
+        const ev = this.currentGlobalEvent?.id;
+
+        // --- EVENTOS DE MOVIMENTO ---
+        if (ev === 'SPATIAL_RIFT') {
+            const p = this.players[playerId];
+            const totalTiles = MapSystem.size * MapSystem.size;
+            const randomIdx = Math.floor(Math.random() * totalTiles);
+            const targetCoord = MapSystem.getCoord(randomIdx);
+            
+            p.x = targetCoord.x;
+            p.y = targetCoord.y;
+            this.log(`🌌 FENDA ESPACIAL! ${p.name} foi teletransportado!`);
+            this.moveVisuals();
+            
+            if (!Network.isOnline || playerId === Network.myPlayerId) {
+                this.handleTile(p);
+                if (Network.isOnline) Network.syncPlayerState();
+            }
+            return;
+        }
+
+        if (ev === 'DOUBLE_STEP') {
+            result *= 2;
+            this.log(`🏃 VENTO A FAVOR! Movimento dobrado para ${result}!`);
+        } else if (ev === 'QUICKSAND') {
+            result = Math.max(1, Math.floor(result / 2));
+            this.log(`⏳ AREIA MOVEDIÇA! Movimento reduzido para ${result}!`);
+        }
+        // ---------------------------
+
         if (!Network.isOnline || playerId === Network.myPlayerId) {
             const p = this.players[playerId]; 
             const aliveTeam = p.team.filter(m => !m.isFainted());
@@ -1041,6 +1071,7 @@ export class Game {
     static performVisualStep(pId: number, x: number, y: number) { const p = this.players[pId]; if(!p) return; p.x = x; p.y = y; const tile = document.getElementById(`tile-${x}-${y}`); if(tile) { tile.classList.add('step-highlight'); this.moveVisuals(); setTimeout(() => tile.classList.remove('step-highlight'), 300); } }
     
     static handleTile(p: Player) {
+        const Network = (window as any).Network;
         if (Battle.active) return; 
 
         if (p.isDefeated()) {
@@ -1093,6 +1124,20 @@ export class Game {
         }
         
         else if(type === TILE.EVENT) { 
+            // EVENTO: LOTTERY_DAY
+            if (this.currentGlobalEvent?.id === 'LOTTERY_DAY') {
+                p.gold += 500;
+                Cards.draw(p, true);
+                const lotteryMsg = `🎰 DIA DE LOTERIA! Você visitou a casa de Evento e ganhou o prêmio acumulado de 500G e 1 Carta!`;
+                this.sendGlobalLog(lotteryMsg);
+                this.showGlobalAlert(lotteryMsg, p.name, true);
+                if (Network.isOnline) {
+                    Network.syncPlayerState();
+                    Network.sendAction('LOG', { msg: lotteryMsg });
+                }
+                return;
+            }
+
             let localMsg = "";
             let remoteMsg = "";
 
@@ -1119,7 +1164,6 @@ export class Game {
                 this.pendingTileEvent = true; 
                 this.showGlobalAlert(localMsg, p.name, true, false); // false = não encerra o turno
 
-                const Network = (window as any).Network;
                 if(Network.isOnline) {
                     Network.syncPlayerState();
                     Network.sendAction('LOG', { msg: remoteMsg });
@@ -1166,7 +1210,6 @@ export class Game {
             // Abre a Pop-up Bonita!
             this.showGlobalAlert(localMsg, p.name, true);
 
-            const Network = (window as any).Network;
             if(Network.isOnline) {
                 Network.sendAction('LOG', { msg: remoteMsg });
                 Network.sendAction('SHOW_ALERT', { msg: remoteMsg, playerName: p.name });
@@ -1176,6 +1219,13 @@ export class Game {
         else if(type === TILE.GYM) { 
             const gymId = MapSystem.gymLocations[`${p.x},${p.y}`] || 1; 
             
+            // EVENTO: GYM_VACATION
+            if (this.currentGlobalEvent?.id === 'GYM_VACATION') {
+                const vacationMsg = `🏖️ GINÁSIO TRANCADO! O Líder está de férias! Volte quando o evento de Férias Coletivas acabar.`;
+                this.showGlobalAlert(vacationMsg, p.name, true);
+                return;
+            }
+
             // Verifica se NÃO tem a insígnia
             if (!p.badges[gymId-1]) { 
                 Battle.setup(p, new Pokemon(150, 1, false), false, "Líder de Ginásio", 1000, null, true, gymId, "", type); 
@@ -1226,8 +1276,7 @@ export class Game {
                     // Exibe o Alerta Bonito e só passa o turno quando clicar em OK
                     this.showGlobalAlert(msgLocal, p.name, true);
 
-                    const Network = (window as any).Network;
-                    if(Network.isOnline) {
+                        if(Network.isOnline) {
                         Network.sendAction('LOG', { msg: msgGlobal });
                         Network.sendAction('SHOW_ALERT', { msg: msgGlobal, playerName: p.name });
                     }
@@ -1248,8 +1297,7 @@ export class Game {
                     this.log(msgLocal.replace(/\n\n/g, ' ').split('||')[0]);
                     this.showGlobalAlert(msgLocal, p.name, true, false); // false para não passar turno direto
 
-                    const Network = (window as any).Network;
-                    if(Network.isOnline) {
+                        if(Network.isOnline) {
                         Network.sendAction('LOG', { msg: msgGlobal.split('||')[0] });
                         Network.sendAction('SHOW_ALERT', { msg: msgGlobal, playerName: p.name, endsTurn: false });
                     }
@@ -1266,7 +1314,6 @@ export class Game {
                 // --- NOVA LÓGICA DO ALERTA ---
                 this.showGlobalAlert(msg, p.name, true);
                 
-                const Network = (window as any).Network;
                 if(Network.isOnline) {
                     Network.sendAction('SHOW_ALERT', { msg: msg, playerName: p.name });
                 }
@@ -1339,7 +1386,6 @@ export class Game {
                 // O último "true" avisa o sistema que o turno DEVE ser passado quando o jogador clicar em OK.
                 this.showGlobalAlert(localMsg, player.name, true, true);
 
-                const Network = (window as any).Network;
                 if(Network.isOnline) {
                     Network.syncPlayerState();
                     Network.sendAction('LOG', { msg: remoteMsg });
@@ -1394,7 +1440,6 @@ export class Game {
             
             // Salva a contagem atualizada no Firebase se algum efeito foi gasto
             if (effectsChanged) {
-                const Network = (window as any).Network;
                 if (Network && Network.isOnline) Network.syncSpecificPlayer(currentP.id);
             }
         }
@@ -1416,16 +1461,8 @@ export class Game {
         // --- NOVA LÓGICA DE RODADA E EVENTOS ---
         const nextTurnIdx = (this.turn + 1) % this.players.length; 
         if (nextTurnIdx === 0) {
-            this.round++; // Completou um ciclo inteiro, aumenta a rodada!
-            const Network = (window as any).Network;
+            this.round++; // Completou um ciclo inteiro
             
-            // --- NOVO: SINCRONIZA A RODADA PARA OS AMIGOS IMEDIATAMENTE ---
-            if (Network.isOnline) {
-                Network.sendAction('LOG', { msg: `||ROUND:${this.round}` });
-                if (db) update(ref(db, `rooms/${Network.currentRoomId}`), { round: this.round });
-            }
-            // -------------------------------------------------------------
-
             // 1. Limpa evento antigo
             if (this.currentGlobalEvent && this.round >= this.eventEndRound) {
                 this.currentGlobalEvent = null;
@@ -1437,35 +1474,66 @@ export class Game {
                 }
             }
             
-            // 2. Rola um Novo Evento (A cada 10 rodadas)
-            if (this.round > 1 && this.round % 10 === 0) {
+            // 2. Rola um Novo Evento (A cada 5 rodadas)
+            if (this.round % 5 === 0) {
                 // Apenas quem finalizou a rodada anterior sorteia e avisa para não duplicar na rede
                 if (!Network.isOnline || this.turn === Network.myPlayerId) {
                     const ev = GLOBAL_EVENTS[Math.floor(Math.random() * GLOBAL_EVENTS.length)];
-                    //const msgLocal = `🌍 ANOMALIA DETECTADA!\n\n${ev.icon} ${ev.name}\n${ev.desc}||EVENT:${ev.id}`;
                     const msgGlobal = `🌍 ALERTA GLOBAL! O evento ${ev.name} começou!||EVENT:${ev.id}`;
                     
-                    //this.showGlobalAlert(msgLocal, "Sistema", true, false);
-                    //this.log(msgGlobal.split('||')[0]); // <--- IMPRIME NO LOG
-                    
-                    // --- SALVA ONLINE O EVENTO SORTEADO ---
                     this.currentGlobalEvent = ev;
-                    this.eventEndRound = this.round + 5; // EVENTOS AGORA DURAM 5 RODADAS EXATAS
-                    if (Network.isOnline && db) {
-                        update(ref(db, `rooms/${Network.currentRoomId}`), { 
-                            currentEventId: ev.id, 
-                            eventEndRound: this.eventEndRound 
+                    this.eventEndRound = this.round + 5;
+                    
+                    // --- GATILHOS DE INÍCIO DE EVENTO ---
+                    if (ev.id === 'TAX_SEASON') {
+                        this.players.forEach(player => {
+                            // Perde metade das cartas
+                            if (player.cards.length > 0) {
+                                const lostCount = Math.floor(player.cards.length / 2);
+                                for (let i = 0; i < lostCount; i++) {
+                                    player.cards.splice(Math.floor(Math.random() * player.cards.length), 1);
+                                }
+                            }
+                            // Perde metade dos itens
+                            for (const key in player.items) {
+                                if (player.items[key] > 0) {
+                                    player.items[key] = Math.ceil(player.items[key] / 2);
+                                }
+                            }
                         });
+                        this.sendGlobalLog("📜 IMPOSTO DE RENDA: Todos os jogadores perderam metade de suas cartas e itens!");
+                    } else if (ev.id === 'TRUCO_SEIS') {
+                        this.players.forEach(player => {
+                            if (player.cards.length > 6) {
+                                while (player.cards.length > 6) {
+                                    player.cards.splice(Math.floor(Math.random() * player.cards.length), 1);
+                                }
+                            }
+                        });
+                        this.sendGlobalLog("🃏 TRUCO: Todos os jogadores descartaram até ficarem com no máximo 6 cartas!");
                     }
-                    // --------------------------------------
+                    // ------------------------------------
+
+                    if (Network.isOnline && db) {
+                        const updates: any = {};
+                        updates[`rooms/${Network.currentRoomId}/currentEventId`] = ev.id;
+                        updates[`rooms/${Network.currentRoomId}/eventEndRound`] = this.eventEndRound;
+                        
+                        // Sincroniza jogadores se houve mudança no Tax/Truco
+                        if (ev.id === 'TAX_SEASON' || ev.id === 'TRUCO_SEIS') {
+                            this.players.forEach(p => {
+                                updates[`rooms/${Network.currentRoomId}/players/${p.id}/cards`] = p.cards;
+                                updates[`rooms/${Network.currentRoomId}/players/${p.id}/items`] = p.items;
+                            });
+                        }
+                        update(ref(db), updates);
+                    }
 
                     // Registra no Log Local (que agora também ativa a caixinha)
                     this.log(msgGlobal);
 
                     if(Network.isOnline) {
-                        //Network.sendAction('LOG', { msg: msgGlobal.split('||')[0] });
                         Network.sendAction('LOG', { msg: msgGlobal });
-                        //Network.sendAction('SHOW_ALERT', { msg: msgGlobal, playerName: "Sistema", endsTurn: false });
                     }
                 }
             }
@@ -1522,8 +1590,7 @@ export class Game {
                         this.log(`❌ ${player.name} está paralisado e perdeu o bônus da Rodada ${this.round}!`);
                         
                         // Força o salvamento para o paralisado também não farmar com F5
-                        const Network = (window as any).Network;
-                        if (Network && Network.isOnline) Network.syncSpecificPlayer(player.id);
+                                if (Network && Network.isOnline) Network.syncSpecificPlayer(player.id);
                     }
                 }
             }
@@ -1558,6 +1625,23 @@ export class Game {
                 // ----------------------------------------------
 
                 processDecadeBonus(myPlayer);
+
+                // --- EVENTO: ROBIN HOOD (Início de Turno) ---
+                if (this.currentGlobalEvent?.id === 'ROBIN_HOOD' && !myPlayer.effects.robinHoodApplied) {
+                    if (myPlayer.gold < 200 || myPlayer.cards.length === 0) {
+                        myPlayer.gold += 800;
+                        for (let i = 0; i < 5; i++) Cards.draw(myPlayer, true);
+                        myPlayer.effects.robinHoodApplied = true;
+                        
+                        const robinMsg = `🎁 AJUDA HUMANITÁRIA! Robin Hood te deu 800G e 5 Cartas por estar em dificuldade!`;
+                        this.sendGlobalLog(robinMsg);
+                        this.showGlobalAlert(robinMsg, myPlayer.name, true, false);
+                        
+                        if (Network.isOnline) Network.syncPlayerState();
+                        this.updateHUD();
+                    }
+                }
+                // --------------------------------------------
 
                 if (myPlayer.skipTurns > 0) {
                     btn.disabled = true;
@@ -2067,7 +2151,6 @@ export class Game {
                 this.currentGlobalEvent = null;
                 this.eventEndRound = 0;
                 
-                const Network = (window as any).Network;
                 if (Network && Network.isOnline && db) {
                     update(ref(db, `rooms/${Network.currentRoomId}`), { currentEventId: null, eventEndRound: 0 });
                 }

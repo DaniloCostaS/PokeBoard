@@ -27,6 +27,7 @@ export class Player {
         lastBonusRound?: number;
         escapedGym?: boolean;
         offensiveCardsUsed?: number;
+        robinHoodApplied?: boolean;
     } = {};
 
     // --- NOVA ESTRUTURA PARA A POKÉDEX FUTURA ---

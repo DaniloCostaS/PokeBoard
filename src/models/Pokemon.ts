@@ -228,11 +228,9 @@ export class Pokemon {
 
         if (player && player.effects) {
             // Verifica o Double XP
-            if (player.effects.doubleXp && player.effects.doubleXp > 0) {
+            if ((player.effects.doubleXp && player.effects.doubleXp > 0) || Game.currentGlobalEvent?.id === 'EXP_BURST') {
                 finalAmount *= 2;
-                // player.effects.doubleXp--; <--- REMOVIDO! (Desconta por turno no Game.ts)
                 usedEffect = true;
-                // Mensagem de fim de efeito removida daqui também!
             }
 
             // Verifica o Exp Share
@@ -276,6 +274,7 @@ export class Pokemon {
     }
 
     levelUp(player: Player | null) { 
+        if (this.level >= 25) return;
         this.level++; 
         
         // Recebe os ganhos exatos deste level
@@ -288,6 +287,14 @@ export class Pokemon {
              const Game = (window as any).Game;
              // Log detalhado com os status sorteados!
              Game.sendGlobalLog(`🎉 ${this.name} subiu para o Nível ${this.level}! (+${gains.hp} HP | +${gains.atk} ATK | +${gains.def} DEF | +${gains.spd} SPD)`); 
+             
+             // --- EVENTO: POKÉRUS OUTBREAK (+2 níveis adicionais) ---
+             if (Game.currentGlobalEvent?.id === 'POKERUS_OUTBREAK' && !(this as any)._isPokerusProcessing) {
+                 (this as any)._isPokerusProcessing = true;
+                 this.levelUp(player);
+                 this.levelUp(player);
+                 delete (this as any)._isPokerusProcessing;
+             }
         }
         this.checkEvolution(player); 
     }

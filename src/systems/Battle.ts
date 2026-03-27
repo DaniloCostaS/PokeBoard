@@ -323,6 +323,9 @@ export class Battle {
 
     // --- NOVA FUNÇÃO CENTRALIZADA DE MEGA EVOLUÇÃO ---
     static tryTriggerMegaEvolution(contextMsg: string = "reagiu durante o combate") {
+        const Game = (window as any).Game;
+        if (Game.currentGlobalEvent?.id === 'MEGA_BLOCK') return; // Bloqueio Global!
+
         if (!this.activeMon || !this.activeMon.megaStone) return;
         if ((this.activeMon as any).isTemp) return; // Já está Mega Evoluído
 
@@ -343,6 +346,9 @@ export class Battle {
 
     // --- NOVA FUNÇÃO CENTRALIZADA DE MEGA EVOLUÇÃO (OPONENTE) ---
     static tryOpponentMegaEvolution(contextMsg: string = "reagiu durante o combate") {
+        const Game = (window as any).Game;
+        if (Game.currentGlobalEvent?.id === 'MEGA_BLOCK') return;
+
         if (!this.opponent) return;
         if ((this.opponent as any).isTemp) return; 
 
@@ -694,8 +700,16 @@ export class Battle {
         } else if (ev === 'RAIN') {
             if (atkTypes.includes('Água') || atkTypes.includes('Elétrico')) { finalMulti += 0.25; weatherSign = "[Chuva🌧️]"; }
             if (atkTypes.includes('Fogo')) { finalMulti -= 0.25; weatherSign = "[Chuva💧]"; }
+        } else if (ev === 'WINTER_STORM') {
+            if (atkTypes.includes('Gelo')) { finalMulti += 0.50; weatherSign = "[Gelo❄️]"; }
+            else { finalMulti -= 0.20; weatherSign = "[Frio🧊]"; }
+        } else if (ev === 'MYSTIC_AURA') {
+            if (atkTypes.includes('Psíquico') || atkTypes.includes('Fada')) { finalMulti += 0.50; weatherSign = "[Mistíco✨]"; }
         } else if (ev === 'BLOOD_MOON') {
             if (atkTypes.includes('Fantasma') || atkTypes.includes('Noturno')) { finalMulti += 0.20; weatherSign = "[Lua🌑]"; }
+        } else if (ev === 'BERSERK_MODE') {
+            finalMulti *= 2.0; 
+            weatherSign = "[💢BERSERK!]";
         }
 
         finalDamage = Math.floor(finalDamage * finalMulti);
@@ -724,13 +738,19 @@ export class Battle {
             if (this.enemyPlayer && this.enemyPlayer.effects.curse) { finalDamage = Math.floor(finalDamage / 2); } 
         } 
         
-        // 7. NOVO: REFLEXÃO DE DANO (Counter)
+        // 7. NOVO: REFLEXÃO DE DANO (Counter / Soul Link)
         let reflectedAmount = 0;
+        
+        if (ev === 'SOUL_LINK') {
+            reflectedAmount = Math.floor(finalDamage * 0.3);
+            logDetails += " [🔗LINK!]";
+        }
+
         // Se a Defesa for 50% maior que o Ataque (ex: 150 Def vs 100 Atk)
         if (defender.def > (attacker.atk * 1.5)) {
             // 15% de chance de devolver o dano
             if (Math.random() * 100 <= 15) {
-                reflectedAmount = finalDamage;
+                reflectedAmount += finalDamage;
                 logDetails += " 🔄REFLETIDO!";
             }
         }
@@ -765,6 +785,30 @@ export class Battle {
 
         // --- FUNÇÃO PARA FINALIZAR O ROUND ---
         const finishTurnSequence = () => {
+            const Game = (window as any).Game;
+            const ev = Game.currentGlobalEvent?.id;
+
+            // --- GATILHOS DE FIM DE TURNO GLOBAIS ---
+            if (ev === 'TOXIC_SMOG') {
+                const toxicHurt = (mon: Pokemon) => {
+                    if (mon.currentHp > 0 && !['Venenoso', 'Aço'].includes(mon.type) && (!mon.secondType || !['Venenoso', 'Aço'].includes(mon.secondType))) {
+                        const dmg = Math.ceil(mon.maxHp * 0.1);
+                        mon.currentHp = Math.max(1, mon.currentHp - dmg);
+                        return dmg;
+                    }
+                    return 0;
+                };
+                const d1 = toxicHurt(this.activeMon!);
+                const d2 = toxicHurt(this.opponent!);
+                if (d1 > 0 || d2 > 0) {
+                    this.logBattle("🤢 O Nevoeiro Tóxico sufoca os Pokémons em campo!", true);
+                    this.updateUI();
+                }
+            } else if (ev === 'WINTER_STORM') {
+                // Lógica de congelamento movida para os métodos de ataque
+            }
+            // ----------------------------------------
+
             this.processingAction = false;
             this.updateButtons();
 
@@ -834,17 +878,28 @@ export class Battle {
 
     // Ação isolada de ataque do Jogador
     static performPlayerAttack(callback?: () => void) {
+        const Game = (window as any).Game;
         const Network = (window as any).Network;
         if(!this.activeMon || !this.opponent) return;
 
+        if (Game.currentGlobalEvent?.id === 'WINTER_STORM') {
+            if (!this.activeMon.type.includes('Gelo') && (!this.activeMon.secondType || !this.activeMon.secondType.includes('Gelo'))) {
+                if (Math.random() < 0.15) {
+                    this.logBattle(`❄️ ${this.activeMon.name} congelou na nevasca e não conseguiu atacar!`, true);
+                    if(callback) callback();
+                    return;
+                }
+            }
+        }
+
         // --- CÁLCULO DO PRIMEIRO ATAQUE ---
-        let calc1 = this.calculateDamage(this.activeMon, this.opponent, true); 
+        let calc1 = this.calculateDamage(this.activeMon!, this.opponent!, true); 
         let totalDmg = calc1.damage;
         
         // [NOVO] Acumula o dano refletido (se houver)
         let totalReflected = calc1.reflected || 0; 
         
-        let logMsg = `${this.activeMon.name} atacou! `;
+        let logMsg = `${this.activeMon!.name} atacou! `;
 
         if (calc1.avoided) {
             logMsg += `${calc1.msg}`;
@@ -855,9 +910,9 @@ export class Battle {
 
         // --- CÁLCULO DO ATAQUE DUPLO (SPEED) ---
         // Se SPD >= 50% maior que oponente -> 20% chance de atacar duas vezes
-        if (!calc1.avoided && this.activeMon.speed >= (this.opponent.speed * 1.5)) {
+        if (!calc1.avoided && this.activeMon!.speed >= (this.opponent!.speed * 1.5)) {
             if (Math.random() * 100 <= 20) {
-                let calc2 = this.calculateDamage(this.activeMon, this.opponent, true);
+                let calc2 = this.calculateDamage(this.activeMon!, this.opponent!, true);
                 
                 if (!calc2.avoided) {
                     totalDmg += calc2.damage;
@@ -888,12 +943,12 @@ export class Battle {
 
         if (Network.isOnline) {
              Network.sendAction('BATTLE_UPDATE', { 
-                plyHp: this.activeMon.currentHp, 
-                oppHp: this.opponent.currentHp, 
+                plyHp: this.activeMon!.currentHp, 
+                oppHp: this.opponent!.currentHp, 
                 msg: logMsg
             });
             if (this.isPvP && this.enemyPlayer) {
-                Network.syncSpecificPlayer(this.enemyPlayer.id);
+                Network.sendAction('PVP_SYNC_DAMAGE', { targetId: this.enemyPlayer.id, team: this.enemyPlayer.team, gold: this.enemyPlayer.gold }); // Safety sync
             }
         }
 
@@ -922,24 +977,28 @@ export class Battle {
     
     // Ação isolada de ataque do Inimigo (Controlado automaticamente pelo Cliente do Jogador Ativo)
     static performEnemyAttack(callback?: () => void) {
-        if(!this.activeMon || !this.opponent) return;
+        const Game = (window as any).Game;
         const Network = (window as any).Network;
+        if(!this.activeMon || !this.opponent) return;
 
-        if (this.activeEffects.stunOpponent && this.activeEffects.stunOpponent > 0) { 
-            this.activeEffects.stunOpponent--; 
-            this.logBattle("⚡ Inimigo atordoado! Não conseguiu atacar."); 
-            if(callback) callback();
-            return; 
-        } 
+        if (Game.currentGlobalEvent?.id === 'WINTER_STORM') {
+            if (!this.opponent.type.includes('Gelo') && (!this.opponent.secondType || !this.opponent.secondType.includes('Gelo'))) {
+                if (Math.random() < 0.15) {
+                    this.logBattle(`❄️ ${this.opponent.name} (Inimigo) congelou na nevasca!`, true);
+                    if(callback) callback();
+                    return;
+                }
+            }
+        }
 
         // --- CÁLCULO DO PRIMEIRO ATAQUE ---
-        let calc1 = this.calculateDamage(this.opponent, this.activeMon, false); 
+        let calc1 = this.calculateDamage(this.opponent!, this.activeMon!, false); 
         let totalDmg = calc1.damage;
         
         // [NOVO] Acumula reflexo
         let totalReflected = calc1.reflected || 0;
 
-        let logMsg = `${this.opponent.name} atacou! `;
+        let logMsg = `${this.opponent!.name} atacou! `;
 
         if (calc1.avoided) {
             logMsg += `${calc1.msg}`;
@@ -949,9 +1008,9 @@ export class Battle {
         }
 
         // --- CÁLCULO DO ATAQUE DUPLO (SPEED) ---
-        if (!calc1.avoided && this.opponent.speed >= (this.activeMon.speed * 1.5)) {
+        if (!calc1.avoided && this.opponent!.speed >= (this.activeMon!.speed * 1.5)) {
             if (Math.random() * 100 <= 20) {
-                let calc2 = this.calculateDamage(this.opponent, this.activeMon, false);
+                let calc2 = this.calculateDamage(this.opponent!, this.activeMon!, false);
                 if (!calc2.avoided) {
                     totalDmg += calc2.damage;
                     
@@ -1678,21 +1737,29 @@ export class Battle {
                 });
             } 
         } else if (this.isGym) { 
-            gain = (Game.currentGlobalEvent?.id === 'GOLD_RUSH') ? 2000 : 1000; // Dobro no Dia de Pagamento
+            gain = (Game.currentGlobalEvent?.id === 'GOLD_RUSH' || Game.currentGlobalEvent?.id === 'GYM_RUSH') ? 2000 : 1000; 
             Game.sendGlobalLog(`💰 [Extrato] ${this.player!.name} recebeu +${gain}G (Líder de Ginásio).`);
             if (!this.player!.badges[this.gymId - 1]) { this.player!.badges[this.gymId - 1] = true; msg += ` Insígnia ${this.gymId}!`; } 
         } else if (this.isNPC) { 
             gain = (Game.currentGlobalEvent?.id === 'GOLD_RUSH') ? this.reward * 2 : this.reward; 
             Game.sendGlobalLog(`💰 [Extrato] ${this.player!.name} recebeu +${gain}G (Treinador NPC).`);
-            if(Cards) Cards.draw(this.player!); 
-            msg += ` e ganhou uma Carta!`;
+            const drawCount = (Game.currentGlobalEvent?.id === 'CARD_FESTIVAL') ? 2 : 1;
+            if(Cards) {
+                for(let i=0; i<drawCount; i++) Cards.draw(this.player!); 
+            }
+            msg += ` e ganhou ${drawCount > 1 ? 'Cartas' : 'uma Carta'}!`;
         } 
         else { 
             gain = (Game.currentGlobalEvent?.id === 'GOLD_RUSH') ? 300 : 150; 
             Game.sendGlobalLog(`💰 [Extrato] ${this.player!.name} recebeu +${gain}G (Pokémon Selvagem).`);
-            if (Math.random() <= 0.25) { 
-                if(Cards) Cards.draw(this.player!);
-                msg += ` e achou uma Carta!`;
+            
+            const cardChance = (Game.currentGlobalEvent?.id === 'CARD_FESTIVAL') ? 0.50 : 0.25;
+            if (Math.random() <= cardChance) { 
+                const drawCount = (Game.currentGlobalEvent?.id === 'CARD_FESTIVAL') ? 2 : 1;
+                if(Cards) {
+                    for(let i=0; i<drawCount; i++) Cards.draw(this.player!);
+                }
+                msg += ` e achou ${drawCount > 1 ? 'Cartas' : 'uma Carta'}!`;
             }
 
             // ==============================================================
@@ -2135,7 +2202,12 @@ export class Battle {
                 alert("Não pode capturar pokémons de treinadores!");
                 return;
             }
-            this.player!.items[key]--;
+            const Game = (window as any).Game;
+            if (Game.currentGlobalEvent?.id !== 'SAFARI_ZONE') {
+                this.player!.items[key]--;
+            } else {
+                this.logBattle("🌳 SAFARI ZONE: Pokébofas são infinitas!", true);
+            }
             this.processingAction = true;
             this.updateButtons();
             
@@ -2297,6 +2369,14 @@ export class Battle {
             else if (hpPercent < 60) minChance = 25;
             
             chance = Math.max(minChance, Math.min(95, chance));
+
+            // --- EVENTO: SAFARI ZONE (Buff de Captura) ---
+            const Game = (window as any).Game;
+            if (Game.currentGlobalEvent?.id === 'SAFARI_ZONE') {
+                chance += 50;
+                chance = Math.min(100, chance);
+            }
+            // ---------------------------------------------
 
             // Log atualizado para mostrar a resistência aos jogadores
             this.logBattle(`(Chance Final: ${chance}% | Resistência: -${powerPenalty}% | Sorte: ${diceBonus > 0 ? '+' : ''}${diceBonus}%)`, true);
