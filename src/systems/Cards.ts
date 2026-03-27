@@ -622,7 +622,15 @@ export class Cards {
         if (!cardData) return;
 
         if (cardData.type === 'move' && Battle.active) return alert("Cartas MOVE só podem ser usadas no tabuleiro!");
-        if (cardData.type === 'battle' && !Battle.active) return alert("Cartas BATTLE só podem ser usadas em batalha!");
+        
+        if (cardData.type === 'battle') {
+            if (!Battle.active) return alert("Cartas BATTLE só podem ser usadas em batalha!");
+            
+            // --- NOVA REGRA: MEGA EVOLUÇÃO / MEW BLOQUEIA CARTAS DE BATTALHA EM PVE ---
+            if (!Battle.isPvP && Battle.activeMon && ((Battle.activeMon as any).isTemp || (Battle.activeMon as any).isMegaEvolution)) {
+                return alert("🧬 Seu parceiro já atingiu o poder máximo! Cartas de batalha estão bloqueadas para Mega Evoluções (ou Mew) no PvE.");
+            }
+        }
 
         // --- BLOQUEIO DE USO MANUAL ---
         if (cardData.type === 'auto') {
@@ -986,6 +994,12 @@ export class Cards {
                     const targetMon = player.team[targetId];
                     if (!targetMon) { consumed = false; break; }
 
+                    if (targetMon.level >= 25) {
+                        alert(`O Pokémon ${targetMon.name} já alcançou o Nível Máximo (25) e não pode mais comer Rare Candys!`);
+                        consumed = false;
+                        break;
+                    }
+
                     // 1. Salva o XP atual para não perder o progresso da barra
                     const preservedXp = targetMon.currentXp;
 
@@ -1182,7 +1196,7 @@ export class Cards {
             if (Network.isOnline) {
                 Network.syncPlayerState();
                 
-                if (cardId !== 'new_leader') {
+                if (cardId !== 'new_leader' && cardId !== 'reroll' && cardId !== 'dice') {
                     Network.sendAction('SHOW_ALERT', { 
                         //msg: fullMsg, 
                         msg: fullMsg + `||CARD:${cardId}`,
@@ -1195,7 +1209,7 @@ export class Cards {
                     if (effectLog) Network.sendAction('LOG', { msg: effectLog });
                     // -------------------------------------------------------------------------------------------
                 } else {
-                    // Para o Novo Líder no Online, só manda os logs laterais para não encavalar com a batalha
+                    // Para o Novo Líder, Dado e Reroll no Online, só manda os logs laterais para não encavalar com a UI
                     Network.sendAction('LOG', { msg: logMsg });
                     if (effectLog) Network.sendAction('LOG', { msg: effectLog });
                 }

@@ -253,7 +253,7 @@ export class Battle {
         
         // Tenta Mega Evoluir ao entrar em campo
         this.tryTriggerMegaEvolution("ressoou no início da batalha");
-        if (this.isPvP) this.tryOpponentMegaEvolution("ressoou no início da batalha");
+        this.tryOpponentMegaEvolution("ressoou no início da batalha");
 
         this.renderBattleScreen(); 
         
@@ -339,8 +339,12 @@ export class Battle {
 
     // --- NOVA FUNÇÃO CENTRALIZADA DE MEGA EVOLUÇÃO (OPONENTE) ---
     static tryOpponentMegaEvolution(contextMsg: string = "reagiu durante o combate") {
-        if (!this.isPvP || !this.opponent || !this.opponent.megaStone) return;
+        if (!this.opponent) return;
         if ((this.opponent as any).isTemp) return; 
+
+        // Em PvP, o adversário só mega evolui se tiver a pedra equipada
+        // Em PvE (selvagem, NPC, Ginásio), basta o Pokémon ter uma forma Mega existente
+        if (this.isPvP && !this.opponent.megaStone) return; 
 
         const megaId = MAPA_MEGAS[this.opponent.id];
         if (megaId && Math.random() < 0.10) {
@@ -1048,7 +1052,7 @@ export class Battle {
             // O jogador sobreviveu e a vez vai voltar para ele.
             // Tenta Mega Evoluir novamente antes de liberar os botões!
             this.tryTriggerMegaEvolution("reagiu após o ataque");
-            if (this.isPvP) this.tryOpponentMegaEvolution("reagiu após o ataque");
+            this.tryOpponentMegaEvolution("reagiu após o ataque");
 
             if(callback) callback();
         }
@@ -1066,10 +1070,31 @@ export class Battle {
         
         // --- SE O INIMIGO ERA MEGA, REVERTE ANTES DE PROCURAR O PRÓXIMO ---
         if (this.opponent && ((this.opponent as any).isTemp || (this.opponent as any).isMegaEvolution)) {
+            const isOppMega = (this.opponent as any).isMegaEvolution;
             const megaDied = this.opponent.currentHp <= 0;
             this.revertOpponentMew();
-            if (megaDied) this.opponent.currentHp = 0;
-            this.logBattle("🧬 A Mega Evolução inimiga desfez após a derrota!");
+            
+            if (megaDied && !isOppMega) {
+                this.opponent.currentHp = 0;
+            }
+
+            if (this.opponent.currentHp > 0) {
+                this.logBattle("🧬 A Mega Evolução inimiga foi derrotada, mas o Pokémon original retornou e continua a lutar!");
+                this.updateUI();
+                this.processingAction = false;
+                this.updateButtons();
+                const Network = (window as any).Network;
+                if (Network.isOnline && this.isPvP && this.enemyPlayer) {
+                    Network.syncSpecificPlayer(this.enemyPlayer.id);
+                }
+                
+                if (this.isPvP) {
+                     setTimeout(() => this.autoAttackNext(), 1500);
+                }
+                return; 
+            } else {
+                this.logBattle("🧬 A transformação inimiga desfez após a derrota!");
+            }
         }
 
         const nextOpp = this.oppTeamList.find(p => !p.isFainted() && p !== this.opponent); 
@@ -1126,7 +1151,9 @@ export class Battle {
 
             const megaDied = this.activeMon.currentHp <= 0;
             this.revertMew();
-            if (megaDied) this.activeMon.currentHp = 0;
+            if (megaDied && !isMega) {
+                this.activeMon.currentHp = 0;
+            }
 
             this.updateUI();
             if (this.activeMon.currentHp <= 0) { }
@@ -1135,6 +1162,10 @@ export class Battle {
                 this.updateButtons();
                 const Network = (window as any).Network;
                 if(Network.isOnline) Network.syncPlayerState();
+                
+                if (this.isPvP) {
+                     setTimeout(() => this.autoAttackNext(), 1500);
+                }
                 return;
             }
         }
@@ -1188,7 +1219,7 @@ export class Battle {
         }
     }
 
-    static getHpColor(current: number, max: number) { const pct = (current / max) * 100; if(pct > 50) return 'hp-green'; if(pct > 10) return 'hp-yellow'; return 'hp-red'; }
+    static getHpColor(current: number, max: number) { const pct = (current / max) * 100; if(pct >= 60) return 'hp-green'; if(pct >= 15) return 'hp-yellow'; return 'hp-red'; }
     
     static updateUI() { 
         if(!this.activeMon || !this.opponent) return; 
@@ -1963,6 +1994,13 @@ export class Battle {
             return;
         }
 
+        // --- NOVA REGRA: MEGA EVOLUÇÃO / MEW NÃO PODE USAR ITEM EM PVE ---
+        if (!this.isPvP && this.activeMon && ((this.activeMon as any).isTemp || (this.activeMon as any).isMegaEvolution)) {
+            const Game = (window as any).Game;
+            Game.showGlobalAlert("🧬 Seu parceiro já atingiu o poder máximo! É proibido usar itens para fortalecer ou curar Mega Evoluções ou Mews em combates contra o ambiente.", this.player!.name, true, false);
+            return;
+        }
+
         const list = document.getElementById('battle-bag-list')!; 
         list.innerHTML = ''; Object.keys(this.player!.items).forEach(key => { if(this.player!.items[key] > 0) { const item = SHOP_ITEMS.find(i => i.id === key); if(item) { const btn = document.createElement('button'); btn.className = 'btn'; btn.innerHTML = `<img src="/assets/img/Itens/${item.icon}" class="item-icon-mini"> ${item.name} x${this.player!.items[key]}`; btn.onclick = () => this.useItem(key, item); list.appendChild(btn); } } }); document.getElementById('battle-bag')!.style.display = 'block'; }
     
@@ -1972,6 +2010,12 @@ export class Battle {
         const Game = (window as any).Game;
         if (Game.currentGlobalEvent?.id === 'EMP') {
             alert("📡 Cartas bloqueadas pela Tempestade Eletromagnética!");
+            return;
+        }
+
+        // --- NOVA REGRA: MEGA EVOLUÇÃO / MEW NÃO PODE USAR CARTAS DE BATTALHA EM PVE ---
+        if (!this.isPvP && this.activeMon && ((this.activeMon as any).isTemp || (this.activeMon as any).isMegaEvolution)) {
+            alert("🧬 Seu parceiro já atingiu o poder máximo! É proibido usar cartas de batalha em Pokémon Mega Evoluídos contra o ambiente selvagem, NPCs ou Ginásios.");
             return;
         }
 
@@ -2245,19 +2289,30 @@ export class Battle {
         } else {
             let chance = item.rate || 0;
             const hpPercent = (opponent.currentHp / opponent.maxHp) * 100;
-            if (hpPercent < 20) chance += 50; else if (hpPercent < 60) chance += 25;
+            
+            if (hpPercent < 15) chance += 50; 
+            else if (hpPercent < 60) chance += 25;
+            
             if (activeMon.level > opponent.level) chance += 5; 
             else if (activeMon.level < opponent.level) chance -= 5;
+            
             const oppStats = opponent.maxHp + opponent.atk + opponent.def + opponent.speed;
             const powerPenalty = Math.floor(oppStats / 15);
             chance -= powerPenalty;
+            
             if (opponent.isLegendary) chance -= 20;
             if (opponent.isShiny) chance -= 10;
+            
             const d6 = Math.floor(Math.random() * 6) + 1;
             const diceBonus = (d6 * 4) - 14; 
             chance += diceBonus;
-            // --- CORREÇÃO: Taxa mínima de 10% ---
-            chance = Math.max(15, Math.min(95, chance));
+            
+            // --- CORREÇÃO: Taxa mínima variável de acordo com o HP ---
+            let minChance = 15;
+            if (hpPercent < 15) minChance = 50;
+            else if (hpPercent < 60) minChance = 25;
+            
+            chance = Math.max(minChance, Math.min(95, chance));
 
             // Log atualizado para mostrar a resistência aos jogadores
             this.logBattle(`(Chance Final: ${chance}% | Resistência: -${powerPenalty}% | Sorte: ${diceBonus > 0 ? '+' : ''}${diceBonus}%)`, true);
