@@ -1087,48 +1087,111 @@ export class Cards {
             // =========================================================
 
             case 'communism':
-                // 1. Remove a própria carta da mão de quem usou
+                // 1. Remove a própria carta da mão de quem usou (já gasta) para evitar duplo uso
                 const comIdx = player.cards.findIndex(c => c.id === cardId);
                 if (comIdx > -1) player.cards.splice(comIdx, 1);
                 
-                // 2. Coleta TODAS as cartas de TODOS os jogadores em um pool central e esvazia mãos
-                let cardPool: any[] = [];
-                Game.players.forEach((p: any) => {
-                    cardPool = [...cardPool, ...p.cards];
-                    p.cards.length = 0; // LIMPEZA RADICAL: Esvazia o array mantendo a referência
-                });
-
-                // 3. Embaralha o pool central (Fisher-Yates)
-                for (let i = cardPool.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [cardPool[i], cardPool[j]] = [cardPool[j], cardPool[i]];
-                }
-
-                // 4. Divide as cartas igualmente
-                const playerCount = Game.players.length;
-                const share = Math.floor(cardPool.length / playerCount);
-                const burned = cardPool.length % playerCount;
-
-                // 5. Redistribui o montante para cada jogador
-                Game.players.forEach((p: any) => {
-                    for (let i = 0; i < share; i++) {
-                        if (cardPool.length > 0) {
-                            p.cards.push(cardPool.pop());
-                        }
-                    }
-                });
-
-                // 6. Sincronização Atômica: Força o estado de TODOS os jogadores de uma só vez
+                // 2. Lógica Robusta de Distribuição
                 if (Network.isOnline) {
-                    const allIds = Game.players.map((p: any) => p.id);
-                    Network.syncPlayers(allIds); 
+                    try {
+                        const { ref, update, getDatabase, get } = await import('firebase/database');
+                        const db = (window as any).db || getDatabase();
+                        const roomPath = `rooms/${Network.currentRoomId}`;
+
+                        // PASSO A: Busca o Snapshot real da sala para ter todas as cartas de todos
+                        const roomSnap = await get(ref(db, roomPath));
+                        const roomData = roomSnap.val();
+
+                        if (!roomData || !roomData.players) {
+                            throw new Error("Dados da sala não encontrados no Firebase.");
+                        }
+
+                        let allCardsPool: any[] = [];
+                        const playerIds = Object.keys(roomData.players);
+
+                        // Coleta todas as cartas de todos os jogadores (usando dados do banco)
+                        playerIds.forEach(id => {
+                            const pData = roomData.players[id];
+                            if (pData.cards && Array.isArray(pData.cards)) {
+                                allCardsPool = [...allCardsPool, ...pData.cards];
+                            }
+                        });
+
+                        if (allCardsPool.length === 0) {
+                            // Se não havia nenhuma carta além da própria usada (que já foi tirada do local antes da coleta? 
+                            // Não, se tiramos do local antes da coleta do banco, temos que garantir que ela sumiu no banco também se era a do ativador)
+                            // Na verdade, a carta usada ainda pode estar no banco se não sincronizamos antes.
+                            // Vamos filtrar a carta 'communism' que acabou de ser usada para não voltar pro pool.
+                            // Mas melhor ainda: quem usou já tirou localmente.
+                        }
+
+                        // ETAPA 1: Salva no espaço global e esvazia jogadores no Firebase (Atômico)
+                        const syncAllUpdates: any = {};
+                        syncAllUpdates[`${roomPath}/global/communism/cards`] = allCardsPool;
+                        playerIds.forEach(id => {
+                            syncAllUpdates[`${roomPath}/players/${id}/cards`] = null;
+                        });
+                        await update(ref(db), syncAllUpdates);
+
+                        // ETAPA 2: Embaralha e Redistribui as cartas
+                        for (let i = allCardsPool.length - 1; i > 0; i--) {
+                            const j = Math.floor(Math.random() * (i + 1));
+                            [allCardsPool[i], allCardsPool[j]] = [allCardsPool[j], allCardsPool[i]];
+                        }
+
+                        const pCount = playerIds.length;
+                        const perPlayer = Math.floor(allCardsPool.length / pCount);
+                        const leftovers = allCardsPool.length % pCount;
+
+                        const finalSyncUpdates: any = {};
+                        playerIds.forEach(id => {
+                            const newHand = [];
+                            for (let i = 0; i < perPlayer; i++) {
+                                if (allCardsPool.length > 0) newHand.push(allCardsPool.pop());
+                            }
+                            // Atualiza localmente se for o jogador atual
+                            if (parseInt(id) === player.id) {
+                                player.cards = newHand;
+                            }
+                            finalSyncUpdates[`${roomPath}/players/${id}/cards`] = newHand.length > 0 ? newHand : null;
+                        });
+
+                        // ETAPA 3: Deleta o espaço global e salva nova distribuição (Atômico)
+                        finalSyncUpdates[`${roomPath}/global/communism`] = null;
+                        await update(ref(db), finalSyncUpdates);
+
+                        effectLog = `☭ REVOLUÇÃO GLOBAL! Todas as cartas do jogo foram coletadas e redistribuídas igualmente! Cada jogador agora tem ${perPlayer} cartas. (${leftovers} foram destruídas pelo bem da nação)`;
+                    } catch (err) {
+                        console.error("Erro no Comunismo Online:", err);
+                        effectLog = "Erro na redistribuição global. Verifique o console ou a conexão.";
+                    }
+                } else {
+                    // Lógica Offline (Usa Game.players local)
+                    let offlinePool: any[] = [];
+                    Game.players.forEach((p: any) => {
+                        offlinePool = [...offlinePool, ...(p.cards || [])];
+                        p.cards = [];
+                    });
+
+                    for (let i = offlinePool.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [offlinePool[i], offlinePool[j]] = [offlinePool[j], offlinePool[i]];
+                    }
+                    const pCount = Game.players.length;
+                    const perPlayer = Math.floor(offlinePool.length / pCount);
+                    const leftovers = offlinePool.length % pCount;
+
+                    Game.players.forEach((p: any) => {
+                        for (let i = 0; i < perPlayer; i++) {
+                            if (offlinePool.length > 0) p.cards.push(offlinePool.pop());
+                        }
+                    });
+                    effectLog = `☭ REVOLUÇÃO local! As cartas foram redistribuídas igualmente! Cada jogador agora tem ${perPlayer} cartas. (${leftovers} destruídas)`;
                 }
                 
-                effectLog = `☭ REVOLUÇÃO GLOBAL! As cartas de todos foram coletadas e redistribuídas igualmente! Cada jogador agora tem ${share} cartas. (${burned} foram destruídas para manter a ordem)`;
-                consumed = false; 
+                consumed = false; // Já tratamos a remoção da mão e logs manuais aqui
 
-                
-                // 3. Atualiza UI e envia os Logs personalizados
+                // 4. Atualiza UI e envia os Logs personalizados
                 Game.updateHUD(); 
                 const boardModalC = document.getElementById('board-cards-modal');
                 if (boardModalC) boardModalC.style.display = 'none';
@@ -1141,7 +1204,6 @@ export class Cards {
                 Game.showGlobalAlert(fullMsgG + `||CARD:${cardId}`, player.name, true, false);
 
                 if (Network.isOnline) {
-                    Network.syncPlayerState();
                     Network.sendAction('SHOW_ALERT', { 
                         msg: fullMsgG + `||CARD:${cardId}`,
                         playerName: player.name, 
@@ -1153,41 +1215,89 @@ export class Cards {
                 break;
 
             case 'imposto':
-                // 1. Consume a carta PRIMEIRO do jogador que ativou
+                // 1. Remove a própria carta da mão de quem usou (já gasta)
                 const impIdx = player.cards.findIndex(c => c.id === cardId);
                 if (impIdx > -1) player.cards.splice(impIdx, 1);
                 
-                // 2. Afeta TODOS os jogadores
-                let totalCardsLost = 0;
-                let totalItemsLost = 0;
+                // 2. Lógica de Redução Global
+                if (Network.isOnline) {
+                    try {
+                        const { ref, update, getDatabase, get } = await import('firebase/database');
+                        const db = (window as any).db || getDatabase();
+                        const roomPath = `rooms/${Network.currentRoomId}`;
 
-                Game.players.forEach((p: any) => {
-                    // Metade das cartas
-                    const cardsToRemove = Math.floor(p.cards.length / 2);
-                    if (cardsToRemove > 0) {
-                        for (let i = 0; i < cardsToRemove; i++) {
-                            const randIdx = Math.floor(Math.random() * p.cards.length);
-                            p.cards.splice(randIdx, 1);
-                            totalCardsLost++;
-                        }
+                        // PASSO A: Snapshot real para evitar inconsistência local
+                        const roomSnap = await get(ref(db, roomPath));
+                        const roomData = roomSnap.val();
+                        if (!roomData || !roomData.players) throw new Error("Dados da sala não encontrados.");
+
+                        const playerIds = Object.keys(roomData.players);
+                        const impUpdates: any = {};
+                        let totalCardsL = 0;
+                        let totalItemsL = 0;
+
+                        playerIds.forEach(id => {
+                            const pData = roomData.players[id];
+                            
+                            // Redução de Cartas (50%)
+                            const cards = pData.cards || [];
+                            const toRemoveC = Math.floor(cards.length / 2);
+                            if (toRemoveC > 0) {
+                                for (let i = 0; i < toRemoveC; i++) {
+                                    const rIdx = Math.floor(Math.random() * cards.length);
+                                    cards.splice(rIdx, 1);
+                                    totalCardsL++;
+                                }
+                            }
+                            
+                            // Redução de Itens (50% de cada tipo)
+                            const items = pData.items || {};
+                            Object.keys(items).forEach(k => {
+                                if (items[k] > 0) {
+                                    const toRemoveI = Math.floor(items[k] / 2);
+                                    items[k] -= toRemoveI;
+                                    totalItemsL += toRemoveI;
+                                }
+                            });
+
+                            // Prepara o update para este jogador
+                            impUpdates[`${roomPath}/players/${id}/cards`] = cards.length > 0 ? cards : null;
+                            impUpdates[`${roomPath}/players/${id}/items`] = items;
+
+                            // Sincroniza localmente se for o jogador atual
+                            if (parseInt(id) === player.id) {
+                                player.cards = cards;
+                                player.items = items;
+                            }
+                        });
+
+                        await update(ref(db), impUpdates);
+                        effectLog = `📜 A RECEITA FEDERAL CHEGOU! O Leão abocanhou a conta de todos na mesa! (${totalCardsL} cartas e ${totalItemsL} itens retidos!)`;
+
+                    } catch (err) {
+                        console.error("Erro no Imposto Online:", err);
+                        effectLog = "Erro na coleta de impostos global. Verifique o console.";
                     }
-
-                    // Metade de CADA item
-                    Object.keys(p.items).forEach(itemKey => {
-                        if (p.items[itemKey] > 0) {
-                            const itemsToRemove = Math.floor(p.items[itemKey] / 2);
-                            p.items[itemKey] -= itemsToRemove;
-                            totalItemsLost += itemsToRemove;
+                } else {
+                    // Lógica Offline
+                    let totalOfflineC = 0;
+                    let totalOfflineI = 0;
+                    Game.players.forEach((p: any) => {
+                        const toRemC = Math.floor(p.cards.length / 2);
+                        for (let i = 0; i < toRemC; i++) {
+                            p.cards.splice(Math.floor(Math.random() * p.cards.length), 1);
+                            totalOfflineC++;
                         }
+                        Object.keys(p.items).forEach(k => {
+                            const toRemI = Math.floor(p.items[k] / 2);
+                            p.items[k] -= toRemI;
+                            totalOfflineI += toRemI;
+                        });
                     });
+                    effectLog = `📜 IMPOSTO! O Leão passou por aqui! (${totalOfflineC} cartas e ${totalOfflineI} itens perdidos!)`;
+                }
 
-                    if (Network.isOnline && p.id !== player.id) {
-                        Network.syncSpecificPlayer(p.id); 
-                    }
-                });
-                
-                effectLog = `📜 A RECEITA FEDERAL CHEGOU! O Leão abocanhou a conta de todos na mesa! (${totalCardsLost} cartas e ${totalItemsLost} itens foram retidos como impostos!)`;
-                consumed = false; 
+                consumed = false; // Já tratamos remoção e logs
                 
                 // 3. Atualiza UI e envia os Logs
                 Game.updateHUD(); 
@@ -1202,7 +1312,6 @@ export class Cards {
                 Game.showGlobalAlert(fullMsgI + `||CARD:${cardId}`, player.name, true, false);
 
                 if (Network.isOnline) {
-                    Network.syncPlayerState();
                     Network.sendAction('SHOW_ALERT', { 
                         msg: fullMsgI + `||CARD:${cardId}`,
                         playerName: player.name, 
