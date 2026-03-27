@@ -904,15 +904,6 @@ export class Battle {
             const oppStats = this.opponent.maxHp + this.opponent.atk + this.opponent.def + this.opponent.speed;
             const xpGain = Math.max(1, Math.floor(oppStats / 7));
             this.activeMon.gainXp(xpGain, this.player!);
-            
-            // [MANTIDO] Se for PvP, o perdedor (inimigo) também ganha um pouco de XP?
-            // Adicionei aqui para garantir consistência com o que você pediu:
-            if (this.isPvP && this.enemyPlayer) {
-                const plyStats = this.activeMon.maxHp + this.activeMon.atk + this.activeMon.def + this.activeMon.speed;
-                const loserXp = Math.max(1, Math.floor(plyStats / 25)); // XP Reduzido pra quem perde
-                this.opponent.gainXp(loserXp, this.enemyPlayer);
-                if (Network.isOnline) Network.syncSpecificPlayer(this.enemyPlayer.id);
-            }
 
             this.updateUI(); 
             if (Network.isOnline) Network.syncPlayerState();
@@ -920,11 +911,6 @@ export class Battle {
         } 
         // 2. Jogador Morreu pelo Reflexo (Derrota)
         else if (this.activeMon.currentHp <= 0) {
-            // [MANTIDO] Jogador ganha XP de consolação
-            const oppStats = this.opponent.maxHp + this.opponent.atk + this.opponent.def + this.opponent.speed;
-            const xpGain = Math.max(1, Math.floor(oppStats / 25));
-            this.activeMon.gainXp(xpGain, this.player!);
-
             this.updateUI();
             if (Network.isOnline) Network.syncPlayerState();
             setTimeout(() => { this.handleFaint(); }, 1000);
@@ -1016,11 +1002,6 @@ export class Battle {
 
         // 1. Jogador Morreu (Derrota)
         if(this.activeMon.currentHp <= 0) { 
-            // [MANTIDO] O Jogador perdeu, mas ganha XP de consolação (conforme seu código original)
-            const oppStats = this.opponent.maxHp + this.opponent.atk + this.opponent.def + this.opponent.speed;
-            const xpGain = Math.max(1, Math.floor(oppStats / 25));
-            this.activeMon.gainXp(xpGain, this.player!);
-
             // [MANTIDO] Inimigo venceu (ganha XP de vitória no PvP)
             if (this.isPvP && this.enemyPlayer) {
                 const plyStats = this.activeMon.maxHp + this.activeMon.atk + this.activeMon.def + this.activeMon.speed;
@@ -1039,14 +1020,6 @@ export class Battle {
             const oppStats = this.opponent.maxHp + this.opponent.atk + this.opponent.def + this.opponent.speed;
             const xpGain = Math.max(1, Math.floor(oppStats / 7)); 
             this.activeMon.gainXp(xpGain, this.player!);
-            
-            // [MANTIDO] Oponente (Perdedor) ganha XP de consolação no PvP
-             if (this.isPvP && this.enemyPlayer) {
-                const plyStats = this.activeMon.maxHp + this.activeMon.atk + this.activeMon.def + this.activeMon.speed;
-                const loserXp = Math.max(1, Math.floor(plyStats / 25)); 
-                this.opponent.gainXp(loserXp, this.enemyPlayer);
-                if (Network.isOnline) Network.syncSpecificPlayer(this.enemyPlayer.id);
-            }
 
             this.updateUI(); 
             if (Network.isOnline) Network.syncPlayerState();
