@@ -1087,40 +1087,44 @@ export class Cards {
             // =========================================================
 
             case 'communism':
-                // 1. Consume a carta PRIMEIRO do jogador que ativou para evitar duplicação no pool
+                // 1. Remove a própria carta da mão de quem usou ANTES de juntar tudo
                 const comIdx = player.cards.findIndex(c => c.id === cardId);
                 if (comIdx > -1) player.cards.splice(comIdx, 1);
                 
-                // 2. Coleta todas as cartas de todos e esvazia as mãos
-                let allCards: any[] = [];
+                // 2. Coleta TODAS as cartas de TODOS os jogadores em um pool central
+                let cardPool: any[] = [];
                 Game.players.forEach((p: any) => {
-                    allCards = allCards.concat(p.cards);
-                    p.cards = []; // Zera a mão
+                    cardPool = [...cardPool, ...p.cards];
+                    p.cards = []; // Esvazia a mão de todo mundo completamente
                 });
 
-                // 3. Embaralha o montante (Pool)
-                for (let i = allCards.length - 1; i > 0; i--) {
+                // 3. Embaralha o pool central (Fisher-Yates)
+                for (let i = cardPool.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
-                    [allCards[i], allCards[j]] = [allCards[j], allCards[i]];
+                    [cardPool[i], cardPool[j]] = [cardPool[j], cardPool[i]];
                 }
 
-                // 4. Divide igualmente
-                const numPlayers = Game.players.length;
-                const cardsPerPlayer = Math.floor(allCards.length / numPlayers);
-                const leftovers = allCards.length % numPlayers;
+                // 4. Divide as cartas igualmente
+                const playerCount = Game.players.length;
+                const share = Math.floor(cardPool.length / playerCount);
+                const burned = cardPool.length % playerCount;
 
-                // 5. Redistribui as cartas
+                // 5. Redistribui o montante para cada jogador
                 Game.players.forEach((p: any) => {
-                    for(let i = 0; i < cardsPerPlayer; i++) {
-                        p.cards.push(allCards.pop());
+                    for (let i = 0; i < share; i++) {
+                        if (cardPool.length > 0) {
+                            p.cards.push(cardPool.pop());
+                        }
                     }
-                    if (Network.isOnline && p.id !== player.id) {
+                    // Força a sincronia individual de cada um na rede
+                    if (Network.isOnline) {
                         Network.syncSpecificPlayer(p.id); 
                     }
                 });
                 
-                effectLog = `☭ REVOLUÇÃO GLOBAL! Todas as cartas da mesa foram confiscadas, embaralhadas e redistribuídas! Todos agora têm exatamente ${cardsPerPlayer} cartas! (${leftovers} cartas incineradas)`;
-                consumed = false; // Nós já removemos a carta manualmente e dispararemos os logs abaixo.
+                effectLog = `☭ REVOLUÇÃO GLOBAL! As cartas de todos foram coletadas e redistribuídas igualmente! Cada jogador agora tem ${share} cartas. (${burned} foram destruídas para manter a ordem)`;
+                consumed = false; 
+
                 
                 // 3. Atualiza UI e envia os Logs personalizados
                 Game.updateHUD(); 

@@ -935,8 +935,15 @@ export class Game {
                     p.gold += lapGold; 
                     Cards.draw(p); 
                     Cards.draw(p); // Compra a segunda carta
+
+                    // --- NOVO: TODO O TIME SOBE 1 LEVEL (LIMITE 25) ---
+                    p.team.forEach(mon => {
+                        if (mon.level < 25) {
+                            mon.levelUp(p);
+                        }
+                    });
                     
-                    this.sendGlobalLog(`🚩 ${p.name} completou uma volta! Ganhou 500G e 2 Cartas!`); 
+                    this.sendGlobalLog(`🚩 ${p.name} completou uma volta! Ganhou 500G, 2 Cartas e +1 Level para todo o time!`); 
                     
                     // --- LOG DE AUDITORIA: GANHO DE VOLTA ---
                     this.sendGlobalLog(`💰 [Extrato] ${p.name} recebeu +500G (Volta no Tabuleiro).`);
