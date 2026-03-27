@@ -43,7 +43,7 @@ export interface CardData {
     name: string;
     icon: string;
     desc: string;
-    type: 'move' | 'battle' | 'auto';
+    type: 'move' | 'battle' | 'auto' | 'global';
 }
 
 export interface Coord {
@@ -56,7 +56,7 @@ export interface GymData {
     leaderName: string;
     type: string[];
     // IDs dos pokémons na Pokedex
-    teamIds: number[]; 
+    teamIds: number[];
     badgeImg: string;
     leaderImg: string;
     gymImg: string;

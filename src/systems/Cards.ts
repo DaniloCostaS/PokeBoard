@@ -1083,8 +1083,56 @@ export class Cards {
                 break;
             
             // =========================================================
-            // NOVAS CARTAS
+            // NOVAS CARTAS E GLOBAIS
             // =========================================================
+
+            case 'communism':
+                // 1. Consume a carta PRIMEIRO do jogador que ativou para evitar erros no descarte
+                const comIdx = player.cards.findIndex(c => c.id === cardId);
+                if (comIdx > -1) player.cards.splice(comIdx, 1);
+                
+                // 2. Afeta TODOS os jogadores (incluindo ele mesmo)
+                let totalCardsRemoved = 0;
+                Game.players.forEach((p: any) => {
+                    const cardsToRemove = Math.floor(p.cards.length / 2);
+                    if (cardsToRemove > 0) {
+                        for (let i = 0; i < cardsToRemove; i++) {
+                            const randIdx = Math.floor(Math.random() * p.cards.length);
+                            p.cards.splice(randIdx, 1);
+                            totalCardsRemoved++;
+                        }
+                        if (Network.isOnline && p.id !== player.id) {
+                            Network.syncSpecificPlayer(p.id); 
+                        }
+                    }
+                });
+                
+                effectLog = `☭ REVOLUÇÃO GLOBAL! Metade das cartas de TODOS OS JOGADORES evaporaram instantaneamente! (${totalCardsRemoved} cartas aniquiladas do jogo)`;
+                consumed = false; // Nós já removemos a carta manualmente e dispararemos os logs abaixo.
+                
+                // 3. Atualiza UI e envia os Logs personalizados
+                Game.updateHUD(); 
+                const boardModalC = document.getElementById('board-cards-modal');
+                if (boardModalC) boardModalC.style.display = 'none';
+
+                const logMsgG = `🃏 ${player.name} ativou a carta GLOBAL: [${cardData.name}]!`;
+                const fullMsgG = `${logMsgG}\n\n${effectLog}`;
+
+                Game.log(logMsgG);
+                Game.log(effectLog);
+                Game.showGlobalAlert(fullMsgG + `||CARD:${cardId}`, player.name, true, false);
+
+                if (Network.isOnline) {
+                    Network.syncPlayerState();
+                    Network.sendAction('SHOW_ALERT', { 
+                        msg: fullMsgG + `||CARD:${cardId}`,
+                        playerName: player.name, 
+                        endsTurn: false 
+                    });
+                    Network.sendAction('LOG', { msg: logMsgG });
+                    Network.sendAction('LOG', { msg: effectLog });
+                }
+                break;
 
             case 'doublexp': 
                 player.effects.doubleXp = 5; 

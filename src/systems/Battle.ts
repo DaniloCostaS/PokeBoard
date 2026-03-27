@@ -28,6 +28,8 @@ export class Battle {
     static isPlayerTurn: boolean = false; 
     static processingAction: boolean = false; 
     static activeEffects: any = {};
+    static itemsUsedThisBattle: number = 0;
+    static cardsUsedThisBattle: number = 0;
     static currentTerrain: number = 0;
     static isAutoPvE: boolean = false;
     static isChampion: boolean = false;
@@ -39,6 +41,8 @@ export class Battle {
         this.player = player; this.isPvP = isPvP; this.isNPC = (reward > 0 && !isPvP); this.isGym = isGym; this.gymId = gymId; this.reward = reward; this.enemyPlayer = enemyPlayer; this.processingAction = false;
         
         this.activeEffects = {};
+        this.itemsUsedThisBattle = 0;
+        this.cardsUsedThisBattle = 0;
 
         if (pendingSteal !== undefined && pendingSteal !== null) {
             this.activeEffects.stealBadgeFrom = pendingSteal;
@@ -1947,6 +1951,11 @@ export class Battle {
     }
     
     static useCard(cardId: string) { 
+        if (this.cardsUsedThisBattle >= 3) {
+            alert("🚫 Você já usou o limite máximo de 3 cartas nesta batalha!");
+            return;
+        }
+
         const Network = (window as any).Network; 
         const Game = (window as any).Game; 
         
@@ -1954,6 +1963,7 @@ export class Battle {
             const enemyHasJam = this.enemyPlayer.cards.findIndex((c: any) => c.id === 'jam'); 
             
             if (enemyHasJam > -1) { 
+                this.cardsUsedThisBattle++;
                 // 1. Remove a carta de Interferência do inimigo
                 this.enemyPlayer.cards.splice(enemyHasJam, 1); 
                 
@@ -1980,6 +1990,7 @@ export class Battle {
             } 
         } 
         
+        this.cardsUsedThisBattle++;
         Cards.activate(cardId); 
     }
 
@@ -2138,6 +2149,10 @@ export class Battle {
     static useItem(key: string, data: ItemData) {
         if (this.isChampion) return alert("🚫 As regras da Liga proíbem o uso de Itens de Cura no Desafio do Campeão!");
 
+        if (this.itemsUsedThisBattle >= 3) {
+            return alert("🚫 Você já usou o limite máximo de 3 itens nesta batalha!");
+        }
+
         if (data.type === 'revive') {
             alert("Você não pode reviver Pokémon durante a batalha!");
             return;
@@ -2151,6 +2166,7 @@ export class Battle {
                 alert("Não pode capturar pokémons de treinadores!");
                 return;
             }
+            this.itemsUsedThisBattle++;
             this.player!.items[key]--;
             this.processingAction = true;
             this.updateButtons();
@@ -2161,6 +2177,7 @@ export class Battle {
             if (this.activeMon!.isFainted()) return alert("O Pokémon está desmaiado!");
             if (this.activeMon!.currentHp >= this.activeMon!.maxHp) return alert("HP já está cheio!");
             
+            this.itemsUsedThisBattle++;
             this.player!.items[key]--;
             this.processingAction = true;
             this.updateButtons();

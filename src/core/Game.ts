@@ -744,6 +744,9 @@ export class Game {
             if (c.type === 'move') { 
                 if (canUseMove) actionBtn = `<button class="btn" style="width:100%; margin-top:8px; padding:8px; background:#2ecc71; border:none; border-radius:4px; color:white; font-weight:bold; cursor:pointer;" onclick="window.Cards.activate('${c.id}')">USAR</button>`; 
                 else actionBtn = `<button class="btn" disabled style="width:100%; margin-top:8px; padding:8px; background:#7f8c8d; border:none; border-radius:4px; color:white; font-weight:bold; cursor:not-allowed;" title="Só pode usar antes de rolar o dado">USAR</button>`; 
+            } else if (c.type === 'global') {
+                if (canUseMove) actionBtn = `<button class="btn" style="width:100%; margin-top:8px; padding:8px; background:#e74c3c; border:none; border-radius:4px; color:white; font-weight:bold; cursor:pointer;" title="Afeta o mundo todo!" onclick="window.Cards.activate('${c.id}')">GLOBAL</button>`; 
+                else actionBtn = `<button class="btn" disabled style="width:100%; margin-top:8px; padding:8px; background:#7f8c8d; border:none; border-radius:4px; color:white; font-weight:bold; cursor:not-allowed;" title="Só pode usar antes de rolar o dado no seu turno">GLOBAL</button>`; 
             } else if (c.type === 'auto') {
                 actionBtn = `<button class="btn" disabled style="width:100%; margin-top:8px; padding:8px; background:#8e44ad; border:none; border-radius:4px; color:white; font-weight:bold; cursor:not-allowed;" title="Esta carta ativa automaticamente">AUTO</button>`; 
             } else { 
