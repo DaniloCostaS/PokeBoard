@@ -2122,10 +2122,6 @@ export class Battle {
     static useItem(key: string, data: ItemData) {
         if (this.isChampion) return alert("🚫 As regras da Liga proíbem o uso de Itens de Cura no Desafio do Campeão!");
 
-        if (this.itemsUsedThisBattle >= 3) {
-            return alert("🚫 Você já usou o limite máximo de 3 itens nesta batalha!");
-        }
-
         if (data.type === 'revive') {
             alert("Você não pode reviver Pokémon durante a batalha!");
             return;
@@ -2139,7 +2135,6 @@ export class Battle {
                 alert("Não pode capturar pokémons de treinadores!");
                 return;
             }
-            this.itemsUsedThisBattle++;
             this.player!.items[key]--;
             this.processingAction = true;
             this.updateButtons();
@@ -2150,7 +2145,6 @@ export class Battle {
             if (this.activeMon!.isFainted()) return alert("O Pokémon está desmaiado!");
             if (this.activeMon!.currentHp >= this.activeMon!.maxHp) return alert("HP já está cheio!");
             
-            this.itemsUsedThisBattle++;
             this.player!.items[key]--;
             this.processingAction = true;
             this.updateButtons();
