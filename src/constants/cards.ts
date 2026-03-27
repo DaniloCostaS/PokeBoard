@@ -53,5 +53,5 @@ export const CARDS_DB: CardData[] = [
     { id: 'new_leader', name: "Novo líder", icon: "⚔️", desc: "Escolha um jogador: Se vencer a batalha, pegue uma insígnia aleatória que ainda não tem do adversário.", type: 'move' },
 
     // Cartas Globais
-    { id: 'communism', name: "Comunismo", icon: "♻️", desc: "Todos os jogadores descartam a metade das cartas que tem na mão.", type: 'global' }
+    { id: 'communism', name: "Comunismo", icon: "♻️", desc: "Junta todas as cartas de todos os jogadores, embaralha e redistribui igualmente. As que sobrarem são destruídas.", type: 'global' }
 ];

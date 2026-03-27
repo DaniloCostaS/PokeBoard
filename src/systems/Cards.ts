@@ -1087,27 +1087,39 @@ export class Cards {
             // =========================================================
 
             case 'communism':
-                // 1. Consume a carta PRIMEIRO do jogador que ativou para evitar erros no descarte
+                // 1. Consume a carta PRIMEIRO do jogador que ativou para evitar duplicação no pool
                 const comIdx = player.cards.findIndex(c => c.id === cardId);
                 if (comIdx > -1) player.cards.splice(comIdx, 1);
                 
-                // 2. Afeta TODOS os jogadores (incluindo ele mesmo)
-                let totalCardsRemoved = 0;
+                // 2. Coleta todas as cartas de todos e esvazia as mãos
+                let allCards: any[] = [];
                 Game.players.forEach((p: any) => {
-                    const cardsToRemove = Math.floor(p.cards.length / 2);
-                    if (cardsToRemove > 0) {
-                        for (let i = 0; i < cardsToRemove; i++) {
-                            const randIdx = Math.floor(Math.random() * p.cards.length);
-                            p.cards.splice(randIdx, 1);
-                            totalCardsRemoved++;
-                        }
-                        if (Network.isOnline && p.id !== player.id) {
-                            Network.syncSpecificPlayer(p.id); 
-                        }
+                    allCards = allCards.concat(p.cards);
+                    p.cards = []; // Zera a mão
+                });
+
+                // 3. Embaralha o montante (Pool)
+                for (let i = allCards.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [allCards[i], allCards[j]] = [allCards[j], allCards[i]];
+                }
+
+                // 4. Divide igualmente
+                const numPlayers = Game.players.length;
+                const cardsPerPlayer = Math.floor(allCards.length / numPlayers);
+                const leftovers = allCards.length % numPlayers;
+
+                // 5. Redistribui as cartas
+                Game.players.forEach((p: any) => {
+                    for(let i = 0; i < cardsPerPlayer; i++) {
+                        p.cards.push(allCards.pop());
+                    }
+                    if (Network.isOnline && p.id !== player.id) {
+                        Network.syncSpecificPlayer(p.id); 
                     }
                 });
                 
-                effectLog = `☭ REVOLUÇÃO GLOBAL! Metade das cartas de TODOS OS JOGADORES evaporaram instantaneamente! (${totalCardsRemoved} cartas aniquiladas do jogo)`;
+                effectLog = `☭ REVOLUÇÃO GLOBAL! Todas as cartas da mesa foram confiscadas, embaralhadas e redistribuídas! Todos agora têm exatamente ${cardsPerPlayer} cartas! (${leftovers} cartas incineradas)`;
                 consumed = false; // Nós já removemos a carta manualmente e dispararemos os logs abaixo.
                 
                 // 3. Atualiza UI e envia os Logs personalizados
