@@ -853,6 +853,13 @@ export class Game {
             } 
         } 
         
+        // --- LIMPEZA DA IMUNIDADE DE FUGA AO ROLAR O DADO ---
+        if (p.effects.escapedGym) {
+            p.effects.escapedGym = false;
+            const NetworkObjForce = (window as any).Network || Network;
+            if (NetworkObjForce.isOnline) NetworkObjForce.syncPlayerState();
+        }
+        
         // Dispara o resultado para a rede e roda a animação
         const NetworkObj = (window as any).Network || Network;
         if(NetworkObj.isOnline) { 
@@ -1226,6 +1233,13 @@ export class Game {
                 return;
             }
 
+            // --- EXCEÇÃO: IMUNIDADE DE FUGA (FUMAÇA NINJA) ---/
+            if (p.effects.escapedGym) {
+                this.log("💨 Você usou Fumaça Ninja e o Líder ainda não te notou...");
+                this.nextTurn();
+                return;
+            }
+
             // Verifica se NÃO tem a insígnia
             if (!p.badges[gymId-1]) { 
                 Battle.setup(p, new Pokemon(150, 1, false), false, "Líder de Ginásio", 1000, null, true, gymId, "", type); 
@@ -1431,12 +1445,10 @@ export class Game {
                 effectsChanged = true;
             }
             
-            // --- LIMPEZA DA IMUNIDADE DE FUGA ---
-            if (currentP.effects.escapedGym) {
-                currentP.effects.escapedGym = false;
-                effectsChanged = true; // Força o Firebase a salvar que ele perdeu a imunidade
-            }
-            // ------------------------------------
+            // --- LIMPEZA DA IMUNIDADE DE FUGA (MOVIDA PARA ROLLDICE) ---
+            // A limpeza foi movida para o início do próximo turno (no rollDice) 
+            // para garantir que a proteção dure enquanto o jogador estiver parado no ginásio.
+            // ----------------------------------------------------------
             
             // Salva a contagem atualizada no Firebase se algum efeito foi gasto
             if (effectsChanged) {
@@ -1551,7 +1563,7 @@ export class Game {
         } else {
             const nextP = this.players[this.turn];
             if(nextP.skipTurns > 0) { 
-                nextP.skipTurns--; 
+                nextP.skipTurns = Math.max(0, nextP.skipTurns - 1); 
                 this.sendGlobalLog(`${nextP.name} perdeu a vez! (Restam: ${nextP.skipTurns})`); 
                 alert(`${nextP.name} perdeu a vez!`); 
                 this.nextTurn(); 
@@ -1643,12 +1655,14 @@ export class Game {
                 }
                 // --------------------------------------------
 
-                if (myPlayer.skipTurns > 0) {
+                if (myPlayer.skipTurns > 0 && !myPlayer.isProcessingSkip) {
+                    myPlayer.isProcessingSkip = true;
                     btn.disabled = true;
                     btn.innerText = `Pulando vez... (${myPlayer.skipTurns})`;
                     
                     setTimeout(() => {
-                         myPlayer.skipTurns--;
+                         myPlayer.skipTurns = Math.max(0, myPlayer.skipTurns - 1);
+                         myPlayer.isProcessingSkip = false;
                          this.sendGlobalLog(`${myPlayer.name} perdeu a vez! (Restam: ${myPlayer.skipTurns})`);
                          Network.syncPlayerState();
                          this.nextTurn(); 

@@ -14,6 +14,7 @@ export class Player {
     team: Pokemon[] = [];
     
     skipTurns: number = 0; 
+    isProcessingSkip: boolean = false; // Flag local para evitar múltiplos timers
     badges: boolean[] = [false,false,false,false,false,false,false,false];
 
     // Controles de efeitos

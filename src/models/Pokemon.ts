@@ -277,24 +277,30 @@ export class Pokemon {
         if (this.level >= 25) return;
         this.level++; 
         
-        // Recebe os ganhos exatos deste level
+        // Recebe os ganhos exatos deste level (15 pontos aleatórios)
         const gains = this.distributeLevelUpStats(); 
         
+        const Game = (window as any).Game;
+        // --- EVENTO: POKÉRUS OUTBREAK (+3 em todos os status extras) ---
+        if (Game && Game.currentGlobalEvent?.id === 'POKERUS_OUTBREAK') {
+            this.bonusStats.hp += 3;
+            this.bonusStats.atk += 3;
+            this.bonusStats.def += 3;
+            this.bonusStats.spd += 3;
+            
+            // Incrementa os ganhos para o log refletir o bônus do Pokérus
+            gains.hp += 3;
+            gains.atk += 3;
+            gains.def += 3;
+            gains.spd += 3;
+        }
+
         this.maxXp = this.calculateMaxXp();
         this.recalculateStats(false);
         
-        if(player) {
-             const Game = (window as any).Game;
+        if(player && Game) {
              // Log detalhado com os status sorteados!
              Game.sendGlobalLog(`🎉 ${this.name} subiu para o Nível ${this.level}! (+${gains.hp} HP | +${gains.atk} ATK | +${gains.def} DEF | +${gains.spd} SPD)`); 
-             
-             // --- EVENTO: POKÉRUS OUTBREAK (+2 níveis adicionais) ---
-             if (Game.currentGlobalEvent?.id === 'POKERUS_OUTBREAK' && !(this as any)._isPokerusProcessing) {
-                 (this as any)._isPokerusProcessing = true;
-                 this.levelUp(player);
-                 this.levelUp(player);
-                 delete (this as any)._isPokerusProcessing;
-             }
         }
         this.checkEvolution(player); 
     }

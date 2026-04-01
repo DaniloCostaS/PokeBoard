@@ -981,6 +981,18 @@ export class Battle {
         const Network = (window as any).Network;
         if(!this.activeMon || !this.opponent) return;
 
+        // --- VERIFICAÇÃO DE ATORDOAMENTO (ATAQUE SURPRESA) ---
+        if (this.activeEffects.stunOpponent && this.activeEffects.stunOpponent > 0) {
+            this.activeEffects.stunOpponent--;
+            const turnsLeft = this.activeEffects.stunOpponent;
+            const msg = `⚡ ${this.opponent.name} está atordoado e não consegue atacar!${turnsLeft > 0 ? ` (Restam ${turnsLeft} turnos)` : ""}`;
+            
+            this.logBattle(msg, true);
+            
+            if (callback) callback();
+            return;
+        }
+
         if (Game.currentGlobalEvent?.id === 'WINTER_STORM') {
             if (!this.opponent.type.includes('Gelo') && (!this.opponent.secondType || !this.opponent.secondType.includes('Gelo'))) {
                 if (Math.random() < 0.15) {
@@ -1124,6 +1136,11 @@ export class Battle {
                     Network.syncSpecificPlayer(this.enemyPlayer.id);
                 }
                 
+                // --- LIMPEZA DE STATUS AO REVERTER MEGA MORTO ---
+                if (this.activeEffects.stunOpponent) {
+                    this.activeEffects.stunOpponent = 0;
+                }
+
                 if (this.isPvP) {
                      setTimeout(() => this.autoAttackNext(), 1500);
                 }
@@ -1145,6 +1162,11 @@ export class Battle {
             if(oldImg) (this.opponent as any)._npcImage = oldImg;
             if(oldName) (this.opponent as any)._npcName = oldName;
             // ---------------------------------------------------
+
+            // --- LIMPEZA DE STATUS AO TROCAR POKEMON MORTO ---
+            if (this.activeEffects.stunOpponent) {
+                this.activeEffects.stunOpponent = 0;
+            }
 
             this.logBattle(`Rival enviou ${nextOpp.name}!`, true); 
             this.updateUI(); 

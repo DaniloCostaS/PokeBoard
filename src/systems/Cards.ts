@@ -911,6 +911,7 @@ export class Cards {
             case 'run': 
                 player.effects.escapedGym = true; // <--- PASSO 4: IMUNIDADE NINJA AQUI!
                 Battle.logBattle("💨 Fugiu com estilo!"); 
+                if (Network.isOnline) Network.syncPlayerState();
                 Battle.end(false); 
                 break;
 
