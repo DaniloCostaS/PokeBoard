@@ -265,6 +265,7 @@ export class Network {
             if(round !== null) { 
                 Game.round = round; 
                 Game.updateHUD();
+                Game.checkTurnControl();
             } 
         });
 

@@ -1549,8 +1549,8 @@ export class Game {
         this.hasRolled = false; 
         
         if(Network.isOnline) { 
-            Network.syncSpecificPlayer(nextP.id);
-            Network.syncTurn(this.turn, this.round); // Agora envia a rodada junto!
+            // Apenas atualiza a vez, deixa o próprio jogador cuidar do seu estado quando agir
+            Network.syncTurn(this.turn, this.round); 
         } else {
             const nextP = this.players[this.turn];
             if(nextP.skipTurns > 0) { 
@@ -1672,6 +1672,12 @@ export class Game {
                     btn.innerText = `Pulando vez... (${myPlayer.skipTurns})`;
                     
                     setTimeout(() => {
+                         // PREVENIR CORRIDA E REPETIÇÃO (MÚLTIPLAS ABAS/RECONEXÕES)
+                         if (this.turn !== me) {
+                             myPlayer.isProcessingSkip = false;
+                             return;
+                         }
+                         
                          myPlayer.skipTurns = Math.max(0, myPlayer.skipTurns - 1);
                          myPlayer.isProcessingSkip = false;
                          this.sendGlobalLog(`${myPlayer.name} perdeu a vez! (Restam: ${myPlayer.skipTurns})`);
