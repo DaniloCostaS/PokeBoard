@@ -240,7 +240,13 @@ export class Network {
             if (pd.items) pl.items = pd.items; 
             return pl; 
         }); 
-        playerArray.sort((a: Player, b: Player) => a.id - b.id); 
+        
+        if (data.playOrder) {
+            playerArray.sort((a: Player, b: Player) => data.playOrder.indexOf(a.id) - data.playOrder.indexOf(b.id));
+        } else {
+            playerArray.sort((a: Player, b: Player) => a.id - b.id);
+        }
+        
         document.getElementById('setup-screen')!.style.display='none'; 
         document.getElementById('game-container')!.style.display='flex'; 
         Game.init(playerArray, MapSystem.size); 

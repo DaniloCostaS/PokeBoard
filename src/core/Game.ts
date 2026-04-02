@@ -1486,8 +1486,8 @@ export class Game {
                 }
             }
             
-            // 2. Rola um Novo Evento (A cada 5 rodadas)
-            if (this.round % 5 === 0) {
+            // 2. Rola um Novo Evento (Nas rodadas de final 2 e 7: 2, 7, 12, 17...)
+            if (this.round % 5 === 2) {
                 // Apenas quem finalizou a rodada anterior sorteia e avisa para não duplicar na rede
                 if (!Network.isOnline || this.turn === Network.myPlayerId) {
                     const ev = GLOBAL_EVENTS[Math.floor(Math.random() * GLOBAL_EVENTS.length)];
@@ -1514,15 +1514,6 @@ export class Game {
                             }
                         });
                         this.sendGlobalLog("📜 IMPOSTO DE RENDA: Todos os jogadores perderam metade de suas cartas e itens!");
-                    } else if (ev.id === 'TRUCO_SEIS') {
-                        this.players.forEach(player => {
-                            if (player.cards.length > 6) {
-                                while (player.cards.length > 6) {
-                                    player.cards.splice(Math.floor(Math.random() * player.cards.length), 1);
-                                }
-                            }
-                        });
-                        this.sendGlobalLog("🃏 TRUCO: Todos os jogadores descartaram até ficarem com no máximo 6 cartas!");
                     }
                     // ------------------------------------
 
@@ -1531,8 +1522,8 @@ export class Game {
                         updates[`rooms/${Network.currentRoomId}/currentEventId`] = ev.id;
                         updates[`rooms/${Network.currentRoomId}/eventEndRound`] = this.eventEndRound;
                         
-                        // Sincroniza jogadores se houve mudança no Tax/Truco
-                        if (ev.id === 'TAX_SEASON' || ev.id === 'TRUCO_SEIS') {
+                        // Sincroniza jogadores se houve mudança no Tax
+                        if (ev.id === 'TAX_SEASON') {
                             this.players.forEach(p => {
                                 updates[`rooms/${Network.currentRoomId}/players/${p.id}/cards`] = p.cards;
                                 updates[`rooms/${Network.currentRoomId}/players/${p.id}/items`] = p.items;
@@ -1608,6 +1599,25 @@ export class Game {
             }
         };
 
+        const processTrucoSeis = (player: Player) => {
+            if (this.currentGlobalEvent?.id === 'TRUCO_SEIS') {
+                if (player.cards.length > 6) {
+                    const lostCount = player.cards.length - 6;
+                    while (player.cards.length > 6) {
+                        player.cards.splice(Math.floor(Math.random() * player.cards.length), 1);
+                    }
+                    this.sendGlobalLog(`🃏 ${player.name} excedeu o limite do TRUCO e perdeu ${lostCount} carta(s)!`);
+                    
+                    if (this.turn === Network.myPlayerId || !Network.isOnline) {
+                        this.showGlobalAlert(`🃏 GRITARAM TRUCO!\n\nVocê tinha mais de 6 cartas e precisou descartar ${lostCount} aleatoriamente para continuar.`, player.name, true, false);
+                        this.updateHUD();
+                    }
+                    
+                    if (Network && Network.isOnline) Network.syncSpecificPlayer(player.id);
+                }
+            }
+        };
+
         if(Network.isOnline) { 
             if(ind) ind.innerText = "FIREBASE"; 
             if (this.turn === me) { 
@@ -1637,6 +1647,7 @@ export class Game {
                 // ----------------------------------------------
 
                 processDecadeBonus(myPlayer);
+                processTrucoSeis(myPlayer);
 
                 // --- EVENTO: ROBIN HOOD (Início de Turno) ---
                 if (this.currentGlobalEvent?.id === 'ROBIN_HOOD' && !myPlayer.effects.robinHoodApplied) {
@@ -1702,6 +1713,7 @@ export class Game {
             // -----------------------------------------
             
             processDecadeBonus(currP); // <--- AVALIA O BÔNUS NO MODO OFFLINE
+            processTrucoSeis(currP);
 
             btn.disabled = false; 
         } 

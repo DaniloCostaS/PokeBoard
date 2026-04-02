@@ -15,7 +15,37 @@ export class Setup {
     static updatePreview(i: number) { (document.getElementById(`p${i}-preview`) as HTMLImageElement).src = `/assets/img/Treinadores/${(document.getElementById(`p${i}-av`) as HTMLSelectElement).value}`; }
     
     // START OFFLINE
-    static start() { const n = parseInt((document.getElementById('num-players') as HTMLSelectElement).value); const mapSize = parseInt((document.getElementById('map-size') as HTMLSelectElement).value); const ps = []; for(let i=0; i<n; i++) { ps.push(new Player(i, (document.getElementById(`p${i}-name`) as HTMLInputElement).value, (document.getElementById(`p${i}-av`) as HTMLSelectElement).value, false)); } document.getElementById('setup-screen')!.style.display='none'; document.getElementById('game-container')!.style.display='flex'; Game.init(ps, mapSize); }
+    static start() { 
+        const n = parseInt((document.getElementById('num-players') as HTMLSelectElement).value); 
+        const mapSize = parseInt((document.getElementById('map-size') as HTMLSelectElement).value); 
+        const ps = []; 
+        for(let i=0; i<n; i++) { 
+            ps.push(new Player(i, (document.getElementById(`p${i}-name`) as HTMLInputElement).value, (document.getElementById(`p${i}-av`) as HTMLSelectElement).value, false)); 
+        } 
+        
+        // NOVO: Aleatorizar ordem inicial no modo offline!
+        ps.sort(() => Math.random() - 0.5);
+
+        document.getElementById('setup-screen')!.style.display='none'; 
+        document.getElementById('game-container')!.style.display='flex'; 
+        Game.init(ps, mapSize); 
+    }
+
     // START ONLINE (Host)
-    static async startOnlineGame() { if (!Network.isHost) return; const mapSize = parseInt((document.getElementById('online-map-size') as HTMLSelectElement).value); MapSystem.generate(mapSize); const updateData = { status: "PLAYING", map: { size: mapSize, grid: MapSystem.grid, gymLocations: MapSystem.gymLocations } }; if (db) { await update(ref(db, `rooms/${Network.currentRoomId}`), updateData); } }
+    static async startOnlineGame() { 
+        if (!Network.isHost) return; 
+        const mapSize = parseInt((document.getElementById('online-map-size') as HTMLSelectElement).value); 
+        MapSystem.generate(mapSize); 
+
+        // NOVO: Aleatoriza a ordem de turno dos jogadores da sala
+        const orderIds = Network.lobbyPlayers.map(p => p.id);
+        orderIds.sort(() => Math.random() - 0.5);
+        
+        const updateData = { 
+            status: "PLAYING", 
+            map: { size: mapSize, grid: MapSystem.grid, gymLocations: MapSystem.gymLocations },
+            playOrder: orderIds
+        }; 
+        if (db) { await update(ref(db, `rooms/${Network.currentRoomId}`), updateData); } 
+    }
 }
