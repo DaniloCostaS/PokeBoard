@@ -2062,15 +2062,31 @@ export class Battle {
             return;
         }
 
-        // --- NOVA REGRA: MEGA EVOLUÇÃO / MEW NÃO PODE USAR ITEM EM PVE ---
-        if (!this.isPvP && this.activeMon && ((this.activeMon as any).isTemp || (this.activeMon as any).isMegaEvolution)) {
-            const Game = (window as any).Game;
-            Game.showGlobalAlert("🧬 Seu parceiro já atingiu o poder máximo! É proibido usar itens para fortalecer ou curar Mega Evoluções ou Mews em combates contra o ambiente.", this.player!.name, true, false);
-            return;
-        }
+        const isMegaOrMew = (!this.isPvP && this.activeMon && ((this.activeMon as any).isTemp || (this.activeMon as any).isMegaEvolution));
 
         const list = document.getElementById('battle-bag-list')!;
-        list.innerHTML = ''; Object.keys(this.player!.items).forEach(key => { if (this.player!.items[key] > 0) { const item = SHOP_ITEMS.find(i => i.id === key); if (item) { const btn = document.createElement('button'); btn.className = 'btn'; btn.innerHTML = `<img src="/assets/img/Itens/${item.icon}" class="item-icon-mini"> ${item.name} x${this.player!.items[key]}`; btn.onclick = () => this.useItem(key, item); list.appendChild(btn); } } }); document.getElementById('battle-bag')!.style.display = 'block';
+        list.innerHTML = ''; 
+        Object.keys(this.player!.items).forEach(key => { 
+            if (this.player!.items[key] > 0) { 
+                const item = SHOP_ITEMS.find(i => i.id === key); 
+                if (item) { 
+                    // Oculta itens que não são de captura se for Mega ou Mew
+                    if (isMegaOrMew && item.type !== 'capture') return;
+
+                    const btn = document.createElement('button'); 
+                    btn.className = 'btn'; 
+                    btn.innerHTML = `<img src="/assets/img/Itens/${item.icon}" class="item-icon-mini"> ${item.name} x${this.player!.items[key]}`; 
+                    btn.onclick = () => this.useItem(key, item); 
+                    list.appendChild(btn); 
+                } 
+            } 
+        }); 
+
+        if (list.innerHTML === '') {
+            list.innerHTML = "<em>Nenhum item compatível no momento...</em>";
+        }
+        
+        document.getElementById('battle-bag')!.style.display = 'block';
     }
 
     //static openCardSelection() { if (!this.isPlayerTurn || this.processingAction) return; const list = document.getElementById('battle-cards-list')!; list.innerHTML = ''; const battleCards = this.player!.cards.filter(c => c.type === 'battle'); if(battleCards.length === 0) { list.innerHTML = "<em>Sem cartas de batalha.</em>"; } else { battleCards.forEach(c => { const d = document.createElement('div'); d.className='card-item'; d.innerHTML = `<div class="card-info"><span class="card-name">${c.icon} ${c.name} <span class="card-type-badge type-battle">BATTLE</span></span><span class="card-desc">${c.desc}</span></div><button class="btn-use-card" onclick="window.Battle.useCard('${c.id}')">USAR</button>`; list.appendChild(d); }); } document.getElementById('battle-cards-modal')!.style.display = 'flex'; }
@@ -2209,6 +2225,12 @@ export class Battle {
 
         if (data.type === 'revive') {
             alert("Você não pode reviver Pokémon durante a batalha!");
+            return;
+        }
+
+        const isMegaOrMew = (!this.isPvP && this.activeMon && ((this.activeMon as any).isTemp || (this.activeMon as any).isMegaEvolution));
+        if (isMegaOrMew && data.type !== 'capture') {
+            alert("🧬 É proibido usar itens de cura/buff em Mega Evoluções ou Mews no PvE.");
             return;
         }
 
