@@ -1119,15 +1119,14 @@ export class Battle {
         // --- SE O INIMIGO ERA MEGA, REVERTE ANTES DE PROCURAR O PRÓXIMO ---
         if (this.opponent && ((this.opponent as any).isTemp || (this.opponent as any).isMegaEvolution)) {
             const isOppMega = (this.opponent as any).isMegaEvolution;
-            const megaDied = this.opponent.currentHp <= 0;
             this.revertOpponentMew();
 
-            if (megaDied && !isOppMega) {
-                this.opponent.currentHp = 0;
-            }
-
             if (this.opponent.currentHp > 0) {
-                this.logBattle("🧬 A Mega Evolução inimiga foi derrotada, mas o Pokémon original retornou e continua a lutar!");
+                if (isOppMega) {
+                    this.logBattle("🧬 A Mega Evolução inimiga foi derrotada, mas o Pokémon original retornou e continua a lutar!");
+                } else {
+                    this.logBattle("🧬 O Mew inimigo foi derrotado, mas o Pokémon original retornou e continua a lutar!");
+                }
                 this.updateUI();
                 this.processingAction = false;
                 this.updateButtons();
@@ -1204,14 +1203,10 @@ export class Battle {
             if (isMega) {
                 this.logBattle("🧬 A Mega Evolução não resistiu e o Pokémon original retornou à batalha!");
             } else {
-                this.logBattle("🧬 O DNA de Mew se esgotou e o Pokémon original retornou!");
+                this.logBattle("🧬 O Mew aliado foi derrotado e o Pokémon original retornou à batalha!");
             }
 
-            const megaDied = this.activeMon.currentHp <= 0;
             this.revertMew();
-            if (megaDied && !isMega) {
-                this.activeMon.currentHp = 0;
-            }
 
             this.updateUI();
             if (this.activeMon.currentHp <= 0) { }
