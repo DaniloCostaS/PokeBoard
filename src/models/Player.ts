@@ -52,7 +52,10 @@ export class Player {
             // 2. Sorteio de 5 Cartas (Exceto Master Ball)
             const validCards = CARDS_DB.filter(c => c.id !== 'master');
             for(let i=0; i<5; i++) {
-                const randomCard = validCards[Math.floor(Math.random() * validCards.length)];
+                const resultChance = Math.floor(Math.random() * 100) + 1;
+                const possibleCards = validCards.filter(c => c.probability >= resultChance);
+                const finalPool = possibleCards.length > 0 ? possibleCards : validCards;
+                const randomCard = finalPool[Math.floor(Math.random() * finalPool.length)];
                 this.cards.push(randomCard);
             }
             

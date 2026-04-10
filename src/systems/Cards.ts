@@ -105,7 +105,11 @@ export class Cards {
         // Sorteia NOVA carta (Regra: qualquer carta do pool, exceto Master Ball se quiser restringir)
         // Usando lógica similar ao Cards.draw
         const validPool = CARDS_DB.filter((c: any) => c.id !== 'master'); // Exemplo: Tira Master Ball do pool de craft
-        const newCard = validPool[Math.floor(Math.random() * validPool.length)];
+        
+        const resultChance = Math.floor(Math.random() * 100) + 1;
+        const possibleCards = validPool.filter((c: any) => c.probability >= resultChance);
+        const finalPool = possibleCards.length > 0 ? possibleCards : validPool;
+        const newCard = finalPool[Math.floor(Math.random() * finalPool.length)];
         
         player.cards.push(newCard);
 
@@ -159,7 +163,11 @@ export class Cards {
         const Game = (window as any).Game;
         const Network = (window as any).Network;
 
-        const card = CARDS_DB[Math.floor(Math.random()*CARDS_DB.length)]; 
+        const resultChance = Math.floor(Math.random() * 100) + 1;
+        const possibleCards = CARDS_DB.filter(c => c.probability >= resultChance);
+        const finalPool = possibleCards.length > 0 ? possibleCards : CARDS_DB;
+        const card = finalPool[Math.floor(Math.random() * finalPool.length)];
+        
         player.cards.push(card); 
         
         // Se não for modo silencioso, avisa no log
@@ -1114,7 +1122,12 @@ export class Cards {
                         playerIds.forEach(id => {
                             const pData = roomData.players[id];
                             if (pData.cards && Array.isArray(pData.cards)) {
-                                allCardsPool = [...allCardsPool, ...pData.cards];
+                                let cardsToAdd = [...pData.cards];
+                                if (parseInt(id) === player.id) {
+                                    const cIdx = cardsToAdd.findIndex((c:any) => c.id === cardId);
+                                    if (cIdx > -1) cardsToAdd.splice(cIdx, 1);
+                                }
+                                allCardsPool = [...allCardsPool, ...cardsToAdd];
                             }
                         });
 
@@ -1241,7 +1254,12 @@ export class Cards {
                             const pData = roomData.players[id];
                             
                             // Redução de Cartas (50%)
-                            const cards = pData.cards || [];
+                            const cards = pData.cards ? [...pData.cards] : [];
+                            if (parseInt(id) === player.id) {
+                                const impIdx = cards.findIndex((c:any) => c.id === cardId);
+                                if (impIdx > -1) cards.splice(impIdx, 1);
+                            }
+
                             const toRemoveC = Math.floor(cards.length / 2);
                             if (toRemoveC > 0) {
                                 for (let i = 0; i < toRemoveC; i++) {

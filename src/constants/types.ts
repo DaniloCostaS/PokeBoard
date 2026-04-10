@@ -44,6 +44,7 @@ export interface CardData {
     icon: string;
     desc: string;
     type: 'move' | 'battle' | 'auto' | 'global';
+    probability: number;
 }
 
 export interface Coord {
