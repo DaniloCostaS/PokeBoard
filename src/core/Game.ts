@@ -38,7 +38,7 @@ export class Game {
     static lastBonusRoundClaimed: number = 0; // Armazena o bônus localmente de forma segura
 
     static activeGyms: number[] = [];
-    static globalLogs: {text: string, style: string}[] = [];
+    static globalLogs: {text: string, style: string, type?: string}[] = [];
 
     static init(players: Player[], mapSize: number) { 
         // --- NOVO: GARANTE O SORTEIO NO MODO OFFLINE ---
@@ -624,6 +624,7 @@ export class Game {
 
     static openXpRules() { document.getElementById('xp-rules-modal')!.style.display = 'flex'; }
     static openCaptureRules() { const modal = document.getElementById('capture-rules-modal'); if (modal) modal.style.display = 'flex'; }
+    static openCombatRules() { const modal = document.getElementById('combat-rules-modal'); if (modal) modal.style.display = 'flex'; }
 
     // --- NOVO: BÔNUS DA RODADA DEZ ---
     static triggerDecadeBonus(p: Player) {
@@ -2343,6 +2344,20 @@ export class Game {
         }
         // --------------------------------------
 
+        
+        let logType = "system";
+        const mLower = m.toLowerCase();
+
+        if (m.includes("[Batalha]") || mLower.includes("batalha") || mLower.includes("dano") || mLower.includes("desmaiou") || mLower.includes("capturou") || mLower.includes("selvagem") || mLower.includes("fugiu")) {
+            logType = "battle";
+        } else if (mLower.includes("carta") || m.includes("🃏") || m.includes("||CARD:")) {
+            logType = "cards";
+        } else if (m.includes("💰") || mLower.includes("gold") || mLower.includes("moedas") || mLower.includes("pagou") || mLower.includes("comprou")) {
+            logType = "gold";
+        } else if (mLower.includes("usou") && !mLower.includes("atacou") || m.includes("🎒") || mLower.includes("curou") || mLower.includes("poção") || mLower.includes("reviveu")) {
+            logType = "items";
+        }
+
         let customStyle = "";
         
         if (m.includes("Fim do turno de")) {
@@ -2362,7 +2377,7 @@ export class Game {
         if (container) {
             m = m.replace(/\n/g, '<br>'); // Troca quebra de linha de código para HTML
 
-            this.globalLogs.unshift({ text: m, style: customStyle });
+            this.globalLogs.unshift({ text: m, style: customStyle, type: logType });
             if (this.globalLogs.length > 50) this.globalLogs.pop();
             
             const Network = (window as any).Network;
@@ -2370,8 +2385,24 @@ export class Game {
                 Network.syncLogs(this.globalLogs);
             }
 
-            container.insertAdjacentHTML('afterbegin', `<div class="log-entry" style="${customStyle}">${m}</div>`); 
+            const currentFilter = (this as any).currentLogFilter || 'all';
+            const displayStyle = (currentFilter === 'all' || currentFilter === logType) ? "block" : "none";
+
+            container.insertAdjacentHTML('afterbegin', `<div class="log-entry" style="${customStyle}; display:${displayStyle}" data-type="${logType}">${m}</div>`); 
             container.scrollTop = 0;
+        }
+    }
+
+    static filterLogs(type: string) {
+        (this as any).currentLogFilter = type;
+
+        const container = document.getElementById('log-container');
+        if (container) {
+            const entries = container.querySelectorAll('.log-entry');
+            entries.forEach(el => {
+                const isMatch = type === 'all' || el.getAttribute('data-type') === type;
+                (el as HTMLElement).style.display = isMatch ? 'block' : 'none';
+            });
         }
     }
     

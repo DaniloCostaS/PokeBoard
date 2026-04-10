@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PokéBoard V71</title>
+    <title>PokéBoard V72</title>
     <link rel="stylesheet" href="style.css">
 
     <script type="importmap">
@@ -20,7 +20,7 @@
 <body>
 
     <div id="setup-screen">
-        <h1 class="title-highlight">PokéBoard V71</h1>
+        <h1 class="title-highlight">PokéBoard V72</h1>
         <p class="subtitle">Rei da liga - Novos lideres.</p>
 
         <div id="menu-phase-1">
@@ -153,6 +153,9 @@
                     Regras de XP</button>
                 <button class="btn btn-secondary" style="background: #e67e22;"
                     onclick="window.Game.openCaptureRules()">🦅 Regras de Captura</button>
+                <button class="btn btn-secondary" style="background: #e74c3c;"
+                    onclick="window.Game.openCombatRules()">⚔️
+                    Regras de Combate</button>
                 <div style="margin-top:10px; font-size:0.7rem; color:#aaa;">DEBUG MOVE</div>
                 <div style="display:flex; gap:5px; justify-content:center;">
                     <input type="number" id="debug-input" value="1" min="1" max="50"
@@ -173,25 +176,18 @@
         </div>
 
         <div id="right-panel">
-            <div class="panel-header">📟 Log da partida</div>
-            <div id="log-container"></div>
-            <div class="evo-legend">
-                <h4>⚔️ Nova Mecânica de Combate 2.1</h4>
-                <ul style="font-size: 0.8rem;">
-                    <li><strong>Ataque Base:</strong> Híbrido! Soma de (65% Atk) + (15% Spd) + (20% HP).</li>
-                    <li><strong>Defesa:</strong> Redução percentual. Dano = (Base / 5) - (Def / 20).</li>
-                    <li><strong>🛡️ Bloqueio:</strong> (Def - Atk) / 5 = % Chance Bloqueio Total (Máx 90%).</li>
-                    <li><strong>🛡️ Reflexão:</strong> Se a Def for 50% maior que o Atk, há 15% de chance de devolver o
-                        dano.</li>
-                    <li><strong>⚡ Esquiva:</strong> ((SpdA - SpdD) / 5)% de chance de evitar 100% do dano (Mínimo 10%).
-                    </li>
-                    <li><strong>⚡ Crítico Veloz:</strong> (Spd / 8)% de chance de causar +5 de dano fixo.</li>
-                    <li><strong>⚡ Ataque Duplo:</strong> Se sua Spd for 50% maior que a do rival, tem 20% de chance de
-                        atacar 2x!</li>
-                    <li><strong>Multiplicadores:</strong> Vantagem (x1.75), Normal (x1), Desvantagem (x0.75).</li>
-                    <li><strong>Sorte (Dado d6):</strong> 1:(-2), 2:(-1), 3:(0), 4:(+2), 5:(+3), 6:(+5 Crítico💥).</li>
-                </ul>
+            <div class="panel-header" style="display:flex; justify-content:space-between; align-items:center;">
+                <span>📟 Log da partida</span>
+                <select id="log-filter-select" onchange="window.Game.filterLogs(this.value)"
+                    style="background:#334; color:#fff; border:1px solid #556; padding:2px 5px; border-radius:3px; font-size:0.75rem; outline:none; cursor:pointer;">
+                    <option value="all">Ver Tudo</option>
+                    <option value="cards">Só Cartas</option>
+                    <option value="items">Só Itens</option>
+                    <option value="gold">Economia</option>
+                    <option value="battle">Batalhas</option>
+                </select>
             </div>
+            <div id="log-container"></div>
         </div>
     </div>
 
@@ -210,6 +206,27 @@
             </ul>
             <button class="btn btn-secondary mt-15"
                 onclick="document.getElementById('xp-rules-modal').style.display='none'">Fechar</button>
+        </div>
+    </div>
+
+    <div id="combat-rules-modal" class="modal-overlay">
+        <div class="modal-box" style="text-align: left;">
+            <h3 style="text-align:center; color: #e74c3c;">⚔️ Nova Mecânica de Combate 2.1</h3>
+            <ul style="font-size: 0.9rem; line-height: 1.5;">
+                <li><strong>Ataque Base:</strong> Híbrido! Soma de (65% Atk) + (15% Spd) + (20% HP).</li>
+                <li><strong>Defesa:</strong> Redução percentual. Dano = (Base / 5) - (Def / 20).</li>
+                <li><strong>🛡️ Bloqueio:</strong> (Def - Atk) / 5 = % Chance Bloqueio Total (Máx 90%).</li>
+                <li><strong>🛡️ Reflexão:</strong> Se a Def for 50% maior que o Atk, há 15% de chance de devolver o
+                    dano.</li>
+                <li><strong>⚡ Esquiva:</strong> ((SpdA - SpdD) / 5)% de chance de evitar 100% do dano (Mínimo 10%).</li>
+                <li><strong>⚡ Crítico Veloz:</strong> (Spd / 8)% de chance de causar +5 de dano fixo.</li>
+                <li><strong>⚡ Ataque Duplo:</strong> Se sua Spd for 50% maior que a do rival, tem 20% de chance de
+                    atacar 2x!</li>
+                <li><strong>Multiplicadores:</strong> Vantagem (x1.75), Normal (x1), Desvantagem (x0.75).</li>
+                <li><strong>Sorte (Dado d6):</strong> 1:(-2), 2:(-1), 3:(0), 4:(+2), 5:(+3), 6:(+5 Crítico💥).</li>
+            </ul>
+            <button class="btn btn-secondary mt-15"
+                onclick="document.getElementById('combat-rules-modal').style.display='none'">Fechar</button>
         </div>
     </div>
 

@@ -211,7 +211,10 @@ export class Network {
             if (container) {
                 container.innerHTML = '';
                 Game.globalLogs.forEach((l: any) => {
-                    container.insertAdjacentHTML('beforeend', `<div class="log-entry" style="${l.style}">${l.text}</div>`);
+                    const lType = l.type || 'system';
+                    const currentFilter = (Game as any).currentLogFilter || 'all';
+                    const displayStyle = (currentFilter === 'all' || currentFilter === lType) ? "block" : "none";
+                    container.insertAdjacentHTML('beforeend', `<div class="log-entry" style="${l.style}; display:${displayStyle}" data-type="${lType}">${l.text}</div>`);
                 });
             }
         }
