@@ -1667,24 +1667,27 @@ export class Game {
                 }
                 // --------------------------------------------
 
-                if (myPlayer.skipTurns > 0 && !myPlayer.isProcessingSkip) {
-                    myPlayer.isProcessingSkip = true;
+                if (myPlayer.skipTurns > 0) {
                     btn.disabled = true;
                     btn.innerText = `Pulando vez... (${myPlayer.skipTurns})`;
-                    
-                    setTimeout(() => {
-                         // PREVENIR CORRIDA E REPETIÇÃO (MÚLTIPLAS ABAS/RECONEXÕES)
-                         if (this.turn !== me) {
+
+                    if (!myPlayer.isProcessingSkip) {
+                        myPlayer.isProcessingSkip = true;
+                        
+                        setTimeout(() => {
+                             // PREVENIR CORRIDA E REPETIÇÃO (MÚLTIPLAS ABAS/RECONEXÕES)
+                             if (this.turn !== me) {
+                                 myPlayer.isProcessingSkip = false;
+                                 return;
+                             }
+                             
+                             myPlayer.skipTurns = Math.max(0, myPlayer.skipTurns - 1);
                              myPlayer.isProcessingSkip = false;
-                             return;
-                         }
-                         
-                         myPlayer.skipTurns = Math.max(0, myPlayer.skipTurns - 1);
-                         myPlayer.isProcessingSkip = false;
-                         this.sendGlobalLog(`${myPlayer.name} perdeu a vez! (Restam: ${myPlayer.skipTurns})`);
-                         Network.syncPlayerState();
-                         this.nextTurn(); 
-                    }, 2000);
+                             this.sendGlobalLog(`${myPlayer.name} perdeu a vez! (Restam: ${myPlayer.skipTurns})`);
+                             Network.syncPlayerState();
+                             this.nextTurn(); 
+                        }, 2000);
+                    }
                     return;
                 }
 
