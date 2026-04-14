@@ -1674,18 +1674,18 @@ export class Game {
                     if (!myPlayer.isProcessingSkip) {
                         myPlayer.isProcessingSkip = true;
                         
+                        // Executa imediatamente para garantir que salva no Firebase antes do navegador dormir
+                        myPlayer.skipTurns = Math.max(0, myPlayer.skipTurns - 1);
+                        this.sendGlobalLog(`${myPlayer.name} perdeu a vez! (Restam: ${myPlayer.skipTurns})`);
+                        const NetworkObj = (window as any).Network || Network;
+                        if (NetworkObj && NetworkObj.isOnline) NetworkObj.syncPlayerState();
+                        
                         setTimeout(() => {
-                             // PREVENIR CORRIDA E REPETIÇÃO (MÚLTIPLAS ABAS/RECONEXÕES)
-                             if (this.turn !== me) {
-                                 myPlayer.isProcessingSkip = false;
-                                 return;
-                             }
-                             
-                             myPlayer.skipTurns = Math.max(0, myPlayer.skipTurns - 1);
                              myPlayer.isProcessingSkip = false;
-                             this.sendGlobalLog(`${myPlayer.name} perdeu a vez! (Restam: ${myPlayer.skipTurns})`);
-                             Network.syncPlayerState();
-                             this.nextTurn(); 
+                             // Só passa a vez se ainda for o turno dele
+                             if (this.turn === me) {
+                                 this.nextTurn(); 
+                             }
                         }, 2000);
                     }
                     return;
@@ -2212,6 +2212,17 @@ export class Game {
         let totalMons = 0; this.players.forEach(p => totalMons += p.team.length);
         const avgTeam = Math.max(1, Math.min(6, Math.round(totalMons / Math.max(1, this.players.length))));
         const elTeam = document.getElementById('npc-team-indicator'); if (elTeam) elTeam.innerText = avgTeam.toString();
+
+        // --- EXIBIR PAINEL DE ADMIN SOMENTE PARA HOST ---
+        const btnAdmin = document.getElementById('btn-admin-panel');
+        if (btnAdmin) {
+            const NetworkData = (window as any).Network;
+            if (!NetworkData || !NetworkData.isOnline || NetworkData.isHost) {
+                btnAdmin.style.display = 'block';
+            } else {
+                btnAdmin.style.display = 'none';
+            }
+        }
     }
 
     static showEventDetails() {
@@ -2409,6 +2420,153 @@ export class Game {
         }
     }
     
+    // ==========================================
+    // PAINEL ADMINISTRATIVO / SUPORTE HOST
+    // ==========================================
+    static openAdminPanel() {
+        const modal = document.getElementById('admin-modal');
+        const pSelect = document.getElementById('admin-player-select') as HTMLSelectElement;
+        const tSelect = document.getElementById('admin-turn-select') as HTMLSelectElement;
+        const rInput = document.getElementById('admin-round-val') as HTMLInputElement;
+
+        if (!modal || !pSelect || !tSelect || !rInput) return;
+
+        pSelect.innerHTML = '';
+        tSelect.innerHTML = '';
+
+        this.players.forEach((p, idx) => {
+            const opt = document.createElement('option');
+            opt.value = idx.toString();
+            opt.innerText = `[${idx}] ${p.name}`;
+            pSelect.appendChild(opt);
+
+            const optT = document.createElement('option');
+            optT.value = idx.toString();
+            optT.innerText = `[${idx}] ${p.name}`;
+            tSelect.appendChild(optT);
+        });
+
+        rInput.value = this.round.toString();
+        tSelect.value = this.turn.toString();
+
+        modal.style.display = 'flex';
+    }
+
+    static adminGiveCard() {
+        const select = document.getElementById('admin-player-select') as HTMLSelectElement;
+        if (!select) return;
+        const pIdx = parseInt(select.value, 10);
+        const p = this.players[pIdx];
+        if (!p) return;
+
+        const Cards = (window as any).Cards;
+        if (Cards) {
+            Cards.draw(p, true); 
+            this.sendGlobalLog(`🛠️ ADMIN HOST: Concedeu 1 Carta Aleatória para ${p.name}!`);
+            const Network = (window as any).Network;
+            if (Network && Network.isOnline) {
+                Network.syncSpecificPlayer(p.id);
+            }
+            this.updateHUD();
+        }
+    }
+
+    static adminClearDebuffs() {
+        const select = document.getElementById('admin-player-select') as HTMLSelectElement;
+        if (!select) return;
+        const pIdx = parseInt(select.value, 10);
+        const p = this.players[pIdx];
+        if (!p) return;
+
+        p.effects = {};
+        p.skipTurns = 0;
+        p.isProcessingSkip = false;
+        
+        this.sendGlobalLog(`🛠️ ADMIN HOST: Os efeitos de status negativos do jogador ${p.name} foram purificados!`);
+        const Network = (window as any).Network;
+        if (Network && Network.isOnline) {
+            Network.syncSpecificPlayer(p.id);
+        }
+        this.updateHUD();
+    }
+
+    static adminSetSkipTurns() {
+        const select = document.getElementById('admin-player-select') as HTMLSelectElement;
+        const valInput = document.getElementById('admin-skip-val') as HTMLInputElement;
+        if (!select || !valInput) return;
+        const pIdx = parseInt(select.value, 10);
+        const val = parseInt(valInput.value, 10);
+        const p = this.players[pIdx];
+        if (!p || isNaN(val) || val < 0) return;
+
+        p.skipTurns = val;
+        p.isProcessingSkip = false;
+
+        this.sendGlobalLog(`🛠️ ADMIN HOST: Ajustou os turnos a perder de ${p.name} para ${val}!`);
+        const Network = (window as any).Network;
+        if (Network && Network.isOnline) {
+            Network.syncSpecificPlayer(p.id);
+        }
+        this.updateHUD();
+    }
+
+    static adminGiveGold() {
+        const select = document.getElementById('admin-player-select') as HTMLSelectElement;
+        const valInput = document.getElementById('admin-gold-val') as HTMLInputElement;
+        if (!select || !valInput) return;
+        const pIdx = parseInt(select.value, 10);
+        const val = parseInt(valInput.value, 10);
+        const p = this.players[pIdx];
+        if (!p || isNaN(val)) return;
+
+        p.gold = Math.max(0, p.gold + val);
+
+        this.sendGlobalLog(`🛠️ ADMIN HOST: Concedeu ${val} Moedas para ${p.name}!`);
+        const Network = (window as any).Network;
+        if (Network && Network.isOnline) {
+            Network.syncSpecificPlayer(p.id);
+        }
+        this.updateHUD();
+    }
+
+    static adminSetRound() {
+        const valInput = document.getElementById('admin-round-val') as HTMLInputElement;
+        if (!valInput) return;
+        const val = parseInt(valInput.value, 10);
+        if (isNaN(val) || val < 1) return;
+
+        this.round = val;
+        this.sendGlobalLog(`🛠️ ADMIN HOST: A rodada principal foi alterada à força para a Rodada ${val}!`);
+        
+        const Network = (window as any).Network;
+        if (Network && Network.isOnline) {
+            Network.syncTurn(this.turn, this.round);
+        }
+        
+        this.updateHUD();
+        this.checkTurnControl();
+    }
+
+    static adminSetTurn() {
+        const select = document.getElementById('admin-turn-select') as HTMLSelectElement;
+        if (!select) return;
+        const tIdx = parseInt(select.value, 10);
+        const p = this.players[tIdx];
+        if (!p) return;
+
+        this.turn = tIdx;
+        this.hasRolled = false;
+        
+        this.sendGlobalLog(`🛠️ ADMIN HOST: A vez do jogador foi forçada e passada para ${p.name}!`);
+        
+        const Network = (window as any).Network;
+        if (Network && Network.isOnline) {
+            Network.syncTurn(this.turn, this.round);
+        }
+        
+        this.updateHUD();
+        this.checkTurnControl();
+    }
     // --- LÓGICA DO RE-ROLL ---
     static showDiceChoice(r1: number, r2: number) {
         let modal = document.getElementById('dice-choice-modal');

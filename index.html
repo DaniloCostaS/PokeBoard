@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PokéBoard V72</title>
+    <title>PokéBoard V73</title>
     <link rel="stylesheet" href="style.css">
 
     <script type="importmap">
@@ -20,7 +20,7 @@
 <body>
 
     <div id="setup-screen">
-        <h1 class="title-highlight">PokéBoard V72</h1>
+        <h1 class="title-highlight">PokéBoard V73</h1>
         <p class="subtitle">Rei da liga - Novos lideres.</p>
 
         <div id="menu-phase-1">
@@ -149,20 +149,14 @@
                 <div id="champion-global-banner" style="display: none;"></div>
                 <button class="btn btn-secondary" onclick="window.Game.openCardLibrary()">📖 Ver Todas as
                     Cartas</button>
-                <button class="btn btn-secondary" style="background: #27ae60;" onclick="window.Game.openXpRules()">📘
-                    Regras de XP</button>
                 <button class="btn btn-secondary" style="background: #e67e22;"
                     onclick="window.Game.openCaptureRules()">🦅 Regras de Captura</button>
                 <button class="btn btn-secondary" style="background: #e74c3c;"
                     onclick="window.Game.openCombatRules()">⚔️
                     Regras de Combate</button>
-                <div style="margin-top:10px; font-size:0.7rem; color:#aaa;">DEBUG MOVE</div>
-                <div style="display:flex; gap:5px; justify-content:center;">
-                    <input type="number" id="debug-input" value="1" min="1" max="50"
-                        style="width:50px; text-align:center; border:none; padding:5px; border-radius:4px;">
-                    <button class="btn" style="width:auto; margin:0; padding:5px 10px;"
-                        onclick="window.Game.debugMove()">GO</button>
-                </div>
+                <button id="btn-admin-panel" class="btn"
+                    style="display:none; background:#c0392b; color:white; margin-top:10px; font-weight:bold; box-shadow:0 0 5px #c0392b;"
+                    onclick="window.Game.openAdminPanel()">🛠️ Painel Host</button>
                 <div style="margin-top:5px;"><small id="online-indicator" style="color:cyan;">OFFLINE</small></div>
             </div>
         </div>
@@ -511,6 +505,76 @@
 
             <button class="btn btn-shop" style="margin-top:20px;" onclick="location.reload()">🔄 Jogar
                 Novamente</button>
+        </div>
+    </div>
+    <div id="admin-modal" class="modal-overlay" style="z-index: 3000;">
+        <div class="modal-box" style="text-align: left; max-width: 500px; width: 95%;">
+            <h3 style="color: #e74c3c; border-bottom: 1px solid #7f8c8d; padding-bottom: 10px; margin-top:0;">🛠️ Painel
+                de Controle (Host)</h3>
+
+            <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; margin-bottom: 15px;">
+                <label style="font-weight: bold; color: #f1c40f;">Selecionar Jogador:</label>
+                <select id="admin-player-select"
+                    style="width: 100%; padding: 8px; margin-top: 5px; background: #34495e; color: #fff; border: 1px solid #7f8c8d; border-radius: 4px;"></select>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <button class="btn btn-cards" style="margin:0; font-size: 0.85rem;"
+                    onclick="window.Game.adminGiveCard()">🃏 Dar Carta Aleatória</button>
+                <button class="btn btn-secondary" style="margin:0; font-size: 0.85rem;"
+                    onclick="window.Game.adminClearDebuffs()">✨ Remover Debuffs</button>
+
+                <div style="display: flex; gap: 5px;">
+                    <input type="number" id="admin-skip-val" value="1"
+                        style="width: 40px; text-align:center; background:#34495e; color:#fff; border:1px solid #7f8c8d; border-radius:4px;">
+                    <button class="btn" style="flex:1; margin:0; font-size: 0.85rem; background:#c0392b;"
+                        onclick="window.Game.adminSetSkipTurns()">⏳ Ajustar SkipTurns</button>
+                </div>
+
+                <div style="display: flex; gap: 5px;">
+                    <input type="number" id="admin-gold-val" value="500" step="100"
+                        style="width: 60px; text-align:center; background:#34495e; color:#fff; border:1px solid #7f8c8d; border-radius:4px;">
+                    <button class="btn"
+                        style="flex:1; margin:0; font-size: 0.85rem; background:var(--gold); color:black;"
+                        onclick="window.Game.adminGiveGold()">💰 Dar Moedas</button>
+                </div>
+            </div>
+
+            <h4 style="color: #3498db; margin: 20px 0 10px 0; border-bottom: 1px solid #7f8c8d; padding-bottom: 5px;">🌍
+                Controle Global</h4>
+
+            <div style="display: flex; gap: 10px; flex-direction: column;">
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <label style="width: 70px;">Rodada:</label>
+                    <input type="number" id="admin-round-val" value="1" min="1"
+                        style="width: 60px; text-align:center; background:#34495e; color:#fff; border:1px solid #7f8c8d; border-radius:4px; padding: 5px;">
+                    <button class="btn btn-secondary" style="flex:1; margin:0; padding: 5px;"
+                        onclick="window.Game.adminSetRound()">Definir Rodada</button>
+                </div>
+
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <label style="width: 70px;">Turno:</label>
+                    <select id="admin-turn-select"
+                        style="flex: 1; padding: 5px; background: #34495e; color: #fff; border: 1px solid #7f8c8d; border-radius: 4px;"></select>
+                    <button class="btn btn-secondary" style="margin:0; padding: 5px 15px;"
+                        onclick="window.Game.adminSetTurn()">Forçar Vez</button>
+                </div>
+
+                <div
+                    style="display: flex; gap: 10px; align-items: center; border-top: 1px dashed #7f8c8d; padding-top: 10px; margin-top: 5px;">
+                    <label style="width: 70px; color: #e74c3c; font-weight: bold; font-size:0.8rem;">Andar
+                        (Debug):</label>
+                    <input type="number" id="debug-input" value="1" min="1" max="50"
+                        style="flex: 1; text-align:center; background:#34495e; color:#fff; border:1px solid #7f8c8d; border-radius:4px; padding: 5px;">
+                    <button class="btn" style="margin:0; padding: 5px 15px; background: #c0392b; font-weight:bold;"
+                        onclick="window.Game.debugMove(); document.getElementById('admin-modal').style.display='none'">Mover
+                        VIP</button>
+                </div>
+            </div>
+
+            <button class="btn mt-15"
+                style="width: 100%; background: #95a5a6; border: none; padding: 12px; font-weight: bold;"
+                onclick="document.getElementById('admin-modal').style.display='none'">Fechar Painel</button>
         </div>
     </div>
     <script type="module" src="/src/main.ts"></script>
