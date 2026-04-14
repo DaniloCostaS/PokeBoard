@@ -17,7 +17,7 @@ export const GYM_DATA: GymData[] = [
         badgeImg: "Eletrico.png", leaderImg: "Surge.png", gymImg: "Eletrico.png"
     },
     {
-        id: 4, leaderName: "Erika", type: ["Planta"],
+        id: 4, leaderName: "Erika", type: ["Grama"],
         teamIds: [1],
         badgeImg: "Planta.png", leaderImg: "Erika.png", gymImg: "Planta.png"
     },
