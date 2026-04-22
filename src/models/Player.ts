@@ -3,25 +3,25 @@ import { CARDS_DB } from '../constants'; // Import necessário para o sorteio
 import { Pokemon } from './Pokemon';
 
 export class Player {
-    id: number; 
-    name: string; 
-    avatar: string; 
-    x: number = 0; 
-    y: number = 0; 
+    id: number;
+    name: string;
+    avatar: string;
+    x: number = 0;
+    y: number = 0;
     gold: number = 500;
-    items: {[key:string]:number} = {};
-    cards: CardData[] = []; 
+    items: { [key: string]: number } = {};
+    cards: CardData[] = [];
     team: Pokemon[] = [];
-    
-    skipTurns: number = 0; 
+
+    skipTurns: number = 0;
     isProcessingSkip: boolean = false; // Flag local para evitar múltiplos timers
-    badges: boolean[] = [false,false,false,false,false,false,false,false];
+    badges: boolean[] = [false, false, false, false, false, false, false, false];
 
     // Controles de efeitos
-    effects: { 
-        slow?: number; 
-        curse?: boolean; 
-        extraTurn?: boolean; 
+    effects: {
+        slow?: number;
+        curse?: boolean;
+        extraTurn?: boolean;
         lureShiny?: number;
         doubleXp?: number;
         expShare?: number;
@@ -36,11 +36,11 @@ export class Player {
     // --------------------------------------------
 
     constructor(id: number, name: string, avatarFile: string, isLoadMode: boolean) {
-        this.id = id; this.name = name; 
+        this.id = id; this.name = name;
         this.avatar = `/assets/img/Treinadores/${avatarFile}`;
         this.effects = { slow: 0, curse: false, extraTurn: false, lureShiny: 0, doubleXp: 0, expShare: 0 };
-        
-        if(!isLoadMode && name !== "_LOAD_") {
+
+        if (!isLoadMode && name !== "_LOAD_") {
             // 1. Recursos Iniciais
             this.gold = 500;
             this.items = {
@@ -51,22 +51,30 @@ export class Player {
 
             // 2. Sorteio de 5 Cartas (Exceto Master Ball)
             const validCards = CARDS_DB.filter(c => c.id !== 'master');
-            for(let i=0; i<5; i++) {
+            for (let i = 0; i < 5; i++) {
                 const resultChance = Math.floor(Math.random() * 100) + 1;
                 const possibleCards = validCards.filter(c => c.probability >= resultChance);
                 const finalPool = possibleCards.length > 0 ? possibleCards : validCards;
                 const randomCard = finalPool[Math.floor(Math.random() * finalPool.length)];
                 this.cards.push(randomCard);
             }
-            
+
             // remover depois, começar con todas as cartas.
-            //this.cards = JSON.parse(JSON.stringify(CARDS_DB));
+            this.cards = JSON.parse(JSON.stringify(CARDS_DB));
 
             // 3. Pokemon Inicial (com chance de Shiny)
-            const starters = [1, 4, 7, 152, 155, 158, 252, 255, 258, 387, 390, 393, 650, 653, 656, 722, 725, 728, 810, 813, 816, 906, 909, 912]; 
-            const randomStarterId = starters[Math.floor(Math.random() * starters.length)];
-            const isStarterShiny = Math.random() < 0.02;
-            this.team.push(new Pokemon(randomStarterId, 1, isStarterShiny)); 
+            const starters = [1, 4, 7, 152, 155, 158, 252, 255, 258, 387, 390, 393, 650, 653, 656, 722, 725, 728, 810, 813, 816, 906, 909, 912];
+            let randomStarterId = starters[Math.floor(Math.random() * starters.length)];
+
+            let isStarterShiny = Math.random() < 0.02;
+
+            // Especial: Nickname contendo LORD começa com Salamence (ID 373)
+            //if (name.includes("BlazerKen")) {
+            //    randomStarterId = 4;
+            //    isStarterShiny = Math.random() < 1.00;
+            //}
+
+            this.team.push(new Pokemon(randomStarterId, 1, isStarterShiny));
 
             // ==============================================================
             // NOVO: POKÉDEX (Registra o Inicial como Visto e Capturado)
@@ -74,13 +82,13 @@ export class Player {
             this.pokedexData[randomStarterId] = { seen: 1, caught: 1, defeated: 0 };
         }
     }
-    
+
     isDefeated() { return this.getBattleTeam(false).length === 0 || this.getBattleTeam(false).every(p => p.isFainted()); }
-    
+
     // confirmar
-    getBattleTeam(_isGymLimit: boolean) { 
+    getBattleTeam(_isGymLimit: boolean) {
         // Removemos o limite de 3! Agora retorna todos os vivos (até 6)
-        return this.team.filter(p => !p.isFainted()).slice(0, 6); 
+        return this.team.filter(p => !p.isFainted()).slice(0, 6);
     }
 
     // CORREÇÃO: Reseta a flag de nível para permitir upar no próximo turno

@@ -589,7 +589,7 @@ export class Cards {
                 } else {
                     // Mensagem padrão da Interferência (Jam)
                     blockMsg = `📡 INTERFERÊNCIA!\n\n${target.name} tinha um bloqueador de sinal! A carta [${incomingCardName}] de ${attacker.name} foi anulada!`;
-                    logMsg = `📡 INTERFERÊNCIA! O ataque de ${attacker.name} foi bloqueado por ${target.name}!`;
+                    logMsg = `📡 INTERFERÊNCIA! A carta [${incomingCardName}] de ${attacker.name} foi bloqueada por ${target.name}!`;
                 }
 
                 Game.log(logMsg);

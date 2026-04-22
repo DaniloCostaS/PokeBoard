@@ -1337,13 +1337,6 @@ export class Game {
             }
         }
         else {
-            // EVENTO: CHUVA DE SUPRIMENTOS (Airdrop em casas vazias)
-            if (this.currentGlobalEvent?.id === 'AIRDROP' && Math.random() <= 0.33) {
-                const normalItems = SHOP_ITEMS.filter(i => !['ultrafullrestore', 'ultramaxrevive', 'masterball'].includes(i.id));
-                const randomItem = normalItems[Math.floor(Math.random() * normalItems.length)];
-                this.addItem(p, randomItem.id, 1);
-                this.sendGlobalLog(`🎒 AIRDROP! ${p.name} tropeçou em um(a) ${randomItem.name} caído(a) no caminho!`);
-            }
             this.nextTurn();
         }
     }
@@ -1423,6 +1416,14 @@ export class Game {
         const currentP = this.getCurrentPlayer();
         currentP.resetTurnFlags();
 
+        let shouldSyncEffects = false;
+
+        // Limpa as cartas ofensivas usadas neste turno pelo jogador atual e garante a sincronia
+        if (currentP.effects && currentP.effects.offensiveCardsUsed) {
+            currentP.effects.offensiveCardsUsed = 0;
+            shouldSyncEffects = true;
+        }
+
         // --- DECREMENTO DE EFEITOS POR TURNO (Lure, Double XP e Exp Share) ---
         // Só decrementa se o jogador ROLOU O DADO. Se pulou a vez, congela os efeitos!
         if (this.hasRolled && currentP.effects) {
@@ -1453,8 +1454,13 @@ export class Game {
 
             // Salva a contagem atualizada no Firebase se algum efeito foi gasto
             if (effectsChanged) {
-                if (Network && Network.isOnline) Network.syncSpecificPlayer(currentP.id);
+                shouldSyncEffects = true;
             }
+        }
+
+        // Centraliza a sincronização final do turno do jogador atual
+        if (shouldSyncEffects) {
+            if (Network && Network.isOnline) Network.syncSpecificPlayer(currentP.id);
         }
         // ----------------------------------------------------------
 
@@ -1542,9 +1548,7 @@ export class Game {
                 }
             }
         }
-        // Zera o contador de limite de cartas ofensivas do PRÓXIMO jogador
-        const nextP = this.players[nextTurnIdx];
-        if (nextP && nextP.effects) nextP.effects.offensiveCardsUsed = 0;
+        // Passa a vez para o próximo jogador
 
         this.turn = nextTurnIdx;
         this.hasRolled = false;
@@ -1652,7 +1656,7 @@ export class Game {
 
                 // --- EVENTO: ROBIN HOOD (Início de Turno) ---
                 if (this.currentGlobalEvent?.id === 'ROBIN_HOOD' && !myPlayer.effects.robinHoodApplied) {
-                    if (myPlayer.gold < 200 || myPlayer.cards.length === 0) {
+                    if (myPlayer.gold < 200 && myPlayer.cards.length < 2) {
                         myPlayer.gold += 800;
                         for (let i = 0; i < 5; i++) Cards.draw(myPlayer, true);
                         myPlayer.effects.robinHoodApplied = true;
@@ -2358,6 +2362,19 @@ export class Game {
         }
         // --------------------------------------
 
+
+        // --- ADD PREFIXO DO JOGADOR E RODADA ---
+        const currentPlayer = this.getCurrentPlayer();
+        if (!m.includes("🌍 ALERTA GLOBAL!") && !m.includes("🛠️ ADMIN HOST:")) {
+            if (currentPlayer && !m.startsWith(`[${currentPlayer.name}]`) && !m.includes(`] [${currentPlayer.name}]`)) {
+                m = `[${currentPlayer.name}] ${m}`;
+            }
+            // Verifica se a mensagem já não tem uma tag de rodada no início (ex: [15])
+            if (!/^\[\d+\]/.test(m)) {
+                m = `[${this.round}] ${m}`;
+            }
+        }
+        // ------------------------------
 
         let logType = "system";
         const mLower = m.toLowerCase();

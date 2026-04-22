@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PokéBoard V73</title>
+    <title>PokéBoard V81</title>
     <link rel="stylesheet" href="style.css">
 
     <script type="importmap">
@@ -20,8 +20,8 @@
 <body>
 
     <div id="setup-screen">
-        <h1 class="title-highlight">PokéBoard V73</h1>
-        <p class="subtitle">Rei da liga - Novos lideres.</p>
+        <h1 class="title-highlight">PokéBoard V81</h1>
+        <p class="subtitle">Vencer antes da v180.</p>
 
         <div id="menu-phase-1">
             <button class="btn" onclick="window.Setup.showOfflineSetup()">🏠 JOGAR OFFLINE</button>
@@ -135,6 +135,7 @@
                     </div>
                 </div>
                 <div>🔄 Rodada: <b id="round-indicator" style="color:#fff;">1</b></div>
+                <div>🔄 Rodada limite 180</div>
                 <div>📊 NPC / Selvagem: <b id="avg-lvl-indicator" style="color:#fff;">Lv.1</b></div>
                 <div>🏛️ Líder Ginásio: <b id="gym-lvl-indicator" style="color:#fff;">Lv.2</b></div>
                 <div>👥 Time Inimigo: <b id="npc-team-indicator" style="color:#fff;">1</b> PKMN</div>
@@ -577,6 +578,7 @@
                 onclick="document.getElementById('admin-modal').style.display='none'">Fechar Painel</button>
         </div>
     </div>
+
     <script type="module" src="/src/main.ts"></script>
 </body>
 

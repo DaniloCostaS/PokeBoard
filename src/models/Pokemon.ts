@@ -281,18 +281,18 @@ export class Pokemon {
         const gains = this.distributeLevelUpStats(); 
         
         const Game = (window as any).Game;
-        // --- EVENTO: POKÉRUS OUTBREAK (+3 em todos os status extras) ---
+        // --- EVENTO: POKÉRUS OUTBREAK (+5 em todos os status extras) ---
         if (Game && Game.currentGlobalEvent?.id === 'POKERUS_OUTBREAK') {
-            this.bonusStats.hp += 3;
-            this.bonusStats.atk += 3;
-            this.bonusStats.def += 3;
-            this.bonusStats.spd += 3;
+            this.bonusStats.hp += 5;
+            this.bonusStats.atk += 5;
+            this.bonusStats.def += 5;
+            this.bonusStats.spd += 5;
             
             // Incrementa os ganhos para o log refletir o bônus do Pokérus
-            gains.hp += 3;
-            gains.atk += 3;
-            gains.def += 3;
-            gains.spd += 3;
+            gains.hp += 5;
+            gains.atk += 5;
+            gains.def += 5;
+            gains.spd += 5;
         }
 
         this.maxXp = this.calculateMaxXp();

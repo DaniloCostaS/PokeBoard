@@ -86,6 +86,11 @@ export class Battle {
             if (enemyPlayer.effects.curse) { this.logBattle(`☠️ ${enemyPlayer.name} está amaldiçoado! (Dano reduzido)`); }
         }
         else if (isGym) {
+            if (Game.currentGlobalEvent?.id === 'GYM_RUSH') {
+                player.team.forEach(mon => mon.heal(9999));
+                Game.sendGlobalLog(`🏛️ O Desafio dos Líderes curou o time de ${player.name} totalmente antes da batalha!`);
+            }
+
             // --- TRADUTOR DE GINÁSIOS ---
             const actualGymId = Game.activeGyms ? Game.activeGyms[gymId - 1] : gymId;
             const gymData = GYM_DATA.find(g => g.id === actualGymId);
@@ -938,6 +943,7 @@ export class Battle {
             logMsg += ` (Sofreu ${totalReflected} de volta!)`;
         }
 
+        logMsg += ` HP final ${this.opponent.currentHp}/${this.opponent.maxHp}.`;
         this.logBattle(logMsg);
         this.updateUI();
 
@@ -1047,6 +1053,7 @@ export class Battle {
             logMsg += ` (Sofreu ${totalReflected} de volta!)`;
         }
 
+        logMsg += ` HP final ${this.activeMon.currentHp}/${this.activeMon.maxHp}.`;
         this.logBattle(logMsg);
         this.updateUI();
 
@@ -1754,9 +1761,14 @@ export class Battle {
                 });
             }
         } else if (this.isGym) {
-            gain = (Game.currentGlobalEvent?.id === 'GOLD_RUSH' || Game.currentGlobalEvent?.id === 'GYM_RUSH') ? 2000 : 1000;
+            gain = (Game.currentGlobalEvent?.id === 'GOLD_RUSH') ? 2000 : 1000;
             Game.sendGlobalLog(`💰 [Extrato] ${this.player!.name} recebeu +${gain}G (Líder de Ginásio).`);
             if (!this.player!.badges[this.gymId - 1]) { this.player!.badges[this.gymId - 1] = true; msg += ` Insígnia ${this.gymId}!`; }
+
+            if (Game.currentGlobalEvent?.id === 'GYM_RUSH' && Cards) {
+                Cards.draw(this.player!);
+                msg += ` e ganhou 1 Carta do Desafio!`;
+            }
         } else if (this.isNPC) {
             gain = (Game.currentGlobalEvent?.id === 'GOLD_RUSH') ? this.reward * 2 : this.reward;
             Game.sendGlobalLog(`💰 [Extrato] ${this.player!.name} recebeu +${gain}G (Treinador NPC).`);
@@ -2026,7 +2038,11 @@ export class Battle {
 
                 // 2. Remove a carta de Batalha que você tentou usar
                 const myCardIdx = this.player!.cards.findIndex((c: any) => c.id === cardId);
-                if (myCardIdx > -1) this.player!.cards.splice(myCardIdx, 1);
+                let cardName = "uma carta";
+                if (myCardIdx > -1) {
+                    cardName = this.player!.cards[myCardIdx].name;
+                    this.player!.cards.splice(myCardIdx, 1);
+                }
 
                 document.getElementById('battle-cards-modal')!.style.display = 'none';
 
@@ -2034,8 +2050,8 @@ export class Battle {
                 Game.updateHUD();
 
                 // 4. Monta a Pop-up de aviso sem travar a tela
-                const jamMsg = `📡 INTERFERÊNCIA!\n\n${this.enemyPlayer.name} anulou sua carta automaticamente!`;
-                Game.sendGlobalLog(`📡 ${this.enemyPlayer.name} usou Interferência contra ${this.player?.name}!`);
+                const jamMsg = `📡 INTERFERÊNCIA!\n\n${this.enemyPlayer.name} anulou a carta ${cardName} de ${this.player?.name} automaticamente!`;
+                Game.sendGlobalLog(`📡 ${this.enemyPlayer.name} usou Interferência contra ${this.player?.name} e bloqueou a carta [${cardName}]!`);
                 Game.showGlobalAlert(jamMsg, this.player!.name, true, false);
 
                 // 5. Salva OS DOIS JOGADORES no Firebase para ninguém duplicar carta!
@@ -2065,27 +2081,27 @@ export class Battle {
         const isMegaOrMew = (!this.isPvP && this.activeMon && ((this.activeMon as any).isTemp || (this.activeMon as any).isMegaEvolution));
 
         const list = document.getElementById('battle-bag-list')!;
-        list.innerHTML = ''; 
-        Object.keys(this.player!.items).forEach(key => { 
-            if (this.player!.items[key] > 0) { 
-                const item = SHOP_ITEMS.find(i => i.id === key); 
-                if (item) { 
+        list.innerHTML = '';
+        Object.keys(this.player!.items).forEach(key => {
+            if (this.player!.items[key] > 0) {
+                const item = SHOP_ITEMS.find(i => i.id === key);
+                if (item) {
                     // Oculta itens que não são de captura se for Mega ou Mew
                     if (isMegaOrMew && item.type !== 'capture') return;
 
-                    const btn = document.createElement('button'); 
-                    btn.className = 'btn'; 
-                    btn.innerHTML = `<img src="/assets/img/Itens/${item.icon}" class="item-icon-mini"> ${item.name} x${this.player!.items[key]}`; 
-                    btn.onclick = () => this.useItem(key, item); 
-                    list.appendChild(btn); 
-                } 
-            } 
-        }); 
+                    const btn = document.createElement('button');
+                    btn.className = 'btn';
+                    btn.innerHTML = `<img src="/assets/img/Itens/${item.icon}" class="item-icon-mini"> ${item.name} x${this.player!.items[key]}`;
+                    btn.onclick = () => this.useItem(key, item);
+                    list.appendChild(btn);
+                }
+            }
+        });
 
         if (list.innerHTML === '') {
             list.innerHTML = "<em>Nenhum item compatível no momento...</em>";
         }
-        
+
         document.getElementById('battle-bag')!.style.display = 'block';
     }
 
