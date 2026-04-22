@@ -4,3 +4,4 @@ export * from './npcs';
 export * from './cards';
 export * from './pokedex';
 export * from './items';
+export * from './cardRarities';

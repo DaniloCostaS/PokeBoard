@@ -2,7 +2,7 @@ import { Player } from '../models/Player';
 import { Pokemon } from '../models/Pokemon';
 import { GYM_DATA } from '../constants/gyms';
 import { TYPE_CHART } from '../constants/typeChart';
-import { SHOP_ITEMS } from '../constants';
+import { SHOP_ITEMS, CARD_RARITIES } from '../constants';
 import type { ItemData } from '../constants';
 import { Cards } from './Cards';
 import { db } from './Network';
@@ -2148,11 +2148,17 @@ export class Battle {
             list.style.width = '100%';
 
             battleCards.forEach(c => {
+                const rData = CARD_RARITIES[c.rarity];
+                const borderColor = rData ? rData.color : '#8d99ae';
+
                 const d = document.createElement('div');
-                d.style.cssText = "display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);";
+                d.style.cssText = "display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); width: 100%; box-sizing: border-box; position: relative;";
 
                 d.innerHTML = `
-                    <img src="/assets/img/Cartas/${c.id}.jpg" alt="${c.name}" title="${c.desc}" style="width: 100%; aspect-ratio: 2.5/3.5; object-fit: fill; border-radius: 6px; border: 2px solid #8d99ae;">
+                    <div style="position: absolute; top: -5px; right: -5px; background: ${borderColor}; color: #fff; padding: 2px 6px; font-size: 0.7rem; border-radius: 10px; font-weight: bold; border: 1px solid #222; text-shadow: 1px 1px 0 #000; box-shadow: 0 2px 4px rgba(0,0,0,0.5); z-index: 10;">
+                        ${c.rarity.toUpperCase()}
+                    </div>
+                    <img src="/assets/img/Cartas/${c.id}.jpg" alt="${c.name}" title="${c.desc}" style="width: 100%; aspect-ratio: 2.5/3.5; object-fit: fill; border-radius: 6px; border: 3px solid ${borderColor};">
                     <button class="btn" style="width:100%; margin-top:8px; padding:8px; background:#e74c3c; border:none; border-radius:4px; color:white; font-weight:bold; cursor:pointer;" onclick="window.Battle.useCard('${c.id}')">USAR</button>
                 `;
                 list.appendChild(d);

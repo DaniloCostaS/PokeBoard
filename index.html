@@ -296,7 +296,16 @@
     <div id="board-cards-modal" class="modal-overlay">
         <div class="modal-box">
             <h3>🃏 Minhas Cartas (Tabuleiro)</h3>
-            <p style="font-size:0.8rem; color:#666;">Apenas cartas do tipo <b>Move</b> podem ser usadas aqui.</p>
+            <p style="font-size:0.8rem; color:#666; margin-bottom: 5px;">Apenas cartas do tipo <b>Move</b> podem ser usadas aqui.</p>
+            <div style="display:flex; gap:10px; margin-bottom: 15px; justify-content:center;">
+                <select id="board-cards-rarity-filter" class="form-control" style="background:#2b2d42; color:#fff; border:1px solid #556; border-radius:4px; padding:5px;" onchange="window.Game.openBoardCards(window.Game.turn)">
+                    <option value="all">Todas as Raridades</option>
+                    <option value="Comum">Comum</option>
+                    <option value="Incomum">Incomum</option>
+                    <option value="Rara">Rara</option>
+                    <option value="Épica">Épica</option>
+                </select>
+            </div>
             <div id="board-cards-list" class="scroll-list"></div><button class="btn btn-secondary mt-15"
                 onclick="document.getElementById('board-cards-modal').style.display='none'">Fechar</button>
         </div>
@@ -304,6 +313,22 @@
     <div id="library-modal" class="modal-overlay">
         <div class="modal-box" style="width: 1200px;">
             <h3>📖 Biblioteca de Cartas</h3>
+            <div style="display:flex; gap:10px; margin-bottom: 15px; justify-content:center;">
+                <select id="library-rarity-filter" class="form-control" style="background:#2b2d42; color:#fff; border:1px solid #556; border-radius:4px; padding:5px;" onchange="window.Game.openCardLibrary()">
+                    <option value="all">Todas as Raridades</option>
+                    <option value="Comum">Comum</option>
+                    <option value="Incomum">Incomum</option>
+                    <option value="Rara">Rara</option>
+                    <option value="Épica">Épica</option>
+                </select>
+                <select id="library-type-filter" class="form-control" style="background:#2b2d42; color:#fff; border:1px solid #556; border-radius:4px; padding:5px;" onchange="window.Game.openCardLibrary()">
+                    <option value="all">Todos os Tipos</option>
+                    <option value="move">Move</option>
+                    <option value="battle">Battle</option>
+                    <option value="auto">Auto</option>
+                    <option value="global">Global</option>
+                </select>
+            </div>
             <div id="library-list" class="scroll-list" style="max-height: 80%;"></div><button
                 class="btn btn-secondary mt-15"
                 onclick="document.getElementById('library-modal').style.display='none'">Fechar</button>

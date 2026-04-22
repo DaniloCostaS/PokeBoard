@@ -37,10 +37,15 @@ export class Cards {
             const d = document.createElement('div');
             d.className = 'card-item';
             // Adiciona Checkbox
+            let rarityColor = '#bdc3c7';
+            if (c.rarity === 'Épica') rarityColor = '#9b59b6';
+            if (c.rarity === 'Rara') rarityColor = '#3498db';
+            if (c.rarity === 'Incomum') rarityColor = '#2ecc71';
+
             d.innerHTML = `
                 <div class="card-info" style="display:flex; align-items:center; gap:10px;">
                     <input type="checkbox" class="sacrifice-checkbox" data-index="${index}" style="transform: scale(1.5); cursor:pointer;" onchange="window.Cards.updateSacrificeCount()">
-                    <span class="card-name">${c.icon} ${c.name}</span>
+                    <span class="card-name">${c.icon} ${c.name} <span style="font-size: 0.7rem; color: #fff; background: ${rarityColor}; padding: 2px 6px; border-radius: 4px; margin-left: 5px;">${c.rarity.toUpperCase()}</span></span>
                 </div>
             `;
             list.appendChild(d);
@@ -93,11 +98,13 @@ export class Cards {
 
         // --- LÓGICA LOCAL (Pré-visualização imediata) ---
         const removedNames: string[] = [];
+        const removedRarities: string[] = [];
 
         // Remove cartas (do maior índice para o menor)
         indicesToRemove.forEach(idx => {
             if (player.cards[idx]) {
                 removedNames.push(player.cards[idx].name);
+                removedRarities.push(player.cards[idx].rarity);
                 player.cards.splice(idx, 1);
             }
         });
@@ -106,8 +113,20 @@ export class Cards {
         // Usando lógica similar ao Cards.draw
         const validPool = CARDS_DB.filter((c: any) => c.id !== 'master'); // Exemplo: Tira Master Ball do pool de craft
 
-        const resultChance = Math.floor(Math.random() * 100) + 1;
-        const possibleCards = validPool.filter((c: any) => c.probability >= resultChance);
+        let targetRarity: string | undefined = undefined;
+        if (removedRarities.length === 2 && removedRarities[0] === 'Épica' && removedRarities[1] === 'Épica') {
+            targetRarity = 'Épica';
+        }
+
+        if (!targetRarity) {
+            const roll = Math.floor(Math.random() * 100) + 1;
+            if (roll <= 8) targetRarity = 'Épica';
+            else if (roll <= 26) targetRarity = 'Rara';
+            else if (roll <= 54) targetRarity = 'Incomum';
+            else targetRarity = 'Comum';
+        }
+
+        const possibleCards = validPool.filter((c: any) => c.rarity === targetRarity);
         const finalPool = possibleCards.length > 0 ? possibleCards : validPool;
         const newCard = finalPool[Math.floor(Math.random() * finalPool.length)];
 
@@ -164,7 +183,12 @@ export class Cards {
         const Network = (window as any).Network;
 
         const resultChance = Math.floor(Math.random() * 100) + 1;
-        const possibleCards = CARDS_DB.filter(c => c.probability >= resultChance);
+        let targetRarity = 'Comum';
+        if (resultChance <= 8) targetRarity = 'Épica';
+        else if (resultChance <= 26) targetRarity = 'Rara';
+        else if (resultChance <= 54) targetRarity = 'Incomum';
+
+        const possibleCards = CARDS_DB.filter(c => c.rarity === targetRarity);
         const finalPool = possibleCards.length > 0 ? possibleCards : CARDS_DB;
         const card = finalPool[Math.floor(Math.random() * finalPool.length)];
 

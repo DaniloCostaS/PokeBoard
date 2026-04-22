@@ -1,4 +1,4 @@
-import { TILE, NPC_DATA, SHOP_ITEMS } from '../constants';
+import { TILE, NPC_DATA, SHOP_ITEMS, CARDS_DB, CARD_RARITIES } from '../constants';
 import { POKEDEX } from '../constants/pokedex';
 import { TYPE_CHART } from '../constants/typeChart';
 import { PLAYER_COLORS } from '../constants/playerColors';
@@ -606,18 +606,40 @@ export class Game {
         list.style.padding = '20px';
         list.style.width = '100%';
 
-        import('../constants').then(({ CARDS_DB }) => {
-            CARDS_DB.forEach(c => {
-                const d = document.createElement('div');
-                //d.style.cssText = "display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);";
-                d.style.cssText = "display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); width: 100%; box-sizing: border-box;";
+        const rarityFilter = (document.getElementById('library-rarity-filter') as HTMLSelectElement)?.value || 'all';
+        const typeFilter = (document.getElementById('library-type-filter') as HTMLSelectElement)?.value || 'all';
 
-                d.innerHTML = `
-                    <img src="/assets/img/Cartas/${c.id}.jpg" alt="${c.name}" title="${c.desc}" style="width: 100%; aspect-ratio: 2.5/3.5; object-fit: fill; border-radius: 6px; border: 2px solid #8d99ae;">
-                    <div style="margin-top: 8px; font-size: 0.8rem; text-align: center; color: #edf2f4;"><b>${c.name}</b></div>
-                `;
-                list.appendChild(d);
-            });
+        let filtered = CARDS_DB.filter(c => {
+            if (rarityFilter !== 'all' && c.rarity !== rarityFilter) return false;
+            if (typeFilter !== 'all' && c.type !== typeFilter) return false;
+            return true;
+        });
+
+        const typeOrder: Record<string, number> = { 'move': 1, 'battle': 2, 'auto': 3, 'global': 4 };
+        const rarityOrder: Record<string, number> = { 'Épica': 1, 'Rara': 2, 'Incomum': 3, 'Comum': 4 };
+
+        filtered.sort((a, b) => {
+            if (typeOrder[a.type] !== typeOrder[b.type]) return (typeOrder[a.type] || 99) - (typeOrder[b.type] || 99);
+            if (rarityOrder[a.rarity] !== rarityOrder[b.rarity]) return (rarityOrder[a.rarity] || 99) - (rarityOrder[b.rarity] || 99);
+            return a.name.localeCompare(b.name);
+        });
+
+        filtered.forEach(c => {
+            const rData = CARD_RARITIES[c.rarity];
+            const borderColor = rData ? rData.color : '#8d99ae';
+
+            const d = document.createElement('div');
+            d.style.cssText = "display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); width: 100%; box-sizing: border-box; position: relative;";
+
+            d.innerHTML = `
+                <div style="position: absolute; top: -5px; right: -5px; background: ${borderColor}; color: #fff; padding: 2px 6px; font-size: 0.7rem; border-radius: 10px; font-weight: bold; border: 1px solid #222; text-shadow: 1px 1px 0 #000; box-shadow: 0 2px 4px rgba(0,0,0,0.5); z-index: 10;">
+                    ${c.rarity.toUpperCase()}
+                </div>
+                <img src="/assets/img/Cartas/${c.id}.jpg" alt="${c.name}" title="${c.desc}" style="width: 100%; aspect-ratio: 2.5/3.5; object-fit: fill; border-radius: 6px; border: 3px solid ${borderColor};">
+                <div style="margin-top: 8px; font-size: 0.8rem; text-align: center; color: #edf2f4;"><b>${c.name}</b></div>
+                <div style="font-size: 0.7rem; color: #bdc3c7;">[${c.type.toUpperCase()}]</div>
+            `;
+            list.appendChild(d);
         });
         document.getElementById('library-modal')!.style.display = 'flex';
     }
@@ -736,10 +758,28 @@ export class Game {
         const isMyTurn = this.canAct() && this.turn === pId;
         const canUseMove = isMyTurn && !this.hasRolled;
 
-        p.cards.forEach(c => {
+        const rarityFilter = (document.getElementById('board-cards-rarity-filter') as HTMLSelectElement)?.value || 'all';
+
+        let filteredCards = [...p.cards];
+        if (rarityFilter !== 'all') {
+            filteredCards = filteredCards.filter(c => c.rarity === rarityFilter);
+        }
+
+        const typeOrder: Record<string, number> = { 'move': 1, 'battle': 2, 'auto': 3, 'global': 4 };
+        const rarityOrder: Record<string, number> = { 'Épica': 1, 'Rara': 2, 'Incomum': 3, 'Comum': 4 };
+        
+        filteredCards.sort((a, b) => {
+            if (typeOrder[a.type] !== typeOrder[b.type]) return (typeOrder[a.type] || 99) - (typeOrder[b.type] || 99);
+            if (rarityOrder[a.rarity] !== rarityOrder[b.rarity]) return (rarityOrder[a.rarity] || 99) - (rarityOrder[b.rarity] || 99);
+            return a.name.localeCompare(b.name);
+        });
+
+        filteredCards.forEach(c => {
+            const rData = CARD_RARITIES[c.rarity];
+            const borderColor = rData ? rData.color : '#8d99ae';
+
             const d = document.createElement('div');
-            //d.style.cssText = "display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);";
-            d.style.cssText = "display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); width: 100%; box-sizing: border-box;";
+            d.style.cssText = "display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); width: 100%; box-sizing: border-box; position: relative;";
 
             let actionBtn = '';
             if (c.type === 'move') {
@@ -756,7 +796,10 @@ export class Game {
 
             // O caminho da imagem (.jpg) - Coloquei um title para a pessoa poder ler a descrição da carta se deixar o mouse em cima
             d.innerHTML = `
-                <img src="/assets/img/Cartas/${c.id}.jpg" alt="${c.name}" title="${c.desc}" style="width: 100%; aspect-ratio: 2.5/3.5; object-fit: fill; border-radius: 6px; border: 2px solid #8d99ae;">
+                <div style="position: absolute; top: -5px; right: -5px; background: ${borderColor}; color: #fff; padding: 2px 6px; font-size: 0.7rem; border-radius: 10px; font-weight: bold; border: 1px solid #222; text-shadow: 1px 1px 0 #000; box-shadow: 0 2px 4px rgba(0,0,0,0.5); z-index: 10;">
+                    ${c.rarity.toUpperCase()}
+                </div>
+                <img src="/assets/img/Cartas/${c.id}.jpg" alt="${c.name}" title="${c.desc}" style="width: 100%; aspect-ratio: 2.5/3.5; object-fit: fill; border-radius: 6px; border: 3px solid ${borderColor};">
                 ${actionBtn}
             `;
             list.appendChild(d);

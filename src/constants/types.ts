@@ -44,7 +44,7 @@ export interface CardData {
     icon: string;
     desc: string;
     type: 'move' | 'battle' | 'auto' | 'global';
-    probability: number;
+    rarity: 'Comum' | 'Incomum' | 'Rara' | 'Épica';
 }
 
 export interface Coord {

@@ -52,8 +52,13 @@ export class Player {
             // 2. Sorteio de 5 Cartas (Exceto Master Ball)
             const validCards = CARDS_DB.filter(c => c.id !== 'master');
             for (let i = 0; i < 5; i++) {
-                const resultChance = Math.floor(Math.random() * 100) + 1;
-                const possibleCards = validCards.filter(c => c.probability >= resultChance);
+                const roll = Math.floor(Math.random() * 100) + 1;
+                let targetRarity = 'Comum';
+                if (roll <= 8) targetRarity = 'Épica';
+                else if (roll <= 26) targetRarity = 'Rara';
+                else if (roll <= 54) targetRarity = 'Incomum';
+
+                const possibleCards = validCards.filter((c: any) => c.rarity === targetRarity);
                 const finalPool = possibleCards.length > 0 ? possibleCards : validCards;
                 const randomCard = finalPool[Math.floor(Math.random() * finalPool.length)];
                 this.cards.push(randomCard);
