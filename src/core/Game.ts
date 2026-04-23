@@ -249,6 +249,20 @@ export class Game {
 
         if (validCandidates.length === 0) return new Pokemon(16, globalAvg);
 
+        // --- NOVO: EFEITO LURE TYPE ---
+        const playerL = this.getCurrentPlayer();
+        const lure = playerL.effects?.lureType;
+        if (lure && (lure.count || 0) > 0) {
+            const luredCandidates = validCandidates.filter(p => p.type === lure.type || p.secondType === lure.type);
+            if (luredCandidates.length > 0) {
+                const chosen = luredCandidates[Math.floor(Math.random() * luredCandidates.length)];
+                lure.count!--;
+                if (lure.count === 0) delete playerL.effects.lureType;
+                if (Network.isOnline) Network.syncPlayerState();
+                return new Pokemon(chosen.id, globalAvg, null);
+            }
+        }
+
         // 4. Sistema de Raridade
         const roll = Math.random() * 100;
         let selectedRarityId = 'Comum';
@@ -1015,34 +1029,41 @@ export class Game {
 
         for (let i = 0; i < steps; i++) {
             let currentIdx = MapSystem.getIndex(p.x, p.y);
-            currentIdx++;
+            const isMoonwalking = p.effects && (p.effects.moonwalker || 0) > 0;
 
-            if (currentIdx >= totalTiles) {
-                currentIdx = 0;
+            if (isMoonwalking) {
+                currentIdx--;
+                if (currentIdx < 0) currentIdx = totalTiles - 1;
+            } else {
+                currentIdx++;
 
-                if (!Network.isOnline || pId === Network.myPlayerId) {
-                    // --- NOVAS RECOMPENSAS DE VOLTA COMPLETA ---
-                    let lapGold = 500;
-                    if (this.currentGlobalEvent?.id === 'GOLD_RUSH') lapGold *= 2; // Evento Ouro em Dobro!
-                    p.gold += lapGold;
-                    Cards.draw(p);
-                    Cards.draw(p); // Compra a segunda carta
+                if (currentIdx >= totalTiles) {
+                    currentIdx = 0;
 
-                    // --- NOVO: TODO O TIME SOBE 1 LEVEL (LIMITE 25) ---
-                    p.team.forEach(mon => {
-                        if (mon.level < 25) {
-                            mon.levelUp(p);
-                        }
-                    });
+                    if (!Network.isOnline || pId === Network.myPlayerId) {
+                        // --- NOVAS RECOMPENSAS DE VOLTA COMPLETA ---
+                        let lapGold = 500;
+                        if (this.currentGlobalEvent?.id === 'GOLD_RUSH') lapGold *= 2; // Evento Ouro em Dobro!
+                        p.gold += lapGold;
+                        Cards.draw(p);
+                        Cards.draw(p); // Compra a segunda carta
 
-                    this.sendGlobalLog(`🚩 ${p.name} completou uma volta! Ganhou 500G, 2 Cartas e +1 Level para todo o time!`);
+                        // --- NOVO: TODO O TIME SOBE 1 LEVEL (LIMITE 25) ---
+                        p.team.forEach(mon => {
+                            if (mon.level < 25) {
+                                mon.levelUp(p);
+                            }
+                        });
 
-                    // --- LOG DE AUDITORIA: GANHO DE VOLTA ---
-                    this.sendGlobalLog(`💰 [Extrato] ${p.name} recebeu +500G (Volta no Tabuleiro).`);
-                    this.sendGlobalLog(`💰 [Extrato] Novo Saldo: ${p.gold}G.`);
+                        this.sendGlobalLog(`🚩 ${p.name} completou uma volta! Ganhou 500G, 2 Cartas e +1 Level para todo o time!`);
 
-                    this.updateHUD(); // Atualiza a tela na hora!
-                    if (Network.isOnline) Network.syncPlayerState();
+                        // --- LOG DE AUDITORIA: GANHO DE VOLTA ---
+                        this.sendGlobalLog(`💰 [Extrato] ${p.name} recebeu +500G (Volta no Tabuleiro).`);
+                        this.sendGlobalLog(`💰 [Extrato] Novo Saldo: ${p.gold}G.`);
+
+                        this.updateHUD(); // Atualiza a tela na hora!
+                        if (Network.isOnline) Network.syncPlayerState();
+                    }
                 }
             }
 
@@ -1121,6 +1142,14 @@ export class Game {
         }
 
         if (!Network.isOnline || pId === Network.myPlayerId) {
+            // Decrementa o efeito Moonwalker se existir
+            if (p.effects && (p.effects.moonwalker || 0) > 0) {
+                p.effects.moonwalker!--;
+                if (p.effects.moonwalker === 0) {
+                    this.log(`💃 O efeito Moon Walker de ${p.name} acabou!`);
+                }
+            }
+
             // Se NÃO tiver caído numa armadilha, ativa a casa direto.
             // Se caiu, o HandleTile será ativado quando ele fechar o aviso da armadilha na tela.
             if (!hitTrap) {

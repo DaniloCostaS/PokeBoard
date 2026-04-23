@@ -673,7 +673,7 @@ export class Cards {
         // NOVA LÓGICA DE DEFESA (COM FILTRO DE CARTAS OFENSIVAS)
         // =====================================================================
         // Lista de cartas que realmente usam targetId como um Jogador inimigo
-        const offensiveCards = ['swap', 'slow', 'rocket', 'curse', 'trade_fail', 'new_leader', 'bag', 'troques'];
+        const offensiveCards = ['swap', 'slow', 'rocket', 'curse', 'trade_fail', 'new_leader', 'bag', 'troques', 'michael'];
 
         // LIMITADOR DE 3 CARTAS OFENSIVAS POR TURNO
         if (offensiveCards.includes(cardId)) {
@@ -702,6 +702,22 @@ export class Cards {
 
         let consumed = true;
         let effectLog = "";
+
+        // --- CONSUMO IMEDIATO PARA CARTAS GLOBAIS ---
+        // Isso resolve o bug onde o jogador ficava com a carta após usar.
+        // Ao deletar antes do efeito, evitamos que o efeito (que pode ser lento/async) 
+        // permita o re-uso ou que a carta apareça no pool de redistribuição.
+        if (cardData.type === 'global') {
+            const idx = player.cards.findIndex(c => c.id === cardId);
+            if (idx > -1) {
+                player.cards.splice(idx, 1);
+                Game.updateHUD();
+                // Sincroniza imediatamente para garantir que no banco ela sumiu
+                if (Network.isOnline) Network.syncPlayerState();
+            }
+            // Marcamos consumed = false para não tentar deletar de novo no final
+            consumed = false;
+        }
 
         switch (cardId) {
             case 'dice':
@@ -1120,11 +1136,7 @@ export class Cards {
             // =========================================================
 
             case 'communism':
-                // 1. Remove a própria carta da mão de quem usou (já gasta) para evitar duplo uso
-                const comIdx = player.cards.findIndex(c => c.id === cardId);
-                if (comIdx > -1) player.cards.splice(comIdx, 1);
-
-                // 2. Lógica Robusta de Distribuição
+                // 1. Lógica Robusta de Distribuição
                 if (Network.isOnline) {
                     try {
                         const { ref, update, getDatabase, get } = await import('firebase/database');
@@ -1227,7 +1239,7 @@ export class Cards {
                     effectLog = `☭ REVOLUÇÃO local! As cartas foram redistribuídas igualmente! Cada jogador agora tem ${perPlayer} cartas. (${leftovers} destruídas)`;
                 }
 
-                consumed = false; // Já tratamos a remoção da mão e logs manuais aqui
+                // Já consumido no topo de activate
 
                 // 4. Atualiza UI e envia os Logs personalizados
                 Game.updateHUD();
@@ -1253,10 +1265,6 @@ export class Cards {
                 break;
 
             case 'imposto':
-                // 1. Remove a própria carta da mão de quem usou (já gasta)
-                const impIdx = player.cards.findIndex(c => c.id === cardId);
-                if (impIdx > -1) player.cards.splice(impIdx, 1);
-
                 // 2. Lógica de Redução Global
                 if (Network.isOnline) {
                     try {
@@ -1340,7 +1348,7 @@ export class Cards {
                     effectLog = `📜 IMPOSTO! O Leão passou por aqui! (${totalOfflineC} cartas e ${totalOfflineI} itens perdidos!)`;
                 }
 
-                consumed = false; // Já tratamos remoção e logs
+                // Já consumido no topo de activate
 
                 // 3. Atualiza UI e envia os Logs
                 Game.updateHUD();
@@ -1416,19 +1424,44 @@ export class Cards {
                 }
                 break;
 
-            case 'troques':
+            case 'michael':
                 if (targetId !== null) {
                     const target = Game.players.find((p: any) => p.id === targetId);
-                    if (!target) { consumed = false; break; }
+                    if (target) {
+                        if (!target.effects) target.effects = {};
+                        target.effects.moonwalker = 3;
+                        effectLog = `💃 Moon Walker! ${target.name} vai andar para TRÁS nas próximas 3 jogadas!`;
+                        if (Network.isOnline) Network.syncSpecificPlayer(target.id);
+                    } else { consumed = false; }
+                } else { this.openTargetSelection(cardId); consumed = false; }
+                break;
 
-                    // Redireciona para o nosso fluxo visual bonitinho de 2 passos!
-                    Cards.startTradeFlow(player, target);
+            case 'katrina':
+                const mapSize = (window as any).MapSystem.size;
+                const totalTilesK = mapSize * mapSize;
+                Game.players.forEach((p: any) => {
+                    const randomIdx = Math.floor(Math.random() * totalTilesK);
+                    const coord = (window as any).MapSystem.getCoord(randomIdx);
+                    p.x = coord.x;
+                    p.y = coord.y;
+                });
+                Game.moveVisuals();
+                effectLog = "🌪️ O FURACÃO KATRINA PASSOU! Todos os jogadores foram soprados para casas aleatórias!";
+                if (Network.isOnline) {
+                    if ((Network as any).syncPlayers) {
+                        (Network as any).syncPlayers(Game.players.map((p: any) => p.id));
+                    } else {
+                        Game.players.forEach((p: any) => Network.syncSpecificPlayer(p.id));
+                    }
+                }
+                break;
 
-                    // Colocamos false para a carta não sumir até a troca ser concluída!
-                    consumed = false;
+            case 'lure_type':
+                const chosenType = prompt("Escolha a tipagem atraída (Ex: Fogo, Água, Dragão, etc):");
+                if (chosenType) {
+                    player.effects.lureType = { type: chosenType, count: 2 };
+                    effectLog = `🆎 Lure Type ativado! Os próximos 2 selvagens serão do tipo ${chosenType}!`;
                 } else {
-                    // Passo Inicial: Escolher o jogador alvo
-                    this.openTargetSelection(cardId);
                     consumed = false;
                 }
                 break;

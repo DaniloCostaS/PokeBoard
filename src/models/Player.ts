@@ -29,6 +29,8 @@ export class Player {
         escapedGym?: boolean;
         offensiveCardsUsed?: number;
         robinHoodApplied?: boolean;
+        moonwalker?: number;
+        lureType?: { type: string, count: number };
     } = {};
 
     // --- NOVA ESTRUTURA PARA A POKÉDEX FUTURA ---
