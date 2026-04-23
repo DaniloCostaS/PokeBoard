@@ -229,19 +229,20 @@
         <div class="modal-box" style="text-align: left;">
             <h3 style="text-align:center; color: #e67e22;">🦅 Regras de Captura</h3>
             <ul style="font-size: 0.9rem; line-height: 1.5;">
-                <li><strong>Base:</strong> Pokébola (15%), Great (30%), Ultra (50%)</li>
+                <li><strong>Base Inicial:</strong> 15%</li>
                 <hr style="border-color:#eee; margin: 5px 0;">
-                <li><strong>HP &lt; 60%:</strong> +25% Chance</li>
-                <li><strong>HP &lt; 15%:</strong> +50% Chance</li>
+                <li><strong>HP &lt; 60%:</strong> +25%</li>
+                <li><strong>HP &lt; 15%:</strong> +50%</li>
                 <hr style="border-color:#eee; margin: 5px 0;">
-                <li><strong>Seu Nível > Selvagem:</strong> +5%</li>
-                <li><strong>Seu Nível &lt; Selvagem:</strong> -5%</li>
+                <li><strong>Resistência (Penalidade):</strong> (MaxHP + Atk + Def + Spd) / 15</li>
+                <li><strong>Lendário:</strong> -10% | <strong>Shiny:</strong> -10%</li>
+                <li><strong>Sorte (Dado):</strong> Pode variar de -10% a +10%</li>
                 <hr style="border-color:#eee; margin: 5px 0;">
-                <li><strong>Lendário:</strong> -20% | <strong>Shiny:</strong> -10%</li>
-                <li><strong>Sorte (Dado):</strong> Pode variar de -9% a +10%</li>
+                <li><strong>Trava Mínima:</strong> Se o cálculo acima for menor que 15%, a base ajustada será 15%</li>
+                <li><strong>Bônus da Bola:</strong> Poké (+0%), Great (+20%), Ultra (+40%)</li>
                 <hr style="border-color:#eee; margin: 5px 0;">
                 <li><strong>Master Ball:</strong> 100% Garantido</li>
-                <li><strong>Não Master Ball:</strong> 95% Máximo</li>
+                <li><strong>Limite Máximo:</strong> 95% (Exceto Master/Eventos)</li>
             </ul>
             <button class="btn btn-secondary mt-15"
                 onclick="document.getElementById('capture-rules-modal').style.display='none'">Fechar</button>

@@ -2395,53 +2395,66 @@ export class Battle {
         this.updateButtons();
 
         const opponent = this.opponent;
-        const activeMon = this.activeMon;
+
 
         this.logBattle(`Jogou ${item.name}!`, true);
 
-        // 2. CÁLCULO IMEDIATO (Lógica mantida, apenas calculada antes)
+        // 2. CÁLCULO IMEDIATO
         let success = false;
         if (item.id === 'masterball') {
             success = true;
             this.logBattle(`(Chance Final: 100% | Master Ball)`, true);
         } else {
-            let chance = item.rate || 0;
+            let baseChance = 15;
+            let hpBonus = 0;
             const hpPercent = (opponent.currentHp / opponent.maxHp) * 100;
 
-            if (hpPercent < 15) chance += 50;
-            else if (hpPercent < 60) chance += 25;
-
-            if (activeMon.level > opponent.level) chance += 5;
-            else if (activeMon.level < opponent.level) chance -= 5;
+            if (hpPercent < 15) hpBonus = 50;
+            else if (hpPercent < 60) hpBonus = 25;
 
             const oppStats = opponent.maxHp + opponent.atk + opponent.def + opponent.speed;
             const powerPenalty = Math.floor(oppStats / 15);
-            chance -= powerPenalty;
 
-            if (opponent.isLegendary) chance -= 20;
-            if (opponent.isShiny) chance -= 10;
+            let rarityPenalty = 0;
+            if (opponent.isLegendary) rarityPenalty += 10;
+            if (opponent.isShiny) rarityPenalty += 10;
 
             const d6 = Math.floor(Math.random() * 6) + 1;
             const diceBonus = (d6 * 4) - 14;
-            chance += diceBonus;
 
-            // --- CORREÇÃO: Taxa mínima variável de acordo com o HP ---
-            let minChance = 15;
-            if (hpPercent < 15) minChance = 50;
-            else if (hpPercent < 60) minChance = 25;
+            let chanceBeforeBall = baseChance + hpBonus - powerPenalty - rarityPenalty + diceBonus;
 
-            chance = Math.max(minChance, Math.min(95, chance));
+            // --- Trava Mínima ---
+            let travaMsg = "";
+            if (chanceBeforeBall < 15) {
+                chanceBeforeBall = 15;
+                travaMsg = " (Trava Min 15%)";
+            }
+
+            let ballBonus = 0;
+            if (item.id === 'greatball') ballBonus = 20;
+            else if (item.id === 'ultraball') ballBonus = 40;
+
+            let chance = chanceBeforeBall + ballBonus;
 
             // --- EVENTO: SAFARI ZONE (Buff de Captura) ---
             const Game = (window as any).Game;
+            let safariBonus = 0;
             if (Game.currentGlobalEvent?.id === 'SAFARI_ZONE') {
-                chance += 50;
-                chance = Math.min(100, chance);
+                safariBonus = 50;
+                chance += safariBonus;
             }
-            // ---------------------------------------------
 
-            // Log atualizado para mostrar a resistência aos jogadores
-            this.logBattle(`(Chance Final: ${chance}% | Resistência: -${powerPenalty}% | Sorte: ${diceBonus > 0 ? '+' : ''}${diceBonus}%)`, true);
+            chance = Math.min(Game.currentGlobalEvent?.id === 'SAFARI_ZONE' ? 100 : 95, chance);
+
+            // Log atualizado com todos os detalhes da conta
+            let logMsg = `Cálc: Base(15) + HP(+${hpBonus}) - Resist(-${powerPenalty}) - Rari(-${rarityPenalty}) + Dado(🎲${d6}: ${diceBonus > 0 ? '+' : ''}${diceBonus})`;
+            logMsg += ` = ${chanceBeforeBall}%${travaMsg}`;
+            logMsg += ` | Bola(+${ballBonus}%)`;
+            if (safariBonus > 0) logMsg += ` | Safari(+${safariBonus}%)`;
+            logMsg += ` => Final: ${chance}%`;
+
+            this.logBattle(logMsg, true);
 
             const roll = Math.floor(Math.random() * 100) + 1;
             success = (roll <= chance);
