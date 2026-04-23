@@ -728,6 +728,9 @@ export class Cards {
                     if (Network.isOnline) Network.syncPlayerState();
                     return; // Sai da função activate e impede o efeito
                 }
+
+                // Ataque passou pela defesa (ou alvo não tinha defesa)
+                player.effects.offensiveCardsUsed = (player.effects.offensiveCardsUsed || 0) + 1;
             }
         }
         // =====================================================================
@@ -900,6 +903,19 @@ export class Cards {
                         effectLog = `❌ Sabotagem feita com sucesso! A troca falhou terrivelmente e ${target.name} perde as próximas 3 rodadas!`;
 
                         if (Network.isOnline) Network.syncSpecificPlayer(target.id);
+                    }
+                } else {
+                    this.openTargetSelection(cardId);
+                    consumed = false;
+                }
+                break;
+
+            case 'troques':
+                if (targetId !== null) {
+                    const target = Game.players.find((p: any) => p.id === targetId);
+                    if (target) {
+                        this.startTradeFlow(player, target);
+                        consumed = false; // Consumido manualmente no executeTrade
                     }
                 } else {
                     this.openTargetSelection(cardId);
