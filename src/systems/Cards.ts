@@ -640,7 +640,39 @@ export class Cards {
         return false; // Nenhuma defesa encontrada, o ataque prossegue
     }
 
-    static async activate(cardId: string, targetId: number | null = null) {
+    static openTypeSelection(cardId: string) {
+        const modal = document.getElementById('type-selection-modal')!;
+        const grid = document.getElementById('type-selection-grid')!;
+        
+        const typeColors: { [key: string]: string } = {
+            'Normal': '#A8A878', 'Fogo': '#F08030', 'Água': '#6890F0', 'Elétrico': '#F8D030',
+            'Grama': '#78C850', 'Gelo': '#98D8D8', 'Lutador': '#C03028', 'Veneno': '#A040A0',
+            'Terra': '#E0C068', 'Voador': '#A890F0', 'Psíquico': '#F85888', 'Inseto': '#A8B820',
+            'Pedra': '#B8A038', 'Fantasma': '#705898', 'Dragão': '#7038F8', 'Noturno': '#705848',
+            'Aço': '#B8B8D0', 'Fada': '#EE99AC'
+        };
+
+        grid.innerHTML = '';
+        Object.keys(typeColors).forEach(type => {
+            const btn = document.createElement('button');
+            btn.className = 'btn';
+            btn.style.background = typeColors[type];
+            btn.style.fontSize = '0.75rem';
+            btn.style.padding = '10px 5px';
+            btn.style.border = '2px solid rgba(0,0,0,0.2)';
+            btn.innerText = type;
+            btn.onclick = () => {
+                modal.style.display = 'none';
+                // Passa o tipo como targetId (que no activate tratamos como string)
+                (this as any).activate(cardId, type);
+            };
+            grid.appendChild(btn);
+        });
+
+        modal.style.display = 'flex';
+    }
+
+    static async activate(cardId: string, targetId: any = null) {
         const Game = (window as any).Game;
         const Battle = (window as any).Battle;
         const Network = (window as any).Network;
@@ -1457,11 +1489,12 @@ export class Cards {
                 break;
 
             case 'lure_type':
-                const chosenType = prompt("Escolha a tipagem atraída (Ex: Fogo, Água, Dragão, etc):");
-                if (chosenType) {
+                if (typeof targetId === 'string') {
+                    const chosenType = targetId;
                     player.effects.lureType = { type: chosenType, count: 2 };
                     effectLog = `🆎 Lure Type ativado! Os próximos 2 selvagens serão do tipo ${chosenType}!`;
                 } else {
+                    this.openTypeSelection(cardId);
                     consumed = false;
                 }
                 break;

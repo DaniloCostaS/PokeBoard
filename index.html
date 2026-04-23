@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PokéBoard V82</title>
+    <title>PokéBoard V84</title>
     <link rel="stylesheet" href="style.css">
 
     <script type="importmap">
@@ -20,7 +20,7 @@
 <body>
 
     <div id="setup-screen">
-        <h1 class="title-highlight">PokéBoard V82</h1>
+        <h1 class="title-highlight">PokéBoard V84</h1>
         <p class="subtitle">Melhorias em captura, ganho de XP, logs.</p>
 
         <div id="menu-phase-1">
@@ -630,6 +630,17 @@
             <button class="btn mt-15"
                 style="width: 100%; background: #95a5a6; border: none; padding: 12px; font-weight: bold;"
                 onclick="document.getElementById('admin-modal').style.display='none'">Fechar Painel</button>
+        </div>
+    </div>
+
+    <div id="type-selection-modal" class="modal-overlay" style="z-index: 5000;">
+        <div class="modal-box" style="max-width: 500px; height: auto; max-height: 85vh; background: #1a1a2e; color: white; border: 2px solid #3498db;">
+            <h2 class="title-highlight">🆎 Lure Type: Selecione o Tipo</h2>
+            <p class="subtitle" style="color: #bdc3c7;">Escolha o tipo de Pokémon que você deseja atrair nos próximos 2 encontros.</p>
+            <div id="type-selection-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; padding: 10px;">
+                <!-- Tipos serão gerados via JS -->
+            </div>
+            <button class="btn btn-secondary mt-15" style="background: #34495e; border: none;" onclick="document.getElementById('type-selection-modal').style.display='none'">Cancelar</button>
         </div>
     </div>
 
