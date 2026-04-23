@@ -307,12 +307,23 @@ export class Game {
         return wildMon;
     }
 
-    static async openPokemonDetail(playerIndex: number, slotIndex: number) {
-        // 1. Identifica o Dono do Pokémon (Pode ser eu ou outro jogador)
-        const targetPlayer = this.players[playerIndex];
-        if (!targetPlayer) return console.error("Jogador não encontrado para o índice:", playerIndex);
+    static async openPokemonDetail(playerIndex: number, slotIndex: number, championData?: any) {
+        // 1. Identifica o Dono do Pokémon (Pode ser eu, outro jogador, ou o campeão)
+        let targetPlayer: any;
+        let mon: any;
 
-        const mon = targetPlayer.team[slotIndex];
+        if (championData) {
+            targetPlayer = championData;
+            const rawMon = championData.team[slotIndex];
+            const PkmClass = (window as any).Pokemon || Pokemon;
+            mon = new PkmClass(rawMon.id, rawMon.level, rawMon.isShiny);
+            Object.assign(mon, rawMon);
+        } else {
+            targetPlayer = this.players[playerIndex];
+            if (!targetPlayer) return console.error("Jogador não encontrado para o índice:", playerIndex);
+            mon = targetPlayer.team[slotIndex];
+        }
+
         if (!mon) return console.error("Pokémon não encontrado no slot:", slotIndex);
 
         // Garante acesso à POKEDEX global (importada ou window)
@@ -767,7 +778,7 @@ export class Game {
 
         const typeOrder: Record<string, number> = { 'move': 1, 'battle': 2, 'auto': 3, 'global': 4 };
         const rarityOrder: Record<string, number> = { 'Épica': 1, 'Rara': 2, 'Incomum': 3, 'Comum': 4 };
-        
+
         filteredCards.sort((a, b) => {
             if (typeOrder[a.type] !== typeOrder[b.type]) return (typeOrder[a.type] || 99) - (typeOrder[b.type] || 99);
             if (rarityOrder[a.rarity] !== rarityOrder[b.rarity]) return (rarityOrder[a.rarity] || 99) - (rarityOrder[b.rarity] || 99);
@@ -2056,9 +2067,73 @@ export class Game {
         banner.onmouseout = () => banner!.style.transform = 'scale(1)';
         banner.onclick = () => {
             if (champion && champion.team) {
-                // Formata o time para mostrar na pop-up
-                const teamList = champion.team.map((p: any) => `Lv.${p.level} ${p.name} ${p.isShiny ? '✨' : ''}`).join('\n');
-                GameObj.showGlobalAlert(`🏆 TIME DO CAMPEÃO 🏆\n\nPrepare-se bem antes de conseguir a 8ª Insígnia! O Campeão Atual usa:\n\n${teamList}`, champion.name, true, false);
+                document.getElementById('champion-name-display')!.innerText = champion.name || 'Desconhecido';
+
+                const listContainer = document.getElementById('champion-team-list')!;
+                listContainer.innerHTML = '';
+
+                champion.team.forEach((p: any, index: number) => {
+                    const isShiny = p.isShiny;
+                    const spriteUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${isShiny ? 'shiny/' : ''}${p.id}.png`;
+
+                    const colors: any = { "Normal": "#A8A77A", "Fogo": "#EE8130", "Água": "#6390F0", "Elétrico": "#F7D02C", "Grama": "#7AC74C", "Gelo": "#96D9D6", "Lutador": "#C22E28", "Veneno": "#A33EA1", "Terra": "#E2BF65", "Voador": "#A98FF3", "Psíquico": "#F95587", "Inseto": "#A6B91A", "Pedra": "#B6A136", "Fantasma": "#735797", "Dragão": "#6F35FC", "Noturno": "#705746", "Aço": "#B7B7CE", "Fada": "#D685AD" };
+                    const bgColor = colors[p.type] || '#555';
+
+                    const card = document.createElement('div');
+                    card.style.cssText = `
+                        background: linear-gradient(180deg, ${bgColor}44 0%, rgba(0,0,0,0.6) 100%);
+                        border: 1px solid ${isShiny ? '#f1c40f' : bgColor};
+                        border-radius: 8px;
+                        padding: 8px;
+                        text-align: center;
+                        cursor: pointer;
+                        transition: transform 0.2s;
+                        width: 140px;
+                        box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        position: relative;
+                    `;
+
+                    card.onmouseover = () => card.style.transform = 'scale(1.05)';
+                    card.onmouseout = () => card.style.transform = 'scale(1)';
+                    card.onclick = () => {
+                        GameObj.openPokemonDetail(-1, index, champion);
+                    };
+
+                    let typesHtml = `<span style="background:${bgColor}; color:white; font-size:0.65rem; padding:2px 5px; border-radius:4px; border:1px solid rgba(255,255,255,0.3);">${p.type}</span>`;
+                    if (p.secondType) {
+                        const bg2 = colors[p.secondType] || '#555';
+                        typesHtml += ` <span style="background:${bg2}; color:white; font-size:0.65rem; padding:2px 5px; border-radius:4px; border:1px solid rgba(255,255,255,0.3);">${p.secondType}</span>`;
+                    }
+
+                    const iconsHtml = [
+                        p.megaStone ? '<span title="Mega Pedra Equipada" style="filter: drop-shadow(0 0 2px #3498db);">💎</span>' : '',
+                        isShiny ? '<span title="Shiny" style="filter: drop-shadow(0 0 2px #f1c40f);">✨</span>' : ''
+                    ].filter(Boolean).join(' ');
+
+                    card.innerHTML = `
+                        <div style="position:absolute; top:6px; left:6px; font-size: 0.65rem; color: #fff; background: rgba(0,0,0,0.6); padding:2px 5px; border-radius:4px; font-weight:bold;">Lv.${p.level}</div>
+                        <div style="position:absolute; top:4px; right:6px; font-size: 0.85rem; display:flex; gap:4px;">${iconsHtml}</div>
+                        
+                        <img src="${spriteUrl}" style="width: 75px; height: 75px; object-fit: contain; margin-top: 15px; ${isShiny ? 'filter: drop-shadow(0 0 5px #f1c40f);' : ''}">
+                        
+                        <div style="font-size: 0.85rem; font-weight: bold; margin-top: 4px; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: white;">${p.name}</div>
+                        <div style="margin-top:6px; margin-bottom: 8px; display:flex; gap:4px; justify-content:center;">${typesHtml}</div>
+                        
+                        <div style="width: 100%; background: rgba(0,0,0,0.5); border-radius: 6px; padding: 6px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 0.7rem; color: #eee; box-sizing:border-box;">
+                            <div style="display:flex; justify-content:space-between; align-items:center;"><span>❤️</span> <b>${p.maxHp}</b></div>
+                            <div style="display:flex; justify-content:space-between; align-items:center;"><span>⚔️</span> <b>${p.atk}</b></div>
+                            <div style="display:flex; justify-content:space-between; align-items:center;"><span>🛡️</span> <b>${p.def}</b></div>
+                            <div style="display:flex; justify-content:space-between; align-items:center;"><span>💨</span> <b>${p.speed}</b></div>
+                        </div>
+                    `;
+
+                    listContainer.appendChild(card);
+                });
+
+                document.getElementById('champion-team-modal')!.style.display = 'flex';
             }
         };
 
@@ -2460,7 +2535,11 @@ export class Game {
             }
 
             const currentFilter = (this as any).currentLogFilter || 'all';
-            const displayStyle = (currentFilter === 'all' || currentFilter === logType) ? "block" : "none";
+            const searchInput = document.getElementById('log-search-input') as HTMLInputElement;
+            const searchText = searchInput ? searchInput.value.toLowerCase().trim() : "";
+            const matchesSearch = searchText === "" || m.toLowerCase().includes(searchText);
+            
+            const displayStyle = (currentFilter === 'all' || currentFilter === logType) && matchesSearch ? "block" : "none";
 
             container.insertAdjacentHTML('afterbegin', `<div class="log-entry" style="${customStyle}; display:${displayStyle}" data-type="${logType}">${m}</div>`);
             container.scrollTop = 0;
@@ -2471,11 +2550,17 @@ export class Game {
         (this as any).currentLogFilter = type;
 
         const container = document.getElementById('log-container');
+        const searchInput = document.getElementById('log-search-input') as HTMLInputElement;
+        const searchText = searchInput ? searchInput.value.toLowerCase().trim() : "";
+
         if (container) {
             const entries = container.querySelectorAll('.log-entry');
             entries.forEach(el => {
-                const isMatch = type === 'all' || el.getAttribute('data-type') === type;
-                (el as HTMLElement).style.display = isMatch ? 'block' : 'none';
+                const logContent = el.textContent?.toLowerCase() || "";
+                const matchesType = type === 'all' || el.getAttribute('data-type') === type;
+                const matchesSearch = searchText === "" || logContent.includes(searchText);
+
+                (el as HTMLElement).style.display = (matchesType && matchesSearch) ? 'block' : 'none';
             });
         }
     }

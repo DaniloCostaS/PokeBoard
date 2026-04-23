@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PokéBoard V81</title>
+    <title>PokéBoard V82</title>
     <link rel="stylesheet" href="style.css">
 
     <script type="importmap">
@@ -20,8 +20,8 @@
 <body>
 
     <div id="setup-screen">
-        <h1 class="title-highlight">PokéBoard V81</h1>
-        <p class="subtitle">Vencer antes da v180.</p>
+        <h1 class="title-highlight">PokéBoard V82</h1>
+        <p class="subtitle">Melhorias em captura, ganho de XP, logs.</p>
 
         <div id="menu-phase-1">
             <button class="btn" onclick="window.Setup.showOfflineSetup()">🏠 JOGAR OFFLINE</button>
@@ -171,16 +171,24 @@
         </div>
 
         <div id="right-panel">
-            <div class="panel-header" style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="panel-header"
+                style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:5px;">
                 <span>📟 Log da partida</span>
-                <select id="log-filter-select" onchange="window.Game.filterLogs(this.value)"
-                    style="background:#334; color:#fff; border:1px solid #556; padding:2px 5px; border-radius:3px; font-size:0.75rem; outline:none; cursor:pointer;">
-                    <option value="all">Ver Tudo</option>
-                    <option value="cards">Só Cartas</option>
-                    <option value="items">Só Itens</option>
-                    <option value="gold">Economia</option>
-                    <option value="battle">Batalhas</option>
-                </select>
+                <div style="display:flex; gap:5px; align-items:center;">
+                    <input type="text" id="log-search-input" placeholder="🔍 Buscar..."
+                        oninput="window.Game.filterLogs(document.getElementById('log-filter-select').value)"
+                        style="background:rgba(0,0,0,0.2); color:#fff; border:1px solid #556; padding:3px 8px; border-radius:4px; font-size:0.7rem; outline:none; width:90px; transition: width 0.3s;"
+                        onfocus="this.style.width='130px'; this.style.borderColor='#8d99ae'"
+                        onblur="if(!this.value) this.style.width='90px'; this.style.borderColor='#556'">
+                    <select id="log-filter-select" onchange="window.Game.filterLogs(this.value)"
+                        style="background:#334; color:#fff; border:1px solid #556; padding:2px 5px; border-radius:3px; font-size:0.75rem; outline:none; cursor:pointer;">
+                        <option value="all">Ver Tudo</option>
+                        <option value="cards">Só Cartas</option>
+                        <option value="items">Só Itens</option>
+                        <option value="gold">Economia</option>
+                        <option value="battle">Batalhas</option>
+                    </select>
+                </div>
             </div>
             <div id="log-container"></div>
         </div>
@@ -249,6 +257,19 @@
         </div>
     </div>
 
+    <div id="champion-team-modal" class="modal-overlay">
+        <div class="modal-box" style="text-align: center; width: 95%; max-width: 600px;">
+            <h3 style="color: #f1c40f;">🏆 TIME DO CAMPEÃO 🏆</h3>
+            <p style="font-size: 0.9rem; color: #ccc;">Prepare-se bem antes de conseguir a 8ª Insígnia! O Campeão Atual
+                (<b id="champion-name-display" style="color: white;"></b>) usa:</p>
+            <div id="champion-team-list"
+                style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 15px; margin-bottom: 15px;">
+            </div>
+            <button class="btn btn-secondary"
+                onclick="document.getElementById('champion-team-modal').style.display='none'">Fechar</button>
+        </div>
+    </div>
+
     <div id="city-modal" class="modal-overlay">
         <div class="modal-box">
             <h2 style="color: #3498db;">🏙️ Centro Pokémon</h2>
@@ -297,9 +318,12 @@
     <div id="board-cards-modal" class="modal-overlay">
         <div class="modal-box">
             <h3>🃏 Minhas Cartas (Tabuleiro)</h3>
-            <p style="font-size:0.8rem; color:#666; margin-bottom: 5px;">Apenas cartas do tipo <b>Move</b> podem ser usadas aqui.</p>
+            <p style="font-size:0.8rem; color:#666; margin-bottom: 5px;">Apenas cartas do tipo <b>Move</b> podem ser
+                usadas aqui.</p>
             <div style="display:flex; gap:10px; margin-bottom: 15px; justify-content:center;">
-                <select id="board-cards-rarity-filter" class="form-control" style="background:#2b2d42; color:#fff; border:1px solid #556; border-radius:4px; padding:5px;" onchange="window.Game.openBoardCards(window.Game.turn)">
+                <select id="board-cards-rarity-filter" class="form-control"
+                    style="background:#2b2d42; color:#fff; border:1px solid #556; border-radius:4px; padding:5px;"
+                    onchange="window.Game.openBoardCards(window.Game.turn)">
                     <option value="all">Todas as Raridades</option>
                     <option value="Comum">Comum</option>
                     <option value="Incomum">Incomum</option>
@@ -315,14 +339,18 @@
         <div class="modal-box" style="width: 1200px;">
             <h3>📖 Biblioteca de Cartas</h3>
             <div style="display:flex; gap:10px; margin-bottom: 15px; justify-content:center;">
-                <select id="library-rarity-filter" class="form-control" style="background:#2b2d42; color:#fff; border:1px solid #556; border-radius:4px; padding:5px;" onchange="window.Game.openCardLibrary()">
+                <select id="library-rarity-filter" class="form-control"
+                    style="background:#2b2d42; color:#fff; border:1px solid #556; border-radius:4px; padding:5px;"
+                    onchange="window.Game.openCardLibrary()">
                     <option value="all">Todas as Raridades</option>
                     <option value="Comum">Comum</option>
                     <option value="Incomum">Incomum</option>
                     <option value="Rara">Rara</option>
                     <option value="Épica">Épica</option>
                 </select>
-                <select id="library-type-filter" class="form-control" style="background:#2b2d42; color:#fff; border:1px solid #556; border-radius:4px; padding:5px;" onchange="window.Game.openCardLibrary()">
+                <select id="library-type-filter" class="form-control"
+                    style="background:#2b2d42; color:#fff; border:1px solid #556; border-radius:4px; padding:5px;"
+                    onchange="window.Game.openCardLibrary()">
                     <option value="all">Todos os Tipos</option>
                     <option value="move">Move</option>
                     <option value="battle">Battle</option>

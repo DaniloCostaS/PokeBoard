@@ -963,7 +963,7 @@ export class Battle {
         // 1. Oponente Morreu (Vitória)
         if (this.opponent.currentHp <= 0) {
             const oppStats = this.opponent.maxHp + this.opponent.atk + this.opponent.def + this.opponent.speed;
-            const xpGain = Math.max(1, Math.floor(oppStats / 7));
+            const xpGain = Math.max(1, Math.floor(oppStats / 9));
             this.activeMon.gainXp(xpGain, this.player!);
 
             this.updateUI();
@@ -1083,7 +1083,7 @@ export class Battle {
             // [MANTIDO] Inimigo venceu (ganha XP de vitória no PvP)
             if (this.isPvP && this.enemyPlayer) {
                 const plyStats = this.activeMon.maxHp + this.activeMon.atk + this.activeMon.def + this.activeMon.speed;
-                const oppXpGain = Math.max(1, Math.floor(plyStats / 7));
+                const oppXpGain = Math.max(1, Math.floor(plyStats / 9));
                 this.opponent.gainXp(oppXpGain, this.enemyPlayer);
                 if (Network.isOnline) Network.syncSpecificPlayer(this.enemyPlayer.id);
             }
@@ -1096,7 +1096,7 @@ export class Battle {
         else if (this.opponent.currentHp <= 0) {
             // [MANTIDO] Jogador ganha XP de vitória
             const oppStats = this.opponent.maxHp + this.opponent.atk + this.opponent.def + this.opponent.speed;
-            const xpGain = Math.max(1, Math.floor(oppStats / 7));
+            const xpGain = Math.max(1, Math.floor(oppStats / 9));
             this.activeMon.gainXp(xpGain, this.player!);
 
             this.updateUI();
