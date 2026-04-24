@@ -1211,6 +1211,8 @@ export class Game {
 
         if (type === TILE.CITY) {
             this.isCityEvent = true;
+            const cityGold = document.getElementById('city-gold-display');
+            if (cityGold) cityGold.innerText = `Saldo: ${p.gold}G`;
             document.getElementById('city-modal')!.style.display = 'flex';
         }
 
@@ -2192,6 +2194,8 @@ export class Game {
         const right = document.getElementById('hud-col-right')!;
         right.innerHTML = '';
 
+        const typeColors: any = { "Normal": "#A8A77A", "Fogo": "#EE8130", "Água": "#6390F0", "Elétrico": "#F7D02C", "Grama": "#7AC74C", "Gelo": "#96D9D6", "Lutador": "#C22E28", "Veneno": "#A33EA1", "Terra": "#E2BF65", "Voador": "#A98FF3", "Psíquico": "#F95587", "Inseto": "#A6B91A", "Pedra": "#B6A136", "Fantasma": "#735797", "Dragão": "#6F35FC", "Noturno": "#705746", "Aço": "#B7B7CE", "Fada": "#D685AD" };
+
         if (!this.players || this.players.length === 0) return;
 
         // --- CORREÇÃO DE INICIALIZAÇÃO ---
@@ -2292,6 +2296,12 @@ export class Game {
             if (p.effects.extraTurn) effectsHTML += `<span style="background:#2980b9; color:white; font-size:0.65rem; padding:1px 4px; border-radius:4px;" title="Tempo Parado">⏳ EXTRA</span>`;
             if (p.effects.doubleXp && p.effects.doubleXp > 0) effectsHTML += `<span style="background:#8e44ad; color:white; font-size:0.65rem; padding:1px 4px; border-radius:4px;" title="Double XP">🚻 ${p.effects.doubleXp}</span>`;
             if (p.effects.expShare && p.effects.expShare > 0) effectsHTML += `<span style="background:#27ae60; color:white; font-size:0.65rem; padding:1px 4px; border-radius:4px;" title="Exp Share">🤝 ${p.effects.expShare}</span>`;
+            if (p.effects.moonwalker && p.effects.moonwalker > 0) effectsHTML += `<span style="background:#f39c12; color:white; font-size:0.65rem; padding:1px 4px; border-radius:4px;" title="Moonwalker">💃 ${p.effects.moonwalker}</span>`;
+            if (p.effects.lureType && p.effects.lureType.count > 0) {
+                const lType = p.effects.lureType.type;
+                const lColor = typeColors[lType] || '#777';
+                effectsHTML += `<span style="background:${lColor}; color:white; font-size:0.65rem; padding:1px 4px; border-radius:4px; border:1px solid rgba(255,255,255,0.3); font-weight:bold;" title="Lure Type: ${lType}">🧲 ${lType} ${p.effects.lureType.count}</span>`;
+            }
             effectsHTML += `</div>`;
 
             d.innerHTML = ` 
