@@ -1831,7 +1831,7 @@ export class Game {
     }
     static exportSave() { const d = localStorage.getItem('pk_save'); if (!d) return alert("Vazio"); const b = new Blob([d], { type: 'text/plain' }); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'save.txt'; a.click(); }
     static importSave(i: HTMLInputElement) { const f = i.files?.[0]; if (!f) return; const r = new FileReader(); r.onload = e => { localStorage.setItem('pk_save', e.target?.result as string); this.loadGame(); }; r.readAsText(f); }
-    static openInventoryModal(pId: number) { const p = this.players[pId]; const list = document.getElementById('board-inventory-list')!; list.innerHTML = ''; const canUse = (this.canAct() && this.turn === pId); Object.keys(p.items).forEach(key => { if (p.items[key] > 0) { const item = SHOP_ITEMS.find(i => i.id === key); if (item) { const d = document.createElement('div'); d.className = 'shop-item'; let btnHTML = ''; if (canUse && (item.type === 'heal' || item.type === 'revive')) { btnHTML = `<button class="btn btn-mini" style="width:auto;" onclick="window.Game.useItemBoard('${key}', ${pId})">Usar</button>`; } d.innerHTML = `<div style="display:flex; align-items:center;"><img src="/assets/img/Itens/${item.icon}" class="item-icon-mini"><span>${item.name} x${p.items[key]}</span></div>${btnHTML}`; list.appendChild(d); } } }); document.getElementById('board-inventory-modal')!.style.display = 'flex'; }
+    static openInventoryModal(pId: number, readOnly: boolean = false) { const p = this.players[pId]; const list = document.getElementById('board-inventory-list')!; list.innerHTML = ''; const canUse = (!readOnly && this.canAct() && this.turn === pId); Object.keys(p.items).forEach(key => { if (p.items[key] > 0) { const item = SHOP_ITEMS.find(i => i.id === key); if (item) { const d = document.createElement('div'); d.className = 'shop-item'; let btnHTML = ''; if (canUse && (item.type === 'heal' || item.type === 'revive')) { btnHTML = `<button class="btn btn-mini" style="width:auto;" onclick="window.Game.useItemBoard('${key}', ${pId})">Usar</button>`; } d.innerHTML = `<div style="display:flex; align-items:center;"><img src="/assets/img/Itens/${item.icon}" class="item-icon-mini"><span>${item.name} x${p.items[key]}</span></div>${btnHTML}`; list.appendChild(d); } } }); document.getElementById('board-inventory-modal')!.style.display = 'flex'; }
 
     static openPokedexEntry(targetId: number) {
         this.openPokedex(this.turn, targetId);
@@ -2049,10 +2049,10 @@ export class Game {
             this.log(`Libertou ${discarded.name} e ficou com ${newMon.name}! (enviado para a lixeira).`);
             p.team[indexToRelease] = newMon;
         }
-        
+
         discarded.currentHp = discarded.maxHp;
         this.lixeira.push(discarded);
-        
+
         document.getElementById('swap-modal')!.style.display = 'none';
         Game.updateHUD();
 
@@ -2067,7 +2067,7 @@ export class Game {
     static openLixeira(selectMode: boolean = false) {
         const list = document.getElementById('lixeira-list')!;
         list.innerHTML = '';
-        
+
         if (this.lixeira.length === 0) {
             list.innerHTML = "<p style='color:#ccc; padding:20px;'>A lixeira está vazia.</p>";
         } else {
@@ -2075,7 +2075,7 @@ export class Game {
                 const card = document.createElement('div');
                 card.className = 'dex-card';
                 card.style.cssText = "display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); width: 150px; cursor: pointer;";
-                
+
                 const spriteUrl = mon.getSprite();
                 card.innerHTML = `
                     <img src="${spriteUrl}" style="width: 70px; height: 70px; object-fit: contain;">
@@ -2086,7 +2086,7 @@ export class Game {
                         <span>⚔️ ${mon.atk}</span>
                     </div>
                 `;
-                
+
                 if (selectMode) {
                     card.onclick = () => {
                         this.rescueFromLixeira(idx);
@@ -2096,16 +2096,16 @@ export class Game {
                 list.appendChild(card);
             });
         }
-        
+
         document.getElementById('lixeira-modal')!.style.display = 'flex';
     }
 
     static rescueFromLixeira(idx: number) {
         const mon = this.lixeira[idx];
         const p = this.getCurrentPlayer();
-        
+
         this.lixeira.splice(idx, 1);
-        
+
         if (p.team.length < 6) {
             p.team.push(mon);
             this.sendGlobalLog(`💚 ${p.name} resgatou ${mon.name} da lixeira!`);
@@ -2648,7 +2648,7 @@ export class Game {
             const searchInput = document.getElementById('log-search-input') as HTMLInputElement;
             const searchText = searchInput ? searchInput.value.toLowerCase().trim() : "";
             const matchesSearch = searchText === "" || m.toLowerCase().includes(searchText);
-            
+
             const displayStyle = (currentFilter === 'all' || currentFilter === logType) && matchesSearch ? "block" : "none";
 
             container.insertAdjacentHTML('afterbegin', `<div class="log-entry" style="${customStyle}; display:${displayStyle}" data-type="${logType}">${m}</div>`);

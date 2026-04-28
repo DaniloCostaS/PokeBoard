@@ -701,6 +701,69 @@ export class Battle {
         return { damage: finalDamage, msg: `(🎲${d6})${logDetails}`, avoided: false, reflected: reflectedAmount };
     }
 
+    static viewTeam() {
+        const Game = (window as any).Game;
+        const player = Game.getCurrentPlayer();
+        const modal = document.getElementById('team-view-modal')!;
+        const listContainer = document.getElementById('team-view-list')!;
+        listContainer.innerHTML = '';
+
+        player.team.forEach((p: any) => {
+            const isShiny = p.isShiny;
+            const spriteUrl = p.getSprite();
+
+            const colors: any = { "Normal": "#A8A77A", "Fogo": "#EE8130", "Água": "#6390F0", "Elétrico": "#F7D02C", "Grama": "#7AC74C", "Gelo": "#96D9D6", "Lutador": "#C22E28", "Veneno": "#A33EA1", "Terra": "#E2BF65", "Voador": "#A98FF3", "Psíquico": "#F95587", "Inseto": "#A6B91A", "Pedra": "#B6A136", "Fantasma": "#735797", "Dragão": "#6F35FC", "Noturno": "#705746", "Aço": "#B7B7CE", "Fada": "#D685AD" };
+            const bgColor = colors[p.type] || '#555';
+
+            const card = document.createElement('div');
+            card.style.cssText = `
+                background: linear-gradient(180deg, ${bgColor}44 0%, rgba(0,0,0,0.6) 100%);
+                border: 1px solid ${isShiny ? '#f1c40f' : bgColor};
+                border-radius: 8px;
+                padding: 8px;
+                text-align: center;
+                cursor: pointer;
+                transition: transform 0.2s;
+                width: 140px;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                position: relative;
+            `;
+
+            card.onmouseover = () => card.style.transform = 'scale(1.05)';
+            card.onmouseout = () => card.style.transform = 'scale(1)';
+
+            const megaIcon = p.megaStone ? `<img src="/assets/img/megaStone.png" style="width:16px; position:absolute; top:5px; right:5px;" title="Mega Evoluído!">` : '';
+            const vinculoIcon = p.vinculoSupremo ? `<span style="font-size:14px; position:absolute; top:5px; left:5px;" title="Vínculo Supremo">🤝</span>` : '';
+
+            card.innerHTML = `
+                ${vinculoIcon}
+                ${megaIcon}
+                <div style="font-size: 0.8rem; font-weight: bold; color: #fff; background: rgba(0,0,0,0.5); padding: 2px 5px; border-radius: 4px; margin-bottom: 5px;">
+                    Lv.${p.level}
+                </div>
+                <img src="${spriteUrl}" style="width: 70px; height: 70px; object-fit: contain; filter: drop-shadow(0 0 5px ${isShiny ? '#f1c40f' : 'transparent'});">
+                <div style="font-weight: bold; color: #fff; margin-top: 5px; font-size: 0.9rem; text-shadow: 1px 1px 2px #000;">
+                    ${p.name}
+                </div>
+                <div style="color: ${isShiny ? '#f1c40f' : '#ccc'}; font-size: 0.75rem; display: flex; align-items: center; justify-content: center; gap: 3px; margin-top: 3px;">
+                    ${isShiny ? '✨ Shiny' : p.type}
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; width: 100%; margin-top: 8px; font-size: 0.75rem; color: #ecf0f1; background: rgba(0,0,0,0.4); padding: 5px; border-radius: 4px;">
+                    <div title="HP Atual / Máx">❤️ ${p.currentHp}/${p.maxHp}</div>
+                    <div title="Ataque">⚔️ ${p.atk}</div>
+                    <div title="Defesa">🛡️ ${p.def}</div>
+                    <div title="Velocidade">💨 ${p.speed}</div>
+                </div>
+            `;
+            listContainer.appendChild(card);
+        });
+
+        modal.style.display = 'flex';
+    }
+
     static attack() {
         const Network = (window as any).Network;
         if (Network.isOnline && this.player && this.player.id !== Network.myPlayerId) return;

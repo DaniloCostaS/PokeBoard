@@ -394,7 +394,7 @@ body {
     font-size: 0.8rem; width: 100%; text-align: center; box-sizing: border-box;
 }
 #battle-msg { height: 25px; margin: 5px 0; font-style: italic; color: #f1c40f; font-weight: bold; }
-.battle-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.battle-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
 .mt-15 { margin-top: 15px; }
 
 /* NOVOS ESTILOS */

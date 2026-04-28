@@ -14,7 +14,7 @@ declare global {
         Battle: typeof Battle;
         Network: typeof Network;
         Cards: typeof Cards; // Adicionado aqui
-        openInventory: (playerId: number) => void;
+        openInventory: (playerId: number, readOnly?: boolean) => void;
         openCards: (playerId: number) => void;
         openCardLibrary: () => void;
         openXpRules: () => void;
@@ -30,7 +30,7 @@ window.Network = Network;
 window.Cards = Cards; // Agora Pokemon.ts pode usar window.Cards
 
 // Funções de atalho do HTML
-window.openInventory = (id) => Game.openInventoryModal(id);
+window.openInventory = (id, readOnly = false) => Game.openInventoryModal(id, readOnly);
 window.openCards = (id) => { 
     if(Network.isOnline && id !== Network.myPlayerId) return alert("Privado!"); 
     Cards.showPlayerCards(id); 

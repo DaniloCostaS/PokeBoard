@@ -281,6 +281,17 @@
         </div>
     </div>
 
+    <div id="team-view-modal" class="modal-overlay" style="z-index: 2500;">
+        <div class="modal-box" style="text-align: center; width: 95%; max-width: 600px;">
+            <h3 style="color: #3498db;">👀 Seu Time Atual</h3>
+            <div id="team-view-list"
+                style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 15px; margin-bottom: 15px;">
+            </div>
+            <button class="btn btn-secondary"
+                onclick="document.getElementById('team-view-modal').style.display='none'">Fechar</button>
+        </div>
+    </div>
+
     <div id="city-modal" class="modal-overlay">
         <div class="modal-box">
             <h2 style="color: #3498db;">🏙️ Centro Pokémon</h2>
@@ -302,9 +313,14 @@
     <div id="shop-modal" class="modal-overlay">
         <div class="modal-box">
             <h2 class="text-highlight">🛒 PokéMart</h2>
-            <p>Saldo: <span id="shop-gold" class="gold-text">0</span> G</p>
-            <div id="shop-items-list" class="scroll-list"></div><br><button class="btn btn-secondary"
-                onclick="window.Shop.close()">Fechar</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <p style="margin: 0;">Saldo: <span id="shop-gold" class="gold-text">0</span> G</p>
+            </div>
+            <div style="display:flex; gap:10px; margin-bottom:15px;">
+                <button class="btn btn-secondary" style="flex:1; margin-top:0;" onclick="window.openInventory(window.Game.getCurrentPlayer().id, true)">🎒 Ver Minha Bag</button>
+                <button class="btn btn-secondary" style="flex:1; margin-top:0;" onclick="window.Shop.close()">Fechar</button>
+            </div>
+            <div id="shop-items-list" class="scroll-list"></div>
         </div>
     </div>
     <div id="board-inventory-modal" class="modal-overlay">
@@ -531,9 +547,10 @@
                         <button class="btn btn-attack" onclick="window.Battle.attack()">⚔️ Atacar</button>
                         <button class="btn btn-items" onclick="window.Battle.openBag()">🎒 Itens</button>
                         <button class="btn btn-cards" onclick="window.Battle.openCardSelection()">🃏 Cartas</button>
+                        <button class="btn btn-secondary" onclick="window.Battle.viewTeam()">👀 Ver Meu Time</button>
                         <button id="btn-run" class="btn btn-run" onclick="window.Battle.run()">🏃 Fugir</button>
                         <button id="btn-surrender" class="btn btn-run" style="background:#c0392b;" onclick="window.Battle.surrender()">🏳️ Desistir</button>
-                        <button id="btn-auto-pve" class="btn btn-auto" style="grid-column: span 2;"
+                        <button id="btn-auto-pve" class="btn btn-auto" style="grid-column: span 3;"
                             onclick="window.Battle.toggleAutoPvE()">⚡ Auto Atacar</button>
                     </div>
                 </div>

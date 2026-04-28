@@ -34,6 +34,14 @@ export class Player {
         playedLegendary?: boolean;
     } = {};
 
+    // --- ESTATÍSTICAS DE JOGO ---
+    stats: {
+        cardsUsed: number;
+        cardsSuffered: number;
+        effectsReceived: number;
+        turnsLost: number;
+    } = { cardsUsed: 0, cardsSuffered: 0, effectsReceived: 0, turnsLost: 0 };
+
     // --- NOVA ESTRUTURA PARA A POKÉDEX FUTURA ---
     pokedexData: { [id: number]: { seen: number, caught: number, defeated: number } } = {};
     // --------------------------------------------
