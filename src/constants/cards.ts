@@ -27,6 +27,7 @@ export const CARDS_DB: CardData[] = [
     { id: 'master', name: "Master Ball", icon: "🟣", desc: "Captura 100% garantida usando qualquer pokebola (Só pode ser usado se tiver pokebola).", type: 'battle', rarity: 'Rara' },
     { id: 'holy_water', name: "Água Benta", icon: "🫗", desc: "Remova o efeito da maldição do seu jogador.", type: 'move', rarity: 'Incomum' },
     { id: 'destiny', name: "Destino Selado", icon: "🌠", desc: "Se vencer a batalha, ganhe 2 recompensas (Gold/Carta).", type: 'battle', rarity: 'Comum' },
+    { id: 'illegal_adoption', name: "Sequestro Relampago", icon: "⚡", desc: "Durante uma batalha contra NPC ou Selvagem, troque um Pokemon do seu time por um do adversario.", type: 'battle', rarity: 'Rara' },
 
     // Cartas contra jogadores
     //{ id: 'trap', name: "Armadilha", icon: "🪤", desc: "Coloque em uma casa. Quem passar nela vai parar na armadilha e perde o próximo turno. Você vai receber 20% de gold de quem passou.", type: 'move', probability: 100 },
@@ -34,7 +35,7 @@ export const CARDS_DB: CardData[] = [
     { id: 'swap', name: "Troca Rápida", icon: "🔀", desc: "Troque de posição com qualquer jogador.", type: 'move', rarity: 'Incomum' },
     { id: 'rocket', name: "Equipe Rocket", icon: "🚀", desc: "Roube uma carta aleatória de outro jogador.", type: 'move', rarity: 'Incomum' },
     { id: 'curse', name: "Maldição", icon: "☠️", desc: "Escolha um jogador: ele causa metade do dano na próxima batalha inteira contra líder de ginasio e não poderá usar itens.", type: 'move', rarity: 'Incomum' },
-    { id: 'trade_fail', name: "Troca Mal-Sucedida", icon: "❌", desc: "O jogador alvo perde os 3 próximos turnos.", type: 'move', rarity: 'Incomum' },
+    { id: 'trade_fail', name: "Troca Mal-Sucedida", icon: "❌", desc: "O jogador alvo perde os 3 próximos turnos.", type: 'move', rarity: 'Rara' },
 
     // Cartas de UP pokémon
     { id: 'rare_candy', name: "Rare Candy", icon: "🍬", desc: "Suba 1 nível de um pokémon de sua escolha.", type: 'move', rarity: 'Incomum' },

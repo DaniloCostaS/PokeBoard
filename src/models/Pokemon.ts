@@ -9,7 +9,7 @@ export class Pokemon {
     isShiny: boolean; isLegendary: boolean; wins: number; 
     evoData: any; 
     leveledUpThisTurn: boolean = false;
-    stage: number; // Nova propriedade para controlar o estágio
+    stage: number; 
     baseTotal: number;
     isGymLeaderMon: boolean = false;
     megaStone: boolean = false;
@@ -20,7 +20,16 @@ export class Pokemon {
     bonusStats: { hp: number, atk: number, def: number, spd: number };
 
     constructor(templateId: number, targetLevel: number = 1, forceShiny: boolean | null = null, isGymLeaderMon: boolean = false) {
-        let template = POKEDEX.find(p => p.id === templateId) || POKEDEX[0];
+        let actualTemplateId = templateId;
+        let forceMegaStone = false;
+
+        const baseIdStr = Object.keys(MAPA_MEGAS).find(key => MAPA_MEGAS[parseInt(key)] === templateId);
+        if (baseIdStr) {
+            actualTemplateId = parseInt(baseIdStr);
+            forceMegaStone = true;
+        }
+
+        let template = POKEDEX.find(p => p.id === actualTemplateId) || POKEDEX[0];
         
         while (template.nextForm && template.evoTrigger && targetLevel >= template.evoTrigger) {
             const next = POKEDEX.find(p => p.name === template.nextForm);
@@ -37,6 +46,12 @@ export class Pokemon {
         this.baseTotal = template.BaseTotal || (template.hp + template.atk + template.def + template.spd);
         this.isGymLeaderMon = isGymLeaderMon;
         this.megaStone = false;
+
+        if (forceMegaStone) {
+            this.megaStone = true;
+        } else if (this.isGymLeaderMon && MAPA_MEGAS[this.id]) {
+            this.megaStone = true;
+        }
 
         // --- NOVA LÓGICA DO LURE SHINY ---
         let shinyRate = 0.03; // Chance Padrão (3%)
@@ -91,9 +106,8 @@ export class Pokemon {
         this.recalculateStats(true);
     }
 
-    // Nova lógica de cálculo de XP baseada na planilha
     calculateMaxXp(): number {
-        let multiplier = 8; // Padrão Stage 1
+        let multiplier = 8; 
 
         /* if (this.isShiny) {
             multiplier = 50;
@@ -101,7 +115,6 @@ export class Pokemon {
         if (this.isLegendary) {
             multiplier = 15;
         } else {
-            // Lógica de Estágios
             if (this.stage === 1) {
                 if (!this.evoData.next) 
                     multiplier = 12;
@@ -122,9 +135,8 @@ export class Pokemon {
         return this.level * multiplier;
     }
 
-    // --- NOVA FUNÇÃO: Sorteia 15 pontos e devolve o que foi ganho ---
     distributeLevelUpStats() {
-        const gains = { hp: 0, atk: 0, def: 0, spd: 0 }; // Guarda o que ganhou NESSE level
+        const gains = { hp: 0, atk: 0, def: 0, spd: 0 }; 
 
         if (this.isGymLeaderMon) {
             this.bonusStats.hp += 5; gains.hp += 5;
@@ -144,18 +156,14 @@ export class Pokemon {
         return gains;
     }
 
-    // --- MÉTODO DE SEGURANÇA: CORRIGE MEGAS PRESAS ---
     validateAndFix() {
-        // Se for um ID de Mega Evolução (geralmente > 10000 no seu mapa)
         if (this.id > 10000 && !(this as any).isTemp) {
-            // Procura qual ID normal vira essa Mega (Engenharia Reversa)
             const originalIdStr = Object.keys(MAPA_MEGAS).find(key => MAPA_MEGAS[parseInt(key)] === this.id);
             
             if (originalIdStr) {
                 const originalId = parseInt(originalIdStr);
                 console.warn(`🚑 CORREÇÃO: Revertendo ${this.name} (Mega presa) para ID ${originalId}`);
                 
-                // Restaura ID e Dados Básicos
                 this.id = originalId;
                 const template = POKEDEX.find(p => p.id === this.id);
                 if (template) {
@@ -163,29 +171,23 @@ export class Pokemon {
                     this.baseStats = { hp: template.hp, atk: template.atk, def: template.def, spd: template.spd };
                 }
                 
-                // Limpa flags de Mega
-                this.megaStone = true; // Devolve a pedra pro Pokémon (já que ele perdeu a transformação)
+                this.megaStone = true; 
                 this.isMegaEvolution = false;
                 (this as any).isTemp = false;
                 
-                // Recalcula status limpos
                 this.recalculateStats(false);
             }
         }
     }
 
     recalculateStats(resetHp: boolean = false) {
-        // --- NOVOS MULTIPLICADORES DE FORÇA ---
-        const shinyBonus = this.isShiny ? 1.20 : 1.0;       // Shiny é 20% mais forte
-        const legendaryBonus = this.isLegendary ? 1.10 : 1.0; // Lendário é 10% mais forte
-        const megaBonus = this.isMegaEvolution ? 1.20 : 1.0; // Mega é 20% mais forte
+        const shinyBonus = this.isShiny ? 1.20 : 1.0;       
+        const legendaryBonus = this.isLegendary ? 1.10 : 1.0; 
+        const megaBonus = this.isMegaEvolution ? 1.20 : 1.0; 
         
-        // Se por um milagre o jogador achar um Lendário Shiny, os bônus se acumulam!
         const totalMultiplier = shinyBonus * legendaryBonus * megaBonus;
         
-        // A fórmula agora aplica o multiplicador total nos status
         const calc = (base: number, iv: number, bonus: number) => Math.floor((base + iv + bonus) * totalMultiplier);
-        // --------------------------------------
 
         const oldMaxHp = this.maxHp;
 
@@ -227,24 +229,18 @@ export class Pokemon {
         const Game = (window as any).Game;
 
         if (player && player.effects) {
-            // Verifica o Double XP
             if ((player.effects.doubleXp && player.effects.doubleXp > 0) || Game.currentGlobalEvent?.id === 'EXP_BURST') {
                 finalAmount *= 2;
                 usedEffect = true;
             }
 
-            // Verifica o Exp Share
             if (player.effects.expShare && player.effects.expShare > 0) {
-                // player.effects.expShare--; <--- REMOVIDO! (Desconta por turno no Game.ts)
                 usedEffect = true;
-                // Mensagem de fim de efeito removida daqui também!
                 
                 const aliveTeam = player.team.filter(p => !p.isFainted());
                 
-                // --- CORREÇÃO: Removemos o splitAmount. Agora usa o valor total ---
                 Game.sendGlobalLog(`🤩 Exp Share ativado! Todos os vivos do time de ${player.name} receberam ${finalAmount} XP integralmente!`);
                 
-                // Distribui o valor INTEGRAL (finalAmount) para a equipe
                 aliveTeam.forEach(mon => mon._applyXp(finalAmount, player));
                 
                 if (usedEffect && (window as any).Network && (window as any).Network.isOnline) {
@@ -254,10 +250,8 @@ export class Pokemon {
             }
         }
 
-        // Se não usou Exp Share, ganha sozinho normalmente
         this._applyXp(finalAmount, player);
         
-        // Salva a queima dos contadores no Firebase
         if (usedEffect && (window as any).Network && (window as any).Network.isOnline) {
             (window as any).Network.syncPlayerState();
         }
@@ -277,18 +271,15 @@ export class Pokemon {
         if (this.level >= 25) return;
         this.level++; 
         
-        // Recebe os ganhos exatos deste level (15 pontos aleatórios)
         const gains = this.distributeLevelUpStats(); 
         
         const Game = (window as any).Game;
-        // --- EVENTO: POKÉRUS OUTBREAK (+5 em todos os status extras) ---
         if (Game && Game.currentGlobalEvent?.id === 'POKERUS_OUTBREAK') {
             this.bonusStats.hp += 5;
             this.bonusStats.atk += 5;
             this.bonusStats.def += 5;
             this.bonusStats.spd += 5;
             
-            // Incrementa os ganhos para o log refletir o bônus do Pokérus
             gains.hp += 5;
             gains.atk += 5;
             gains.def += 5;
@@ -299,7 +290,6 @@ export class Pokemon {
         this.recalculateStats(false);
         
         if(player && Game) {
-             // Log detalhado com os status sorteados!
              Game.sendGlobalLog(`🎉 ${this.name} subiu para o Nível ${this.level}! (+${gains.hp} HP | +${gains.atk} ATK | +${gains.def} DEF | +${gains.spd} SPD)`); 
         }
         this.checkEvolution(player); 
@@ -310,7 +300,7 @@ export class Pokemon {
         const diff = targetLevel - this.level;
         if (diff > 0) {
             for (let i = 0; i < diff; i++) {
-                this.distributeLevelUpStats(); // <- Simula os níveis pulados
+                this.distributeLevelUpStats(); 
             }
         }
         this.level = targetLevel;
@@ -353,7 +343,6 @@ export class Pokemon {
     }
 
     checkEvolution(player: Player | null, silent: boolean = false): boolean { 
-        // Trava de segurança para strings vazias, falsas ou nulas
         if (!this.evoData.next || this.evoData.next === "null" || this.evoData.next === "") {
             return false; 
         }
@@ -368,13 +357,10 @@ export class Pokemon {
                 this.name = next.name; 
                 this.type = next.type;
                 this.secondType = next.secondType || "";
-                //this.baseTotal = next.BaseTotal || 0;
                 this.stage = next.stage; 
                 this.baseStats = { hp: next.hp, atk: next.atk, def: next.def, spd: next.spd };
                 this.baseTotal = next.BaseTotal || (next.hp + next.atk + next.def + next.spd);
 
-                // --- SOLUÇÃO ANTI-FIREBASE CRASH ---
-                // Usamos "" e 999 no lugar de null para o Firebase sempre aceitar!
                 this.evoData = { 
                     next: next.nextForm || "", 
                     trigger: next.evoTrigger || 999 
@@ -385,9 +371,6 @@ export class Pokemon {
 
                 (this as any).faintedThisBattle = false;
                 
-                // ==============================================================
-                // NOVO: POKÉDEX (Registra a Evolução como Visto e Capturado)
-                // ==============================================================
                 if (player) {
                     if (!player.pokedexData) player.pokedexData = {};
                     
@@ -398,16 +381,13 @@ export class Pokemon {
                     player.pokedexData[this.id].seen += 1;
                     player.pokedexData[this.id].caught += 1;
                     
-                    // Salva a alteração na rede imediatamente
                     const Network = (window as any).Network;
                     if (Network && Network.isOnline) {
-                        // Se o player evoluindo é o jogador atual, faz o sync do estado
                         if (player.id === Network.myPlayerId) {
                             Network.syncPlayerState();
                         }
                     }
                 }
-                // ==============================================================
 
                 if(player && !silent) { 
                     const Game = (window as any).Game;

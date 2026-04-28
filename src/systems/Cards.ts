@@ -1,5 +1,6 @@
 import { CARDS_DB } from '../constants';
 import type { Player } from '../models/Player';
+import { MapSystem } from './MapSystem';
 
 export class Cards {
     // =========================================================================================
@@ -24,8 +25,7 @@ export class Cards {
             return alert("Você precisa de pelo menos 2 cartas para realizar um sacrifício.");
         }
 
-        const list = document.getElementById('board-inventory-list')!; // Reutilizando container existente ou crie um novo
-        // Se preferir, crie um modal específico no HTML, aqui vou usar o padrão do inventory/cards
+        const list = document.getElementById('board-inventory-list')!; 
         const modal = document.getElementById('board-inventory-modal') || document.getElementById('board-cards-modal');
 
         // Limpa e prepara título
@@ -62,7 +62,7 @@ export class Cards {
         `;
         list.appendChild(btnContainer);
 
-        // Expõe função auxiliar para o checkbox (caso não exista)
+        // Expõe função auxiliar para o checkbox 
         (window as any).Cards.updateSacrificeCount = () => {
             const checks = document.querySelectorAll('.sacrifice-checkbox:checked');
             const counter = document.getElementById('sacrifice-counter');
@@ -81,7 +81,7 @@ export class Cards {
     static async confirmSacrifice() {
         const Game = (window as any).Game;
         const Network = (window as any).Network;
-        const CARDS_DB = (await import('../constants')).CARDS_DB; // Import dinâmico ou use o import do topo
+        const CARDS_DB = (await import('../constants')).CARDS_DB; 
         const player = Game.getCurrentPlayer();
 
         // Coleta índices selecionados
@@ -96,7 +96,7 @@ export class Cards {
         // Ordena decrescente para remover do array sem alterar os índices dos próximos
         indicesToRemove.sort((a, b) => b - a);
 
-        // --- LÓGICA LOCAL (Pré-visualização imediata) ---
+        // LÓGICA LOCAL (Pré-visualização imediata)
         const removedNames: string[] = [];
         const removedRarities: string[] = [];
 
@@ -109,9 +109,7 @@ export class Cards {
             }
         });
 
-        // Sorteia NOVA carta (Regra: qualquer carta do pool, exceto Master Ball se quiser restringir)
-        // Usando lógica similar ao Cards.draw
-        const validPool = CARDS_DB.filter((c: any) => c.id !== 'master'); // Exemplo: Tira Master Ball do pool de craft
+        const validPool = CARDS_DB.filter((c: any) => c.id !== 'master'); 
 
         let targetRarity: string | undefined = undefined;
         if (removedRarities.length === 2 && removedRarities[0] === 'Épica' && removedRarities[1] === 'Épica') {
@@ -143,37 +141,21 @@ export class Cards {
         Game.log(logMsg);
         Game.showGlobalAlert(logMsg, player.name, true, false);
 
-        // --- LÓGICA DE REDE (UPDATE ATÔMICO) ---
+        // LÓGICA DE REDE (UPDATE ATÔMICO)
         if (Network.isOnline) {
-            // Importar funções do Firebase necessárias (assumindo que já estão disponíveis no escopo ou via Network.ts)
             const { ref, update, getDatabase } = await import('firebase/database');
             const db = getDatabase();
 
             const updates: any = {};
             const roomPath = `rooms/${Network.currentRoomId}`;
 
-            // 1. Atualiza o Array de Cartas Completo (Atomicidade para Arrays)
-            // Firebase substitui o array antigo pelo novo, sem deixar buracos
             updates[`${roomPath}/players/${player.id}/cards`] = player.cards;
 
-            // 2. Adiciona o Log na mesma requisição
-            // updates[`${roomPath}/lastAction`] = { 
-            //    type: 'LOG', 
-            //    payload: { msg: logMsg }, 
-            //    playerId: player.id, 
-            //    timestamp: Date.now() 
-            // };
-            // Nota: Se usar lastAction aqui, pode conflitar com o listener. 
-            // O ideal é atualizar os dados do player e mandar o LOG via sendAction separado OU confiar no sync.
-
-            // Executa o update principal dos dados
             await update(ref(db), updates);
 
-            // 3. Sincroniza e avisa
             Network.sendAction('LOG', { msg: logMsgGlobal });
             Network.sendAction('SHOW_ALERT', { msg: logMsgGlobal, playerName: player.name, endsTurn: false });
 
-            // Garante consistência
             Network.syncPlayerState();
         }
     }
@@ -194,13 +176,11 @@ export class Cards {
 
         player.cards.push(card);
 
-        // Se não for modo silencioso, avisa no log
         if (!silentLog) {
             const isMe = !Network.isOnline || player.id === Network.myPlayerId;
             if (isMe) {
                 Game.log(`🃏 Você obteve a carta: ${card.icon} ${card.name}`);
                 if (Network.isOnline) {
-                    // Manda log mascarado pros amigos!
                     Network.sendAction('LOG', { msg: `🃏 ${player.name} obteve uma Carta Misteriosa!` });
                 }
             }
@@ -209,7 +189,7 @@ export class Cards {
         Game.updateHUD();
         if (Network.isOnline) Network.syncPlayerState();
 
-        return card; // Retorna a carta para o Evento poder ver qual foi!
+        return card; 
     }
 
     static showPlayerCards(playerId: number) { const Game = (window as any).Game; Game.openBoardCards(playerId); }
@@ -218,7 +198,6 @@ export class Cards {
         const Game = (window as any).Game;
         const currentPlayer = Game.getCurrentPlayer();
 
-        // Filtra para não deixar o jogador usar a carta nele mesmo
         const targets = Game.players.filter((p: any) => p.id !== currentPlayer.id);
 
         if (targets.length === 0) {
@@ -226,9 +205,12 @@ export class Cards {
             return;
         }
 
-        // Reutilizamos a janela modal de seleção
         const modal = document.getElementById('pkmn-select-modal')!;
         const list = document.getElementById('pkmn-select-list')!;
+
+        // Oculta a tela principal de cartas de tabuleiro por segurança
+        const boardCardsModal = document.getElementById('board-cards-modal');
+        if (boardCardsModal) boardCardsModal.style.display = 'none';
 
         document.getElementById('select-title')!.innerText = "Selecione o Jogador Alvo:";
         list.innerHTML = '';
@@ -237,7 +219,6 @@ export class Cards {
             const div = document.createElement('div');
             div.className = `mon-select-item`;
 
-            // Coloca a foto de avatar arredondada e o nome do jogador
             div.innerHTML = `
                 <img src="${target.avatar}" width="40" style="border-radius: 50%; border: 2px solid #ecf0f1;">
                 <b>${target.name}</b> 
@@ -246,13 +227,11 @@ export class Cards {
 
             div.onclick = () => {
                 modal.style.display = 'none';
-                // Chama a ativação da carta passando o ID de quem foi clicado
                 this.activate(cardId, target.id);
             };
             list.appendChild(div);
         });
 
-        // Adiciona um botão de cancelar para o jogador não gastar a carta se clicar sem querer
         const cancelBtn = document.createElement('button');
         cancelBtn.className = 'btn btn-secondary mt-15';
         cancelBtn.innerText = 'Cancelar';
@@ -268,24 +247,24 @@ export class Cards {
         const modal = document.getElementById('pkmn-select-modal')!;
         const list = document.getElementById('pkmn-select-list')!;
 
+        const boardCardsModal = document.getElementById('board-cards-modal');
+        if (boardCardsModal) boardCardsModal.style.display = 'none';
+
         document.getElementById('select-title')!.innerText = "Escolha quem vai comer o Rare Candy:";
         list.innerHTML = '';
 
         player.team.forEach((mon: any, index: number) => {
             const div = document.createElement('div');
             div.className = `mon-select-item`;
-            // Mostra o Level e o XP atual para o jogador saber quem vale mais a pena
             div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>Lv.${mon.level}</small><br><small style="color:#f1c40f">XP: ${mon.currentXp}/${mon.maxXp}</small>`;
 
             div.onclick = () => {
                 modal.style.display = 'none';
-                // Chama o activate de novo, mas agora o targetId será o ÍNDICE do Pokémon!
                 this.activate(cardId, index);
             };
             list.appendChild(div);
         });
 
-        // Botão para não gastar a carta caso o jogador desista
         const cancelBtn = document.createElement('button');
         cancelBtn.className = 'btn btn-secondary mt-15';
         cancelBtn.innerText = 'Cancelar';
@@ -300,6 +279,9 @@ export class Cards {
         const player = Game.getCurrentPlayer();
         const modal = document.getElementById('pkmn-select-modal')!;
         const list = document.getElementById('pkmn-select-list')!;
+
+        const boardCardsModal = document.getElementById('board-cards-modal');
+        if (boardCardsModal) boardCardsModal.style.display = 'none';
 
         document.getElementById('select-title')!.innerText = "Escolha quem vai Evoluir:";
         list.innerHTML = '';
@@ -331,29 +313,28 @@ export class Cards {
         modal.style.display = 'flex';
     }
 
-    // --- NOVA FUNÇÃO DE SELEÇÃO DE MEGA ---
     static async openMegaSelection(cardId: string) {
         const Game = (window as any).Game;
         const player = Game.getCurrentPlayer();
         const modal = document.getElementById('pkmn-select-modal')!;
         const list = document.getElementById('pkmn-select-list')!;
-        const { MAPA_MEGAS } = await import('../constants/mapaMegas'); // Import dinâmico
+        const { MAPA_MEGAS } = await import('../constants/mapaMegas'); 
+
+        const boardCardsModal = document.getElementById('board-cards-modal');
+        if (boardCardsModal) boardCardsModal.style.display = 'none';
 
         document.getElementById('select-title')!.innerText = "Equipar Mega Pedra em quem?";
         list.innerHTML = '';
 
         player.team.forEach((mon: any, index: number) => {
             const div = document.createElement('div');
-            // Verifica na lista de constantes se existe Mega
             const canMega = !!MAPA_MEGAS[mon.id];
 
             if (canMega) {
                 if (mon.megaStone) {
-                    // Já tem pedra equipada
                     div.className = `mon-select-item disabled`;
                     div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b><br><small style="color:#f1c40f">💎 Já Equipado</small>`;
                 } else {
-                    // Pode equipar
                     div.className = `mon-select-item`;
                     div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b><br><small style="color:#2ecc71">Compatível!</small>`;
                     div.onclick = () => {
@@ -362,7 +343,6 @@ export class Cards {
                     };
                 }
             } else {
-                // Não compatível
                 div.className = `mon-select-item disabled`;
                 div.innerHTML = `<img src="${mon.getSprite()}" width="40" style="filter: grayscale(100%); opacity:0.6;"><b>${mon.name}</b><br><small style="color:#e74c3c">Incompatível</small>`;
             }
@@ -416,21 +396,17 @@ export class Cards {
 
         if (!cardData) return;
 
-        // 1. Remove a bola escolhida do inventário
         player.items[ballId]--;
 
-        // 2. Remove a carta Master da mão do jogador
         const idx = player.cards.findIndex((c: any) => c.id === 'master');
         if (idx > -1) player.cards.splice(idx, 1);
 
-        // 3. Esconde todos os modais da tela
         document.getElementById('ball-choice-modal')!.style.display = 'none';
         document.getElementById('board-cards-modal')!.style.display = 'none';
         document.getElementById('battle-cards-modal')!.style.display = 'none';
 
         Game.updateHUD();
 
-        // 4. Cria e envia os logs globais bonitos
         const logMsg = `🃏 ${player.name} ativou a carta: [${cardData.name}]!`;
         const effectLog = `🌟 A magia infundiu a Pokébola! Captura garantida!`;
         const fullMsg = `${logMsg}\n\n${effectLog}`;
@@ -451,7 +427,6 @@ export class Cards {
             Network.sendAction('LOG', { msg: effectLog });
         }
 
-        // 5. Aciona o final da batalha com o sucesso absoluto da captura
         Battle.logBattle(`Lançou a Pokébola com precisão mágica!`, true);
         setTimeout(() => {
             Battle.captureSuccess();
@@ -462,7 +437,6 @@ export class Cards {
         const modal = document.getElementById('pkmn-select-modal')!;
         const list = document.getElementById('pkmn-select-list')!;
 
-        // PASSO 1: Escolher o seu Pokémon
         document.getElementById('select-title')!.innerText = `Escolha o SEU Pokémon para enviar a ${target.name}:`;
         list.innerHTML = '';
 
@@ -489,7 +463,6 @@ export class Cards {
         const modal = document.getElementById('pkmn-select-modal')!;
         const list = document.getElementById('pkmn-select-list')!;
 
-        // PASSO 2: Escolher o Pokémon do Alvo
         document.getElementById('select-title')!.innerText = `Escolha o Pokémon de ${target.name} que você vai pegar:`;
         list.innerHTML = '';
 
@@ -518,11 +491,9 @@ export class Cards {
         const myMon = player.team[myChoice];
         const hisMon = target.team[hisChoice];
 
-        // 1. Faz a troca das posições na equipe
         player.team[myChoice] = hisMon;
         target.team[hisChoice] = myMon;
 
-        // 2. Remove a carta do inventário manualmente (já que saímos do fluxo normal)
         const idx = player.cards.findIndex((c: any) => c.id === 'troques');
         if (idx > -1) player.cards.splice(idx, 1);
 
@@ -530,16 +501,14 @@ export class Cards {
         const boardModal = document.getElementById('board-cards-modal');
         if (boardModal) boardModal.style.display = 'none';
 
-        // 3. Monta e envia os logs globais bonitos
-        const effectLog = `🔛 INACREDITÁVEL! ${player.name} forçou uma troca com ${target.name}!\nEnviou: ${myMon.name} ↔️ Recebeu: ${hisMon.name}`;
-        const logMsg = `🃏 ${player.name} ativou a carta: [Troca Forçada]!`;
+        const effectLog = `INACREDITAVEL! ${player.name} forcou uma troca com ${target.name}!\nEnviou: ${myMon.name} - Recebeu: ${hisMon.name}`;
+        const logMsg = `🃏 ${player.name} ativou a carta: [Troca Forcada]!`;
         const fullMsg = `${logMsg}\n\n${effectLog}`;
 
         Game.log(logMsg);
         Game.log(effectLog);
         Game.showGlobalAlert(fullMsg, player.name, true, false);
 
-        // 4. Salva no Firebase para sincronizar os dois jogadores na mesma hora
         if (Network.isOnline) {
             if ((Network as any).syncPlayers) {
                 (Network as any).syncPlayers([player.id, target.id]);
@@ -554,50 +523,161 @@ export class Cards {
     }
 
     // =========================================================================================
+    // LÓGICA DA CARTA SEQUESTRO RELÂMPAGO
+    // =========================================================================================
+    static startNPCBattleTradeFlow(player: any) {
+        const modal = document.getElementById('pkmn-select-modal')!;
+        const list = document.getElementById('pkmn-select-list')!;
+
+        document.getElementById('select-title')!.innerText = `Sequestro: Qual SEU Pokemon voce vai entregar?`;
+        list.innerHTML = '';
+
+        player.team.forEach((mon: any, index: number) => {
+            const div = document.createElement('div');
+            if (mon.isTemp || mon.isMegaEvolution) {
+                div.className = `mon-select-item disabled`;
+                div.innerHTML = `<img src="${mon.getSprite()}" width="40" style="filter: grayscale(100%);"><b>${mon.name}</b> <small style="color:red;">Bloqueado</small>`;
+            } else {
+                div.className = `mon-select-item`;
+                div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>Lv.${mon.level}</small>`;
+                div.onclick = () => {
+                    Cards.continueNPCBattleTradeFlow(player, index);
+                };
+            }
+            list.appendChild(div);
+        });
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn btn-secondary mt-15';
+        cancelBtn.innerText = 'Cancelar';
+        cancelBtn.onclick = () => { modal.style.display = 'none'; };
+        list.appendChild(cancelBtn);
+
+        modal.style.display = 'flex';
+    }
+
+    static continueNPCBattleTradeFlow(player: any, myChoice: number) {
+        const Battle = (window as any).Battle;
+        const modal = document.getElementById('pkmn-select-modal')!;
+        const list = document.getElementById('pkmn-select-list')!;
+
+        document.getElementById('select-title')!.innerText = `Sequestro: Qual Pokemon INIMIGO voce vai levar?`;
+        list.innerHTML = '';
+
+        Battle.oppTeamList.forEach((mon: any, index: number) => {
+            const div = document.createElement('div');
+            if (mon.isTemp || mon.isMegaEvolution) {
+                div.className = `mon-select-item disabled`;
+                div.innerHTML = `<img src="${mon.getSprite()}" width="40" style="filter: grayscale(100%);"><b>${mon.name}</b> <small style="color:red;">Bloqueado</small>`;
+            } else {
+                div.className = `mon-select-item`;
+                div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>Lv.${mon.level}</small>`;
+                div.onclick = () => {
+                    modal.style.display = 'none';
+                    Cards.executeNPCBattleTrade(player, myChoice, index);
+                };
+            }
+            list.appendChild(div);
+        });
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn btn-secondary mt-15';
+        cancelBtn.innerText = 'Voltar';
+        cancelBtn.onclick = () => { Cards.startNPCBattleTradeFlow(player); };
+        list.appendChild(cancelBtn);
+    }
+
+    static executeNPCBattleTrade(player: any, myChoice: number, hisChoice: number) {
+        const Game = (window as any).Game;
+        const Battle = (window as any).Battle;
+        const Network = (window as any).Network;
+
+        const myMon = player.team[myChoice];
+        const hisMon = Battle.oppTeamList[hisChoice];
+
+        player.team[myChoice] = hisMon;
+        Battle.oppTeamList[hisChoice] = myMon;
+
+        // Limpeza da referencia na lista auxiliar para manter a consistencia da HUD
+        const plyListIdx = Battle.plyTeamList.indexOf(myMon);
+        if (plyListIdx !== -1) {
+            Battle.plyTeamList[plyListIdx] = hisMon;
+        }
+
+        if (Battle.activeMon === myMon) {
+            Battle.activeMon = hisMon;
+            Battle.tryTriggerMegaEvolution("reagiu ao novo dono");
+        }
+        
+        if (Battle.opponent === hisMon) {
+            Battle.opponent = myMon;
+            Battle.tryOpponentMegaEvolution("reagiu ao novo time");
+        }
+
+        const idx = player.cards.findIndex((c: any) => c.id === 'illegal_adoption');
+        if (idx > -1) player.cards.splice(idx, 1);
+
+        Game.updateHUD();
+        Battle.updateUI();
+        
+        const battleCardsModal = document.getElementById('battle-cards-modal');
+        if (battleCardsModal) battleCardsModal.style.display = 'none';
+
+        const effectLog = `SEQUESTRO RELAMPAGO! ${player.name} trocou seu ${myMon.name} pelo ${hisMon.name} adversario no meio da luta!`;
+        const logMsg = `🃏 ${player.name} ativou a carta: [Sequestro Relampago]!`;
+        const fullMsg = `${logMsg}\n\n${effectLog}`;
+
+        Game.log(logMsg);
+        Game.log(effectLog);
+        Battle.logBattle(effectLog, true);
+        Game.showGlobalAlert(fullMsg, player.name, true, false);
+
+        if (Network.isOnline) {
+            Network.syncPlayerState();
+            Network.sendAction('SHOW_ALERT', { msg: fullMsg, playerName: player.name, endsTurn: false });
+            Network.sendAction('LOG', { msg: logMsg });
+            Network.sendAction('LOG', { msg: effectLog });
+            Network.sendAction('BATTLE_UPDATE', { msg: effectLog });
+        }
+    }
+
+    // =========================================================================================
     //  NOVO SISTEMA DE DEFESA AUTOMÁTICA COM PRIORIDADE
     // =========================================================================================
     static checkAutoDefense(attacker: Player, target: Player, incomingCardId: string, incomingCardName: string): boolean {
         const Game = (window as any).Game;
         const Network = (window as any).Network;
 
-        // 1. Define a prioridade baseada na carta que está atacando
         let priorityList: string[] = [];
 
         switch (incomingCardId) {
             case 'new_leader':
-                priorityList = ['old_leader', 'jam']; // Líder Velho ganha de Jam
+                priorityList = ['old_leader', 'jam']; 
                 break;
             case 'bag':
-                priorityList = ['silvertape', 'jam']; // Silver Tape ganha de Jam
+                priorityList = ['silvertape', 'jam']; 
                 break;
             case 'troques':
-                priorityList = ['no_troques', 'jam']; // Pokémon Fiel ganha de Jam
+                priorityList = ['no_troques', 'jam']; 
                 break;
             default:
-                priorityList = ['jam']; // Para o resto, só Jam resolve
+                priorityList = ['jam']; 
                 break;
         }
 
-        // 2. Procura no inventário do alvo seguindo a ordem da lista
         for (const defenseId of priorityList) {
             const defenseCardIndex = target.cards.findIndex((c: any) => c.id === defenseId);
 
             if (defenseCardIndex > -1) {
-                // --- DEFESA ENCONTRADA! ---
-
-                // A. Consome a carta de Defesa do Alvo
                 target.cards.splice(defenseCardIndex, 1);
 
-                // B. Consome a carta de Ataque do Agressor (ela é gasta mesmo falhando)
                 const attackCardIndex = attacker.cards.findIndex((c: any) => c.id === incomingCardId);
                 if (attackCardIndex > -1) attacker.cards.splice(attackCardIndex, 1);
 
-                // C. Atualiza HUD local
                 const boardModal = document.getElementById('board-cards-modal');
                 if (boardModal) boardModal.style.display = 'none';
                 Game.updateHUD();
 
-                // D. Define mensagens personalizadas
                 let blockMsg = "";
                 let logMsg = "";
 
@@ -611,7 +691,6 @@ export class Cards {
                     blockMsg = `👑 LÍDER VELHO!\n\nA tradição falou mais alto! ${target.name} invocou sua autoridade veterana e cancelou o desafio de [${incomingCardName}].`;
                     logMsg = `🚫 ${target.name} impediu o roubo de insígnia com Líder Velho!`;
                 } else {
-                    // Mensagem padrão da Interferência (Jam)
                     blockMsg = `📡 INTERFERÊNCIA!\n\n${target.name} tinha um bloqueador de sinal! A carta [${incomingCardName}] de ${attacker.name} foi anulada!`;
                     logMsg = `📡 INTERFERÊNCIA! A carta [${incomingCardName}] de ${attacker.name} foi bloqueada por ${target.name}!`;
                 }
@@ -619,9 +698,7 @@ export class Cards {
                 Game.log(logMsg);
                 Game.showGlobalAlert(blockMsg, attacker.name, true, false);
 
-                // E. Sincroniza com Firebase
                 if (Network.isOnline) {
-                    // Salva os dois jogadores simultaneamente
                     if ((Network as any).syncPlayers) {
                         (Network as any).syncPlayers([attacker.id, target.id]);
                     } else {
@@ -633,11 +710,11 @@ export class Cards {
                     Network.sendAction('LOG', { msg: blockMsg });
                 }
 
-                return true; // Retorna TRUE indicando que o ataque foi bloqueado
+                return true; 
             }
         }
 
-        return false; // Nenhuma defesa encontrada, o ataque prossegue
+        return false; 
     }
 
     static openTypeSelection(cardId: string) {
@@ -663,7 +740,6 @@ export class Cards {
             btn.innerText = type;
             btn.onclick = () => {
                 modal.style.display = 'none';
-                // Passa o tipo como targetId (que no activate tratamos como string)
                 (this as any).activate(cardId, type);
             };
             grid.appendChild(btn);
@@ -690,24 +766,17 @@ export class Cards {
         if (cardData.type === 'battle') {
             if (!Battle.active) return alert("Cartas BATTLE só podem ser usadas em batalha!");
 
-            // --- NOVA REGRA: MEGA EVOLUÇÃO / MEW BLOQUEIA CARTAS DE BATTALHA EM PVE ---
             if (!Battle.isPvP && Battle.activeMon && ((Battle.activeMon as any).isTemp || (Battle.activeMon as any).isMegaEvolution)) {
                 return alert("🧬 Seu parceiro já atingiu o poder máximo! Cartas de batalha estão bloqueadas para Mega Evoluções (ou Mew) no PvE.");
             }
         }
 
-        // --- BLOQUEIO DE USO MANUAL ---
         if (cardData.type === 'auto') {
             return alert("Esta carta não pode ser ativada manualmente. Ela protege você automaticamente quando for alvo de outra carta!");
         }
 
-        // =====================================================================
-        // NOVA LÓGICA DE DEFESA (COM FILTRO DE CARTAS OFENSIVAS)
-        // =====================================================================
-        // Lista de cartas que realmente usam targetId como um Jogador inimigo
         const offensiveCards = ['swap', 'slow', 'rocket', 'curse', 'trade_fail', 'new_leader', 'bag', 'troques', 'michael'];
 
-        // LIMITADOR DE 3 CARTAS OFENSIVAS POR TURNO
         if (offensiveCards.includes(cardId)) {
             if (!player.effects) player.effects = {};
             if ((player.effects.offensiveCardsUsed || 0) >= 3) {
@@ -716,7 +785,6 @@ export class Cards {
             }
         }
 
-        // Só verifica defesa SE a carta for ofensiva E tiver um alvo diferente de você
         if (offensiveCards.includes(cardId) && targetId !== null && targetId !== player.id) {
             const targetP = Game.players.find((p: any) => p.id === targetId);
 
@@ -724,34 +792,27 @@ export class Cards {
                 const wasBlocked = this.checkAutoDefense(player, targetP, cardId, cardData.name);
 
                 if (wasBlocked) {
-                    player.effects.offensiveCardsUsed = (player.effects.offensiveCardsUsed || 0) + 1; // Falhou, mas consumiu!
+                    player.effects.offensiveCardsUsed = (player.effects.offensiveCardsUsed || 0) + 1; 
                     if (Network.isOnline) Network.syncPlayerState();
-                    return; // Sai da função activate e impede o efeito
+                    return; 
                 }
 
-                // Ataque passou pela defesa (ou alvo não tinha defesa)
                 player.effects.offensiveCardsUsed = (player.effects.offensiveCardsUsed || 0) + 1;
             }
         }
-        // =====================================================================
 
         let consumed = true;
         let effectLog = "";
+        let alreadyRemoved = false;
 
-        // --- CONSUMO IMEDIATO PARA CARTAS GLOBAIS ---
-        // Isso resolve o bug onde o jogador ficava com a carta após usar.
-        // Ao deletar antes do efeito, evitamos que o efeito (que pode ser lento/async) 
-        // permita o re-uso ou que a carta apareça no pool de redistribuição.
         if (cardData.type === 'global') {
             const idx = player.cards.findIndex(c => c.id === cardId);
             if (idx > -1) {
                 player.cards.splice(idx, 1);
+                alreadyRemoved = true;
                 Game.updateHUD();
-                // Sincroniza imediatamente para garantir que no banco ela sumiu
                 if (Network.isOnline) Network.syncPlayerState();
             }
-            // Marcamos consumed = false para não tentar deletar de novo no final
-            consumed = false;
         }
 
         switch (cardId) {
@@ -767,7 +828,6 @@ export class Cards {
                     alert("Você já rolou o dado este turno! A carta Re-Roll deve ser usada ANTES de se mover.");
                     consumed = false;
                 } else {
-                    // Trocado de 20 para 6
                     const r1 = Math.floor(Math.random() * 6) + 1;
                     const r2 = Math.floor(Math.random() * 6) + 1;
                     Game.showDiceChoice(r1, r2);
@@ -796,7 +856,6 @@ export class Cards {
                         Game.moveVisuals();
                         effectLog = `🔀 A magia aconteceu! A posição de ${player.name} e ${target.name} foi invertida!`;
 
-                        // CORREÇÃO: Envia os dois juntos! Ninguém fica sobreposto no banco.
                         if (Network.isOnline) {
                             if ((Network as any).syncPlayers) {
                                 (Network as any).syncPlayers([player.id, target.id]);
@@ -832,16 +891,13 @@ export class Cards {
                             player.cards.push(stolenCard);
                             effectLog = `🚀 BINGO! Uma carta foi roubada e foi parar na mão de ${player.name}!`;
 
-                            // --- ENVIO DO AVISO PRIVADO PARA A VÍTIMA ---
                             const privateMsg = `🕵️ ALERTA: A Equipe Rocket roubou sua carta [${stolenCard.name}]!||PRIVATE:${target.id}`;
                             if (Network.isOnline) {
                                 Network.sendAction('LOG', { msg: privateMsg });
                             } else {
                                 Game.log(`🕵️ ALERTA: A Equipe Rocket roubou a carta [${stolenCard.name}] de ${target.name}!`);
                             }
-                            // --------------------------------------------
 
-                            // CORREÇÃO: Sincronização atômica para não perder a carta localmente!
                             if (Network.isOnline) {
                                 if ((Network as any).syncPlayers) {
                                     (Network as any).syncPlayers([player.id, target.id]);
@@ -860,9 +916,7 @@ export class Cards {
                     const target = Game.players.find((p: any) => p.id === targetId);
                     if (!target) { consumed = false; break; }
 
-                    // Aplica a maldição no banco de dados do jogador
                     target.effects.curse = true;
-
                     effectLog = `😈 MALDIÇÃO! ${target.name} causará apenas METADE do dano e não poderá usar itens na sua próxima luta de Ginásio!`;
 
                     if (Network.isOnline) {
@@ -875,20 +929,15 @@ export class Cards {
                 break;
 
             case 'holy_water':
-                // 1. Validação: Verifica se o jogador realmente tem a maldição
                 if (!player.effects.curse) {
                     alert("Você não está amaldiçoado! Guarde a Água Benta para quando precisar.");
-                    return; // Retorna aqui para NÃO gastar a carta
+                    return; 
                 }
 
-                // 2. Aplica o efeito: Remove a maldição
                 player.effects.curse = false;
-
-                // 3. Logs e Feedback
                 effectLog = `✨ ${player.name} se banhou com Água Benta!`;
                 Game.sendGlobalLog(`✨ ${player.name} usou Água Benta e purificou sua alma da Maldição!`);
 
-                // Atualiza o HUD imediatamente para sumir o ícone de caveira
                 Game.updateHUD();
                 break;
 
@@ -896,12 +945,8 @@ export class Cards {
                 if (targetId !== null) {
                     const target = Game.players.find((p: any) => p.id === targetId);
                     if (target) {
-                        // --- ALTERAÇÃO: Agora adiciona 3 turnos de punição em vez de 1 ---
                         target.skipTurns += 3;
-
-                        // Atualizamos a mensagem de log para refletir a nova força da carta
                         effectLog = `❌ Sabotagem feita com sucesso! A troca falhou terrivelmente e ${target.name} perde as próximas 3 rodadas!`;
-
                         if (Network.isOnline) Network.syncSpecificPlayer(target.id);
                     }
                 } else {
@@ -915,12 +960,25 @@ export class Cards {
                     const target = Game.players.find((p: any) => p.id === targetId);
                     if (target) {
                         this.startTradeFlow(player, target);
-                        consumed = false; // Consumido manualmente no executeTrade
+                        consumed = false; 
                     }
                 } else {
                     this.openTargetSelection(cardId);
                     consumed = false;
                 }
+                break;
+                
+            case 'illegal_adoption':
+                if (!Battle.active || Battle.isPvP || Battle.isGym || Battle.isChampion) {
+                    alert("Esta carta so pode ser usada em batalhas contra NPCs comuns ou Pokemons Selvagens!");
+                    consumed = false;
+                    break;
+                }
+                
+                document.getElementById('battle-cards-modal')!.style.display = 'none';
+
+                this.startNPCBattleTradeFlow(player);
+                consumed = false; 
                 break;
 
             case 'time': player.effects.extraTurn = true; effectLog = "⏳ O tempo congelou! O jogador terá mais um turno imediato."; break;
@@ -928,7 +986,6 @@ export class Cards {
             case 'new_leader':
                 const myBadgesCount = player.badges.filter((b: boolean) => b).length;
                 if (myBadgesCount >= 7) {
-                    // --- SUBSTITUIU O ALERT ---
                     Game.showGlobalAlert("A Liga Pokémon interveio! É proibido usar a carta 'Novo Líder' quando falta apenas 1 Insígnia para vencer o jogo. Conquiste a última com seu próprio suor!", player.name, true, false);
                     consumed = false;
                     break;
@@ -946,7 +1003,6 @@ export class Cards {
                     }
 
                     if (stealableBadges.length === 0) {
-                        // --- SUBSTITUIU O ALERT ---
                         Game.showGlobalAlert(`O jogador ${target.name} não possui nenhuma Insígnia nova para você roubar!`, player.name, true, false);
                         consumed = false;
                         break;
@@ -954,7 +1010,6 @@ export class Cards {
 
                     const targetTeam = target.getBattleTeam(false);
                     if (targetTeam.length === 0) {
-                        // --- SUBSTITUIU O ALERT ---
                         Game.showGlobalAlert(`O jogador ${target.name} está sem Pokémons vivos! Tente mais tarde.`, player.name, true, false);
                         consumed = false;
                         break;
@@ -971,41 +1026,35 @@ export class Cards {
                 }
                 break;
 
-            // BATTLE CARDS
             case 'crit':
-                Battle.activeEffects.crit = 3; // Define 3 cargas
+                Battle.activeEffects.crit = 3; 
                 Battle.logBattle("💥 Super Crítico! Seus próximos 3 acertos causarão dobro de dano.");
                 break;
 
             case 'master':
-                // Impede o uso contra outros jogadores, NPCs ou Ginásios
                 if (Battle.isPvP || Battle.isNPC || Battle.isGym) {
                     alert("A carta Master Ball só pode ser usada contra Pokémons Selvagens!");
                     consumed = false;
                     break;
                 }
 
-                // Mapeia todas as bolas disponíveis na bolsa do jogador
                 const balls = [];
                 if (player.items['pokeball'] > 0) balls.push({ id: 'pokeball', name: 'Pokébola', count: player.items['pokeball'] });
                 if (player.items['greatball'] > 0) balls.push({ id: 'greatball', name: 'Greatball', count: player.items['greatball'] });
                 if (player.items['ultraball'] > 0) balls.push({ id: 'ultraball', name: 'Ultraball', count: player.items['ultraball'] });
 
-                // Se não tiver nenhuma bola, bloqueia a carta
                 if (balls.length === 0) {
                     alert("Você precisa ter pelo menos uma Pokébola na mochila para usar a magia desta carta!");
                     consumed = false;
                     break;
                 }
 
-                // Chama a nossa nova telinha e pausa o uso (consumed = false)
-                // A carta só será apagada da mão DEPOIS que ele clicar em uma bola
                 this.showBallChoice(balls);
                 consumed = false;
                 break;
 
             case 'run':
-                player.effects.escapedGym = true; // <--- PASSO 4: IMUNIDADE NINJA AQUI!
+                player.effects.escapedGym = true; 
                 Battle.logBattle("💨 Fugiu com estilo!");
                 if (Network.isOnline) Network.syncPlayerState();
                 Battle.end(false);
@@ -1021,18 +1070,15 @@ export class Cards {
                 const PokemonClass = (window as any).Pokemon || Game.players[0].team[0].constructor;
                 const mew = new PokemonClass(150, Battle.activeMon.level, false);
                 mew.name = "MewTwo (Aliado)";
-                mew.heal(9999); // Garante HP cheio
+                mew.heal(9999); 
                 (mew as any).isTemp = true;
 
-                // 1. Salva o Pokémon atual e a posição dele na equipe
                 const originalIndex = player.team.indexOf(Battle.activeMon);
                 Battle.activeEffects.mewOriginal = Battle.activeMon;
                 Battle.activeEffects.mewIndex = originalIndex;
 
-                // 2. Substitui o Pokémon original pelo Mew no time principal
                 if (originalIndex !== -1) player.team[originalIndex] = mew;
 
-                // 3. Substitui também na HUD visual da Batalha
                 const plyIdx = Battle.plyTeamList.indexOf(Battle.activeMon);
                 if (plyIdx !== -1) Battle.plyTeamList[plyIdx] = mew;
 
@@ -1050,11 +1096,9 @@ export class Cards {
                 }
 
                 if (targetId !== null) {
-                    // Lógica de Aplicação da Pedra
                     const targetMon = player.team[targetId];
                     if (!targetMon) { consumed = false; break; }
 
-                    // Import dinâmico ou use o import do topo se já tiver
                     const { MAPA_MEGAS } = await import('../constants/mapaMegas');
 
                     if (!MAPA_MEGAS[targetMon.id]) {
@@ -1069,7 +1113,6 @@ export class Cards {
                         break;
                     }
 
-                    // APLICAÇÃO BEM SUCEDIDA
                     targetMon.megaStone = true;
                     effectLog = `💎 A Mega Pedra começou a brilhar intensamente junto de ${targetMon.name}!`;
 
@@ -1079,7 +1122,6 @@ export class Cards {
                     if (Network.isOnline) Network.syncPlayerState();
 
                 } else {
-                    // Abre seleção filtrando apenas quem pode Mega Evoluir
                     this.openMegaSelection(cardId);
                     consumed = false;
                 }
@@ -1087,7 +1129,6 @@ export class Cards {
 
             case 'rare_candy':
                 if (targetId !== null) {
-                    // Como chamamos na função acima, targetId aqui é a posição do Pokémon na equipe!
                     const targetMon = player.team[targetId];
                     if (!targetMon) { consumed = false; break; }
 
@@ -1097,27 +1138,19 @@ export class Cards {
                         break;
                     }
 
-                    // 1. Salva o XP atual para não perder o progresso da barra
                     const preservedXp = targetMon.currentXp;
-
-                    // 2. Chama a função de Level Up (Ela já sorteia os status, cura, e evolui se precisar)
                     targetMon.levelUp(player);
-
-                    // 3. Devolve o XP salvo (e garante que o limite seja o do novo nível)
                     targetMon.currentXp = preservedXp;
 
                     effectLog = `🍬 Que delícia! O Rare Candy fez efeito mágico!`;
 
-                    // Esconde a janela de cartas de tabuleiro se estiver aberta
                     const boardModal = document.getElementById('board-cards-modal');
                     if (boardModal) boardModal.style.display = 'none';
 
-                    // Salva no banco de dados para ninguém perder o level up
                     if (Network.isOnline) {
                         Network.syncPlayerState();
                     }
                 } else {
-                    // Se não tem alvo ainda, abre a tela para escolher o Pokémon e NÃO gasta a carta
                     this.openPokemonSelectionForCard(cardId);
                     consumed = false;
                 }
@@ -1126,24 +1159,17 @@ export class Cards {
             case 'evoluir':
                 if (targetId !== null) {
                     const targetMon = player.team[targetId];
-                    // Dupla verificação de segurança
                     if (!targetMon || !targetMon.evoData || !targetMon.evoData.next) {
                         consumed = false;
                         break;
                     }
 
-                    // 1. Salvamos o gatilho de level original
                     const originalTrigger = targetMon.evoData.trigger;
-
-                    // --- CORREÇÃO: "Enganamos" o sistema do Pokémon dizendo que ele evolui no level 1 ---
                     targetMon.evoData.trigger = 1;
-                    // -----------------------------------------------------------------------------------
 
-                    // 3. Chamamos a função oficial de evolução 
                     const evolved = targetMon.checkEvolution(player);
 
                     if (!evolved) {
-                        // Se algo der errado e ele não evoluir, desfazemos o truque
                         targetMon.evoData.trigger = originalTrigger;
                         consumed = false;
                         break;
@@ -1154,21 +1180,17 @@ export class Cards {
                     const boardModal = document.getElementById('board-cards-modal');
                     if (boardModal) boardModal.style.display = 'none';
 
-                    // Salva no banco de dados para os outros verem sua nova forma
                     if (Network.isOnline) {
                         Network.syncPlayerState();
                     }
                 } else {
-                    // Se não escolheu o alvo ainda, abre a lista
                     this.openEvolutionSelectionForCard(cardId);
                     consumed = false;
                 }
                 break;
 
             case 'shiny':
-                // Cria a propriedade e define a duração para 3 rodadas
                 player.effects.lureShiny = 3;
-
                 effectLog = `✨ Uma aura brilhante envolve ${player.name}! Suas chances de encontrar Pokémons Shinies subiram para 15% pelas próximas 3 rodadas!`;
 
                 const boardModalShiny = document.getElementById('board-cards-modal');
@@ -1179,19 +1201,13 @@ export class Cards {
                 }
                 break;
 
-            // =========================================================
-            // NOVAS CARTAS E GLOBAIS
-            // =========================================================
-
             case 'communism':
-                // 1. Lógica Robusta de Distribuição
                 if (Network.isOnline) {
                     try {
                         const { ref, update, getDatabase, get } = await import('firebase/database');
                         const db = (window as any).db || getDatabase();
                         const roomPath = `rooms/${Network.currentRoomId}`;
 
-                        // PASSO A: Busca o Snapshot real da sala para ter todas as cartas de todos
                         const roomSnap = await get(ref(db, roomPath));
                         const roomData = roomSnap.val();
 
@@ -1202,7 +1218,6 @@ export class Cards {
                         let allCardsPool: any[] = [];
                         const playerIds = Object.keys(roomData.players);
 
-                        // Coleta todas as cartas de todos os jogadores (usando dados do banco)
                         playerIds.forEach(id => {
                             const pData = roomData.players[id];
                             if (pData.cards && Array.isArray(pData.cards)) {
@@ -1215,15 +1230,6 @@ export class Cards {
                             }
                         });
 
-                        if (allCardsPool.length === 0) {
-                            // Se não havia nenhuma carta além da própria usada (que já foi tirada do local antes da coleta? 
-                            // Não, se tiramos do local antes da coleta do banco, temos que garantir que ela sumiu no banco também se era a do ativador)
-                            // Na verdade, a carta usada ainda pode estar no banco se não sincronizamos antes.
-                            // Vamos filtrar a carta 'communism' que acabou de ser usada para não voltar pro pool.
-                            // Mas melhor ainda: quem usou já tirou localmente.
-                        }
-
-                        // ETAPA 1: Salva no espaço global e esvazia jogadores no Firebase (Atômico)
                         const syncAllUpdates: any = {};
                         syncAllUpdates[`${roomPath}/global/communism/cards`] = allCardsPool;
                         playerIds.forEach(id => {
@@ -1231,7 +1237,6 @@ export class Cards {
                         });
                         await update(ref(db), syncAllUpdates);
 
-                        // ETAPA 2: Embaralha e Redistribui as cartas
                         for (let i = allCardsPool.length - 1; i > 0; i--) {
                             const j = Math.floor(Math.random() * (i + 1));
                             [allCardsPool[i], allCardsPool[j]] = [allCardsPool[j], allCardsPool[i]];
@@ -1247,24 +1252,21 @@ export class Cards {
                             for (let i = 0; i < perPlayer; i++) {
                                 if (allCardsPool.length > 0) newHand.push(allCardsPool.pop());
                             }
-                            // Atualiza localmente se for o jogador atual
                             if (parseInt(id) === player.id) {
                                 player.cards = newHand;
                             }
                             finalSyncUpdates[`${roomPath}/players/${id}/cards`] = newHand.length > 0 ? newHand : null;
                         });
 
-                        // ETAPA 3: Deleta o espaço global e salva nova distribuição (Atômico)
                         finalSyncUpdates[`${roomPath}/global/communism`] = null;
                         await update(ref(db), finalSyncUpdates);
 
-                        effectLog = `☭ REVOLUÇÃO GLOBAL! Todas as cartas do jogo foram coletadas e redistribuídas igualmente! Cada jogador agora tem ${perPlayer} cartas. (${leftovers} foram destruídas pelo bem da nação)`;
+                        effectLog = `REVOLUCAO GLOBAL! Todas as cartas do jogo foram coletadas e redistribuidas igualmente! Cada jogador agora tem ${perPlayer} cartas. (${leftovers} foram destruidas pelo bem da nacao)`;
                     } catch (err) {
                         console.error("Erro no Comunismo Online:", err);
                         effectLog = "Erro na redistribuição global. Verifique o console ou a conexão.";
                     }
                 } else {
-                    // Lógica Offline (Usa Game.players local)
                     let offlinePool: any[] = [];
                     Game.players.forEach((p: any) => {
                         offlinePool = [...offlinePool, ...(p.cards || [])];
@@ -1284,12 +1286,9 @@ export class Cards {
                             if (offlinePool.length > 0) p.cards.push(offlinePool.pop());
                         }
                     });
-                    effectLog = `☭ REVOLUÇÃO local! As cartas foram redistribuídas igualmente! Cada jogador agora tem ${perPlayer} cartas. (${leftovers} destruídas)`;
+                    effectLog = `REVOLUCAO local! As cartas foram redistribuidas igualmente! Cada jogador agora tem ${perPlayer} cartas. (${leftovers} destruidas)`;
                 }
 
-                // Já consumido no topo de activate
-
-                // 4. Atualiza UI e envia os Logs personalizados
                 Game.updateHUD();
                 const boardModalC = document.getElementById('board-cards-modal');
                 if (boardModalC) boardModalC.style.display = 'none';
@@ -1313,14 +1312,12 @@ export class Cards {
                 break;
 
             case 'imposto':
-                // 2. Lógica de Redução Global
                 if (Network.isOnline) {
                     try {
                         const { ref, update, getDatabase, get } = await import('firebase/database');
                         const db = (window as any).db || getDatabase();
                         const roomPath = `rooms/${Network.currentRoomId}`;
 
-                        // PASSO A: Snapshot real para evitar inconsistência local
                         const roomSnap = await get(ref(db, roomPath));
                         const roomData = roomSnap.val();
                         if (!roomData || !roomData.players) throw new Error("Dados da sala não encontrados.");
@@ -1333,7 +1330,6 @@ export class Cards {
                         playerIds.forEach(id => {
                             const pData = roomData.players[id];
 
-                            // Redução de Cartas (50%)
                             const cards = pData.cards ? [...pData.cards] : [];
                             if (parseInt(id) === player.id) {
                                 const impIdx = cards.findIndex((c: any) => c.id === cardId);
@@ -1349,7 +1345,6 @@ export class Cards {
                                 }
                             }
 
-                            // Redução de Itens (50% de cada tipo)
                             const items = pData.items || {};
                             Object.keys(items).forEach(k => {
                                 if (items[k] > 0) {
@@ -1359,11 +1354,9 @@ export class Cards {
                                 }
                             });
 
-                            // Prepara o update para este jogador
                             impUpdates[`${roomPath}/players/${id}/cards`] = cards.length > 0 ? cards : null;
                             impUpdates[`${roomPath}/players/${id}/items`] = items;
 
-                            // Sincroniza localmente se for o jogador atual
                             if (parseInt(id) === player.id) {
                                 player.cards = cards;
                                 player.items = items;
@@ -1371,14 +1364,13 @@ export class Cards {
                         });
 
                         await update(ref(db), impUpdates);
-                        effectLog = `📜 A RECEITA FEDERAL CHEGOU! O Leão abocanhou a conta de todos na mesa! (${totalCardsL} cartas e ${totalItemsL} itens retidos!)`;
+                        effectLog = `A RECEITA FEDERAL CHEGOU! O Leao abocanhou a conta de todos na mesa! (${totalCardsL} cartas e ${totalItemsL} itens retidos!)`;
 
                     } catch (err) {
                         console.error("Erro no Imposto Online:", err);
                         effectLog = "Erro na coleta de impostos global. Verifique o console.";
                     }
                 } else {
-                    // Lógica Offline
                     let totalOfflineC = 0;
                     let totalOfflineI = 0;
                     Game.players.forEach((p: any) => {
@@ -1393,12 +1385,9 @@ export class Cards {
                             totalOfflineI += toRemI;
                         });
                     });
-                    effectLog = `📜 IMPOSTO! O Leão passou por aqui! (${totalOfflineC} cartas e ${totalOfflineI} itens perdidos!)`;
+                    effectLog = `IMPOSTO! O Leao passou por aqui! (${totalOfflineC} cartas e ${totalOfflineI} itens perdidos!)`;
                 }
 
-                // Já consumido no topo de activate
-
-                // 3. Atualiza UI e envia os Logs
                 Game.updateHUD();
                 const boardModalI = document.getElementById('board-cards-modal');
                 if (boardModalI) boardModalI.style.display = 'none';
@@ -1423,12 +1412,12 @@ export class Cards {
 
             case 'doublexp':
                 player.effects.doubleXp = 5;
-                effectLog = `🚻 O conhecimento flui! Os próximos 5 ganhos de XP de ${player.name} serão em dobro!`;
+                effectLog = `O conhecimento flui! Os proximos 5 ganhos de XP de ${player.name} serao em dobro!`;
                 break;
 
             case 'expshare':
                 player.effects.expShare = 5;
-                effectLog = `🤩 Exp Share Ativado! Os próximos 5 ganhos de XP de ${player.name} serão distribuídos para toda a equipe!`;
+                effectLog = `Exp Share Ativado! Os proximos 5 ganhos de XP de ${player.name} serao distribuidos para toda a equipe!`;
                 break;
 
             case 'sniper':
@@ -1450,12 +1439,10 @@ export class Cards {
                         break;
                     }
 
-                    // Calcula a metade dos itens
                     let itemsToRemove = Math.floor(totalItems / 2);
                     if (itemsToRemove < 1) itemsToRemove = 1;
 
                     let removedCount = 0;
-                    // Fura a bolsa e tira itens aleatórios 1 a 1 até a metade sumir
                     while (removedCount < itemsToRemove) {
                         const keys = Object.keys(target.items).filter(k => target.items[k] > 0);
                         if (keys.length === 0) break;
@@ -1464,7 +1451,7 @@ export class Cards {
                         removedCount++;
                     }
 
-                    effectLog = `🎒 Ouch! A bolsa de ${target.name} foi rasgada! Caiu e perdeu ${removedCount} itens aleatórios pelo caminho.`;
+                    effectLog = `Ouch! A bolsa de ${target.name} foi rasgada! Caiu e perdeu ${removedCount} itens aleatorios pelo caminho.`;
                     if (Network.isOnline) Network.syncSpecificPlayer(target.id);
                 } else {
                     this.openTargetSelection(cardId);
@@ -1478,23 +1465,23 @@ export class Cards {
                     if (target) {
                         if (!target.effects) target.effects = {};
                         target.effects.moonwalker = 3;
-                        effectLog = `💃 Moon Walker! ${target.name} vai andar para TRÁS nas próximas 3 jogadas!`;
+                        effectLog = `Moon Walker! ${target.name} vai andar para TRAS nas proximas 3 jogadas!`;
                         if (Network.isOnline) Network.syncSpecificPlayer(target.id);
                     } else { consumed = false; }
                 } else { this.openTargetSelection(cardId); consumed = false; }
                 break;
 
             case 'katrina':
-                const mapSize = (window as any).MapSystem.size;
+                const mapSize = MapSystem.size;
                 const totalTilesK = mapSize * mapSize;
                 Game.players.forEach((p: any) => {
                     const randomIdx = Math.floor(Math.random() * totalTilesK);
-                    const coord = (window as any).MapSystem.getCoord(randomIdx);
+                    const coord = MapSystem.getCoord(randomIdx);
                     p.x = coord.x;
                     p.y = coord.y;
                 });
                 Game.moveVisuals();
-                effectLog = "🌪️ O FURACÃO KATRINA PASSOU! Todos os jogadores foram soprados para casas aleatórias!";
+                effectLog = "O FURACAO KATRINA PASSOU! Todos os jogadores foram soprados para casas aleatorias!";
                 if (Network.isOnline) {
                     if ((Network as any).syncPlayers) {
                         (Network as any).syncPlayers(Game.players.map((p: any) => p.id));
@@ -1508,7 +1495,7 @@ export class Cards {
                 if (typeof targetId === 'string') {
                     const chosenType = targetId;
                     player.effects.lureType = { type: chosenType, count: 2 };
-                    effectLog = `🆎 Lure Type ativado! Os próximos 2 selvagens serão do tipo ${chosenType}!`;
+                    effectLog = `Lure Type ativado! Os proximos 2 selvagens serao do tipo ${chosenType}!`;
                 } else {
                     this.openTypeSelection(cardId);
                     consumed = false;
@@ -1519,14 +1506,15 @@ export class Cards {
         }
 
         if (consumed) {
-            const idx = player.cards.findIndex(c => c.id === cardId);
-            if (idx > -1) player.cards.splice(idx, 1);
+            if (!alreadyRemoved) {
+                const idx = player.cards.findIndex(c => c.id === cardId);
+                if (idx > -1) player.cards.splice(idx, 1);
+            }
 
             Game.updateHUD();
             document.getElementById('board-cards-modal')!.style.display = 'none';
             document.getElementById('battle-cards-modal')!.style.display = 'none';
 
-            // 1. ANÚNCIO GERAL NOMINAL
             let targetName = "";
             if (targetId !== null) {
                 const targetObj = Game.players.find((p: any) => p.id === targetId);
@@ -1540,37 +1528,29 @@ export class Cards {
                 logMsg = `🃏 ${player.name} usou a carta [${cardData.name}] contra ${targetName}!`;
             }
 
-            // Junta as mensagens para o Alerta na Tela
             let fullMsg = logMsg;
             if (effectLog) fullMsg += `\n\n${effectLog}`;
 
             Game.log(logMsg);
             if (effectLog) Game.log(effectLog);
 
-            // --- BLINDAGEM ANTI-CHOQUE DE JANELAS ---
-            // Ignora o pop-up local para cartas que já abrem suas próprias janelas interativas na mesma hora.
-            if (cardId !== 'new_leader' && cardId !== 'reroll' && cardId !== 'dice') {
+            if (cardId !== 'new_leader' && cardId !== 'reroll' && cardId !== 'dice' && cardId !== 'illegal_adoption') {
                 Game.showGlobalAlert(fullMsg + `||CARD:${cardId}`, player.name, true, false);
             }
-            // ----------------------------------------
 
             if (Network.isOnline) {
                 Network.syncPlayerState();
 
-                if (cardId !== 'new_leader' && cardId !== 'reroll' && cardId !== 'dice') {
+                if (cardId !== 'new_leader' && cardId !== 'reroll' && cardId !== 'dice' && cardId !== 'illegal_adoption') {
                     Network.sendAction('SHOW_ALERT', {
-                        //msg: fullMsg, 
                         msg: fullMsg + `||CARD:${cardId}`,
                         playerName: player.name,
                         endsTurn: false
                     });
 
-                    // --- CORREÇÃO: Envia o texto para o Histórico (Log lateral) de todos os outros jogadores! ---
                     Network.sendAction('LOG', { msg: logMsg });
                     if (effectLog) Network.sendAction('LOG', { msg: effectLog });
-                    // -------------------------------------------------------------------------------------------
                 } else {
-                    // Para o Novo Líder, Dado e Reroll no Online, só manda os logs laterais para não encavalar com a UI
                     Network.sendAction('LOG', { msg: logMsg });
                     if (effectLog) Network.sendAction('LOG', { msg: effectLog });
                 }

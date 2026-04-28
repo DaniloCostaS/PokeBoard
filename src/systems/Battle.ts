@@ -52,13 +52,11 @@ export class Battle {
         this.isAutoPvE = false;
         this.currentTerrain = terrainTile;
 
-        // --- LÓGICA DE SELEÇÃO DE TIMES (INCLUI NERF NOVO LÍDER) ---
         if (isPvP && enemyPlayer) {
             if (this.activeEffects.stealBadgeFrom !== undefined && this.activeEffects.stealBadgeFrom !== null) {
                 const myRandomTeam = [...player.team].sort(() => Math.random() - 0.5).slice(0, 3);
                 const oppRandomTeam = [...enemyPlayer.team].sort(() => Math.random() - 0.5).slice(0, 3);
 
-                // Força a cura máxima burlando qualquer trava de desmaio
                 myRandomTeam.forEach(p => p.currentHp = p.maxHp);
                 oppRandomTeam.forEach(p => p.currentHp = p.maxHp);
 
@@ -91,25 +89,24 @@ export class Battle {
                 Game.sendGlobalLog(`🏛️ O Desafio dos Líderes curou o time de ${player.name} totalmente antes da batalha!`);
             }
 
-            // --- TRADUTOR DE GINÁSIOS ---
             const actualGymId = Game.activeGyms ? Game.activeGyms[gymId - 1] : gymId;
             const gymData = GYM_DATA.find(g => g.id === actualGymId);
-            // ----------------------------
 
             const globalAvg = Game.getGlobalAverageLevel();
             const gymLevel = globalAvg + 1;
             const teamSize = Math.min(6, Math.max(2, Game.getGlobalAverageTeamSize() + 1));
             const dynamicTeams = Game.gymTeams || {};
 
-            // Usa o actualGymId para puxar a equipe correta
             let rosterIds = dynamicTeams[actualGymId] || (gymData ? gymData.teamIds : [130]);
+
+            // Embaralha o roster para o ginásio escolher Pokémons de forma aleatória
+            rosterIds = [...rosterIds].sort(() => Math.random() - 0.5);
+
             const battleIds = rosterIds.slice(0, teamSize);
 
             this.oppTeamList = battleIds.map((id: number) => new Pokemon(id, gymLevel, false, true));
             this.opponent = this.oppTeamList[0];
 
-            //this.plyTeamList = player.getBattleTeam(true);
-            // --- CORREÇÃO: Garante que o jogador use TODO o time vivo no Ginásio ---
             this.plyTeamList = player.team.filter(p => !p.isFainted());
             if (this.plyTeamList.length === 0) {
                 this.plyTeamList = player.team.filter(p => !p.isFainted());
@@ -117,14 +114,17 @@ export class Battle {
         } else {
             this.oppTeamList = Array.isArray(enemyMon) ? enemyMon : [enemyMon];
             this.opponent = this.oppTeamList[0];
-            //this.plyTeamList = player.getBattleTeam(true); 
-            // --- CORREÇÃO: Garante que o jogador use TODO o time vivo no PvE ---
             this.plyTeamList = player.team.filter(p => !p.isFainted());
         }
 
-        // =====================================================================
-        // NOVO: APLICA BUFFS DA POKÉDEX (RESSONÂNCIA)
-        // =====================================================================
+        if (this.isNPC) {
+            this.oppTeamList.forEach(mon => {
+                if (MAPA_MEGAS[mon.id] && Math.random() < 0.33) {
+                    mon.megaStone = true;
+                }
+            });
+        }
+
         this.plyTeamList.forEach(mon => {
             this.applyResonanceBonus(player, mon);
         });
@@ -135,12 +135,10 @@ export class Battle {
             });
         }
 
-        // Log para avisar o jogador se houver bônus
         const activeResonance = (this.plyTeamList[0] as any).resonantBonus;
         if (activeResonance) {
             setTimeout(() => this.logBattle(`🧬 Ressonância Genética: ${this.plyTeamList[0].name} está ${activeResonance}% mais forte!`, true), 800);
         }
-        // =====================================================================
 
         if (this.plyTeamList.length === 0) {
             Game.handleTotalDefeat(player);
@@ -154,11 +152,10 @@ export class Battle {
             this.logBattle("😈 CUIDADO! Você entrou no Ginásio Amaldiçoado! Dano reduzido e Itens bloqueados!", true);
         }
 
-        // EVENTO: TEMPESTADE DE AREIA (Machuca no início)
         if (Game.currentGlobalEvent?.id === 'SANDSTORM') {
             const hurtSand = (mon: Pokemon) => {
                 if (!['Pedra', 'Terra', 'Aço'].includes(mon.type) && (!mon.secondType || !['Pedra', 'Terra', 'Aço'].includes(mon.secondType))) {
-                    mon.currentHp = Math.max(1, Math.floor(mon.currentHp * 0.9)); // Perde 10%
+                    mon.currentHp = Math.max(1, Math.floor(mon.currentHp * 0.9));
                 }
             };
             this.plyTeamList.forEach(hurtSand);
@@ -201,29 +198,28 @@ export class Battle {
         this.isPvP = false;
         this.isNPC = true;
         this.isGym = false;
-        this.isChampion = true; // <--- LIGA O MODO FINAL!
+        this.isChampion = true;
 
         this.player = player;
 
-        // --- CORREÇÃO: Pega todo o time vivo igual no Ginásio ---
         this.plyTeamList = player.team.filter(p => !p.isFainted());
 
-        // Recria o time do campeão usando os dados do Firebase
         const PokemonClass = (window as any).Pokemon || player.team[0].constructor;
         this.oppTeamList = championData.team.map((td: any) => {
             const po = new PokemonClass(td.id, td.level, td.isShiny);
             Object.assign(po, td);
-            po.currentHp = po.maxHp; // Cura total do chefão
+            po.currentHp = po.maxHp;
             return po;
         });
+
+        // Embaralha o time do campeão para o primeiro pokémon ser selecionado de forma aleatória
+        this.oppTeamList.sort(() => Math.random() - 0.5);
         this.opponent = this.oppTeamList[0];
 
         this.battleTitle = `🏆 CAMPEÃO ATUAL: ${championData.name.toUpperCase()} 🏆`;
 
-        // --- CORREÇÃO: Chama a tela de escolha em vez de travar a batalha ---
         const contextTitle = `🏆 <b>DESAFIO AO CAMPEÃO ${championData.name.toUpperCase()}!</b><br><small style="color:#f1c40f; font-size:0.9rem;">Escolha seu Pokémon para a Batalha Final!</small>`;
         this.openSelectionModal(contextTitle);
-        // ------------------------------------------------------------------
 
         const Game = (window as any).Game;
         Game.sendGlobalLog(`⚔️ O DESAFIO FINAL! ${player.name} está enfrentando o Campeão ${championData.name}!`);
@@ -234,9 +230,7 @@ export class Battle {
         const modal = document.getElementById('pkmn-select-modal')!;
         const list = document.getElementById('pkmn-select-list')!;
 
-        // --- CORREÇÃO: Usar innerHTML para aceitar formatação bonitinha ---
         document.getElementById('select-title')!.innerHTML = title;
-        // -----------------------------------------------------------------
 
         list.innerHTML = '';
         this.plyTeamList.forEach((mon) => {
@@ -249,7 +243,6 @@ export class Battle {
         modal.style.display = 'flex';
     }
 
-    // Helper para pausas assíncronas
     static wait(ms: number) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
@@ -260,7 +253,6 @@ export class Battle {
         this.active = true;
         this.activeMon = selectedMon;
 
-        // Tenta Mega Evoluir ao entrar em campo
         this.tryTriggerMegaEvolution("ressoou no início da batalha");
         this.tryOpponentMegaEvolution("ressoou no início da batalha");
 
@@ -283,35 +275,23 @@ export class Battle {
             const npcName = (this.opponent as any)._npcName || "";
             const startingId = this.player!.id;
 
-            // --- CORREÇÃO VISUAL DE ESPECTADOR ---
-            // Antes usávamos findIndex pelo ID, o que causava bug em times com Pokémons repetidos
-            // (ex: 2 Geodudes). O sistema achava sempre o primeiro (índice 0) e mostrava o pokémon morto.
-
             let targetIdx = 0;
             if (this.opponent && this.oppTeamList.length > 0) {
-                // 1. Tenta achar pela referência exata do objeto na memória (Infalível para o Host)
                 targetIdx = this.oppTeamList.indexOf(this.opponent);
 
-                // 2. Fallback de segurança: Se por algum motivo a referência for perdida,
-                // busca pelo ID mas ignora os desmaiados para não pegar o morto do índice 0.
                 if (targetIdx === -1) {
                     targetIdx = this.oppTeamList.findIndex(p => p.id === this.opponent!.id && !p.isFainted());
                 }
 
-                // 3. Último caso, volta para 0
                 if (targetIdx === -1) targetIdx = 0;
             }
-            // ------------------------------------------------------
 
             Network.sendAction('BATTLE_START', {
                 pId: this.player!.id,
                 monIdx: this.player!.team.indexOf(this.activeMon),
                 oppTeam: Network.getSanitizedTeam(this.oppTeamList),
                 plyTeam: Network.getSanitizedTeam(this.plyTeamList),
-
-                // Agora enviamos o índice correto, mesmo se houver pokémons repetidos
                 oppIdx: targetIdx,
-
                 isPvP: this.isPvP,
                 reward: this.reward,
                 enemyId,
@@ -326,21 +306,17 @@ export class Battle {
         }
     }
 
-    // --- NOVA FUNÇÃO CENTRALIZADA DE MEGA EVOLUÇÃO ---
     static tryTriggerMegaEvolution(contextMsg: string = "reagiu durante o combate") {
         const Game = (window as any).Game;
-        if (Game.currentGlobalEvent?.id === 'MEGA_BLOCK') return; // Bloqueio Global!
+        if (Game.currentGlobalEvent?.id === 'MEGA_BLOCK') return;
 
         if (!this.activeMon || !this.activeMon.megaStone) return;
-        if ((this.activeMon as any).isTemp) return; // Já está Mega Evoluído
+        if ((this.activeMon as any).isTemp) return;
 
         const megaId = MAPA_MEGAS[this.activeMon.id];
 
-        // Chance de 10%
         if (megaId && Math.random() < 0.10) {
-            // Pequeno atraso para não atropelar a renderização ou logs anteriores
             setTimeout(() => {
-                // Validação dupla caso o pokémon tenha morrido ou trocado nesse meio tempo
                 if (!this.activeMon || (this.activeMon as any).isTemp) return;
 
                 this.performMegaEvolution(megaId);
@@ -349,7 +325,6 @@ export class Battle {
         }
     }
 
-    // --- NOVA FUNÇÃO CENTRALIZADA DE MEGA EVOLUÇÃO (OPONENTE) ---
     static tryOpponentMegaEvolution(contextMsg: string = "reagiu durante o combate") {
         const Game = (window as any).Game;
         if (Game.currentGlobalEvent?.id === 'MEGA_BLOCK') return;
@@ -357,9 +332,7 @@ export class Battle {
         if (!this.opponent) return;
         if ((this.opponent as any).isTemp) return;
 
-        // Em PvP, o adversário só mega evolui se tiver a pedra equipada
-        // Em PvE (selvagem, NPC, Ginásio), basta o Pokémon ter uma forma Mega existente
-        if (this.isPvP && !this.opponent.megaStone) return;
+        if (!this.opponent.megaStone) return;
 
         const megaId = MAPA_MEGAS[this.opponent.id];
         if (megaId && Math.random() < 0.10) {
@@ -376,16 +349,13 @@ export class Battle {
         const btns = document.querySelectorAll('.battle-actions button');
 
         const isMyBattle = Network.isOnline ? (this.player && this.player.id === Network.myPlayerId) : true;
-        // Se estiver em Auto Mode PvE, travamos os botões normais, mas deixamos o de Auto liberado para poder cancelar
         const canAct = this.isPlayerTurn && !this.processingAction && isMyBattle;
 
         btns.forEach((btn: Element) => {
             const htmlBtn = btn as HTMLButtonElement;
-            // O botão de Auto (id btn-auto-pve) tem regra própria
             if (htmlBtn.id === 'btn-auto-pve') {
-                htmlBtn.disabled = !isMyBattle; // Só desabilita se não for minha batalha
+                htmlBtn.disabled = !isMyBattle;
             } else {
-                // Se o Auto estiver ligado, desabilita tudo (menos o próprio botão auto, tratado acima)
                 if (this.isAutoPvE) htmlBtn.disabled = true;
                 else htmlBtn.disabled = !canAct;
             }
@@ -394,13 +364,12 @@ export class Battle {
         const runBtn = document.getElementById('btn-run') as HTMLButtonElement;
         const autoBtn = document.getElementById('btn-auto-pve') as HTMLButtonElement;
 
-        // Regras de visibilidade e bloqueio específicas
         if (this.isChampion) {
-            if (runBtn) runBtn.disabled = true; // Impede fugir do Campeão
+            if (runBtn) runBtn.disabled = true;
             if (autoBtn) autoBtn.style.display = 'block';
         } else if (this.isPvP) {
             if (runBtn) runBtn.disabled = true;
-            if (autoBtn) autoBtn.style.display = 'none'; // Esconde Auto PvE no PvP
+            if (autoBtn) autoBtn.style.display = 'none';
         } else if (this.isGym) {
             if (runBtn) runBtn.disabled = true;
             if (autoBtn) autoBtn.style.display = 'block';
@@ -409,7 +378,6 @@ export class Battle {
         }
     }
 
-    // --- NOVO SISTEMA: AUTO BATTLE PVE ---
     static toggleAutoPvE() {
         this.isAutoPvE = !this.isAutoPvE;
 
@@ -420,7 +388,6 @@ export class Battle {
                 btn.classList.add('active-auto');
                 this.logBattle("⚡ Modo Automático ativado!", true);
 
-                // Se não estiver processando nada agora, já inicia o ataque
                 if (!this.processingAction) {
                     this.attack();
                 }
@@ -432,10 +399,9 @@ export class Battle {
         }
     }
 
-    // --- NOVAS FUNÇÕES DO AUTO-BATTLER ---
     static startAutoPvP() {
         if (!this.isPvP) return;
-        this.processingAction = true; // Trava os botões
+        this.processingAction = true;
         this.updateButtons();
         this.logBattle(`⚔️ A Batalha Automática começou!`, true);
         setTimeout(() => this.autoAttackNext(), 1500);
@@ -444,16 +410,13 @@ export class Battle {
     static autoAttackNext() {
         if (!this.active || !this.isPvP) return;
 
-        // --- TENTA MEGA EVOLUIR ANTES DO PRÓXIMO GOLPE ---
         this.tryTriggerMegaEvolution("ressoou no decorrer do combate");
         this.tryOpponentMegaEvolution("ressoou no decorrer do combate");
-        // -------------------------------------------------
 
         if (this.activeMon && this.activeMon.currentHp > 0 && this.opponent && this.opponent.currentHp > 0) {
             this.attack();
         }
     }
-    // -------------------------------------
 
     static startFromNetwork(payload: any) {
         const Game = (window as any).Game;
@@ -472,7 +435,6 @@ export class Battle {
         this.isNPC = (!payload.isPvP && payload.reward > 0);
         if (payload.enemyId >= 0) this.enemyPlayer = Game.players[payload.enemyId];
 
-        // Time do Jogador
         if (payload.plyTeam) {
             const PokemonClass = (window as any).Pokemon || p.team[0].constructor;
             this.plyTeamList = payload.plyTeam.map((td: any) => {
@@ -487,7 +449,6 @@ export class Battle {
             else { this.plyTeamList = []; }
         }
 
-        // Time do Oponente
         if (payload.oppTeam && payload.oppTeam.length > 0) {
             const PokemonClass = (window as any).Pokemon || p.team[0].constructor;
             this.oppTeamList = payload.oppTeam.map((td: any) => {
@@ -498,11 +459,8 @@ export class Battle {
                 return po;
             });
 
-            // --- SELEÇÃO SEGURA DO ÍNDICE ---
-            // Se oppIdx vier como -1 ou undefined, cai para 0.
             const targetIdx = (payload.oppIdx !== undefined && payload.oppIdx >= 0) ? payload.oppIdx : 0;
             this.opponent = this.oppTeamList[targetIdx] || this.oppTeamList[0];
-            // --------------------------------
         }
         else if (payload.oppData) {
             this.opponent = new Pokemon(payload.oppData.id, payload.oppData.level, payload.oppData.isShiny);
@@ -532,8 +490,6 @@ export class Battle {
     static updateFromNetwork(payload: any) {
         if (!this.activeMon || !this.opponent) return;
 
-        // CORREÇÃO CRÍTICA: Só atualiza o HP se ele vier no payload.
-        // Isso impede que o HP zere/bugue quando enviamos apenas um log de texto!
         if (payload.plyHp !== undefined) this.activeMon.currentHp = payload.plyHp;
         if (payload.oppHp !== undefined) this.opponent.currentHp = payload.oppHp;
 
@@ -548,16 +504,12 @@ export class Battle {
         document.getElementById('battle-modal')!.style.display = 'flex';
         document.getElementById('battle-log-history')!.innerHTML = '';
 
-        // =====================================================================
-        // CORREÇÃO VISUAL: Limpa o estado de "Capturado" da batalha anterior
-        // =====================================================================
         const enemyImg = document.getElementById('opp-img') as HTMLElement;
         if (enemyImg) {
             enemyImg.classList.remove('mon-caught-hidden');
-            enemyImg.style.opacity = '1';       // Garante opacidade total
-            enemyImg.style.transform = 'none';  // Remove escala reduzida
+            enemyImg.style.opacity = '1';
+            enemyImg.style.transform = 'none';
         }
-        // =====================================================================
 
         const titleEl = document.getElementById('battle-title')!;
         if (Network.isOnline && this.player && this.player.id !== Network.myPlayerId) {
@@ -570,7 +522,6 @@ export class Battle {
             titleEl.innerText = this.battleTitle;
         }
 
-        // --- ALTERA O HUD PARA O MODO AUTO PVP ---
         const actionsContainer = document.querySelector('.battle-actions') as HTMLElement;
         if (actionsContainer) {
             if (this.isPvP) {
@@ -599,7 +550,6 @@ export class Battle {
                 });
             }
         }
-        // -----------------------------------------
 
         this.updateButtons();
         this.updateUI();
@@ -619,7 +569,6 @@ export class Battle {
     }
 
     static calculateDamage(attacker: Pokemon, defender: Pokemon, isPlayerAttacking: boolean): { damage: number, msg: string, avoided: boolean, reflected: number } {
-        // 1. CÁLCULO DE ESQUIVA
         let dodgeChance = (defender.speed - attacker.speed) / 5;
         dodgeChance = Math.max(10, dodgeChance);
 
@@ -629,8 +578,6 @@ export class Battle {
             return { damage: 0, msg: "💨 ESQUIVOU!", avoided: true, reflected: 0 };
         }
 
-        // 2. NOVO: CÁLCULO DE BLOQUEIO (DEFESA PURA)
-        // Fórmula: (DEF - ATK) / 5. Máximo de 90% de chance.
         let blockChance = (defender.def - attacker.atk) / 5;
         blockChance = Math.max(0, Math.min(90, blockChance));
 
@@ -638,11 +585,9 @@ export class Battle {
             return { damage: 0, msg: "🛡️ BLOQUEIO TOTAL!", avoided: true, reflected: 0 };
         }
 
-        // 3. ATAQUE BASE
         const baseAtk = (attacker.atk * 0.65) + (attacker.speed * 0.15) + (attacker.maxHp * 0.2);
         let finalDamage = (baseAtk / 5) - (defender.def / 20);
 
-        // Lógica de Maestria (Mantida do seu código)
         const attackerPlayer = isPlayerAttacking ? this.player! : (this.enemyPlayer || null);
         let masteryBonus = 0;
 
@@ -658,7 +603,6 @@ export class Battle {
 
         let logDetails = "";
 
-        // 4. CRÍTICO E DADO
         const spdCritChance = attacker.speed / 8;
         if (Math.random() * 100 <= spdCritChance) {
             finalDamage += 5;
@@ -674,7 +618,6 @@ export class Battle {
         else if (d6 === 1) rollModifier = -2;
         finalDamage += rollModifier;
 
-        // 5. VANTAGEM DE TIPO
         const atkTypes = [attacker.type, attacker.secondType].filter(t => t);
         const defTypes = [defender.type, defender.secondType].filter(t => t);
         let bestMulti = 0;
@@ -693,8 +636,7 @@ export class Battle {
             if (currentTypeMulti > bestMulti) bestMulti = currentTypeMulti;
         });
 
-        let finalMulti = bestMulti; // <--- CORREÇÃO AQUI: Trocado de const para let
-        // EVENTOS CLIMÁTICOS GLOBAIS (Soma ou Deduz Multiplicadores)
+        let finalMulti = bestMulti;
         const Game = (window as any).Game;
         const ev = Game.currentGlobalEvent?.id;
         let weatherSign = "";
@@ -726,7 +668,6 @@ export class Battle {
 
         finalDamage = Math.max(0, Math.floor(finalDamage));
 
-        // 6. MODIFICADORES DE CARTAS
         if (isPlayerAttacking) {
             if (this.activeEffects.crit > 0) {
                 finalDamage *= 2;
@@ -743,7 +684,6 @@ export class Battle {
             if (this.enemyPlayer && this.enemyPlayer.effects.curse) { finalDamage = Math.floor(finalDamage / 2); }
         }
 
-        // 7. NOVO: REFLEXÃO DE DANO (Counter / Soul Link)
         let reflectedAmount = 0;
 
         if (ev === 'SOUL_LINK') {
@@ -751,9 +691,7 @@ export class Battle {
             logDetails += " [🔗LINK!]";
         }
 
-        // Se a Defesa for 50% maior que o Ataque (ex: 150 Def vs 100 Atk)
         if (defender.def > (attacker.atk * 1.5)) {
-            // 15% de chance de devolver o dano
             if (Math.random() * 100 <= 15) {
                 reflectedAmount += finalDamage;
                 logDetails += " 🔄REFLETIDO!";
@@ -763,13 +701,8 @@ export class Battle {
         return { damage: finalDamage, msg: `(🎲${d6})${logDetails}`, avoided: false, reflected: reflectedAmount };
     }
 
-    // =========================================================================================
-    // LÓGICA UNIFICADA DE BATALHA (PvE e PvP Automático)
-    // =========================================================================================
-
     static attack() {
         const Network = (window as any).Network;
-        // Segurança: Só o dono do turno pode executar
         if (Network.isOnline && this.player && this.player.id !== Network.myPlayerId) return;
 
         if (!this.active || !this.activeMon || !this.opponent) return;
@@ -781,19 +714,16 @@ export class Battle {
         const enemySpeed = this.opponent.speed;
         let playerGoesFirst = true;
 
-        // Decisão de Velocidade
         if (playerSpeed > enemySpeed) playerGoesFirst = true;
         else if (enemySpeed > playerSpeed) playerGoesFirst = false;
         else playerGoesFirst = Math.random() > 0.5;
 
         this.logBattle(`Velocidade: ${this.activeMon.name}(${playerSpeed}) vs ${this.opponent.name}(${enemySpeed})`, true);
 
-        // --- FUNÇÃO PARA FINALIZAR O ROUND ---
         const finishTurnSequence = () => {
             const Game = (window as any).Game;
             const ev = Game.currentGlobalEvent?.id;
 
-            // --- GATILHOS DE FIM DE TURNO GLOBAIS ---
             if (ev === 'TOXIC_SMOG') {
                 const toxicHurt = (mon: Pokemon) => {
                     if (mon.currentHp > 0 && !['Venenoso', 'Aço'].includes(mon.type) && (!mon.secondType || !['Venenoso', 'Aço'].includes(mon.secondType))) {
@@ -809,31 +739,22 @@ export class Battle {
                     this.logBattle("🤢 O Nevoeiro Tóxico sufoca os Pokémons em campo!", true);
                     this.updateUI();
                 }
-            } else if (ev === 'WINTER_STORM') {
-                // Lógica de congelamento movida para os métodos de ataque
             }
-            // ----------------------------------------
 
             this.processingAction = false;
             this.updateButtons();
 
-            // Sincronização Online (Se houver)
             if (this.isPvP && Network.isOnline) {
                 Network.syncPlayerState();
             }
 
-            // Lógica de Auto Battle
             if (this.isPvP) {
-                // Se estiver em auto-pvp (lógica específica)
                 setTimeout(() => this.autoAttackNext(), 1500);
             }
             else if (this.isAutoPvE) {
-                // Só continua se ambos estiverem vivos
                 if (this.activeMon!.currentHp > 0 && this.opponent!.currentHp > 0) {
                     setTimeout(() => this.attack(), 1500);
                 } else {
-                    // Se alguém morreu, o handleFaint ou win vai rodar.
-                    // Nós desligamos o Auto aqui para o jogador ter controle na troca.
                     this.isAutoPvE = false;
                     const btn = document.getElementById('btn-auto-pve');
                     if (btn) {
@@ -844,44 +765,38 @@ export class Battle {
             }
         };
 
-        // --- EXECUÇÃO DA SEQUÊNCIA DE ATAQUES ---
         if (playerGoesFirst) {
             this.logBattle(`💨 ${this.activeMon.name} é mais rápido!`, true);
 
-            // 1. Jogador Ataca
             this.performPlayerAttack(() => {
-                // Se o oponente sobreviveu, ele revida
                 if (this.opponent && this.opponent.currentHp > 0) {
                     setTimeout(() => {
                         this.performEnemyAttack(() => {
-                            finishTurnSequence(); // Fim do Round (Ambos atacaram)
+                            finishTurnSequence();
                         });
                     }, 1000);
                 } else {
-                    finishTurnSequence(); // Fim do Round (Inimigo morreu no 1º hit)
+                    finishTurnSequence();
                 }
             });
 
         } else {
             this.logBattle(`💨 ${this.opponent.name} é mais rápido!`, true);
 
-            // 1. Inimigo Ataca
             this.performEnemyAttack(() => {
-                // Se o jogador sobreviveu, ele revida
                 if (this.activeMon && this.activeMon.currentHp > 0) {
                     setTimeout(() => {
                         this.performPlayerAttack(() => {
-                            finishTurnSequence(); // Fim do Round (Ambos atacaram)
+                            finishTurnSequence();
                         });
                     }, 1000);
                 } else {
-                    finishTurnSequence(); // Fim do Round (Jogador morreu no 1º hit)
+                    finishTurnSequence();
                 }
             });
         }
     }
 
-    // Ação isolada de ataque do Jogador
     static performPlayerAttack(callback?: () => void) {
         const Game = (window as any).Game;
         const Network = (window as any).Network;
@@ -897,11 +812,9 @@ export class Battle {
             }
         }
 
-        // --- CÁLCULO DO PRIMEIRO ATAQUE ---
         let calc1 = this.calculateDamage(this.activeMon!, this.opponent!, true);
         let totalDmg = calc1.damage;
 
-        // [NOVO] Acumula o dano refletido (se houver)
         let totalReflected = calc1.reflected || 0;
 
         let logMsg = `${this.activeMon!.name} atacou! `;
@@ -913,8 +826,6 @@ export class Battle {
             if (calc1.reflected > 0) logMsg += " [🔄Refletido!]";
         }
 
-        // --- CÁLCULO DO ATAQUE DUPLO (SPEED) ---
-        // Se SPD >= 50% maior que oponente -> 20% chance de atacar duas vezes
         if (!calc1.avoided && this.activeMon!.speed >= (this.opponent!.speed * 1.5)) {
             if (Math.random() * 100 <= 20) {
                 let calc2 = this.calculateDamage(this.activeMon!, this.opponent!, true);
@@ -922,7 +833,6 @@ export class Battle {
                 if (!calc2.avoided) {
                     totalDmg += calc2.damage;
 
-                    // [NOVO] Soma o reflexo do segundo ataque também
                     totalReflected += (calc2.reflected || 0);
 
                     logMsg += ` + ⚔️DUPLO! 💥${calc2.damage}`;
@@ -932,12 +842,9 @@ export class Battle {
                 }
             }
         }
-        // ----------------------------------------
 
-        // 1. Aplica o Dano no Inimigo
         this.opponent.currentHp = Math.max(0, this.opponent.currentHp - totalDmg);
 
-        // [NOVO] 2. Aplica o Dano Refletido no Jogador (Se houver)
         if (totalReflected > 0) {
             this.activeMon.currentHp = Math.max(0, this.activeMon.currentHp - totalReflected);
             logMsg += ` (Sofreu ${totalReflected} de volta!)`;
@@ -954,13 +861,10 @@ export class Battle {
                 msg: logMsg
             });
             if (this.isPvP && this.enemyPlayer) {
-                Network.sendAction('PVP_SYNC_DAMAGE', { targetId: this.enemyPlayer.id, team: this.enemyPlayer.team, gold: this.enemyPlayer.gold }); // Safety sync
+                Network.sendAction('PVP_SYNC_DAMAGE', { targetId: this.enemyPlayer.id, team: this.enemyPlayer.team, gold: this.enemyPlayer.gold });
             }
         }
 
-        // --- VERIFICAÇÕES DE MORTE ---
-
-        // 1. Oponente Morreu (Vitória)
         if (this.opponent.currentHp <= 0) {
             const oppStats = this.opponent.maxHp + this.opponent.atk + this.opponent.def + this.opponent.speed;
             const xpGain = Math.max(1, Math.floor(oppStats / 9));
@@ -970,7 +874,6 @@ export class Battle {
             if (Network.isOnline) Network.syncPlayerState();
             setTimeout(() => { this.checkWinCondition(); }, 1000);
         }
-        // 2. Jogador Morreu pelo Reflexo (Derrota)
         else if (this.activeMon.currentHp <= 0) {
             this.updateUI();
             if (Network.isOnline) Network.syncPlayerState();
@@ -981,13 +884,11 @@ export class Battle {
         }
     }
 
-    // Ação isolada de ataque do Inimigo (Controlado automaticamente pelo Cliente do Jogador Ativo)
     static performEnemyAttack(callback?: () => void) {
         const Game = (window as any).Game;
         const Network = (window as any).Network;
         if (!this.activeMon || !this.opponent) return;
 
-        // --- VERIFICAÇÃO DE ATORDOAMENTO (ATAQUE SURPRESA) ---
         if (this.activeEffects.stunOpponent && this.activeEffects.stunOpponent > 0) {
             this.activeEffects.stunOpponent--;
             const turnsLeft = this.activeEffects.stunOpponent;
@@ -1009,11 +910,9 @@ export class Battle {
             }
         }
 
-        // --- CÁLCULO DO PRIMEIRO ATAQUE ---
         let calc1 = this.calculateDamage(this.opponent!, this.activeMon!, false);
         let totalDmg = calc1.damage;
 
-        // [NOVO] Acumula reflexo
         let totalReflected = calc1.reflected || 0;
 
         let logMsg = `${this.opponent!.name} atacou! `;
@@ -1025,14 +924,12 @@ export class Battle {
             if (calc1.reflected > 0) logMsg += " [🔄Refletido!]";
         }
 
-        // --- CÁLCULO DO ATAQUE DUPLO (SPEED) ---
         if (!calc1.avoided && this.opponent!.speed >= (this.activeMon!.speed * 1.5)) {
             if (Math.random() * 100 <= 20) {
                 let calc2 = this.calculateDamage(this.opponent!, this.activeMon!, false);
                 if (!calc2.avoided) {
                     totalDmg += calc2.damage;
 
-                    // [NOVO] Soma reflexo do ataque duplo
                     totalReflected += (calc2.reflected || 0);
 
                     logMsg += ` + ⚔️DUPLO! 💥${calc2.damage}`;
@@ -1042,12 +939,9 @@ export class Battle {
                 }
             }
         }
-        // ----------------------------------------
 
-        // 1. Aplica dano no Jogador
         this.activeMon.currentHp = Math.max(0, this.activeMon.currentHp - totalDmg);
 
-        // [NOVO] 2. Aplica dano Refletido no Inimigo
         if (totalReflected > 0) {
             this.opponent.currentHp = Math.max(0, this.opponent.currentHp - totalReflected);
             logMsg += ` (Sofreu ${totalReflected} de volta!)`;
@@ -1057,7 +951,6 @@ export class Battle {
         this.logBattle(logMsg);
         this.updateUI();
 
-        // Lógica de Counter (Carta)
         if (this.activeEffects.counter && this.activeEffects.counter > 0) {
             const reflect = Math.floor(totalDmg * 0.5);
             if (reflect > 0) {
@@ -1076,11 +969,7 @@ export class Battle {
             Network.syncPlayerState();
         }
 
-        // --- VERIFICAÇÕES DE MORTE ---
-
-        // 1. Jogador Morreu (Derrota)
         if (this.activeMon.currentHp <= 0) {
-            // [MANTIDO] Inimigo venceu (ganha XP de vitória no PvP)
             if (this.isPvP && this.enemyPlayer) {
                 const plyStats = this.activeMon.maxHp + this.activeMon.atk + this.activeMon.def + this.activeMon.speed;
                 const oppXpGain = Math.max(1, Math.floor(plyStats / 9));
@@ -1092,9 +981,7 @@ export class Battle {
             if (Network.isOnline) Network.syncPlayerState();
             setTimeout(() => { this.handleFaint(); }, 1000);
         }
-        // 2. Inimigo Morreu (Pelo Reflexo ou Counter) - Vitória do Jogador
         else if (this.opponent.currentHp <= 0) {
-            // [MANTIDO] Jogador ganha XP de vitória
             const oppStats = this.opponent.maxHp + this.opponent.atk + this.opponent.def + this.opponent.speed;
             const xpGain = Math.max(1, Math.floor(oppStats / 9));
             this.activeMon.gainXp(xpGain, this.player!);
@@ -1104,8 +991,6 @@ export class Battle {
             setTimeout(() => { this.checkWinCondition(); }, 1000);
         }
         else {
-            // O jogador sobreviveu e a vez vai voltar para ele.
-            // Tenta Mega Evoluir novamente antes de liberar os botões!
             this.tryTriggerMegaEvolution("reagiu após o ataque");
             this.tryOpponentMegaEvolution("reagiu após o ataque");
 
@@ -1114,16 +999,13 @@ export class Battle {
     }
 
     static checkWinCondition() {
-        // --- DESLIGA O AUTO BATTLE QUANDO O INIMIGO MORRE ---
         this.isAutoPvE = false;
         const btn = document.getElementById('btn-auto-pve');
         if (btn) {
             btn.innerText = "⚡ Auto Atacar";
             btn.classList.remove('active-auto');
         }
-        // ---------------------------------------------------
 
-        // --- SE O INIMIGO ERA MEGA, REVERTE ANTES DE PROCURAR O PRÓXIMO ---
         if (this.opponent && ((this.opponent as any).isTemp || (this.opponent as any).isMegaEvolution)) {
             const isOppMega = (this.opponent as any).isMegaEvolution;
             this.revertOpponentMew();
@@ -1142,7 +1024,6 @@ export class Battle {
                     Network.syncSpecificPlayer(this.enemyPlayer.id);
                 }
 
-                // --- LIMPEZA DE STATUS AO REVERTER MEGA MORTO ---
                 if (this.activeEffects.stunOpponent) {
                     this.activeEffects.stunOpponent = 0;
                 }
@@ -1156,10 +1037,16 @@ export class Battle {
             }
         }
 
-        const nextOpp = this.oppTeamList.find(p => !p.isFainted() && p !== this.opponent);
+        let nextOpp = this.oppTeamList.find(p => !p.isFainted() && p !== this.opponent);
+
+        if (this.isGym || this.isChampion) {
+            const availableOpp = this.oppTeamList.filter(p => !p.isFainted() && p !== this.opponent);
+            if (availableOpp.length > 0) {
+                nextOpp = availableOpp[Math.floor(Math.random() * availableOpp.length)];
+            }
+        }
 
         if (nextOpp) {
-            // --- CORREÇÃO 1: Preserva a imagem e nome do NPC ---
             const oldImg = (this.opponent as any)._npcImage;
             const oldName = (this.opponent as any)._npcName;
 
@@ -1167,9 +1054,7 @@ export class Battle {
 
             if (oldImg) (this.opponent as any)._npcImage = oldImg;
             if (oldName) (this.opponent as any)._npcName = oldName;
-            // ---------------------------------------------------
 
-            // --- LIMPEZA DE STATUS AO TROCAR POKEMON MORTO ---
             if (this.activeEffects.stunOpponent) {
                 this.activeEffects.stunOpponent = 0;
             }
@@ -1185,7 +1070,6 @@ export class Battle {
                 Network.sendAction('BATTLE_OPP_SWITCH', { nextOpp: sanitizedNextOpp });
             }
 
-            // Continua batendo se for automático!
             if (this.isPvP) {
                 setTimeout(() => this.autoAttackNext(), 2000);
             }
@@ -1195,14 +1079,12 @@ export class Battle {
     }
 
     static handleFaint() {
-        // --- DESLIGA O AUTO BATTLE AO MORRER ---
         this.isAutoPvE = false;
         const btn = document.getElementById('btn-auto-pve');
         if (btn) {
             btn.innerText = "⚡ Auto Atacar";
             btn.classList.remove('active-auto');
         }
-        // ---------------------------------------
 
         if (this.activeMon && ((this.activeMon as any).isTemp || (this.activeMon as any).isMegaEvolution)) {
             const isMega = (this.activeMon as any).isMegaEvolution;
@@ -1233,7 +1115,6 @@ export class Battle {
         if (nextPly) {
             this.logBattle(`${this.activeMon!.name} desmaiou!`, true);
 
-            // --- TROCA AUTOMÁTICA SE FOR PVP ---
             if (this.isPvP) {
                 this.activeMon = nextPly;
                 this.logBattle(`Você enviou ${nextPly.name}!`, true);
@@ -1250,7 +1131,6 @@ export class Battle {
                 document.getElementById('battle-modal')!.style.display = 'none';
                 this.openSelectionModal("Escolha o próximo!");
             }
-            // -----------------------------------
         }
         else { this.lose(); }
     }
@@ -1262,10 +1142,7 @@ export class Battle {
 
         const logContainer = document.getElementById('battle-log-history');
         if (logContainer) {
-            // 'afterbegin' empurra o histórico antigo para baixo
             logContainer.insertAdjacentHTML('afterbegin', `<div style="border-bottom:1px solid #555; padding:2px;">${msg}</div>`);
-
-            // Força a barra de rolagem do histórico a ficar no topo
             logContainer.scrollTop = 0;
         }
 
@@ -1287,17 +1164,15 @@ export class Battle {
 
         document.getElementById('ply-name')!.innerText = this.activeMon.name;
 
-        // --- BLINDAGEM 1: Tipos e XP do Jogador ---
         const plyTypesEl = document.getElementById('ply-types');
         if (plyTypesEl && typeof this.activeMon.getTypeBadgesHTML === 'function') {
-            plyTypesEl.innerHTML = this.activeMon.getTypeBadgesHTML('flex-start'); // <- Alinha a esquerda
+            plyTypesEl.innerHTML = this.activeMon.getTypeBadgesHTML('flex-start');
         }
 
         const plyXpEl = document.getElementById('ply-xp');
         if (plyXpEl) {
             plyXpEl.style.width = `${(this.activeMon.currentXp / this.activeMon.maxXp) * 100}%`;
         }
-        // ------------------------------------------
 
         document.getElementById('ply-lvl')!.innerText = `Lv.${this.activeMon.level}`;
         (document.getElementById('ply-img') as HTMLImageElement).src = this.activeMon.getSprite();
@@ -1319,12 +1194,10 @@ export class Battle {
             </div>
         `;
 
-        // --- BLINDAGEM 2: Tipos do Oponente (Opcional, mas recomendado) ---
         const oppTypesEl = document.getElementById('opp-types');
         if (oppTypesEl && typeof this.opponent.getTypeBadgesHTML === 'function') {
-            oppTypesEl.innerHTML = this.opponent.getTypeBadgesHTML('flex-start'); // <- Alinha a esquerda
+            oppTypesEl.innerHTML = this.opponent.getTypeBadgesHTML('flex-start');
         }
-        // ------------------------------------------------------------------
 
         (document.getElementById('opp-img') as HTMLImageElement).src = this.opponent.getSprite();
         const oppPct = (this.opponent.currentHp / this.opponent.maxHp) * 100;
@@ -1376,29 +1249,22 @@ export class Battle {
     static renderTeamIcons(elId: string, list: Pokemon[]) { document.getElementById(elId)!.innerHTML = list.map(p => `<div class="ball-icon ${p.isFainted() ? 'lost' : ''}"></div>`).join(''); }
 
     static revertMew() {
-        // 1. Tenta restaurar pelo backup (cenário ideal)
         if (this.activeEffects && this.activeEffects.mewOriginal && this.player) {
             const original = this.activeEffects.mewOriginal;
 
-            // Encontra onde está o Mega/Mew/Temp no time atual
             const tempIndex = this.player.team.findIndex(p => (p as any).isTemp || p.isMegaEvolution);
 
             if (tempIndex !== -1) {
-                // Se encontrou, substitui de volta pelo original
                 this.player.team[tempIndex] = original;
             } else if (this.activeEffects.mewIndex !== undefined && this.player.team[this.activeEffects.mewIndex]) {
-                // Fallback pelo índice salvo
                 this.player.team[this.activeEffects.mewIndex] = original;
             }
 
-            // --- CORREÇÃO: Restaurar o Original na Lista de Batalha ---
             const plyListIdx = this.plyTeamList.findIndex(p => (p as any).isTemp || (p as any).isMegaEvolution);
             if (plyListIdx !== -1) {
                 this.plyTeamList[plyListIdx] = original;
             }
-            // ----------------------------------------------------------
 
-            // Restaura o ActiveMon se ele for o Mega
             if (this.activeMon && ((this.activeMon as any).isTemp || this.activeMon.isMegaEvolution)) {
                 this.activeMon = original;
             }
@@ -1406,15 +1272,10 @@ export class Battle {
             this.activeEffects.mewOriginal = null;
         }
 
-        // 2. VARREDURA DE SEGURANÇA (Se o passo 1 falhar ou duplicar)
-        // Isso corrige o bug de "Status Surreal" e "Duplicação"
         if (this.player) {
-            // Remove duplicatas (filtra qualquer isTemp que tenha sobrado)
             this.player.team = this.player.team.filter(p => !(p as any).isTemp);
 
-            // Se por acaso o "Original" foi perdido e sobrou o Mega salvo como permanente:
             this.player.team.forEach(mon => {
-                // Chama a função de autocorreção criada no Pokemon.ts
                 if (typeof mon.validateAndFix === 'function') {
                     mon.validateAndFix();
                 }
@@ -1425,8 +1286,6 @@ export class Battle {
     static performMegaEvolution(megaId: number) {
         const Network = (window as any).Network;
 
-        // --- CORREÇÃO: Agora usa a POKEDEX importada diretamente ---
-        // Isso garante que ele leia os dados que você acabou de adicionar (Gen 9 + Megas)
         const megaData = POKEDEX.find((p: any) => p.id === megaId);
 
         if (!megaData) {
@@ -1434,48 +1293,49 @@ export class Battle {
             return alert("Dados da Mega Evolução não encontrados! Verifique o arquivo pokedex.ts");
         }
 
-        // 2. Salva o Pokémon Original
         this.activeEffects.mewOriginal = this.player!.team[this.player!.team.indexOf(this.activeMon!)];
         this.activeEffects.mewIndex = this.player!.team.indexOf(this.activeMon!);
 
-        // 3. Cria o objeto do Mega Pokémon
-        // Usa o construtor do Pokémon atual para manter a compatibilidade
         const PokemonClass = (window as any).Pokemon || this.activeMon!.constructor;
-        const megaMon = new PokemonClass(megaId, this.activeMon!.level, this.activeMon!.isShiny);
+        // CRÍTICO: Instancia com o ID original para evitar a interceptação do construtor
+        const megaMon = new PokemonClass(this.activeMon!.id, this.activeMon!.level, this.activeMon!.isShiny);
 
-        // 1. Ativa o bônus de 10%
+        // Copia os status treinados do original
+        megaMon.ivs = { ...this.activeMon!.ivs };
+        megaMon.bonusStats = { ...this.activeMon!.bonusStats };
+        megaMon.currentXp = this.activeMon!.currentXp;
+        megaMon.maxXp = this.activeMon!.maxXp;
+
+        // Injeta manualmente os dados da Pokedex da Mega Evolução
+        megaMon.id = megaData.id;
+        megaMon.name = megaData.name;
+        megaMon.type = megaData.type;
+        megaMon.secondType = megaData.secondType || "";
+        megaMon.baseStats = { hp: megaData.hp, atk: megaData.atk, def: megaData.def, spd: megaData.spd };
+        if (megaData.BaseTotal) megaMon.baseTotal = megaData.BaseTotal;
+
         (megaMon as any).isMegaEvolution = true;
-
-        // 2. Recalcula Status e CURA TOTALMENTE (resetHp = true)
         megaMon.recalculateStats(true);
-
-        // Marca como temporário para reverter ao final da batalha
         (megaMon as any).isTemp = true;
 
-        // 4. Substitui na Batalha
         this.activeMon = megaMon;
         if (this.activeEffects.mewIndex !== undefined && this.activeEffects.mewIndex !== -1) {
             this.player!.team[this.activeEffects.mewIndex] = megaMon;
         }
 
-        // --- CORREÇÃO: Substitui na posição correta da lista de combate ---
         const plyListIdx = this.plyTeamList.findIndex(p => p.id === this.activeEffects.mewOriginal.id);
         if (plyListIdx !== -1) {
             this.plyTeamList[plyListIdx] = megaMon;
         } else {
-            // Em caso de emergência, acha pelo objeto exato:
             const activeIndex = this.plyTeamList.findIndex(p => p === this.activeEffects.mewOriginal);
             if (activeIndex !== -1) {
                 this.plyTeamList[activeIndex] = megaMon;
             }
         }
-        // -------------------------------------------------------
 
-        // 5. Atualiza a UI e Logs
-        this.logBattle(`🧬 O elo fortaleceu! Mega Evolução para ${megaMon.name}!`, true);
+        this.logBattle(`💎 O elo fortaleceu! Mega Evolução para ${megaMon.name}!`, true);
         this.updateUI();
 
-        // 6. Sincroniza se estiver Online
         if (Network.isOnline) {
             Network.syncPlayerState();
             Network.sendAction('BATTLE_PLY_SWITCH', {
@@ -1484,29 +1344,49 @@ export class Battle {
         }
     }
 
-    // --- MEGA EVOLUÇÃO E REVERSÃO PARA O OPONENTE (PVP) ---
     static performOpponentMegaEvolution(megaId: number) {
         const Network = (window as any).Network;
-        // Wait, in Battle.ts POKEDEX is imported na linha 1! I can just use it.
-        const megaData = (window as any).POKEDEX ? (window as any).POKEDEX.find((p: any) => p.id === megaId) : { id: megaId }; // Fallback simples
+        const megaData = POKEDEX.find((p: any) => p.id === megaId);
         if (!megaData) return;
 
         if (!this.activeEffects) this.activeEffects = {};
-        this.activeEffects.opponentMewOriginal = this.enemyPlayer!.team[this.enemyPlayer!.team.indexOf(this.opponent!)];
-        this.activeEffects.opponentMewIndex = this.enemyPlayer!.team.indexOf(this.opponent!);
+
+        // Tratamento seguro para salvar o Pokémon original. Em PvE o enemyPlayer é inexistente.
+        this.activeEffects.opponentMewOriginal = this.opponent;
+        if (this.enemyPlayer) {
+            this.activeEffects.opponentMewIndex = this.enemyPlayer.team.indexOf(this.opponent!);
+        }
 
         const PokemonClass = (window as any).Pokemon || this.opponent!.constructor;
-        const megaMon = new PokemonClass(megaId, this.opponent!.level, this.opponent!.isShiny);
+        // CRÍTICO: Instancia com o ID original para evitar a interceptação do construtor
+        const megaMon = new PokemonClass(this.opponent!.id, this.opponent!.level, this.opponent!.isShiny);
+
+        // Copia os status treinados do original (Líderes tem IVs altos)
+        megaMon.ivs = { ...this.opponent!.ivs };
+        megaMon.bonusStats = { ...this.opponent!.bonusStats };
+        megaMon.currentXp = this.opponent!.currentXp;
+        megaMon.maxXp = this.opponent!.maxXp;
+
+        // Injeta manualmente os dados da Pokedex da Mega Evolução
+        megaMon.id = megaData.id;
+        megaMon.name = megaData.name;
+        megaMon.type = megaData.type;
+        megaMon.secondType = megaData.secondType || "";
+        megaMon.baseStats = { hp: megaData.hp, atk: megaData.atk, def: megaData.def, spd: megaData.spd };
+        if (megaData.BaseTotal) megaMon.baseTotal = megaData.BaseTotal;
 
         (megaMon as any).isMegaEvolution = true;
         megaMon.recalculateStats(true);
         (megaMon as any).isTemp = true;
 
         this.opponent = megaMon;
-        if (this.activeEffects.opponentMewIndex !== undefined && this.activeEffects.opponentMewIndex !== -1) {
-            this.enemyPlayer!.team[this.activeEffects.opponentMewIndex] = megaMon;
+
+        // Substitui apenas no array do adversário real, se for PvP
+        if (this.enemyPlayer && this.activeEffects.opponentMewIndex !== undefined && this.activeEffects.opponentMewIndex !== -1) {
+            this.enemyPlayer.team[this.activeEffects.opponentMewIndex] = megaMon;
         }
 
+        // Substitui a referência visual para as bolinhas não quebrarem e a luta seguir
         const oppListIdx = this.oppTeamList.findIndex(p => p.id === this.activeEffects.opponentMewOriginal.id);
         if (oppListIdx !== -1) {
             this.oppTeamList[oppListIdx] = megaMon;
@@ -1515,23 +1395,30 @@ export class Battle {
             if (activeIndex !== -1) this.oppTeamList[activeIndex] = megaMon;
         }
 
-        this.logBattle(`🧬 O elo inimigo fortaleceu! Mega Evolução para ${megaMon.name}!`, true);
+        this.logBattle(`💎 O elo inimigo fortaleceu! Mega Evolução para ${megaMon.name}!`, true);
         this.updateUI();
 
-        if (Network.isOnline && this.isPvP && this.enemyPlayer) {
-            Network.syncSpecificPlayer(this.enemyPlayer.id);
+        // Envia o novo oponente na tela para todo o mundo assistir (No online)
+        if (Network.isOnline) {
+            if (this.isPvP && this.enemyPlayer) {
+                Network.syncSpecificPlayer(this.enemyPlayer.id);
+            } else if (!this.isPvP) {
+                Network.sendAction('BATTLE_OPP_SWITCH', { nextOpp: Network.getSanitizedTeam([megaMon])[0] });
+            }
         }
     }
 
     static revertOpponentMew() {
-        if (this.activeEffects && this.activeEffects.opponentMewOriginal && this.enemyPlayer) {
+        if (this.activeEffects && this.activeEffects.opponentMewOriginal) {
             const original = this.activeEffects.opponentMewOriginal;
 
-            const tempIndex = this.enemyPlayer.team.findIndex(p => (p as any).isTemp || p.isMegaEvolution);
-            if (tempIndex !== -1) {
-                this.enemyPlayer.team[tempIndex] = original;
-            } else if (this.activeEffects.opponentMewIndex !== undefined && this.enemyPlayer.team[this.activeEffects.opponentMewIndex]) {
-                this.enemyPlayer.team[this.activeEffects.opponentMewIndex] = original;
+            if (this.enemyPlayer) {
+                const tempIndex = this.enemyPlayer.team.findIndex(p => (p as any).isTemp || p.isMegaEvolution);
+                if (tempIndex !== -1) {
+                    this.enemyPlayer.team[tempIndex] = original;
+                } else if (this.activeEffects.opponentMewIndex !== undefined && this.enemyPlayer.team[this.activeEffects.opponentMewIndex]) {
+                    this.enemyPlayer.team[this.activeEffects.opponentMewIndex] = original;
+                }
             }
 
             const oppListIdx = this.oppTeamList.findIndex(p => (p as any).isTemp || (p as any).isMegaEvolution);
@@ -1554,27 +1441,18 @@ export class Battle {
         }
     }
 
-    // =========================================================================
-    // SISTEMA DE BUFFS DA POKÉDEX (Cole no final da classe Battle)
-    // =========================================================================
-
-    // 1. Ressonância: Aumenta status baseados em quantas vezes você CAPTUROU aquele ID
     static applyResonanceBonus(player: Player, mon: Pokemon) {
         if (!player.pokedexData || !player.pokedexData[mon.id]) return;
 
         const data = player.pokedexData[mon.id];
         const captures = data.caught || 0;
 
-        // Se tiver mais de 1 captura (repetidos), aplica 10% de bônus por cópia
         if (captures > 1) {
 
-            // --- BLINDAGEM ANTI-SNOWBALL ---
-            // Limpa qualquer buff antigo resetando para os status puros do Level
             mon.recalculateStats(false);
-            // -------------------------------
 
             const extraCount = captures - 1;
-            const bonusPercent = Math.min(1.0, extraCount * 0.10); // Máx +100%
+            const bonusPercent = Math.min(1.0, extraCount * 0.10);
 
             mon.maxHp = Math.floor(mon.maxHp * (1 + bonusPercent));
             mon.currentHp = Math.floor(mon.currentHp * (1 + bonusPercent));
@@ -1587,23 +1465,15 @@ export class Battle {
         }
     }
 
-    // 2. Maestria: Calcula bônus de dano baseado em quantas vezes você DERROTOU aquele TIPO GLOBALMENTE
     static getTypeMasteryBonus(player: Player, targetType: string): number {
         if (!player.pokedexData) return 0;
 
-        // Cache simples para não travar o jogo em loops longos
         if (!(this as any)._masteryCache) (this as any)._masteryCache = {};
         const cacheKey = `${player.id}_${targetType}`;
 
-        // Se quiser recalcular sempre (para atualizar em tempo real), remova estas 2 linhas:
-        // if ((this as any)._masteryCache[cacheKey]) return (this as any)._masteryCache[cacheKey];
-
         let killCount = 0;
 
-        // Varre a Pokédex inteira (GLOBAL)
-        // Se matei um Gengar (Fantasma/Veneno), ele conta para Fantasma e conta para Veneno.
         POKEDEX.forEach((dexEntry: any) => {
-            // Verifica se o monstro da Pokedex tem o tipo que estamos calculando
             if (dexEntry.type === targetType || dexEntry.secondType === targetType) {
                 const entry = player.pokedexData[dexEntry.id];
                 if (entry && entry.defeated) {
@@ -1612,10 +1482,6 @@ export class Battle {
             }
         });
 
-        // Fórmula: 1% de dano extra a cada 10 kills
-        //const bonus = Math.floor(killCount / 10);
-
-        // Fórmula: 1% de dano extra a cada 1 kill
         const bonus = killCount;
 
         (this as any)._masteryCache[cacheKey] = bonus;
@@ -1627,12 +1493,11 @@ export class Battle {
         const Network = (window as any).Network;
         const Cards = (window as any).Cards;
 
-        // --- VITÓRIA NO DESAFIO DO CAMPEÃO ---
         if (this.isChampion) {
             Game.sendGlobalLog(`🎉 INACREDITÁVEL! ${this.player!.name} DERROTOU O CAMPEÃO E VENCEU O JOGO! 🎉`);
 
             if (Network && Network.isOnline) {
-                Network.saveGlobalChampion(this.player!); // Salva ele no Firebase global
+                Network.saveGlobalChampion(this.player!);
                 Network.sendAction('GAME_WIN', { winnerId: this.player!.id });
             }
 
@@ -1640,19 +1505,13 @@ export class Battle {
             Game.triggerVictory(this.player!.id);
             return;
         }
-        // ------------------------------------
 
-        // Segurança: Se eu sou o inimigo (cliente passivo), não executo a lógica de vitória do atacante
         if (Network.isOnline && this.isPvP && Network.myPlayerId === this.enemyPlayer?.id) return;
 
         if (this.isGym) this.player!.effects.curse = false;
         this.revertMew();
         let gain = 0; let msg = "VITÓRIA! ";
 
-        // =========================================================================
-        // LÓGICA DA CARTA "NOVO LÍDER" (CORREÇÃO DE UPDATE E BUG DO ZERO)
-        // =========================================================================
-        // CORREÇÃO: Verifica undefined explicitamente. Se usasse '?' com ID 0, viraria -1.
         const stealTargetId = (this.activeEffects.stealBadgeFrom !== undefined && this.activeEffects.stealBadgeFrom !== null)
             ? Number(this.activeEffects.stealBadgeFrom)
             : -1;
@@ -1662,14 +1521,12 @@ export class Battle {
         if (this.isPvP && this.enemyPlayer && stealTargetId === enemyId) {
             console.log("🔍 [DEBUG] Iniciando lógica Novo Líder contra ID:", enemyId);
 
-            // 1. Busca os objetos REAIS na memória global (Fonte da Verdade)
             const realWinner = Game.players.find((p: any) => p.id === this.player!.id);
             const realLoser = Game.players.find((p: any) => p.id === this.enemyPlayer!.id);
 
             if (realWinner && realLoser) {
                 const validBadges: number[] = [];
 
-                // 2. Filtra insígnias que o Perdedor TEM e o Vencedor NÃO TEM
                 for (let i = 0; i < 8; i++) {
                     if (realLoser.badges[i] === true && realWinner.badges[i] === false) {
                         validBadges.push(i);
@@ -1679,34 +1536,26 @@ export class Battle {
                 console.log("🔍 [DEBUG] Valid badges indices:", validBadges);
 
                 if (validBadges.length > 0) {
-                    // 3. Sorteio
                     const stolenBadgeIdx = validBadges[Math.floor(Math.random() * validBadges.length)];
                     console.log("🔍 [DEBUG] Stolen badge Index:", stolenBadgeIdx);
 
-                    // 4. ATUALIZAÇÃO LOCAL (CRÍTICO: Atualizar TUDO antes de enviar para rede)
-
-                    // A) Atualiza memória Global do Jogo (Game.players)
                     realWinner.badges[stolenBadgeIdx] = true;
                     realLoser.badges[stolenBadgeIdx] = false;
 
-                    // B) Atualiza referências locais da Batalha (Battle.ts)
                     if (this.player) this.player.badges[stolenBadgeIdx] = true;
                     if (this.enemyPlayer) this.enemyPlayer.badges[stolenBadgeIdx] = false;
 
                     msg += ` Roubou a Insígnia ${stolenBadgeIdx + 1}!`;
 
-                    // 5. ATUALIZAÇÃO ATÔMICA NO FIREBASE
                     if (Network.isOnline) {
                         const updates: any = {};
                         const playersPath = `rooms/${Network.currentRoomId}/players`;
 
-                        // CORREÇÃO DE CAMINHO: Atualizamos o índice específico
                         updates[`${playersPath}/${realWinner.id}/badges/${stolenBadgeIdx}`] = true;
                         updates[`${playersPath}/${realLoser.id}/badges/${stolenBadgeIdx}`] = false;
 
                         console.log("🔍 [DEBUG] Updates object:", updates);
 
-                        // Envia o update das badges
                         update(ref(db), updates).then(() => {
                             console.log(`✅ [FIREBASE] Insígnia ${stolenBadgeIdx + 1} transferida com sucesso.`);
                         }).catch((err) => {
@@ -1719,15 +1568,14 @@ export class Battle {
                 }
             }
         }
-        // =========================================================================
 
         if (this.activeEffects.destiny) {
-            this.player!.gold += 500; // <--- Aumentado para 500G
+            this.player!.gold += 500;
             if (Cards) {
-                Cards.draw(this.player!); // Puxa a 1ª Carta
-                Cards.draw(this.player!); // Puxa a 2ª Carta
+                Cards.draw(this.player!);
+                Cards.draw(this.player!);
             }
-            msg += " (+500G +2 Cartas)"; // <--- Atualiza a mensagem na tela
+            msg += " (+500G +2 Cartas)";
             Game.sendGlobalLog(`💰 [Extrato] ${this.player!.name} recebeu +500G (Carta Destiny).`);
             Game.sendGlobalLog(`💰 [Extrato] Novo Saldo: ${this.player!.gold}G.`);
         }
@@ -1735,7 +1583,7 @@ export class Battle {
         if (this.isPvP && this.enemyPlayer) {
             if (this.enemyPlayer.gold > 0) {
                 let pct = 0.3;
-                if (Game.currentGlobalEvent?.id === 'BLOOD_MOON') pct = 0.6; // O Roubo em PvP é DOBRADO
+                if (Game.currentGlobalEvent?.id === 'BLOOD_MOON') pct = 0.6;
 
                 gain = Math.floor(this.enemyPlayer.gold * pct);
                 this.enemyPlayer.gold -= gain;
@@ -1750,7 +1598,6 @@ export class Battle {
             Game.sendGlobalLog(`[PvP] ${this.enemyPlayer.name} foi derrotado por ${this.player?.name}!`);
 
             if (Network.isOnline) {
-                // Envia pacote com a badge já atualizada localmente para o perdedor aceitar a derrota correta
                 Network.sendAction('PVP_SYNC_DAMAGE', {
                     targetId: this.enemyPlayer.id,
                     team: this.enemyPlayer.team,
@@ -1791,29 +1638,23 @@ export class Battle {
                 msg += ` e achou ${drawCount > 1 ? 'Cartas' : 'uma Carta'}!`;
             }
 
-            // ==============================================================
-            // NOVO: POKÉDEX (Registra "Derrotado" apenas para Selvagens)
-            // ==============================================================
             if (this.opponent) {
                 const oppId = this.opponent.id;
                 if (!this.player!.pokedexData) this.player!.pokedexData = {};
                 if (!this.player!.pokedexData[oppId]) {
                     this.player!.pokedexData[oppId] = { seen: 0, caught: 0, defeated: 0 };
                 }
-                this.player!.pokedexData[oppId].seen += 1;     // <--- SOMA VISTO
-                this.player!.pokedexData[oppId].defeated += 1; // <--- SOMA DERROTADO
+                this.player!.pokedexData[oppId].seen += 1;
+                this.player!.pokedexData[oppId].defeated += 1;
             }
-            // ==============================================================
         }
 
         this.player!.gold += gain;
         Game.sendGlobalLog(`💰 [Extrato] Novo Saldo de ${this.player!.name}: ${this.player!.gold}G.`);
 
         if (Network.isOnline) {
-            // Atualiza o vencedor (que ganhou a insígnia localmente no passo 4)
             Network.syncPlayerState();
 
-            // Reforço de segurança
             if (this.isPvP && this.enemyPlayer) {
                 Network.sendAction('PVP_SYNC_DAMAGE', {
                     targetId: this.enemyPlayer.id,
@@ -1825,13 +1666,6 @@ export class Battle {
                 });
             }
         }
-
-        // if (this.player!.badges.every(b => b === true)) {
-        //     document.getElementById('battle-modal')!.style.display = 'none';
-        //     this.active = false; Game.triggerVictory(this.player!.id);
-        //     if(Network.isOnline) Network.sendAction('GAME_WIN', { winnerId: this.player!.id });
-        //     return; 
-        // }
 
         setTimeout(() => {
             this.logBattle(`🏆 ${msg}`, true);
@@ -1850,28 +1684,19 @@ export class Battle {
         this.revertMew();
         let msg = "DERROTA... ";
 
-        // ==============================================================
-        // NOVO: POKÉDEX (Registra "Visto" ao perder a batalha)
-        // Colocamos no topo para garantir que conte mesmo na Derrota Total!
-        // ==============================================================
         if (!this.isPvP && !this.isGym && !this.isNPC && this.opponent) {
             const oppId = this.opponent.id;
 
-            // --- BLINDAGEM ---
             if (!this.player!.pokedexData) this.player!.pokedexData = {};
-            // -----------------
 
             if (!this.player!.pokedexData[oppId]) {
                 this.player!.pokedexData[oppId] = { seen: 0, caught: 0, defeated: 0 };
             }
             this.player!.pokedexData[oppId].seen += 1;
         }
-        // ==============================================================
 
-        // --- LÓGICA DE PERDA DE OURO/INSÍGNIA DIVIDIDA (PVP vs PVE) ---
         if (this.isPvP && this.enemyPlayer) {
             if (this.activeEffects.stealBadgeFrom === this.enemyPlayer.id) {
-                // Aposta Novo Líder: Perde insígnia aleatória em vez de ouro
                 const unlockedBadges = this.player!.badges.map((b, i) => b ? i : -1).filter(i => i !== -1);
                 if (unlockedBadges.length > 0) {
                     const randomBadgeIndex = unlockedBadges[Math.floor(Math.random() * unlockedBadges.length)];
@@ -1881,15 +1706,14 @@ export class Battle {
                     Game.sendGlobalLog(`💥 [Derrota no Desafio] Como ${this.player!.name} não possuía nenhuma Insígnia, ele saiu ileso da aposta.`);
                 }
             } else {
-                // Luta PvP Normal: Perde Ouro
                 let penaltyRate = 0.3;
-                if (Game.currentGlobalEvent?.id === 'BLOOD_MOON') penaltyRate = 0.6; // Dobra punição na Lua Sangrenta
+                if (Game.currentGlobalEvent?.id === 'BLOOD_MOON') penaltyRate = 0.6;
 
                 let lostGold = 0;
                 if (this.player!.gold > 0) {
                     lostGold = Math.floor(this.player!.gold * penaltyRate);
                     this.player!.gold -= lostGold;
-                    this.enemyPlayer.gold += lostGold; // O inimigo recebe o ouro visualmente
+                    this.enemyPlayer.gold += lostGold;
 
                     Game.sendGlobalLog(`💰 [Extrato] Transferência de ${lostGold}G de ${this.player!.name} para ${this.enemyPlayer.name} (Luta PvP).`);
                     Game.sendGlobalLog(`💰 [Extrato] Novo Saldo de ${this.player!.name}: ${this.player!.gold}G.`);
@@ -1899,10 +1723,7 @@ export class Battle {
                 }
             }
 
-            // --- CORREÇÃO: Sincroniza o PVP antes de verificar se o time todo morreu ---
             if (Network.isOnline) {
-                // O SEGREDO: Salvar o Atacante (que perdeu o ouro) JUNTO com o Inimigo de forma atômica!
-                // Isso impede que o Firebase devolva o ouro velho antes da tela de derrota.
                 const NetworkObj = (window as any).Network;
                 if (NetworkObj.syncPlayers) {
                     NetworkObj.syncPlayers([this.player!.id, this.enemyPlayer.id]);
@@ -1911,7 +1732,6 @@ export class Battle {
                     NetworkObj.syncSpecificPlayer(this.enemyPlayer.id);
                 }
 
-                // Manda o aviso visual para o cliente dele
                 Network.sendAction('PVP_SYNC_DAMAGE', {
                     targetId: this.enemyPlayer.id,
                     team: this.enemyPlayer.team,
@@ -1921,13 +1741,10 @@ export class Battle {
                     skipTurn: false
                 });
             }
-            // ------------------------
 
         } else {
-            // EVENTO ROCKET: Se perder no mato ou NPC, eles roubam um Pokémon!
             if (!this.isGym && Game.currentGlobalEvent?.id === 'ROCKET') {
                 if (this.player!.team.length > 3) {
-                    // Pega um alvo que não seja o falecido principal se possível, para drama!
                     const stolenIdx = Math.floor(Math.random() * this.player!.team.length);
                     const stolenMon = this.player!.team.splice(stolenIdx, 1)[0];
                     Game.sendGlobalLog(`🚀 INVASÃO ROCKET! Eles emboscaram e roubararam o ${stolenMon.name} de ${this.player!.name}!!`);
@@ -1936,7 +1753,6 @@ export class Battle {
                     Game.sendGlobalLog(`🚀 A Equipe Rocket tentou roubar o único Pokémon de ${this.player!.name}, mas ele sobreviveu por pouco!`);
                 }
             } else {
-                // Em PvE Normal, perde apenas até 100G fixos
                 const lostGold = this.player!.gold >= 100 ? 100 : this.player!.gold;
                 this.player!.gold = Math.max(0, this.player!.gold - 100);
 
@@ -1946,12 +1762,10 @@ export class Battle {
                 }
             }
 
-            // Garante o salvamento imediato do PvE também!
             if (Network.isOnline) {
                 Network.syncPlayerState();
             }
         }
-        // -----------------------------------------------------
 
         if (this.player!.isDefeated()) {
             Game.handleTotalDefeat(this.player!);
@@ -1970,11 +1784,9 @@ export class Battle {
             msg += ` ${this.enemyPlayer.name} venceu!`;
         }
 
-        // --- CORREÇÃO DO SALVAMENTO DE GOLD NO PVP ---
         if (Network.isOnline) {
             Network.syncPlayerState();
         }
-        // ---------------------------------------------
 
         setTimeout(() => {
             this.logBattle(`💀 ${msg}`, true);
@@ -1993,11 +1805,9 @@ export class Battle {
         const Network = (window as any).Network;
         this.active = false;
         this.opponent = null;
-        this.oppTeamList = []; // Limpando lista de pokemons.
+        this.oppTeamList = [];
         this.isChampion = false;
 
-        // --- BLINDAGEM: LAVA OS STATUS DE VOLTA AO NORMAL ---
-        // Quando a luta acaba, tira a ressonância para salvar limpo no banco!
         if (this.player && this.player.team) {
             this.player.team.forEach(mon => {
                 if ((mon as any).isResonant) {
@@ -2007,10 +1817,7 @@ export class Battle {
                 }
             });
         }
-        // ----------------------------------------------------
 
-        // CORREÇÃO: Limpa todos os efeitos (incluindo o roubo de insígnia)
-        // para não vazar para os próximos PvPs normais do tabuleiro.
         this.activeEffects = {};
 
         document.getElementById('battle-modal')!.style.display = 'none';
@@ -2033,10 +1840,8 @@ export class Battle {
 
             if (enemyHasJam > -1) {
                 this.cardsUsedThisBattle++;
-                // 1. Remove a carta de Interferência do inimigo
                 this.enemyPlayer.cards.splice(enemyHasJam, 1);
 
-                // 2. Remove a carta de Batalha que você tentou usar
                 const myCardIdx = this.player!.cards.findIndex((c: any) => c.id === cardId);
                 let cardName = "uma carta";
                 if (myCardIdx > -1) {
@@ -2046,15 +1851,12 @@ export class Battle {
 
                 document.getElementById('battle-cards-modal')!.style.display = 'none';
 
-                // 3. Atualiza os contadores na tela instantaneamente
                 Game.updateHUD();
 
-                // 4. Monta a Pop-up de aviso sem travar a tela
                 const jamMsg = `📡 INTERFERÊNCIA!\n\n${this.enemyPlayer.name} anulou a carta ${cardName} de ${this.player?.name} automaticamente!`;
                 Game.sendGlobalLog(`📡 ${this.enemyPlayer.name} usou Interferência contra ${this.player?.name} e bloqueou a carta [${cardName}]!`);
                 Game.showGlobalAlert(jamMsg, this.player!.name, true, false);
 
-                // 5. Salva OS DOIS JOGADORES no Firebase para ninguém duplicar carta!
                 if (Network.isOnline) {
                     Network.syncPlayers([this.player!.id, this.enemyPlayer.id]);
                     Network.sendAction('SHOW_ALERT', { msg: jamMsg, playerName: this.player!.name, endsTurn: false });
@@ -2071,7 +1873,6 @@ export class Battle {
         if (!this.isPlayerTurn || this.processingAction)
             return;
 
-        // --- NOVA REGRA: MALDIÇÃO BLOQUEIA A MOCHILA NO GINÁSIO ---
         if (this.isGym && this.player!.effects.curse) {
             const Game = (window as any).Game;
             Game.showGlobalAlert("😈 Sua mochila foi selada pela Maldição! Você não pode usar itens nesta Batalha de Ginásio!", this.player!.name, true, false);
@@ -2086,7 +1887,6 @@ export class Battle {
             if (this.player!.items[key] > 0) {
                 const item = SHOP_ITEMS.find(i => i.id === key);
                 if (item) {
-                    // Oculta itens que não são de captura se for Mega ou Mew
                     if (isMegaOrMew && item.type !== 'capture') return;
 
                     const btn = document.createElement('button');
@@ -2105,7 +1905,6 @@ export class Battle {
         document.getElementById('battle-bag')!.style.display = 'block';
     }
 
-    //static openCardSelection() { if (!this.isPlayerTurn || this.processingAction) return; const list = document.getElementById('battle-cards-list')!; list.innerHTML = ''; const battleCards = this.player!.cards.filter(c => c.type === 'battle'); if(battleCards.length === 0) { list.innerHTML = "<em>Sem cartas de batalha.</em>"; } else { battleCards.forEach(c => { const d = document.createElement('div'); d.className='card-item'; d.innerHTML = `<div class="card-info"><span class="card-name">${c.icon} ${c.name} <span class="card-type-badge type-battle">BATTLE</span></span><span class="card-desc">${c.desc}</span></div><button class="btn-use-card" onclick="window.Battle.useCard('${c.id}')">USAR</button>`; list.appendChild(d); }); } document.getElementById('battle-cards-modal')!.style.display = 'flex'; }
     static openCardSelection() {
 
         const Game = (window as any).Game;
@@ -2114,7 +1913,6 @@ export class Battle {
             return;
         }
 
-        // --- NOVA REGRA: MEGA EVOLUÇÃO / MEW NÃO PODE USAR CARTAS DE BATTALHA EM PVE ---
         if (!this.isPvP && this.activeMon && ((this.activeMon as any).isTemp || (this.activeMon as any).isMegaEvolution)) {
             alert("🧬 Seu parceiro já atingiu o poder máximo! É proibido usar cartas de batalha em Pokémon Mega Evoluídos contra o ambiente selvagem, NPCs ou Ginásios.");
             return;
@@ -2124,12 +1922,11 @@ export class Battle {
         const list = document.getElementById('battle-cards-list')!;
         list.innerHTML = '';
 
-        // Ajuste no contêiner do Modal de Batalha
         const modalContent = document.querySelector('#battle-cards-modal .modal-content') as HTMLElement;
         if (modalContent) {
             modalContent.style.width = "90%";
             modalContent.style.maxWidth = "1100px";
-            modalContent.style.maxHeight = "85vh"; // Altura maior para ver o corpo da carta
+            modalContent.style.maxHeight = "85vh";
             modalContent.style.padding = "25px";
             modalContent.style.overflowY = "auto";
         }
@@ -2141,7 +1938,6 @@ export class Battle {
             list.style.display = 'block';
         } else {
             list.style.display = 'grid';
-            // Ajustado para preencher o espaço e aumentar o tamanho mínimo das cartas
             list.style.gridTemplateColumns = 'repeat(auto-fill, minmax(180px, 1fr))';
             list.style.gap = '20px';
             list.style.padding = '20px';
@@ -2167,13 +1963,7 @@ export class Battle {
         document.getElementById('battle-cards-modal')!.style.display = 'flex';
     }
 
-    // =========================================================================================
-    // NOVA LÓGICA DE FUGA - 50% BASE + D20
-    // =========================================================================================
-
     static run() {
-        // 1. Onde a fuga é permitida: Só contra selvagem
-        // Em PvP, Gym e NPC, fuga só por carta.
         if (this.isPvP || this.isNPC || this.isGym) {
             alert("Não pode fugir de treinadores!");
             return;
@@ -2182,13 +1972,11 @@ export class Battle {
         this.processingAction = true;
         this.updateButtons();
 
-        // 2. Cálculo da Chance
         const baseChance = 50;
         const d6 = Math.floor(Math.random() * 6) + 1;
-        const modifier = (d6 * 4) - 14; // Varia de -10 a +10
+        const modifier = (d6 * 4) - 14;
         let finalChance = baseChance + modifier;
 
-        // Limites (sempre haverá 5% de chance de erro ou acerto crítico extremo)
         finalChance = Math.max(5, Math.min(95, finalChance));
 
         this.logBattle(`Tentando fugir... (🎲${d6}) Chance: ${finalChance}%`, true);
@@ -2197,37 +1985,27 @@ export class Battle {
             const roll = Math.floor(Math.random() * 100) + 1;
 
             if (roll <= finalChance) {
-                // SUCESSO
                 this.logBattle("🏃 Escapou com sucesso!", true);
                 this.activeMon!.gainXp(5, this.player!);
 
-                // ==============================================================
-                // NOVO: POKÉDEX (Registra "Visto" ao Fugir)
-                // ==============================================================
                 if (this.opponent) {
                     const oppId = this.opponent.id;
 
-                    // --- BLINDAGEM ---
                     if (!this.player!.pokedexData) this.player!.pokedexData = {};
-                    // -----------------
 
                     if (!this.player!.pokedexData[oppId]) {
                         this.player!.pokedexData[oppId] = { seen: 0, caught: 0, defeated: 0 };
                     }
                     this.player!.pokedexData[oppId].seen += 1;
 
-                    // Força o salvamento na hora da fuga!
                     const Network = (window as any).Network;
                     if (Network.isOnline) Network.syncPlayerState();
                 }
-                // ==============================================================
 
                 setTimeout(() => this.end(false), 1000);
             } else {
-                // FALHA NA FUGA
                 this.logBattle("🚫 Falha na fuga! O inimigo vai atacar.", true);
 
-                // 3. Inimigo ataca imediatamente
                 setTimeout(() => {
                     this.performEnemyAttack(() => {
                         this.processingAction = false;
@@ -2237,10 +2015,6 @@ export class Battle {
             }
         }, 1000);
     }
-
-    // =========================================================================================
-    // USO DE ITEM COM PENALIDADE DE TURNO (AGORA PARA PVP E PVE)
-    // =========================================================================================
 
     static useItem(key: string, data: ItemData) {
         if (this.isChampion) return alert("🚫 As regras da Liga proíbem o uso de Itens de Cura no Desafio do Campeão!");
@@ -2287,7 +2061,6 @@ export class Battle {
             this.logBattle(`💊 Usou ${data.name}! Recuperou HP.`, true);
             this.updateUI();
 
-            // Sincroniza uso de item
             if (Network.isOnline) {
                 Network.sendAction('BATTLE_UPDATE', {
                     plyHp: this.activeMon!.currentHp,
@@ -2296,8 +2069,6 @@ export class Battle {
                 });
             }
 
-            // Regra Geral: Usar item gasta turno -> Inimigo ataca
-            // No PvP agora funciona igual PvE
             setTimeout(() => {
                 this.performEnemyAttack(() => {
                     this.processingAction = false;
@@ -2309,78 +2080,57 @@ export class Battle {
         if (Network.isOnline) Network.syncPlayerState();
     }
 
-    // =========================================================================
-    // SEQUÊNCIA DE ANIMAÇÃO CORRIGIDA (ARREMESSO -> QUEDA -> SHAKE)
-    // =========================================================================
     static async animateCaptureSequence(ballIcon: string, isSuccess: boolean): Promise<void> {
         const scene = document.querySelector('.battle-scene') as HTMLElement;
         const enemyImg = document.getElementById('opp-img') as HTMLElement;
 
-        // Limpeza de segurança (caso tenha sobrado algo)
         const oldBall = document.querySelector('.anim-ball');
         if (oldBall) oldBall.remove();
 
-        // 1. Cria a Bola
         const ball = document.createElement('div');
         ball.className = 'anim-ball';
         ball.style.backgroundImage = `url('/assets/img/Itens/${ballIcon}')`;
         scene.appendChild(ball);
 
-        // --- FASE 1: ARREMESSO (600ms) ---
         ball.classList.add('anim-throwing');
-        await this.wait(600); // Espera a bola chegar no alvo
+        await this.wait(600);
 
-        // --- FASE 2: IMPACTO & CAPTURA VISUAL ---
-        // Cria flash de luz
         const flash = document.createElement('div');
         flash.className = 'anim-flash';
         scene.appendChild(flash);
         setTimeout(() => flash.remove(), 300);
 
-        // Oculta o Pokémon (Sugado para dentro)
         if (enemyImg) enemyImg.classList.add('mon-caught-hidden');
 
-        // Remove classe de arremesso para preparar a queda
         ball.classList.remove('anim-throwing');
 
-        // --- FASE 3: QUEDA AO CHÃO (500ms) ---
-        // A bola "pula" um pouco e cai no chão
         ball.classList.add('anim-falling');
         await this.wait(500);
 
-        // --- FASE 4: SHAKES (Balançadas no chão) ---
-        // Remove a queda e fixa a posição no chão via classe CSS do shake
         ball.classList.remove('anim-falling');
 
-        // Determina quantos shakes fazer
-        // Se capturou: 3 shakes + click
-        // Se falhou: 1 ou 2 shakes aleatórios
         const totalShakes = isSuccess ? 3 : (Math.random() > 0.5 ? 2 : 1);
 
         for (let i = 0; i < totalShakes; i++) {
-            await this.wait(400); // Pausa entre shakes (tensão)
+            await this.wait(400);
 
             ball.classList.add('anim-shaking');
-            this.logBattle(`... (${i + 1})`, false); // Log visual
+            this.logBattle(`... (${i + 1})`, false);
 
-            await this.wait(600); // Duração do shake
+            await this.wait(600);
             ball.classList.remove('anim-shaking');
         }
 
-        await this.wait(400); // Pausa dramática final
+        await this.wait(400);
 
-        // --- FASE 5: FINALIZAÇÃO ---
         if (isSuccess) {
-            // Sucesso: Bola apaga um pouco, Pokémon continua oculto
-            ball.style.filter = "brightness(0.5)"; // Bola "desliga"
+            ball.style.filter = "brightness(0.5)";
             await this.wait(500);
             ball.remove();
         } else {
-            // Falha: Pokémon explode para fora
-            ball.style.opacity = '0'; // Bola some
+            ball.style.opacity = '0';
             if (enemyImg) {
-                enemyImg.classList.remove('mon-caught-hidden'); // Pokémon reaparece
-                // Pequena animação de "pop" ao sair (opcional, via CSS transition já resolve)
+                enemyImg.classList.remove('mon-caught-hidden');
             }
             await this.wait(300);
             ball.remove();
@@ -2390,16 +2140,13 @@ export class Battle {
     static async attemptCapture(item: ItemData) {
         if (!this.opponent || !this.activeMon) return;
 
-        // 1. Trava Interface
         this.processingAction = true;
         this.updateButtons();
 
         const opponent = this.opponent;
 
-
         this.logBattle(`Jogou ${item.name}!`, true);
 
-        // 2. CÁLCULO IMEDIATO
         let success = false;
         if (item.id === 'masterball') {
             success = true;
@@ -2413,7 +2160,7 @@ export class Battle {
             else if (hpPercent < 60) hpBonus = 25;
 
             const oppStats = opponent.maxHp + opponent.atk + opponent.def + opponent.speed;
-            const powerPenalty = Math.floor(oppStats / 15);
+            const powerPenalty = Math.floor(oppStats / 30);
 
             let rarityPenalty = 0;
             if (opponent.isLegendary) rarityPenalty += 10;
@@ -2424,7 +2171,6 @@ export class Battle {
 
             let chanceBeforeBall = baseChance + hpBonus - powerPenalty - rarityPenalty + diceBonus;
 
-            // --- Trava Mínima ---
             let travaMsg = "";
             if (chanceBeforeBall < 15) {
                 chanceBeforeBall = 15;
@@ -2437,7 +2183,6 @@ export class Battle {
 
             let chance = chanceBeforeBall + ballBonus;
 
-            // --- EVENTO: SAFARI ZONE (Buff de Captura) ---
             const Game = (window as any).Game;
             let safariBonus = 0;
             if (Game.currentGlobalEvent?.id === 'SAFARI_ZONE') {
@@ -2447,7 +2192,6 @@ export class Battle {
 
             chance = Math.min(Game.currentGlobalEvent?.id === 'SAFARI_ZONE' ? 100 : 95, chance);
 
-            // Log atualizado com todos os detalhes da conta
             let logMsg = `Cálc: Base(15) + HP(+${hpBonus}) - Resist(-${powerPenalty}) - Rari(-${rarityPenalty}) + Dado(🎲${d6}: ${diceBonus > 0 ? '+' : ''}${diceBonus})`;
             logMsg += ` = ${chanceBeforeBall}%${travaMsg}`;
             logMsg += ` | Bola(+${ballBonus}%)`;
@@ -2460,17 +2204,13 @@ export class Battle {
             success = (roll <= chance);
         }
 
-        // 3. EXECUTA A SEQUÊNCIA VISUAL COMPLETA
-        // O código espera essa linha terminar antes de decidir o destino do monstro
         await this.animateCaptureSequence(item.icon, success);
 
-        // 4. APLICA O RESULTADO
         if (success) {
             this.captureSuccess();
         } else {
             this.logBattle("Aargh! Quase! O Pokémon escapou!", true);
 
-            // Se falhar, inimigo ataca
             setTimeout(() => {
                 this.performEnemyAttack(() => {
                     this.processingAction = false;
@@ -2486,27 +2226,18 @@ export class Battle {
 
         Game.sendGlobalLog(`✨ ${this.player?.name} capturou um ${this.opponent!.name}!`);
 
-        // =========================================================================
-        // CORREÇÃO: Reverte o Mew imediatamente!
-        // Garante que ele não vá para a tela de Swap nem seja salvo no Firebase.
-        // =========================================================================
         this.revertMew();
-        this.updateUI(); // Opcional, mas ajuda a limpar a HUD visualmente
-        // =========================================================================
+        this.updateUI();
 
-        // ==============================================================
-        // NOVO: POKÉDEX (Registra "Capturado" apenas para Selvagens)
-        // ==============================================================
         if (this.opponent) {
             const oppId = this.opponent.id;
             if (!this.player!.pokedexData) this.player!.pokedexData = {};
             if (!this.player!.pokedexData[oppId]) {
                 this.player!.pokedexData[oppId] = { seen: 0, caught: 0, defeated: 0 };
             }
-            this.player!.pokedexData[oppId].seen += 1;   // <--- SOMA VISTO
-            this.player!.pokedexData[oppId].caught += 1; // <--- SOMA CAPTURADO
+            this.player!.pokedexData[oppId].seen += 1;
+            this.player!.pokedexData[oppId].caught += 1;
         }
-        // ==============================================================
 
         this.activeMon!.gainXp(5, this.player!);
 

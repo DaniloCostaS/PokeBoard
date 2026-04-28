@@ -1756,11 +1756,11 @@ export class Game {
                 }
                 // --------------------------------------------
 
-                if (myPlayer.skipTurns > 0) {
+                if (myPlayer.skipTurns > 0 || myPlayer.isProcessingSkip) {
                     btn.disabled = true;
-                    btn.innerText = `Pulando vez... (${myPlayer.skipTurns})`;
 
                     if (!myPlayer.isProcessingSkip) {
+                        btn.innerText = `Pulando vez... (${myPlayer.skipTurns})`;
                         myPlayer.isProcessingSkip = true;
 
                         // Executa imediatamente para garantir que salva no Firebase antes do navegador dormir
