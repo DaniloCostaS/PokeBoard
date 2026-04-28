@@ -166,9 +166,18 @@ export class Cards {
 
         const resultChance = Math.floor(Math.random() * 100) + 1;
         let targetRarity = 'Comum';
-        if (resultChance <= 8) targetRarity = 'Épica';
-        else if (resultChance <= 26) targetRarity = 'Rara';
-        else if (resultChance <= 54) targetRarity = 'Incomum';
+
+        const canGetLegendary = (!player.effects || !player.effects.playedLegendary) && !player.cards.some((c: any) => c.rarity === 'Lendária');
+
+        if (canGetLegendary && resultChance <= 1) {
+            targetRarity = 'Lendária';
+        } else if (resultChance <= 8) {
+            targetRarity = 'Épica';
+        } else if (resultChance <= 26) {
+            targetRarity = 'Rara';
+        } else if (resultChance <= 54) {
+            targetRarity = 'Incomum';
+        }
 
         const possibleCards = CARDS_DB.filter(c => c.rarity === targetRarity);
         const finalPool = possibleCards.length > 0 ? possibleCards : CARDS_DB;
@@ -241,7 +250,7 @@ export class Cards {
         modal.style.display = 'flex';
     }
 
-    static openPokemonSelectionForCard(cardId: string) {
+    static openPokemonSelectionForCard(cardId: string, customTitle: string = "Escolha quem vai comer o Rare Candy:") {
         const Game = (window as any).Game;
         const player = Game.getCurrentPlayer();
         const modal = document.getElementById('pkmn-select-modal')!;
@@ -250,7 +259,7 @@ export class Cards {
         const boardCardsModal = document.getElementById('board-cards-modal');
         if (boardCardsModal) boardCardsModal.style.display = 'none';
 
-        document.getElementById('select-title')!.innerText = "Escolha quem vai comer o Rare Candy:";
+        document.getElementById('select-title')!.innerText = customTitle;
         list.innerHTML = '';
 
         player.team.forEach((mon: any, index: number) => {
@@ -354,6 +363,250 @@ export class Cards {
         cancelBtn.innerText = 'Cancelar';
         cancelBtn.onclick = () => { modal.style.display = 'none'; };
         list.appendChild(cancelBtn);
+
+        modal.style.display = 'flex';
+    }
+
+    static openReclaimMegaStoneSelection(cardId: string) {
+        const Game = (window as any).Game;
+        const player = Game.getCurrentPlayer();
+        const modal = document.getElementById('pkmn-select-modal')!;
+        const list = document.getElementById('pkmn-select-list')!;
+
+        const boardCardsModal = document.getElementById('board-cards-modal');
+        if (boardCardsModal) boardCardsModal.style.display = 'none';
+
+        document.getElementById('select-title')!.innerText = "Escolha de qual Pokémon recuperar a Mega Pedra:";
+        list.innerHTML = '';
+
+        let hasMega = false;
+        player.team.forEach((mon: any, index: number) => {
+            const div = document.createElement('div');
+
+            if (mon.megaStone) {
+                hasMega = true;
+                div.className = `mon-select-item`;
+                div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>Lv.${mon.level}</small><br><small style="color:#2ecc71">💎 Mega Pedra Equipada!</small>`;
+                div.onclick = () => {
+                    modal.style.display = 'none';
+                    this.activate(cardId, index);
+                };
+            } else {
+                div.className = `mon-select-item disabled`;
+                div.innerHTML = `<img src="${mon.getSprite()}" width="40" style="filter: grayscale(100%);"><b>${mon.name}</b> <small>Lv.${mon.level}</small><br><small style="color:#e74c3c">Sem Mega Pedra</small>`;
+            }
+            list.appendChild(div);
+        });
+
+        if (!hasMega) {
+            alert("Nenhum de seus Pokémon possui uma Mega Pedra equipada para ser recuperada!");
+            return;
+        }
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn btn-secondary mt-15';
+        cancelBtn.innerText = 'Cancelar';
+        cancelBtn.onclick = () => { modal.style.display = 'none'; };
+        list.appendChild(cancelBtn);
+
+        modal.style.display = 'flex';
+    }
+
+    static openStealMegaStoneTargetSelection(cardId: string) {
+        const Game = (window as any).Game;
+        const currentPlayer = Game.getCurrentPlayer();
+
+        const targets = Game.players.filter((p: any) => 
+            p.id !== currentPlayer.id && p.team.some((mon: any) => mon.megaStone)
+        );
+
+        if (targets.length === 0) {
+            Game.showGlobalAlert("Nenhum adversário possui um Pokémon com Mega Pedra equipada!", currentPlayer.name, true, false);
+            return;
+        }
+
+        const modal = document.getElementById('pkmn-select-modal')!;
+        const list = document.getElementById('pkmn-select-list')!;
+
+        const boardCardsModal = document.getElementById('board-cards-modal');
+        if (boardCardsModal) boardCardsModal.style.display = 'none';
+
+        document.getElementById('select-title')!.innerText = "Escolha de qual jogador destruir a Mega Pedra:";
+        list.innerHTML = '';
+
+        targets.forEach((target: any) => {
+            const div = document.createElement('div');
+            div.className = `mon-select-item`;
+
+            div.innerHTML = `
+                <img src="${target.avatar}" width="40" style="border-radius: 50%; border: 2px solid #ecf0f1;">
+                <b>${target.name}</b> 
+                <small style="color:#bdc3c7;">(P${target.id + 1})</small>
+            `;
+
+            div.onclick = () => {
+                this.openStealMegaStonePokemonSelection(cardId, target.id);
+            };
+            list.appendChild(div);
+        });
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn btn-secondary mt-15';
+        cancelBtn.innerText = 'Cancelar';
+        cancelBtn.onclick = () => { modal.style.display = 'none'; };
+        list.appendChild(cancelBtn);
+
+        modal.style.display = 'flex';
+    }
+
+    static openStealMegaStonePokemonSelection(cardId: string, targetId: number) {
+        const Game = (window as any).Game;
+        const target = Game.players.find((p: any) => p.id === targetId);
+        if (!target) return;
+
+        const modal = document.getElementById('pkmn-select-modal')!;
+        const list = document.getElementById('pkmn-select-list')!;
+
+        document.getElementById('select-title')!.innerText = `Escolha o Pokémon de ${target.name}:`;
+        list.innerHTML = '';
+
+        target.team.forEach((mon: any, index: number) => {
+            const div = document.createElement('div');
+
+            if (mon.megaStone) {
+                div.className = `mon-select-item`;
+                div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>Lv.${mon.level}</small><br><small style="color:#e74c3c">💎 Mega Pedra Alvo</small>`;
+                div.onclick = () => {
+                    modal.style.display = 'none';
+                    this.activate(cardId, { targetId, pokemonIndex: index });
+                };
+            } else {
+                div.className = `mon-select-item disabled`;
+                div.innerHTML = `<img src="${mon.getSprite()}" width="40" style="filter: grayscale(100%);"><b>${mon.name}</b> <small>Lv.${mon.level}</small><br><small style="color:#7f8c8d">Sem Mega Pedra</small>`;
+            }
+            list.appendChild(div);
+        });
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn btn-secondary mt-15';
+        cancelBtn.innerText = 'Voltar';
+        cancelBtn.onclick = () => { this.openStealMegaStoneTargetSelection(cardId); };
+        list.appendChild(cancelBtn);
+
+        modal.style.display = 'flex';
+    }
+
+    static openAshGoodbyeTargetSelection(cardId: string) {
+        const Game = (window as any).Game;
+        const currentPlayer = Game.getCurrentPlayer();
+
+        const targets = Game.players.filter((p: any) => p.id !== currentPlayer.id);
+
+        if (targets.length === 0) {
+            Game.showGlobalAlert("Nenhum adversário encontrado!", currentPlayer.name, true, false);
+            return;
+        }
+
+        const modal = document.getElementById('pkmn-select-modal')!;
+        const list = document.getElementById('pkmn-select-list')!;
+
+        const boardCardsModal = document.getElementById('board-cards-modal');
+        if (boardCardsModal) boardCardsModal.style.display = 'none';
+
+        document.getElementById('select-title')!.innerText = "Escolha de qual jogador mandar o Pokémon embora:";
+        list.innerHTML = '';
+
+        targets.forEach((target: any) => {
+            const div = document.createElement('div');
+            div.className = `mon-select-item`;
+
+            div.innerHTML = `
+                <img src="${target.avatar}" width="40" style="border-radius: 50%; border: 2px solid #ecf0f1;">
+                <b>${target.name}</b> 
+                <small style="color:#bdc3c7;">(P${target.id + 1})</small>
+            `;
+
+            div.onclick = () => {
+                this.openAshGoodbyePokemonSelection(cardId, target.id);
+            };
+            list.appendChild(div);
+        });
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn btn-secondary mt-15';
+        cancelBtn.innerText = 'Cancelar';
+        cancelBtn.onclick = () => { modal.style.display = 'none'; };
+        list.appendChild(cancelBtn);
+
+        modal.style.display = 'flex';
+    }
+
+    static openAshGoodbyePokemonSelection(cardId: string, targetId: number) {
+        const Game = (window as any).Game;
+        const target = Game.players.find((p: any) => p.id === targetId);
+        if (!target) return;
+
+        const modal = document.getElementById('pkmn-select-modal')!;
+        const list = document.getElementById('pkmn-select-list')!;
+
+        document.getElementById('select-title')!.innerText = `Escolha o Pokémon de ${target.name} para dar o Adeus de Ash:`;
+        list.innerHTML = '';
+
+        target.team.forEach((mon: any, index: number) => {
+            const div = document.createElement('div');
+
+            if (target.team.length === 1) {
+                div.className = `mon-select-item disabled`;
+                div.innerHTML = `<img src="${mon.getSprite()}" width="40" style="filter: grayscale(100%);"><b>${mon.name}</b><br><small style="color:#e74c3c">Último Pokémon</small>`;
+            } else {
+                div.className = `mon-select-item`;
+                div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>Lv.${mon.level}</small>`;
+                div.onclick = () => {
+                    modal.style.display = 'none';
+                    this.activate(cardId, { targetId, pokemonIndex: index });
+                };
+            }
+            list.appendChild(div);
+        });
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn btn-secondary mt-15';
+        cancelBtn.innerText = 'Voltar';
+        cancelBtn.onclick = () => { this.openAshGoodbyeTargetSelection(cardId); };
+        list.appendChild(cancelBtn);
+
+        modal.style.display = 'flex';
+    }
+
+    static openLegendaryEncounterSelection(options: any[]) {
+        const Game = (window as any).Game;
+        const modal = document.getElementById('pkmn-select-modal')!;
+        const list = document.getElementById('pkmn-select-list')!;
+
+        const boardCardsModal = document.getElementById('board-cards-modal');
+        if (boardCardsModal) boardCardsModal.style.display = 'none';
+
+        document.getElementById('select-title')!.innerText = "Encontro Lendário! Escolha um para lutar e capturar:";
+        list.innerHTML = '';
+
+        options.forEach((monTemplate: any) => {
+            const div = document.createElement('div');
+            div.className = `mon-select-item`;
+            const sprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${monTemplate.id}.png`;
+            div.innerHTML = `<img src="${sprite}" width="40"><b>${monTemplate.name}</b>`;
+            div.onclick = () => {
+                modal.style.display = 'none';
+                
+                const PokemonClass = (window as any).Pokemon || Game.players[0].team[0].constructor;
+                const encounterLevel = Math.max(10, Game.getGlobalAverageLevel() + 5);
+                const wildMon = new PokemonClass(monTemplate.id, encounterLevel);
+                wildMon.vinculoSupremo = true;
+                
+                const Battle = (window as any).Battle;
+                Battle.setup(Game.getCurrentPlayer(), wildMon, false, "Selvagem", 0, null, false, 0, "", 1);
+            };
+            list.appendChild(div);
+        });
 
         modal.style.display = 'flex';
     }
@@ -775,7 +1028,7 @@ export class Cards {
             return alert("Esta carta não pode ser ativada manualmente. Ela protege você automaticamente quando for alvo de outra carta!");
         }
 
-        const offensiveCards = ['swap', 'slow', 'rocket', 'curse', 'trade_fail', 'new_leader', 'bag', 'troques', 'michael'];
+        const offensiveCards = ['swap', 'slow', 'rocket', 'curse', 'trade_fail', 'new_leader', 'bag', 'troques', 'michael', 'steal_mega_stone'];
 
         if (offensiveCards.includes(cardId)) {
             if (!player.effects) player.effects = {};
@@ -799,6 +1052,15 @@ export class Cards {
 
                 player.effects.offensiveCardsUsed = (player.effects.offensiveCardsUsed || 0) + 1;
             }
+        }
+
+        if (cardData.rarity === 'Lendária') {
+            if (player.effects && player.effects.playedLegendary) {
+                alert("Você já utilizou uma carta Lendária nesta partida. Apenas um milagre por jogo é permitido!");
+                return;
+            }
+            if (!player.effects) player.effects = {};
+            player.effects.playedLegendary = true;
         }
 
         let consumed = true;
@@ -885,8 +1147,9 @@ export class Cards {
                 if (targetId !== null) {
                     const target = Game.players.find((p: any) => p.id === targetId);
                     if (target) {
-                        if (target.cards.length > 0) {
-                            const stolenIdx = Math.floor(Math.random() * target.cards.length);
+                        const nonLegendaryIndices = target.cards.map((c: any, i: number) => c.rarity === 'Lendária' ? -1 : i).filter((i: number) => i !== -1);
+                        if (nonLegendaryIndices.length > 0) {
+                            const stolenIdx = nonLegendaryIndices[Math.floor(Math.random() * nonLegendaryIndices.length)];
                             const stolenCard = target.cards.splice(stolenIdx, 1)[0];
                             player.cards.push(stolenCard);
                             effectLog = `🚀 BINGO! Uma carta foi roubada e foi parar na mão de ${player.name}!`;
@@ -979,6 +1242,16 @@ export class Cards {
 
                 this.startNPCBattleTradeFlow(player);
                 consumed = false; 
+                break;
+
+            case 'adotar_lixeira':
+                if (Game.lixeira.length === 0) {
+                    alert("A lixeira está vazia! Não há nenhum Pokémon para resgatar.");
+                    consumed = false;
+                } else {
+                    Game.openLixeira(true);
+                    effectLog = `💚 ${player.name} sentiu compaixão e está procurando um novo parceiro na Lixeira!`;
+                }
                 break;
 
             case 'time': player.effects.extraTurn = true; effectLog = "⏳ O tempo congelou! O jogador terá mais um turno imediato."; break;
@@ -1127,6 +1400,201 @@ export class Cards {
                 }
                 break;
 
+            case 'reclaim_mega_stone':
+                if (targetId !== null) {
+                    const targetMon = player.team[targetId];
+                    if (!targetMon || !targetMon.megaStone) { consumed = false; break; }
+
+                    targetMon.megaStone = false;
+                    
+                    const megaStoneCardData = CARDS_DB.find((c: any) => c.id === 'mega_stone');
+                    if (megaStoneCardData) {
+                        player.cards.push(megaStoneCardData);
+                    }
+
+                    effectLog = `⛏️ A Mega Pedra foi retirada de ${targetMon.name} com segurança! Você recebeu a carta Mega Pedra de volta.`;
+
+                    const boardModal = document.getElementById('board-cards-modal');
+                    if (boardModal) boardModal.style.display = 'none';
+
+                    if (Network.isOnline) Network.syncPlayerState();
+                } else {
+                    this.openReclaimMegaStoneSelection(cardId);
+                    consumed = false;
+                }
+                break;
+
+            case 'steal_mega_stone':
+                if (targetId !== null) {
+                    const tId = targetId.targetId;
+                    const pIdx = targetId.pokemonIndex;
+
+                    const target = Game.players.find((p: any) => p.id === tId);
+                    if (!target) { consumed = false; break; }
+
+                    const targetMon = target.team[pIdx];
+                    if (!targetMon || !targetMon.megaStone) { consumed = false; break; }
+
+                    targetMon.megaStone = false;
+
+                    effectLog = `💥 DESTRUÍDA! ${player.name} usou magia negra e destruiu a Mega Pedra que estava com o ${targetMon.name} de ${target.name}!`;
+
+                    const boardModal = document.getElementById('board-cards-modal');
+                    if (boardModal) boardModal.style.display = 'none';
+
+                    if (Network.isOnline) {
+                        if ((Network as any).syncPlayers) {
+                            (Network as any).syncPlayers([player.id, target.id]);
+                        } else {
+                            Network.syncSpecificPlayer(target.id);
+                        }
+                    }
+                } else {
+                    this.openStealMegaStoneTargetSelection(cardId);
+                    consumed = false;
+                }
+                break;
+
+            case 'supreme_bond':
+                if (targetId !== null) {
+                    const targetMon = player.team[targetId];
+                    if (!targetMon) { consumed = false; break; }
+
+                    if (targetMon.vinculoSupremo) {
+                        alert("Este Pokémon já possui Vínculo Supremo!");
+                        consumed = false;
+                        break;
+                    }
+
+                    targetMon.vinculoSupremo = true;
+                    effectLog = `🤝 VÍNCULO SUPREMO! ${targetMon.name} prometeu nunca abandonar ${player.name}, custe o que custar!`;
+                    
+                    const boardModal = document.getElementById('board-cards-modal');
+                    if (boardModal) boardModal.style.display = 'none';
+
+                    if (Network.isOnline) Network.syncPlayerState();
+                } else {
+                    this.openPokemonSelectionForCard(cardId, "Escolha um Pokémon para criar um Vínculo Supremo:");
+                    consumed = false;
+                }
+                break;
+
+            case 'ash_goodbye':
+                if (targetId !== null) {
+                    const tId = targetId.targetId;
+                    const pIdx = targetId.pokemonIndex;
+
+                    const target = Game.players.find((p: any) => p.id === tId);
+                    if (!target) { consumed = false; break; }
+
+                    const targetMon = target.team[pIdx];
+                    if (!targetMon) { consumed = false; break; }
+
+                    if (target.team.length === 1) {
+                        alert("Você não pode mandar embora o último Pokémon do treinador!");
+                        consumed = false;
+                        break;
+                    }
+
+                    if (targetMon.vinculoSupremo) {
+                        effectLog = `🤝 O ADEUS DE ASH FALHOU! ${targetMon.name} se recusa a ir embora devido ao Vínculo Supremo com ${target.name}!`;
+                    } else {
+                        target.team.splice(pIdx, 1);
+                        effectLog = `👋 ADEUS! ${player.name} cantou a música triste e fez ${target.name} libertar seu ${targetMon.name} para todo o sempre! (Ele desapareceu na imensidão e nunca mais poderá ser recuperado)`;
+                    }
+
+                    const boardModal = document.getElementById('board-cards-modal');
+                    if (boardModal) boardModal.style.display = 'none';
+
+                    if (Network.isOnline) {
+                        if ((Network as any).syncPlayers) {
+                            (Network as any).syncPlayers([player.id, target.id]);
+                        } else {
+                            Network.syncSpecificPlayer(target.id);
+                        }
+                    }
+                } else {
+                    this.openAshGoodbyeTargetSelection(cardId);
+                    consumed = false;
+                }
+                break;
+
+            case 'tremembe':
+                Game.players.forEach((p: any) => {
+                    if (p.id !== player.id) {
+                        p.skipTurns += 20;
+                        if (Network.isOnline) Network.syncSpecificPlayer(p.id);
+                    }
+                });
+                effectLog = `⛓️ DECRETO DA PRISÃO DE TREMEMBÉ! Todos os outros jogadores ficarão enjaulados por 20 rodadas!`;
+                break;
+
+            case 'se_rj':
+                Game.players.forEach((p: any) => {
+                    if (p.id !== player.id) {
+                        p.gold = 0;
+                        Object.keys(p.items).forEach(k => p.items[k] = 0);
+                        if (Network.isOnline) Network.syncSpecificPlayer(p.id);
+                    }
+                });
+                effectLog = `🔫 ARRastão na Sé/RJ! Todos os outros jogadores foram assaltados e perderam TODO o gold e TODOS os itens!`;
+                break;
+
+            case 'cassino':
+                Game.players.forEach((p: any) => {
+                    if (p.id !== player.id) {
+                        p.cards = p.cards.filter((c: any) => c.rarity === 'Lendária');
+                        if (Network.isOnline) Network.syncSpecificPlayer(p.id);
+                    }
+                });
+                effectLog = `🎰 A BANCA SEMPRE VENCE! Todos os outros jogadores perderam todas as suas cartas apostando no Cassino! (Cartas lendárias foram poupadas)`;
+                break;
+
+            case 'legendary_encounter':
+                const _POKEDEX = (await import('../constants/pokedex')).POKEDEX;
+                const legendaries = _POKEDEX.filter((p: any) => p.isLegendary);
+                
+                const shuffled = legendaries.sort(() => 0.5 - Math.random());
+                const selectedThree = shuffled.slice(0, 3);
+                
+                this.openLegendaryEncounterSelection(selectedThree);
+                
+                effectLog = `🦅 ${player.name} tocou a Flauta do Tempo e atraiu a presença de três divindades!`;
+                break;
+
+            case 'legendary_shiny':
+                if (targetId !== null) {
+                    const targetMon = player.team[targetId];
+                    if (!targetMon) { consumed = false; break; }
+
+                    if (!targetMon.isLegendary) {
+                        alert("Este Pokémon não é Lendário!");
+                        consumed = false;
+                        break;
+                    }
+
+                    if (targetMon.isShiny) {
+                        alert("Este Pokémon Lendário já é Shiny!");
+                        consumed = false;
+                        break;
+                    }
+
+                    targetMon.isShiny = true;
+                    targetMon.vinculoSupremo = true;
+                    targetMon.recalculateStats(true);
+                    
+                    effectLog = `🌟 UMA LUZ OFUSCANTE! O ${targetMon.name} lendário de ${player.name} absorveu a energia, se tornou SHINY e ganhou Vínculo Supremo!`;
+                    
+                    const boardModal = document.getElementById('board-cards-modal');
+                    if (boardModal) boardModal.style.display = 'none';
+
+                    if (Network.isOnline) Network.syncPlayerState();
+                } else {
+                    this.openPokemonSelectionForCard(cardId, "Escolha um Pokémon Lendário para transformar em Shiny:");
+                    consumed = false;
+                }
+                break;
+
             case 'rare_candy':
                 if (targetId !== null) {
                     const targetMon = player.team[targetId];
@@ -1221,11 +1689,21 @@ export class Cards {
                         playerIds.forEach(id => {
                             const pData = roomData.players[id];
                             if (pData.cards && Array.isArray(pData.cards)) {
-                                let cardsToAdd = [...pData.cards];
-                                if (parseInt(id) === player.id) {
-                                    const cIdx = cardsToAdd.findIndex((c: any) => c.id === cardId);
-                                    if (cIdx > -1) cardsToAdd.splice(cIdx, 1);
-                                }
+                                let cardsToAdd: any[] = [];
+                                let legendaryCards: any[] = [];
+                                
+                                pData.cards.forEach((c: any) => {
+                                    if (parseInt(id) === player.id && c.id === cardId) {
+                                    } else if (c.rarity === 'Lendária') {
+                                        legendaryCards.push(c);
+                                    } else {
+                                        cardsToAdd.push(c);
+                                    }
+                                });
+                                
+                                // Guarda os lendários separados para devolver depois
+                                pData._legendaries = legendaryCards;
+                                
                                 allCardsPool = [...allCardsPool, ...cardsToAdd];
                             }
                         });
@@ -1248,7 +1726,7 @@ export class Cards {
 
                         const finalSyncUpdates: any = {};
                         playerIds.forEach(id => {
-                            const newHand = [];
+                            const newHand = roomData.players[id]._legendaries || [];
                             for (let i = 0; i < perPlayer; i++) {
                                 if (allCardsPool.length > 0) newHand.push(allCardsPool.pop());
                             }
@@ -1269,7 +1747,9 @@ export class Cards {
                 } else {
                     let offlinePool: any[] = [];
                     Game.players.forEach((p: any) => {
-                        offlinePool = [...offlinePool, ...(p.cards || [])];
+                        let nonLendaries = p.cards.filter((c: any) => c.rarity !== 'Lendária');
+                        p._legendaries = p.cards.filter((c: any) => c.rarity === 'Lendária');
+                        offlinePool = [...offlinePool, ...nonLendaries];
                         p.cards = [];
                     });
 
@@ -1282,6 +1762,7 @@ export class Cards {
                     const leftovers = offlinePool.length % pCount;
 
                     Game.players.forEach((p: any) => {
+                        p.cards = [...(p._legendaries || [])];
                         for (let i = 0; i < perPlayer; i++) {
                             if (offlinePool.length > 0) p.cards.push(offlinePool.pop());
                         }
@@ -1336,14 +1817,19 @@ export class Cards {
                                 if (impIdx > -1) cards.splice(impIdx, 1);
                             }
 
-                            const toRemoveC = Math.floor(cards.length / 2);
+                            const legendaries = cards.filter(c => c.rarity === 'Lendária');
+                            const others = cards.filter(c => c.rarity !== 'Lendária');
+
+                            const toRemoveC = Math.floor(others.length / 2);
                             if (toRemoveC > 0) {
                                 for (let i = 0; i < toRemoveC; i++) {
-                                    const rIdx = Math.floor(Math.random() * cards.length);
-                                    cards.splice(rIdx, 1);
+                                    const rIdx = Math.floor(Math.random() * others.length);
+                                    others.splice(rIdx, 1);
                                     totalCardsL++;
                                 }
                             }
+
+                            const finalCards = [...legendaries, ...others];
 
                             const items = pData.items || {};
                             Object.keys(items).forEach(k => {
@@ -1354,11 +1840,11 @@ export class Cards {
                                 }
                             });
 
-                            impUpdates[`${roomPath}/players/${id}/cards`] = cards.length > 0 ? cards : null;
+                            impUpdates[`${roomPath}/players/${id}/cards`] = finalCards.length > 0 ? finalCards : null;
                             impUpdates[`${roomPath}/players/${id}/items`] = items;
 
                             if (parseInt(id) === player.id) {
-                                player.cards = cards;
+                                player.cards = finalCards;
                                 player.items = items;
                             }
                         });
@@ -1374,11 +1860,17 @@ export class Cards {
                     let totalOfflineC = 0;
                     let totalOfflineI = 0;
                     Game.players.forEach((p: any) => {
-                        const toRemC = Math.floor(p.cards.length / 2);
+                        const legendaries = p.cards.filter((c: any) => c.rarity === 'Lendária');
+                        const others = p.cards.filter((c: any) => c.rarity !== 'Lendária');
+
+                        const toRemC = Math.floor(others.length / 2);
                         for (let i = 0; i < toRemC; i++) {
-                            p.cards.splice(Math.floor(Math.random() * p.cards.length), 1);
+                            others.splice(Math.floor(Math.random() * others.length), 1);
                             totalOfflineC++;
                         }
+                        
+                        p.cards = [...legendaries, ...others];
+
                         Object.keys(p.items).forEach(k => {
                             const toRemI = Math.floor(p.items[k] / 2);
                             p.items[k] -= toRemI;

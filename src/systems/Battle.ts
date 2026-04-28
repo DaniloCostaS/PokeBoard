@@ -2016,6 +2016,40 @@ export class Battle {
         }, 1000);
     }
 
+    static surrender() {
+        if (this.isPvP) return;
+
+        this.processingAction = true;
+        this.updateButtons();
+
+        this.logBattle("🏳️ Você desistiu da batalha! Fugindo para o Centro Pokémon...", true);
+
+        setTimeout(() => {
+            const Game = (window as any).Game;
+            const Network = (window as any).Network;
+
+            this.active = false;
+            document.getElementById('battle-modal')!.style.display = 'none';
+
+            if (Network.isOnline && this.player && this.player.id === Network.myPlayerId) {
+                Network.sendAction('BATTLE_END', { log: `🏳️ ${this.player.name} desistiu da batalha.` });
+            }
+
+            if (this.player) {
+                const lostGold = this.player.gold >= 100 ? 100 : this.player.gold;
+                this.player.gold = Math.max(0, this.player.gold - 100);
+                if (lostGold > 0) {
+                    Game.sendGlobalLog(`💰 [Extrato] ${this.player.name} deixou cair -${lostGold}G ao desistir da batalha.`);
+                    Game.sendGlobalLog(`💰 [Extrato] Novo Saldo: ${this.player.gold}G.`);
+                }
+                
+                Game.handleTotalDefeat(this.player);
+            }
+            
+            Game.nextTurn();
+        }, 1500);
+    }
+
     static useItem(key: string, data: ItemData) {
         if (this.isChampion) return alert("🚫 As regras da Liga proíbem o uso de Itens de Cura no Desafio do Campeão!");
 

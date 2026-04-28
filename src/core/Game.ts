@@ -39,6 +39,7 @@ export class Game {
 
     static activeGyms: number[] = [];
     static globalLogs: { text: string, style: string, type?: string }[] = [];
+    static lixeira: Pokemon[] = [];
 
     static init(players: Player[], mapSize: number) {
         // --- NOVO: GARANTE O SORTEIO NO MODO OFFLINE ---
@@ -641,7 +642,7 @@ export class Game {
         });
 
         const typeOrder: Record<string, number> = { 'move': 1, 'battle': 2, 'auto': 3, 'global': 4 };
-        const rarityOrder: Record<string, number> = { 'Épica': 1, 'Rara': 2, 'Incomum': 3, 'Comum': 4 };
+        const rarityOrder: Record<string, number> = { 'Lendária': 0, 'Épica': 1, 'Rara': 2, 'Incomum': 3, 'Comum': 4 };
 
         filtered.sort((a, b) => {
             if (typeOrder[a.type] !== typeOrder[b.type]) return (typeOrder[a.type] || 99) - (typeOrder[b.type] || 99);
@@ -791,7 +792,7 @@ export class Game {
         }
 
         const typeOrder: Record<string, number> = { 'move': 1, 'battle': 2, 'auto': 3, 'global': 4 };
-        const rarityOrder: Record<string, number> = { 'Épica': 1, 'Rara': 2, 'Incomum': 3, 'Comum': 4 };
+        const rarityOrder: Record<string, number> = { 'Lendária': 0, 'Épica': 1, 'Rara': 2, 'Incomum': 3, 'Comum': 4 };
 
         filteredCards.sort((a, b) => {
             if (typeOrder[a.type] !== typeOrder[b.type]) return (typeOrder[a.type] || 99) - (typeOrder[b.type] || 99);
@@ -2039,19 +2040,87 @@ export class Game {
 
     static executeSwap(indexToRelease: number, newMon: Pokemon) {
         const p = this.getCurrentPlayer();
+        let discarded: Pokemon;
         if (indexToRelease === -1) {
-            this.log(`Libertou ${newMon.name}.`);
+            this.log(`Libertou ${newMon.name} (enviado para a lixeira).`);
+            discarded = newMon;
         } else {
-            const released = p.team[indexToRelease];
-            this.log(`Libertou ${released.name} e ficou com ${newMon.name}!`);
+            discarded = p.team[indexToRelease];
+            this.log(`Libertou ${discarded.name} e ficou com ${newMon.name}! (enviado para a lixeira).`);
             p.team[indexToRelease] = newMon;
         }
+        
+        discarded.currentHp = discarded.maxHp;
+        this.lixeira.push(discarded);
+        
         document.getElementById('swap-modal')!.style.display = 'none';
         Game.updateHUD();
 
-        if (Network.isOnline) Network.syncPlayerState();
+        if (Network.isOnline) {
+            Network.syncPlayerState();
+            (window as any).Network.syncLixeira();
+        }
 
         setTimeout(() => Battle.end(false), 500);
+    }
+
+    static openLixeira(selectMode: boolean = false) {
+        const list = document.getElementById('lixeira-list')!;
+        list.innerHTML = '';
+        
+        if (this.lixeira.length === 0) {
+            list.innerHTML = "<p style='color:#ccc; padding:20px;'>A lixeira está vazia.</p>";
+        } else {
+            this.lixeira.forEach((mon, idx) => {
+                const card = document.createElement('div');
+                card.className = 'dex-card';
+                card.style.cssText = "display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); width: 150px; cursor: pointer;";
+                
+                const spriteUrl = mon.getSprite();
+                card.innerHTML = `
+                    <img src="${spriteUrl}" style="width: 70px; height: 70px; object-fit: contain;">
+                    <b style="font-size: 1rem; color: #fff;">${mon.name}</b>
+                    <small style="color: #e67e22; font-weight: bold;">Lv.${mon.level}</small>
+                    <div style="font-size: 0.85rem; color: #7f8c8d; margin-top: 4px; display: flex; gap: 5px;">
+                        <span>❤️ ${mon.maxHp}</span>
+                        <span>⚔️ ${mon.atk}</span>
+                    </div>
+                `;
+                
+                if (selectMode) {
+                    card.onclick = () => {
+                        this.rescueFromLixeira(idx);
+                        document.getElementById('lixeira-modal')!.style.display = 'none';
+                    };
+                }
+                list.appendChild(card);
+            });
+        }
+        
+        document.getElementById('lixeira-modal')!.style.display = 'flex';
+    }
+
+    static rescueFromLixeira(idx: number) {
+        const mon = this.lixeira[idx];
+        const p = this.getCurrentPlayer();
+        
+        this.lixeira.splice(idx, 1);
+        
+        if (p.team.length < 6) {
+            p.team.push(mon);
+            this.sendGlobalLog(`💚 ${p.name} resgatou ${mon.name} da lixeira!`);
+            this.updateHUD();
+            if (Network.isOnline) {
+                Network.syncPlayerState();
+                (window as any).Network.syncLixeira();
+            }
+        } else {
+            this.sendGlobalLog(`💚 ${p.name} quer resgatar ${mon.name} da lixeira... mas precisa abrir espaço!`);
+            if (Network.isOnline) {
+                (window as any).Network.syncLixeira();
+            }
+            this.openSwapModal(mon);
+        }
     }
 
     // ==========================================
@@ -2248,6 +2317,7 @@ export class Game {
                 }
 
                 const megaIcon = m.megaStone ? `<img src="/assets/img/megaStone.png" style="width:16px; height:16px; margin-left:4px;" title="Mega Stone Equipada">` : '';
+                const vinculoIcon = m.vinculoSupremo ? `<span style="font-size:14px; margin-left:4px;" title="Vínculo Supremo">🤝</span>` : '';
 
                 // ==================================================================================
                 // CORREÇÃO: Passamos 'i' (Dono) e 'slotIndex' (Posição no time)
@@ -2259,6 +2329,7 @@ export class Game {
                         <div class="poke-header"> 
                             <span>${m.name}</span> 
                             ${megaIcon}
+                            ${vinculoIcon}
                             <span class="poke-lvl">Lv.${m.level}</span> 
                         </div> 
                         

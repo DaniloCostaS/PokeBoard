@@ -202,6 +202,17 @@ export class Network {
                 });
             }
         }
+
+        if (data.lixeira) {
+            const PokemonClass = (window as any).Pokemon;
+            Game.lixeira = data.lixeira.map((td: any) => {
+                const po = new PokemonClass(td.id, td.level, td.isShiny);
+                Object.assign(po, td);
+                return po;
+            });
+        } else {
+            Game.lixeira = [];
+        }
         
         if (data.map) { MapSystem.size = data.map.size; MapSystem.grid = data.map.grid; MapSystem.gymLocations = data.map.gymLocations || {}; } else { return; } 
         const playerArray = Object.values(data.players).map((pd: any) => { 
@@ -262,6 +273,21 @@ export class Network {
             if (isBattle === false && BattleObj && BattleObj.active) {
                 document.getElementById('battle-modal')!.style.display = 'none';
                 BattleObj.active = false;
+            }
+        });
+
+        onValue(ref(db, `rooms/${this.currentRoomId}/lixeira`), (snapshot) => {
+            const lixeiraData = snapshot.val();
+            const GameObj = (window as any).Game;
+            if (lixeiraData) {
+                const PokemonClass = (window as any).Pokemon;
+                GameObj.lixeira = lixeiraData.map((td: any) => {
+                    const po = new PokemonClass(td.id, td.level, td.isShiny);
+                    Object.assign(po, td);
+                    return po;
+                });
+            } else {
+                GameObj.lixeira = [];
             }
         });
 
@@ -597,6 +623,12 @@ export class Network {
     static syncTurn(newTurn: number, newRound: number = 1) { 
         if(!this.isOnline) return; 
         update(ref(db, `rooms/${this.currentRoomId}`), { turn: newTurn, round: newRound }); 
+    }
+
+    static syncLixeira() {
+        if(!this.isOnline) return;
+        const Game = (window as any).Game;
+        update(ref(db, `rooms/${this.currentRoomId}`), { lixeira: this.getSanitizedTeam(Game.lixeira) });
     }
 }
 

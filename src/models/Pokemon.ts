@@ -14,6 +14,7 @@ export class Pokemon {
     isGymLeaderMon: boolean = false;
     megaStone: boolean = false;
     isMegaEvolution: boolean = false;
+    vinculoSupremo: boolean = false;
 
     ivs: { hp: number, atk: number, def: number, spd: number };
     baseStats: { hp: number, atk: number, def: number, spd: number };

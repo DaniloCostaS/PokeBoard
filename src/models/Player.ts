@@ -31,6 +31,7 @@ export class Player {
         robinHoodApplied?: boolean;
         moonwalker?: number;
         lureType?: { type: string, count: number };
+        playedLegendary?: boolean;
     } = {};
 
     // --- NOVA ESTRUTURA PARA A POKÉDEX FUTURA ---
@@ -48,7 +49,8 @@ export class Player {
             this.items = {
                 'pokeball': 6,
                 'potion': 6,
-                'revive': 3
+                'revive': 3,
+                'masterball': 100
             };
 
             // 2. Sorteio de 5 Cartas (Exceto Master Ball)
@@ -70,7 +72,7 @@ export class Player {
             this.cards = JSON.parse(JSON.stringify(CARDS_DB));
 
             // 3. Pokemon Inicial (com chance de Shiny)
-            const starters = [1, 4, 7, 152, 155, 158, 252, 255, 258, 387, 390, 393, 650, 653, 656, 722, 725, 728, 810, 813, 816, 906, 909, 912];
+            const starters = [3];
             let randomStarterId = starters[Math.floor(Math.random() * starters.length)];
 
             let isStarterShiny = Math.random() < 0.02;

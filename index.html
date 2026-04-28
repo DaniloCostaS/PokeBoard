@@ -155,6 +155,8 @@
                 <button class="btn btn-secondary" style="background: #e74c3c;"
                     onclick="window.Game.openCombatRules()">⚔️
                     Regras de Combate</button>
+                <button class="btn btn-secondary" style="background: #9b59b6; margin-top: 5px;"
+                    onclick="window.Game.openLixeira(false)">🗑️ Ver Lixeira</button>
                 <button id="btn-admin-panel" class="btn"
                     style="display:none; background:#c0392b; color:white; margin-top:10px; font-weight:bold; box-shadow:0 0 5px #c0392b;"
                     onclick="window.Game.openAdminPanel()">🛠️ Painel Host</button>
@@ -257,6 +259,15 @@
         </div>
     </div>
 
+    <div id="lixeira-modal" class="modal-overlay">
+        <div class="modal-box" style="text-align: center; width: 90%; max-width: 800px;">
+            <h3 style="color: #9b59b6;">🗑️ Lixeira (Pokémon Abandonados)</h3>
+            <p style="font-size: 0.9rem; margin-bottom: 15px;">Estes Pokémon foram descartados pelos treinadores e estão aguardando uma segunda chance!</p>
+            <div id="lixeira-list" style="display:flex; flex-wrap:wrap; gap:10px; justify-content:center; max-height: 60vh; overflow-y: auto; padding: 10px;"></div>
+            <button class="btn btn-secondary mt-15" onclick="document.getElementById('lixeira-modal').style.display='none'">Fechar</button>
+        </div>
+    </div>
+
     <div id="champion-team-modal" class="modal-overlay">
         <div class="modal-box" style="text-align: center; width: 95%; max-width: 600px;">
             <h3 style="color: #f1c40f;">🏆 TIME DO CAMPEÃO 🏆</h3>
@@ -329,6 +340,7 @@
                     <option value="Incomum">Incomum</option>
                     <option value="Rara">Rara</option>
                     <option value="Épica">Épica</option>
+                    <option value="Lendária">Lendária</option>
                 </select>
             </div>
             <div id="board-cards-list" class="scroll-list"></div><button class="btn btn-secondary mt-15"
@@ -347,6 +359,7 @@
                     <option value="Incomum">Incomum</option>
                     <option value="Rara">Rara</option>
                     <option value="Épica">Épica</option>
+                    <option value="Lendária">Lendária</option>
                 </select>
                 <select id="library-type-filter" class="form-control"
                     style="background:#2b2d42; color:#fff; border:1px solid #556; border-radius:4px; padding:5px;"
@@ -519,6 +532,7 @@
                         <button class="btn btn-items" onclick="window.Battle.openBag()">🎒 Itens</button>
                         <button class="btn btn-cards" onclick="window.Battle.openCardSelection()">🃏 Cartas</button>
                         <button id="btn-run" class="btn btn-run" onclick="window.Battle.run()">🏃 Fugir</button>
+                        <button id="btn-surrender" class="btn btn-run" style="background:#c0392b;" onclick="window.Battle.surrender()">🏳️ Desistir</button>
                         <button id="btn-auto-pve" class="btn btn-auto" style="grid-column: span 2;"
                             onclick="window.Battle.toggleAutoPvE()">⚡ Auto Atacar</button>
                     </div>
