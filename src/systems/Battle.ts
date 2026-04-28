@@ -85,7 +85,7 @@ export class Battle {
         }
         else if (isGym) {
             if (Game.currentGlobalEvent?.id === 'GYM_RUSH') {
-                player.team.forEach(mon => mon.heal(9999));
+                player.team.forEach(mon => { mon.currentHp = mon.maxHp; });
                 Game.sendGlobalLog(`🏛️ O Desafio dos Líderes curou o time de ${player.name} totalmente antes da batalha!`);
             }
 

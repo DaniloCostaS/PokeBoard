@@ -55,7 +55,7 @@ export class Player {
 
         if (!isLoadMode && name !== "_LOAD_") {
             // 1. Recursos Iniciais
-            this.gold = 50000;
+            this.gold = 500;
             this.items = {
                 'pokeball': 6,
                 'potion': 6,
@@ -81,8 +81,8 @@ export class Player {
             //this.cards = JSON.parse(JSON.stringify(CARDS_DB));
 
             // 3. Pokemon Inicial (com chance de Shiny)
-            //const starters = [1, 4, 7, 152, 155, 158, 252, 255, 258, 387, 390, 393, 650, 653, 656, 722, 725, 728, 810, 813, 816, 906, 909, 912];
-            const starters = [3];
+            const starters = [1, 4, 7, 152, 155, 158, 252, 255, 258, 387, 390, 393, 650, 653, 656, 722, 725, 728, 810, 813, 816, 906, 909, 912];
+            //const starters = [3];
             let randomStarterId = starters[Math.floor(Math.random() * starters.length)];
 
             let isStarterShiny = Math.random() < 0.02;
