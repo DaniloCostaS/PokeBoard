@@ -18,5 +18,9 @@ export const SHOP_ITEMS: ItemData[] = [
     { id: 'pokeball', name: 'Pokébola', icon: 'pokeball.png', price: 100, type: 'capture', rate: 15 },
     { id: 'greatball', name: 'Great Ball', icon: 'greatBall.png', price: 200, type: 'capture', rate: 30 },
     { id: 'ultraball', name: 'Ultra Ball', icon: 'ultraBall.png', price: 400, type: 'capture', rate: 50 },
-    { id: 'masterball', name: 'Master Ball', icon: 'masterBall.png', price: 2500, type: 'capture', rate: 100 }
+    { id: 'masterball', name: 'Master Ball', icon: 'masterBall.png', price: 2500, type: 'capture', rate: 100 },
+
+    // --- ESPECIAIS ---
+    { id: 'megastone', name: 'Mega Stone', icon: 'MegaStone.png', price: 5000, type: 'mega' },
+    { id: 'vitamin', name: 'Vitaminas', icon: 'Vitamina.png', price: 100, type: 'boost', val: 1 }
 ];

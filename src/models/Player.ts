@@ -32,6 +32,7 @@ export class Player {
         moonwalker?: number;
         lureType?: { type: string, count: number };
         playedLegendary?: boolean;
+        lastGiftRound?: number;
     } = {};
 
     // --- ESTATÍSTICAS DE JOGO ---
@@ -54,12 +55,11 @@ export class Player {
 
         if (!isLoadMode && name !== "_LOAD_") {
             // 1. Recursos Iniciais
-            this.gold = 500;
+            this.gold = 50000;
             this.items = {
                 'pokeball': 6,
                 'potion': 6,
-                'revive': 3,
-                'masterball': 100
+                'revive': 3
             };
 
             // 2. Sorteio de 5 Cartas (Exceto Master Ball)
@@ -78,19 +78,14 @@ export class Player {
             }
 
             // remover depois, começar con todas as cartas.
-            this.cards = JSON.parse(JSON.stringify(CARDS_DB));
+            //this.cards = JSON.parse(JSON.stringify(CARDS_DB));
 
             // 3. Pokemon Inicial (com chance de Shiny)
+            //const starters = [1, 4, 7, 152, 155, 158, 252, 255, 258, 387, 390, 393, 650, 653, 656, 722, 725, 728, 810, 813, 816, 906, 909, 912];
             const starters = [3];
             let randomStarterId = starters[Math.floor(Math.random() * starters.length)];
 
             let isStarterShiny = Math.random() < 0.02;
-
-            // Especial: Nickname contendo LORD começa com Salamence (ID 373)
-            //if (name.includes("BlazerKen")) {
-            //    randomStarterId = 4;
-            //    isStarterShiny = Math.random() < 1.00;
-            //}
 
             this.team.push(new Pokemon(randomStarterId, 1, isStarterShiny));
 

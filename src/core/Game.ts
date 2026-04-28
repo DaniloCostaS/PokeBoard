@@ -1719,6 +1719,42 @@ export class Game {
             }
         };
 
+        const processStartTurnGifts = (player: Player) => {
+            if (player.skipTurns > 0 || player.isProcessingSkip) return;
+
+            // Garantir que só roda uma vez por rodada para este jogador
+            if (player.effects.lastGiftRound === this.round) return;
+            player.effects.lastGiftRound = this.round;
+
+            let gainedAny = false;
+            let logMsg = "";
+
+            // 1. Checagem de Pokébolas (Pokébola, Great Ball, Ultra Ball, Master Ball)
+            const balls = ['pokeball', 'greatball', 'ultraball', 'masterball'];
+            const hasAnyBall = balls.some(b => (player.items[b] || 0) > 0);
+            if (!hasAnyBall) {
+                this.addItem(player, 'pokeball', 1);
+                logMsg += `🎒 Sem Pokébolas! Ganhou 1 Pokébola de cortesia. `;
+                gainedAny = true;
+            }
+
+            // 2. Checagem de Cartas
+            if (player.cards.length === 0) {
+                Cards.draw(player, true);
+                logMsg += `🃏 Sem cartas! Ganhou 1 carta de cortesia.`;
+                gainedAny = true;
+            }
+
+            if (gainedAny) {
+                this.sendGlobalLog(logMsg);
+                if (this.turn === Network.myPlayerId || !Network.isOnline) {
+                    this.showGlobalAlert(`🎁 SUPORTE DE EMERGÊNCIA!\n\n${logMsg}`, player.name, true, false);
+                    this.updateHUD();
+                }
+                if (Network && Network.isOnline) Network.syncSpecificPlayer(player.id);
+            }
+        };
+
         if (Network.isOnline) {
             if (ind) ind.innerText = "FIREBASE";
             if (this.turn === me) {
@@ -1749,6 +1785,7 @@ export class Game {
 
                 processDecadeBonus(myPlayer);
                 processTrucoSeis(myPlayer);
+                processStartTurnGifts(myPlayer); // <--- AVALIA OS PRESENTES DE INÍCIO DE TURNO
 
                 // --- EVENTO: ROBIN HOOD (Início de Turno) ---
                 if (this.currentGlobalEvent?.id === 'ROBIN_HOOD' && !myPlayer.effects.robinHoodApplied) {
@@ -1824,6 +1861,7 @@ export class Game {
 
             processDecadeBonus(currP); // <--- AVALIA O BÔNUS NO MODO OFFLINE
             processTrucoSeis(currP);
+            processStartTurnGifts(currP); // <--- AVALIA OS PRESENTES NO MODO OFFLINE
 
             btn.disabled = false;
         }
@@ -1841,7 +1879,7 @@ export class Game {
     }
     static exportSave() { const d = localStorage.getItem('pk_save'); if (!d) return alert("Vazio"); const b = new Blob([d], { type: 'text/plain' }); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'save.txt'; a.click(); }
     static importSave(i: HTMLInputElement) { const f = i.files?.[0]; if (!f) return; const r = new FileReader(); r.onload = e => { localStorage.setItem('pk_save', e.target?.result as string); this.loadGame(); }; r.readAsText(f); }
-    static openInventoryModal(pId: number, readOnly: boolean = false) { const p = this.players[pId]; const list = document.getElementById('board-inventory-list')!; list.innerHTML = ''; const canUse = (!readOnly && this.canAct() && this.turn === pId); Object.keys(p.items).forEach(key => { if (p.items[key] > 0) { const item = SHOP_ITEMS.find(i => i.id === key); if (item) { const d = document.createElement('div'); d.className = 'shop-item'; let btnHTML = ''; if (canUse && (item.type === 'heal' || item.type === 'revive')) { btnHTML = `<button class="btn btn-mini" style="width:auto;" onclick="window.Game.useItemBoard('${key}', ${pId})">Usar</button>`; } d.innerHTML = `<div style="display:flex; align-items:center;"><img src="/assets/img/Itens/${item.icon}" class="item-icon-mini"><span>${item.name} x${p.items[key]}</span></div>${btnHTML}`; list.appendChild(d); } } }); document.getElementById('board-inventory-modal')!.style.display = 'flex'; }
+    static openInventoryModal(pId: number, readOnly: boolean = false) { const p = this.players[pId]; const list = document.getElementById('board-inventory-list')!; list.innerHTML = ''; const canUse = (!readOnly && this.canAct() && this.turn === pId); Object.keys(p.items).forEach(key => { if (p.items[key] > 0) { const item = SHOP_ITEMS.find(i => i.id === key); if (item) { const d = document.createElement('div'); d.className = 'shop-item'; let btnHTML = ''; if (canUse && (item.type === 'heal' || item.type === 'revive' || item.type === 'boost' || item.type === 'mega')) { btnHTML = `<button class="btn btn-mini" style="width:auto;" onclick="window.Game.useItemBoard('${key}', ${pId})">Usar</button>`; } d.innerHTML = `<div style="display:flex; align-items:center;"><img src="/assets/img/Itens/${item.icon}" class="item-icon-mini"><span>${item.name} x${p.items[key]}</span></div>${btnHTML}`; list.appendChild(d); } } }); document.getElementById('board-inventory-modal')!.style.display = 'flex'; }
 
     static openPokedexEntry(targetId: number) {
         this.openPokedex(this.turn, targetId);
@@ -1983,9 +2021,112 @@ export class Game {
         }
     }
 
-    static useItemBoard(key: string, pId: number) { const p = this.players[pId]; const item = SHOP_ITEMS.find(i => i.id === key); if (!item || p.items[key] <= 0) return; if (item.type === 'heal') { if (item.id === 'ultrafullrestore') { this.applyBoardItemEffect(p, item, -1); return; } this.openHealSelector(pId, key); } else if (item.type === 'revive') { if (item.id === 'ultramaxrevive') { this.applyBoardItemEffect(p, item, -1); return; } this.openHealSelector(pId, key); } }
-    static openHealSelector(pId: number, itemKey: string) { this.pendingHealItem = itemKey; const p = this.players[pId]; const modal = document.getElementById('pkmn-select-modal')!; const list = document.getElementById('pkmn-select-list')!; const title = document.getElementById('select-title')!; title.innerText = "Usar em qual Pokémon?"; list.innerHTML = ''; p.team.forEach((mon, idx) => { const div = document.createElement('div'); div.className = `mon-select-item`; div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>(${mon.currentHp}/${mon.maxHp})</small>`; div.onclick = () => { modal.style.display = 'none'; this.applyBoardItemEffect(p, SHOP_ITEMS.find(i => i.id === itemKey)!, idx); }; list.appendChild(div); }); const cancelBtn = document.createElement('button'); cancelBtn.className = "btn btn-secondary mt-15"; cancelBtn.innerText = "Cancelar"; cancelBtn.onclick = () => { modal.style.display = 'none'; this.pendingHealItem = null; }; list.appendChild(cancelBtn); modal.style.display = 'flex'; }
-    static applyBoardItemEffect(p: Player, item: ItemData, targetIdx: number) { let used = false; if (item.type === 'heal') { if (item.id === 'ultrafullrestore') { let count = 0; p.team.forEach(m => { if (!m.isFainted() && m.currentHp < m.maxHp) { m.heal(9999); count++; } }); if (count > 0) { used = true; alert(`${count} Pokémon curados!`); } else alert("Ninguém precisa de cura!"); } else { const target = p.team[targetIdx]; if (target.isFainted()) return alert("Não funciona em Pokémon desmaiado!"); if (target.currentHp >= target.maxHp) return alert("HP já está cheio!"); target.heal(item.val || 20); alert(`Usou ${item.name} em ${target.name}.`); used = true; } } else if (item.type === 'revive') { if (item.id === 'ultramaxrevive') { let count = 0; p.team.forEach(m => { if (m.isFainted()) { m.revive(100); count++; } }); if (count > 0) { used = true; alert(`${count} Pokémon revividos!`); } else alert("Ninguém está desmaiado!"); } else { const target = p.team[targetIdx]; if (!target.isFainted()) return alert("Este Pokémon não está desmaiado!"); target.revive(item.val || 50); alert(`Usou ${item.name} em ${target.name}.`); used = true; } } if (used) { p.items[item.id]--; this.updateHUD(); this.openInventoryModal(p.id); this.saveGame(); if (Network.isOnline) { Network.sendAction('LOG', { msg: `${p.name} usou ${item.name}.` }); Network.syncPlayerState(); } } }
+    static useItemBoard(key: string, pId: number) { const p = this.players[pId]; const item = SHOP_ITEMS.find(i => i.id === key); if (!item || p.items[key] <= 0) return; if (item.type === 'heal' || item.type === 'revive' || item.type === 'boost' || item.type === 'mega') { if (item.id === 'ultrafullrestore' || item.id === 'ultramaxrevive') { this.applyBoardItemEffect(p, item, -1); return; } this.openItemTargetSelector(pId, key); } }
+    static async openItemTargetSelector(pId: number, itemKey: string) { 
+        this.pendingHealItem = itemKey; 
+        const p = this.players[pId]; 
+        const item = SHOP_ITEMS.find(i => i.id === itemKey)!;
+        const modal = document.getElementById('pkmn-select-modal')!; 
+        const list = document.getElementById('pkmn-select-list')!; 
+        const title = document.getElementById('select-title')!; 
+        title.innerText = item.type === 'mega' ? "Escolha quem vai segurar a Mega Pedra:" : "Usar em qual Pokémon?"; 
+        list.innerHTML = ''; 
+
+        let MAPA_MEGAS: any = null;
+        if (item.type === 'mega') {
+            const module = await import('../constants/mapaMegas');
+            MAPA_MEGAS = module.MAPA_MEGAS;
+        }
+
+        p.team.forEach((mon, idx) => { 
+            const div = document.createElement('div'); 
+            
+            if (item.type === 'mega') {
+                const canMega = !!MAPA_MEGAS[mon.id];
+                if (canMega) {
+                    if (mon.megaStone) {
+                        div.className = `mon-select-item disabled`;
+                        div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b><br><small style="color:#f1c40f">💎 Já Equipado</small>`;
+                    } else {
+                        div.className = `mon-select-item`;
+                        div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b><br><small style="color:#2ecc71">✅ Compatível!</small>`;
+                        div.onclick = () => { modal.style.display = 'none'; this.applyBoardItemEffect(p, item, idx); };
+                    }
+                } else {
+                    div.className = `mon-select-item disabled`;
+                    div.innerHTML = `<img src="${mon.getSprite()}" width="40" style="filter: grayscale(100%); opacity:0.6;"><b>${mon.name}</b><br><small style="color:#e74c3c">❌ Incompatível</small>`;
+                }
+            } else {
+                div.className = `mon-select-item`; 
+                div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>(${mon.currentHp}/${mon.maxHp})</small>`; 
+                div.onclick = () => { modal.style.display = 'none'; this.applyBoardItemEffect(p, item, idx); }; 
+            }
+            list.appendChild(div); 
+        }); 
+
+        const cancelBtn = document.createElement('button'); 
+        cancelBtn.className = "btn btn-secondary mt-15"; 
+        cancelBtn.innerText = "Cancelar"; 
+        cancelBtn.onclick = () => { modal.style.display = 'none'; this.pendingHealItem = null; }; 
+        list.appendChild(cancelBtn); 
+        modal.style.display = 'flex'; 
+    }
+    static async applyBoardItemEffect(p: Player, item: ItemData, targetIdx: number) { 
+        let used = false; 
+        if (item.type === 'heal') { 
+            if (item.id === 'ultrafullrestore') { 
+                let count = 0; p.team.forEach(m => { if (!m.isFainted() && m.currentHp < m.maxHp) { m.heal(9999); count++; } }); 
+                if (count > 0) { used = true; alert(`${count} Pokémon curados!`); } else alert("Ninguém precisa de cura!"); 
+            } else { 
+                const target = p.team[targetIdx]; if (target.isFainted()) return alert("Não funciona em Pokémon desmaiado!"); 
+                if (target.currentHp >= target.maxHp) return alert("HP já está cheio!"); target.heal(item.val || 20); 
+                alert(`Usou ${item.name} em ${target.name}.`); used = true; 
+            } 
+        } else if (item.type === 'revive') { 
+            if (item.id === 'ultramaxrevive') { 
+                let count = 0; p.team.forEach(m => { if (m.isFainted()) { m.revive(100); count++; } }); 
+                if (count > 0) { used = true; alert(`${count} Pokémon revividos!`); } else alert("Ninguém está desmaiado!"); 
+            } else { 
+                const target = p.team[targetIdx]; if (!target.isFainted()) return alert("Este Pokémon não está desmaiado!"); 
+                target.revive(item.val || 50); alert(`Usou ${item.name} em ${target.name}.`); used = true; 
+            } 
+        } else if (item.type === 'boost') {
+            const target = p.team[targetIdx];
+            if (target) {
+                target.bonusStats.hp += 1;
+                target.bonusStats.atk += 1;
+                target.bonusStats.def += 1;
+                target.bonusStats.spd += 1;
+                target.recalculateStats(false);
+                alert(`✨ SUPLEMENTAÇÃO! O ${target.name} tomou as vitaminas e todos os seus status subiram +1!`);
+                used = true;
+            }
+        } else if (item.type === 'mega') {
+            const targetMon = p.team[targetIdx];
+            if (targetMon) {
+                const { MAPA_MEGAS } = await import('../constants/mapaMegas');
+
+                if (!MAPA_MEGAS[targetMon.id]) {
+                    alert(`O Pokémon ${targetMon.name} não reage a esta Mega Pedra!`);
+                    return;
+                }
+
+                if (targetMon.megaStone) {
+                    alert(`${targetMon.name} já está segurando uma Mega Pedra!`);
+                    return;
+                }
+
+                targetMon.megaStone = true;
+                alert(`💎 A Mega Pedra foi vinculada a ${targetMon.name}! Ele agora pode Mega Evoluir em batalha.`);
+                used = true;
+            }
+        }
+        
+        if (used) { 
+            p.items[item.id]--; this.updateHUD(); this.openInventoryModal(p.id); this.saveGame(); 
+            if (Network.isOnline) { Network.sendAction('LOG', { msg: `${p.name} usou ${item.name}.` }); Network.syncPlayerState(); } 
+        } 
+    }
 
     static openSwapModal(newMon: Pokemon) {
         const modal = document.getElementById('swap-modal')!;
