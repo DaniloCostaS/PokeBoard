@@ -135,10 +135,10 @@
                     </div>
                 </div>
                 <div>🔄 Rodada: <b id="round-indicator" style="color:#fff;">1</b></div>
-                <div>🔄 Rodada limite 180</div>
                 <div>📊 NPC / Selvagem: <b id="avg-lvl-indicator" style="color:#fff;">Lv.1</b></div>
                 <div>🏛️ Líder Ginásio: <b id="gym-lvl-indicator" style="color:#fff;">Lv.2</b></div>
                 <div>👥 Time Inimigo: <b id="npc-team-indicator" style="color:#fff;">1</b> PKMN</div>
+                <button onclick="window.Game.openPlayerStats()" style="width:100%; margin-top:8px; padding:4px 8px; background:rgba(241,196,15,0.15); border:1px solid rgba(241,196,15,0.4); color:#f1c40f; border-radius:6px; font-size:0.75rem; cursor:pointer; font-weight:bold;">📊 Ver Estatísticas</button>
             </div>
 
             <div class="panel-box dice-section">
@@ -262,9 +262,13 @@
     <div id="lixeira-modal" class="modal-overlay">
         <div class="modal-box" style="text-align: center; width: 90%; max-width: 800px;">
             <h3 style="color: #9b59b6;">🗑️ Lixeira (Pokémon Abandonados)</h3>
-            <p style="font-size: 0.9rem; margin-bottom: 15px;">Estes Pokémon foram descartados pelos treinadores e estão aguardando uma segunda chance!</p>
-            <div id="lixeira-list" style="display:flex; flex-wrap:wrap; gap:10px; justify-content:center; max-height: 60vh; overflow-y: auto; padding: 10px;"></div>
-            <button class="btn btn-secondary mt-15" onclick="document.getElementById('lixeira-modal').style.display='none'">Fechar</button>
+            <p style="font-size: 0.9rem; margin-bottom: 15px;">Estes Pokémon foram descartados pelos treinadores e estão
+                aguardando uma segunda chance!</p>
+            <div id="lixeira-list"
+                style="display:flex; flex-wrap:wrap; gap:10px; justify-content:center; max-height: 60vh; overflow-y: auto; padding: 10px;">
+            </div>
+            <button class="btn btn-secondary mt-15"
+                onclick="document.getElementById('lixeira-modal').style.display='none'">Fechar</button>
         </div>
     </div>
 
@@ -292,10 +296,23 @@
         </div>
     </div>
 
+    <div id="player-stats-modal" class="modal-overlay" style="z-index: 2500;">
+        <div class="modal-box"
+            style="text-align: center; width: 95%; max-width: 500px; background: #1a1a2e; color: #eee; border: 2px solid #f1c40f;">
+            <h3 style="color: #f1c40f; text-shadow: 0 0 10px rgba(241,196,15,0.5); margin-bottom: 5px;">📊 Painel de
+                Dano Statístico</h3>
+            <p style="color: #aaa; font-size: 0.85rem; margin-top: 0;">Quem está sofrendo mais nessa partida?</p>
+            <div id="player-stats-list" style="display: flex; flex-direction: column; gap: 12px; margin: 15px 0;"></div>
+            <button class="btn btn-secondary"
+                onclick="document.getElementById('player-stats-modal').style.display='none'">Fechar</button>
+        </div>
+    </div>
+
     <div id="city-modal" class="modal-overlay">
         <div class="modal-box">
             <h2 style="color: #3498db;">🏙️ Centro Pokémon</h2>
-            <p>O que deseja fazer? <span id="city-gold-display" class="gold-text" style="font-size: 1rem; margin-left: 10px;">Saldo: 0G</span></p>
+            <p>O que deseja fazer? <span id="city-gold-display" class="gold-text"
+                    style="font-size: 1rem; margin-left: 10px;">Saldo: 0G</span></p>
 
             <div style="display:flex; flex-direction:column; gap:10px; justify-content:center; margin-top:20px;">
                 <div style="display:flex; gap:10px;">
@@ -317,8 +334,10 @@
                 <p style="margin: 0;">Saldo: <span id="shop-gold" class="gold-text">0</span> G</p>
             </div>
             <div style="display:flex; gap:10px; margin-bottom:15px;">
-                <button class="btn btn-secondary" style="flex:1; margin-top:0;" onclick="window.openInventory(window.Game.getCurrentPlayer().id, true)">🎒 Ver Minha Bag</button>
-                <button class="btn btn-secondary" style="flex:1; margin-top:0;" onclick="window.Shop.close()">Fechar</button>
+                <button class="btn btn-secondary" style="flex:1; margin-top:0;"
+                    onclick="window.openInventory(window.Game.getCurrentPlayer().id, true)">🎒 Ver Minha Bag</button>
+                <button class="btn btn-secondary" style="flex:1; margin-top:0;"
+                    onclick="window.Shop.close()">Fechar</button>
             </div>
             <div id="shop-items-list" class="scroll-list"></div>
         </div>
@@ -549,7 +568,8 @@
                         <button class="btn btn-cards" onclick="window.Battle.openCardSelection()">🃏 Cartas</button>
                         <button class="btn btn-secondary" onclick="window.Battle.viewTeam()">👀 Ver Meu Time</button>
                         <button id="btn-run" class="btn btn-run" onclick="window.Battle.run()">🏃 Fugir</button>
-                        <button id="btn-surrender" class="btn btn-run" style="background:#c0392b;" onclick="window.Battle.surrender()">🏳️ Desistir</button>
+                        <button id="btn-surrender" class="btn btn-run" style="background:#c0392b;"
+                            onclick="window.Battle.surrender()">🏳️ Desistir</button>
                         <button id="btn-auto-pve" class="btn btn-auto" style="grid-column: span 3;"
                             onclick="window.Battle.toggleAutoPvE()">⚡ Auto Atacar</button>
                     </div>
@@ -665,13 +685,17 @@
     </div>
 
     <div id="type-selection-modal" class="modal-overlay" style="z-index: 5000;">
-        <div class="modal-box" style="max-width: 500px; height: auto; max-height: 85vh; background: #1a1a2e; color: white; border: 2px solid #3498db;">
+        <div class="modal-box"
+            style="max-width: 500px; height: auto; max-height: 85vh; background: #1a1a2e; color: white; border: 2px solid #3498db;">
             <h2 class="title-highlight">🆎 Lure Type: Selecione o Tipo</h2>
-            <p class="subtitle" style="color: #bdc3c7;">Escolha o tipo de Pokémon que você deseja atrair nos próximos 2 encontros.</p>
-            <div id="type-selection-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; padding: 10px;">
+            <p class="subtitle" style="color: #bdc3c7;">Escolha o tipo de Pokémon que você deseja atrair nos próximos 2
+                encontros.</p>
+            <div id="type-selection-grid"
+                style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; padding: 10px;">
                 <!-- Tipos serão gerados via JS -->
             </div>
-            <button class="btn btn-secondary mt-15" style="background: #34495e; border: none;" onclick="document.getElementById('type-selection-modal').style.display='none'">Cancelar</button>
+            <button class="btn btn-secondary mt-15" style="background: #34495e; border: none;"
+                onclick="document.getElementById('type-selection-modal').style.display='none'">Cancelar</button>
         </div>
     </div>
 

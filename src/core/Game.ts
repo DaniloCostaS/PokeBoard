@@ -1646,6 +1646,8 @@ export class Game {
             const nextP = this.players[this.turn];
             if (nextP.skipTurns > 0) {
                 nextP.skipTurns = Math.max(0, nextP.skipTurns - 1);
+                if (!nextP.stats) nextP.stats = { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
+                nextP.stats.turnsLost++;
                 this.sendGlobalLog(`${nextP.name} perdeu a vez! (Restam: ${nextP.skipTurns})`);
                 alert(`${nextP.name} perdeu a vez!`);
                 this.nextTurn();
@@ -2098,6 +2100,107 @@ export class Game {
         }
 
         document.getElementById('lixeira-modal')!.style.display = 'flex';
+    }
+
+    static openPlayerStats() {
+        const list = document.getElementById('player-stats-list')!;
+        list.innerHTML = '';
+
+        // Ordena por total de sofrimento (cardsSuffered + turnsLost) de forma decrescente
+        const sorted = [...this.players].sort((a, b) => {
+            const scoreA = (a.stats?.cardsSuffered || 0) + (a.stats?.turnsLost || 0);
+            const scoreB = (b.stats?.cardsSuffered || 0) + (b.stats?.turnsLost || 0);
+            return scoreB - scoreA;
+        });
+
+        const maxScore = Math.max(1, (sorted[0]?.stats?.cardsSuffered || 0) + (sorted[0]?.stats?.turnsLost || 0));
+
+        sorted.forEach((p, rank) => {
+            const stats = p.stats || { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
+            const effectsRecord: Record<string, number> = (stats.effectsReceived && typeof stats.effectsReceived === 'object' && !Array.isArray(stats.effectsReceived))
+                ? (stats.effectsReceived as unknown as Record<string, number>) : {};
+            const defendedRecord: Record<string, number> = (stats.cardsDefended && typeof stats.cardsDefended === 'object' && !Array.isArray(stats.cardsDefended))
+                ? (stats.cardsDefended as unknown as Record<string, number>) : {};
+            const totalEffects = Object.values(effectsRecord).reduce((s: number, v: number) => s + v, 0);
+            const totalDefended = Object.values(defendedRecord).reduce((s: number, v: number) => s + v, 0);
+            const totalScore = stats.cardsSuffered + stats.turnsLost;
+            const pct = Math.round((totalScore / maxScore) * 100);
+
+            const rankEmoji = rank === 0 ? '🔴' : rank === 1 ? '🟠' : rank === 2 ? '🟡' : '⚪';
+            const barColor = rank === 0 ? '#e74c3c' : rank === 1 ? '#e67e22' : '#f1c40f';
+
+            // Cores por nome de carta/efeito
+            const effectPillColors: Record<string, string> = {
+                'Slow': '#7f8c8d', 'Lentid\u00e3o': '#7f8c8d',
+                'Curse': '#8e44ad', 'Maldi\u00e7\u00e3o': '#8e44ad',
+                'Rocket': '#e74c3c', 'Trade Fail': '#c0392b',
+                'Michael': '#e67e22', 'Moonwalker': '#e67e22',
+                'Trememb\u00e9': '#2c3e50', 'Adeus de Ash': '#8e44ad',
+                'S\u00e9/RJ': '#c0392b', 'Troques': '#27ae60',
+                'Bag': '#f39c12', 'Imposto de Renda': '#e74c3c',
+                'Comunismo': '#c0392b', 'Katrina': '#2980b9',
+            };
+            const effectTagsHTML = Object.entries(effectsRecord).map(([name, count]) => {
+                const color = effectPillColors[name] || '#555';
+                return `<span style="background:${color}; color:white; font-size:0.68rem; padding:2px 7px; border-radius:12px; display:inline-flex; align-items:center; gap:3px;">${name} <b style="background:rgba(0,0,0,0.3); padding:0 4px; border-radius:8px;">${count}x</b></span>`;
+            }).join('');
+
+            // Cores por carta de defesa
+            const defendPillColors: Record<string, string> = {
+                'Interferência': '#2980b9',
+                'Silver Tape': '#95a5a6',
+                'Pokémon Fiel': '#27ae60',
+                'Líder Velho': '#f39c12',
+            };
+            const defendTagsHTML = Object.entries(defendedRecord).map(([name, count]) => {
+                const color = defendPillColors[name] || '#27ae60';
+                return `<span style="background:${color}; color:white; font-size:0.68rem; padding:2px 7px; border-radius:12px; display:inline-flex; align-items:center; gap:3px;">${name} <b style="background:rgba(0,0,0,0.3); padding:0 4px; border-radius:8px;">${count}x</b></span>`;
+            }).join('');
+
+            const row = document.createElement('div');
+            row.style.cssText = `background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 12px 15px; text-align: left;`;
+            row.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                    <img src="${p.avatar}" style="width: 36px; height: 36px; border-radius: 50%; border: 2px solid ${barColor};">
+                    <div style="flex: 1;">
+                        <div style="font-weight: bold; font-size: 1rem; color: #fff;">${rankEmoji} ${p.name}</div>
+                        <div style="font-size: 0.75rem; color: #aaa;">Sofrimento: <b style="color: ${barColor}">${totalScore}</b></div>
+                    </div>
+                    <div style="font-size: 0.85rem; font-weight: bold; color: #dda0dd;" title="Cartas ofensivas usadas">${stats.cardsUsed} 🃏 ofensivas</div>
+                </div>
+                <div style="background: rgba(0,0,0,0.3); border-radius: 20px; height: 8px; overflow: hidden; margin-bottom: 10px;">
+                    <div style="background: ${barColor}; width: ${pct}%; height: 100%; border-radius: 20px; transition: width 0.5s;"></div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 6px; font-size: 0.78rem; text-align: center; margin-bottom: 8px;">
+                    <div style="background: rgba(231,76,60,0.3); border-radius: 6px; padding: 6px 4px;">
+                        <div style="font-size: 1rem;">🗡️</div>
+                        <div style="color: #ff8a80; font-weight: bold;">${stats.cardsSuffered}</div>
+                        <div style="color: #888; font-size: 0.68rem;">Sofridas</div>
+                    </div>
+                    <div style="background: rgba(243,156,18,0.3); border-radius: 6px; padding: 6px 4px;">
+                        <div style="font-size: 1rem;">⚡</div>
+                        <div style="color: #ffd54f; font-weight: bold;">${totalEffects}</div>
+                        <div style="color: #888; font-size: 0.68rem;">Efeitos</div>
+                    </div>
+                    <div style="background: rgba(39,174,96,0.3); border-radius: 6px; padding: 6px 4px;">
+                        <div style="font-size: 1rem;">🛡️</div>
+                        <div style="color: #2ecc71; font-weight: bold;">${totalDefended}</div>
+                        <div style="color: #888; font-size: 0.68rem;">Defendidas</div>
+                    </div>
+                    <div style="background: rgba(231,76,60,0.25); border-radius: 6px; padding: 6px 4px;">
+                        <div style="font-size: 1rem;">⏳</div>
+                        <div style="color: #ff5252; font-weight: bold;">${stats.turnsLost}</div>
+                        <div style="color: #888; font-size: 0.68rem;">Turnos Perdidos</div>
+                    </div>
+                </div>
+                ${totalEffects > 0 ? `<div style="margin-top:4px; margin-bottom:6px;"><div style="color:#888; font-size:0.7rem; margin-bottom:5px;">💥 Efeitos recebidos:</div><div style="display:flex; flex-wrap:wrap; gap:5px;">${effectTagsHTML}</div></div>` : ''}
+                ${totalDefended > 0 ? `<div style="margin-top:4px;"><div style="color:#888; font-size:0.7rem; margin-bottom:5px;">🛡️ Defesas usadas:</div><div style="display:flex; flex-wrap:wrap; gap:5px;">${defendTagsHTML}</div></div>` : ''}
+                ${totalEffects === 0 && totalDefended === 0 ? `<div style="color:#555; font-size:0.72rem; text-align:center; padding-top:4px;">Nenhum efeito ou defesa registrado ainda 😌</div>` : ''}
+            `;
+            list.appendChild(row);
+        });
+
+        document.getElementById('player-stats-modal')!.style.display = 'flex';
     }
 
     static rescueFromLixeira(idx: number) {

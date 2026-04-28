@@ -226,6 +226,7 @@ export class Network {
             pl.cards = pd.cards || [];
             pl.effects = pd.effects || {};
             pl.pokedexData = pd.pokedexData || {};
+            pl.stats = pd.stats || { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
 
             if(pd.team && pd.team.length > 0) { 
                 pl.team = pd.team.map((td: any) => { 
@@ -311,6 +312,7 @@ export class Network {
                     localPlayer.cards = pd.cards || [];
                     localPlayer.effects = pd.effects || {};
                     localPlayer.pokedexData = pd.pokedexData || {};
+                    localPlayer.stats = pd.stats || { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
 
                     if(pd.items) localPlayer.items = pd.items; 
                     
@@ -554,7 +556,8 @@ export class Network {
             badges: p.badges,
             cards: p.cards && p.cards.length > 0 ? p.cards : null,
             effects: p.effects,
-            pokedexData: p.pokedexData || {}
+            pokedexData: p.pokedexData || {},
+            stats: p.stats || { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 }
         }); 
     }
 
@@ -582,7 +585,8 @@ export class Network {
             cards: p.cards && p.cards.length > 0 ? p.cards : null,
             skipTurns: p.skipTurns, 
             effects: p.effects,
-            pokedexData: p.pokedexData || {}
+            pokedexData: p.pokedexData || {},
+            stats: p.stats || { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 }
         });
     }
 
@@ -607,7 +611,8 @@ export class Network {
                     badges: p.badges, 
                     cards: p.cards && p.cards.length > 0 ? p.cards : null,
                     effects: p.effects,
-                    pokedexData: p.pokedexData || {}
+                    pokedexData: p.pokedexData || {},
+                    stats: p.stats || { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 }
                 };
             }
         });

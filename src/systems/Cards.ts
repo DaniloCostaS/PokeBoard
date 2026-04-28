@@ -951,6 +951,17 @@ export class Cards {
                 Game.log(logMsg);
                 Game.showGlobalAlert(blockMsg, attacker.name, true, false);
 
+                // --- ESTATÍSTICAS: registra a defesa pelo nome da carta ---
+                const defenseNames: Record<string, string> = {
+                    'jam': 'Interferência',
+                    'silvertape': 'Silver Tape',
+                    'no_troques': 'Pokémon Fiel',
+                    'old_leader': 'Líder Velho',
+                };
+                const defenseLabel = defenseNames[defenseId] || defenseId;
+                if (!target.stats) target.stats = { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
+                target.stats.cardsDefended[defenseLabel] = (target.stats.cardsDefended[defenseLabel] || 0) + 1;
+
                 if (Network.isOnline) {
                     if ((Network as any).syncPlayers) {
                         (Network as any).syncPlayers([attacker.id, target.id]);
@@ -1209,6 +1220,10 @@ export class Cards {
                     const target = Game.players.find((p: any) => p.id === targetId);
                     if (target) {
                         target.skipTurns += 3;
+                        if (!target.stats) target.stats = { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, turnsLost: 0 };
+                        target.stats.turnsLost += 3;
+                        target.stats.cardsSuffered++;
+                        target.stats.effectsReceived['Trade Fail'] = (target.stats.effectsReceived['Trade Fail'] || 0) + 1;
                         effectLog = `❌ Sabotagem feita com sucesso! A troca falhou terrivelmente e ${target.name} perde as próximas 3 rodadas!`;
                         if (Network.isOnline) Network.syncSpecificPlayer(target.id);
                     }
@@ -1523,6 +1538,10 @@ export class Cards {
                 Game.players.forEach((p: any) => {
                     if (p.id !== player.id) {
                         p.skipTurns += 20;
+                        if (!p.stats) p.stats = { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, turnsLost: 0 };
+                        p.stats.turnsLost += 20;
+                        p.stats.cardsSuffered++;
+                        p.stats.effectsReceived['Tremembé'] = (p.stats.effectsReceived['Tremembé'] || 0) + 1;
                         if (Network.isOnline) Network.syncSpecificPlayer(p.id);
                     }
                 });
@@ -2001,6 +2020,25 @@ export class Cards {
             if (!alreadyRemoved) {
                 const idx = player.cards.findIndex(c => c.id === cardId);
                 if (idx > -1) player.cards.splice(idx, 1);
+            }
+
+            // --- ESTATÍSTICAS: apenas cartas ofensivas contra outros contam ---
+            const offensiveCardIds = ['swap', 'slow', 'rocket', 'curse', 'trade_fail', 'new_leader', 'bag', 'troques', 'michael', 'steal_mega_stone', 'ash_goodbye', 'se_rj', 'tremembe', 'cassino', 'imposto', 'communism', 'katrina'];
+            if (offensiveCardIds.includes(cardId) && targetId !== player.id) {
+                if (!player.stats) player.stats = { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
+                player.stats.cardsUsed++;
+            }
+
+            // --- ESTATÍSTICAS: efeitos sofridos pelo alvo ---
+            if (targetId !== null) {
+                const offensiveTarget = Game.players.find((p: any) => p.id === targetId);
+                if (offensiveTarget && offensiveTarget.id !== player.id) {
+                    if (!offensiveTarget.stats) offensiveTarget.stats = { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
+                    offensiveTarget.stats.cardsSuffered++;
+                    // Registra o efeito pelo nome da carta
+                    const effectKey = cardData.name;
+                    offensiveTarget.stats.effectsReceived[effectKey] = (offensiveTarget.stats.effectsReceived[effectKey] || 0) + 1;
+                }
             }
 
             Game.updateHUD();

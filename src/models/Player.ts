@@ -36,11 +36,12 @@ export class Player {
 
     // --- ESTATÍSTICAS DE JOGO ---
     stats: {
-        cardsUsed: number;
-        cardsSuffered: number;
-        effectsReceived: number;
+        cardsUsed: number;        // somente cartas ofensivas usadas contra outros
+        cardsSuffered: number;    // cartas ofensivas recebidas
+        effectsReceived: Record<string, number>; // { 'Slow': 2, 'Curse': 1, ... }
+        cardsDefended: Record<string, number>;   // { 'Interferência': 3, 'Silver Tape': 1, ... }
         turnsLost: number;
-    } = { cardsUsed: 0, cardsSuffered: 0, effectsReceived: 0, turnsLost: 0 };
+    } = { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
 
     // --- NOVA ESTRUTURA PARA A POKÉDEX FUTURA ---
     pokedexData: { [id: number]: { seen: number, caught: number, defeated: number } } = {};
