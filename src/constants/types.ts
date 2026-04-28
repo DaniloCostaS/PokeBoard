@@ -36,6 +36,8 @@ export interface GlobalEvent {
     icon: string;
     name: string;
     desc: string;
+    minRound?: number; // Rodada mínima para este evento aparecer no sorteio
+    maxRound?: number; // Rodada máxima após a qual este evento não entra mais no sorteio
 }
 
 export interface CardData {

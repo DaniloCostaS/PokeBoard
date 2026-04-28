@@ -1015,7 +1015,7 @@ export class Battle {
         this.updateUI();
 
         if (this.activeEffects.counter && this.activeEffects.counter > 0) {
-            const reflect = Math.floor(totalDmg * 0.5);
+            const reflect = Math.floor(totalDmg * 1.0);
             if (reflect > 0) {
                 this.opponent.currentHp = Math.max(0, this.opponent.currentHp - reflect);
                 this.logBattle(`🔁 Contra-ataque! Inimigo sofreu ${reflect} de dano.`);

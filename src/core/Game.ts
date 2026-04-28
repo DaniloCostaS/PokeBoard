@@ -248,7 +248,7 @@ export class Game {
             return true;
         });
 
-        if (validCandidates.length === 0) return new Pokemon(16, globalAvg);
+        if (validCandidates.length === 0) return new Pokemon(16, Math.min(25, Math.max(1, globalAvg + Math.floor(Math.random() * 5) - 2)));
 
         // --- NOVO: EFEITO LURE TYPE ---
         const playerL = this.getCurrentPlayer();
@@ -260,7 +260,7 @@ export class Game {
                 lure.count!--;
                 if (lure.count === 0) delete playerL.effects.lureType;
                 if (Network.isOnline) Network.syncPlayerState();
-                return new Pokemon(chosen.id, globalAvg, null);
+                return new Pokemon(chosen.id, Math.min(25, Math.max(1, globalAvg + Math.floor(Math.random() * 5) - 2)), null);
             }
         }
 
@@ -311,7 +311,9 @@ export class Game {
         const finalPool = rarityPool.length > 0 ? rarityPool : validCandidates;
         const chosenTemplate = finalPool[Math.floor(Math.random() * finalPool.length)];
 
-        const wildMon = new Pokemon(chosenTemplate.id, globalAvg, null);
+        const wildVariation = Math.floor(Math.random() * 5) - 2; // -2 a +2
+        const wildLevel = Math.min(25, Math.max(1, globalAvg + wildVariation));
+        const wildMon = new Pokemon(chosenTemplate.id, wildLevel, null);
 
         // EVENTO: FEBRE SHINY (Aumenta absurdamente a chance do monstro nascer brilhante)
         if (this.currentGlobalEvent?.id === 'SHINY_FEVER' && Math.random() <= 0.30) {
@@ -1583,7 +1585,13 @@ export class Game {
             if (this.round % 5 === 2) {
                 // Apenas quem finalizou a rodada anterior sorteia e avisa para não duplicar na rede
                 if (!Network.isOnline || this.turn === Network.myPlayerId) {
-                    const ev = GLOBAL_EVENTS[Math.floor(Math.random() * GLOBAL_EVENTS.length)];
+                    const eligibleEvents = GLOBAL_EVENTS.filter((e: any) => {
+                        if (e.minRound !== undefined && this.round < e.minRound) return false;
+                        if (e.maxRound !== undefined && this.round > e.maxRound) return false;
+                        return true;
+                    });
+                    const eventPool = eligibleEvents.length > 0 ? eligibleEvents : GLOBAL_EVENTS;
+                    const ev = eventPool[Math.floor(Math.random() * eventPool.length)];
                     const msgGlobal = `🌍 ALERTA GLOBAL! O evento ${ev.name} começou!||EVENT:${ev.id}`;
 
                     this.currentGlobalEvent = ev;

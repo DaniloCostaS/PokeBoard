@@ -20,7 +20,7 @@ export const CARDS_DB: CardData[] = [
     { id: 'guard', name: "Escudo Protetor", icon: "🛡️", desc: "Reduz o dano recebido pela metade (Válido até seu pokémon vencer ou ser derrotado).", type: 'battle', rarity: 'Rara' },
     { id: 'status', name: "Ataque Surpresa", icon: "⚡", desc: "Aplica um efeito de atordoamento no pokémon do inimigo. Ele não atacará por 2 turnos", type: 'battle', rarity: 'Comum' },
     { id: 'heal', name: "Poção Máxima", icon: "💊", desc: "Recupera 100% do HP durante a batalha.", type: 'battle', rarity: 'Rara' },
-    { id: 'counter', name: "Contra-Ataque", icon: "🔁", desc: "Reflete 50% do dano recebido dos próximos 3 ataques.", type: 'battle', rarity: 'Comum' },
+    { id: 'counter', name: "Contra-Ataque", icon: "🔁", desc: "Reflete 100% do dano recebido dos próximos 3 ataques.", type: 'battle', rarity: 'Comum' },
     { id: 'mew', name: "DNA de Mew", icon: "🧬", desc: "Invoca um MEW para lutar ao seu lado nessa batalha (O nivel dele será o mesmo do seu pokémon ativo).", type: 'battle', rarity: 'Rara' },
 
     // Outras Cartas
