@@ -912,9 +912,9 @@ export class Cards {
 
         switch (incomingCardId) {
             case 'new_leader': priorityList = ['old_leader', 'jam']; break;
-            case 'bag':        priorityList = ['silvertape', 'jam']; break;
-            case 'troques':    priorityList = ['no_troques', 'jam']; break;
-            default:           priorityList = ['jam']; break;
+            case 'bag': priorityList = ['silvertape', 'jam']; break;
+            case 'troques': priorityList = ['no_troques', 'jam']; break;
+            default: priorityList = ['jam']; break;
         }
 
         for (const defenseId of priorityList) {
@@ -950,13 +950,16 @@ export class Cards {
                 Game.log(logMsg);
                 Game.showGlobalAlert(blockMsg, attacker.name, true, false);
 
-                // ---- Estatísticas do defensor ----
+                // ---- Estatísticas do defensor (BLINDAGEM ADICIONADA AQUI) ----
                 const defenseNames: Record<string, string> = {
                     'jam': 'Interferência', 'silvertape': 'Silver Tape',
                     'no_troques': 'Pokémon Fiel', 'old_leader': 'Líder Velho',
                 };
                 const defenseLabel = defenseNames[defenseId] || defenseId;
+
                 if (!target.stats) target.stats = { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
+                if (!target.stats.cardsDefended) target.stats.cardsDefended = {};
+
                 target.stats.cardsDefended[defenseLabel] = (target.stats.cardsDefended[defenseLabel] || 0) + 1;
 
                 // ---- Sync online: um único update() atômico com todos os dados ----
@@ -1173,6 +1176,7 @@ export class Cards {
                 if (targetId !== null) {
                     const target = Game.players.find((p: any) => p.id === targetId);
                     if (target) {
+                        if (!target.effects) target.effects = {};
                         target.effects.slow = 3;
                         effectLog = `🕸️ ${target.name} não consegue correr! Está lento por 3 turnos.`;
                         // Só atualiza os effects do alvo, sem sobrescrever stats (que ainda não foram incrementados)
@@ -1222,6 +1226,7 @@ export class Cards {
                     const target = Game.players.find((p: any) => p.id === targetId);
                     if (!target) { consumed = false; break; }
 
+                    if (!target.effects) target.effects = {};
                     target.effects.curse = true;
                     effectLog = `😈 MALDIÇÃO! ${target.name} causará apenas METADE do dano e não poderá usar itens na sua próxima luta de Ginásio!`;
 
@@ -1239,7 +1244,7 @@ export class Cards {
                 break;
 
             case 'holy_water':
-                if (!player.effects.curse) {
+                if (!player.effects || !player.effects.curse) {
                     alert("Você não está amaldiçoado! Guarde a Água Benta para quando precisar.");
                     return;
                 }
@@ -1267,7 +1272,7 @@ export class Cards {
                                 await fbUpdate(ref(db, `rooms/${Network.currentRoomId}/players/${target.id}`), {
                                     skipTurns: target.skipTurns,
                                 });
-                            } catch(e) { console.error('[trade_fail] sync:', e); }
+                            } catch (e) { console.error('[trade_fail] sync:', e); }
                         }
                     }
                 } else {
@@ -1596,19 +1601,24 @@ export class Cards {
                                 if (!p.stats) p.stats = { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
                                 p.stats.turnsLost = (p.stats.turnsLost || 0) + 20;
                                 p.stats.cardsSuffered = (p.stats.cardsSuffered || 0) + 1;
+
+                                // BLINDAGEM DE STATS 
+                                if (!p.stats.effectsReceived) p.stats.effectsReceived = {};
                                 p.stats.effectsReceived['Tremembé'] = (p.stats.effectsReceived['Tremembé'] || 0) + 1;
+
                                 atomicUpd[`${roomPath}/players/${p.id}/skipTurns`] = p.skipTurns;
                                 atomicUpd[`${roomPath}/players/${p.id}/stats`] = p.stats;
                             }
                         });
                         await fbUpdate(ref(db), atomicUpd);
-                    } catch(e) { console.error('[tremembe] sync:', e); }
+                    } catch (e) { console.error('[tremembe] sync:', e); }
                 } else {
                     Game.players.forEach((p: any) => {
                         if (p.id !== player.id) {
                             if (!p.stats) p.stats = { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
                             p.stats.turnsLost = (p.stats.turnsLost || 0) + 20;
                             p.stats.cardsSuffered = (p.stats.cardsSuffered || 0) + 1;
+                            if (!p.stats.effectsReceived) p.stats.effectsReceived = {};
                             p.stats.effectsReceived['Tremembé'] = (p.stats.effectsReceived['Tremembé'] || 0) + 1;
                         }
                     });
@@ -2095,18 +2105,30 @@ export class Cards {
                 player.effects.playedLegendary = true;
             }
 
-            // --- ESTATÍSTICAS: apenas cartas ofensivas contra outros contam ---
+            // =========================================================================
+            //  BLINDAGEM DE STATS DO ATACANTE
+            // =========================================================================
             const offensiveCardIds = ['swap', 'slow', 'rocket', 'curse', 'trade_fail', 'new_leader', 'bag', 'troques', 'michael', 'steal_mega_stone', 'ash_goodbye'];
-            if (offensiveCardIds.includes(cardId) && targetId !== player.id) {
+            if (offensiveCardIds.includes(cardId) && actualTargetId !== null && actualTargetId !== player.id) {
                 if (!player.stats) player.stats = { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
-                player.stats.cardsUsed++;
+                if (!player.stats.effectsReceived) player.stats.effectsReceived = {};
+                if (!player.stats.cardsDefended) player.stats.cardsDefended = {};
+
+                player.stats.cardsUsed = (player.stats.cardsUsed || 0) + 1;
             }
 
-            // --- ESTATÍSTICAS: efeitos sofridos pelo alvo (inclui turnosLost de casos específicos) ---
+            // =========================================================================
+            //  BLINDAGEM DE STATS DO ALVO (Essa parte que dava o crash silencioso)
+            // =========================================================================
             if (actualTargetId !== null) {
                 const offensiveTarget = Game.players.find((p: any) => p.id === actualTargetId);
                 if (offensiveTarget && offensiveTarget.id !== player.id) {
+
+                    // Se a conta for antiga, recria as listas que faltavam!
                     if (!offensiveTarget.stats) offensiveTarget.stats = { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
+                    if (!offensiveTarget.stats.effectsReceived) offensiveTarget.stats.effectsReceived = {};
+                    if (!offensiveTarget.stats.cardsDefended) offensiveTarget.stats.cardsDefended = {};
+
                     offensiveTarget.stats.cardsSuffered = (offensiveTarget.stats.cardsSuffered || 0) + 1;
                     const effectKey = cardData.name;
                     offensiveTarget.stats.effectsReceived[effectKey] = (offensiveTarget.stats.effectsReceived[effectKey] || 0) + 1;
