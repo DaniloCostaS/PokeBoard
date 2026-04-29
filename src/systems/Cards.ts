@@ -744,7 +744,7 @@ export class Cards {
         list.appendChild(cancelBtn);
     }
 
-    static executeTrade(player: any, target: any, myChoice: number, hisChoice: number) {
+    static async executeTrade(player: any, target: any, myChoice: number, hisChoice: number) {
         const Game = (window as any).Game;
         const Network = (window as any).Network;
 
@@ -770,12 +770,21 @@ export class Cards {
         Game.showGlobalAlert(fullMsg, player.name, true, false);
 
         if (Network.isOnline) {
-            if ((Network as any).syncPlayers) {
-                (Network as any).syncPlayers([player.id, target.id]);
-            } else {
-                Network.syncSpecificPlayer(target.id);
-                Network.syncPlayerState();
-            }
+            try {
+                const { ref, update, getDatabase } = await import('firebase/database');
+                const db = getDatabase();
+                const roomPath = `rooms/${Network.currentRoomId}`;
+                const atomicUpd: any = {};
+
+                const sanitizeTeam = (t: any) => (Network as any).getSanitizedTeam ? (Network as any).getSanitizedTeam(t) : t;
+
+                atomicUpd[`${roomPath}/players/${player.id}/team`] = sanitizeTeam(player.team);
+                atomicUpd[`${roomPath}/players/${player.id}/cards`] = player.cards && player.cards.length > 0 ? player.cards : null;
+                atomicUpd[`${roomPath}/players/${target.id}/team`] = sanitizeTeam(target.team);
+
+                await update(ref(db), atomicUpd);
+            } catch (e) { console.error('[executeTrade] Sync Atômico:', e); }
+
             Network.sendAction('SHOW_ALERT', { msg: fullMsg, playerName: player.name, endsTurn: false });
             Network.sendAction('LOG', { msg: logMsg });
             Network.sendAction('LOG', { msg: effectLog });
@@ -893,7 +902,7 @@ export class Cards {
         Game.showGlobalAlert(fullMsg, player.name, true, false);
 
         if (Network.isOnline) {
-            Network.syncPlayerState();
+            Network.syncPlayerState(); // Como é NPC, só enviamos nosso próprio estado (não tem raça condition aqui)
             Network.sendAction('SHOW_ALERT', { msg: fullMsg, playerName: player.name, endsTurn: false });
             Network.sendAction('LOG', { msg: logMsg });
             Network.sendAction('LOG', { msg: effectLog });
@@ -926,6 +935,12 @@ export class Cards {
                 const attackCardIndex = attacker.cards.findIndex((c: any) => c.id === incomingCardId);
                 if (attackCardIndex > -1) attacker.cards.splice(attackCardIndex, 1);
 
+                // Incrementos de stats do atacante localmente
+                attacker.effects = attacker.effects || {};
+                attacker.effects.offensiveCardsUsed = (attacker.effects.offensiveCardsUsed || 0) + 1;
+                if (!attacker.stats) attacker.stats = { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
+                attacker.stats.cardsUsed = (attacker.stats.cardsUsed || 0) + 1;
+
                 const boardModal = document.getElementById('board-cards-modal');
                 if (boardModal) boardModal.style.display = 'none';
                 Game.updateHUD();
@@ -950,7 +965,7 @@ export class Cards {
                 Game.log(logMsg);
                 Game.showGlobalAlert(blockMsg, attacker.name, true, false);
 
-                // ---- Estatísticas do defensor (BLINDAGEM ADICIONADA AQUI) ----
+                // ---- Estatísticas do defensor ----
                 const defenseNames: Record<string, string> = {
                     'jam': 'Interferência', 'silvertape': 'Silver Tape',
                     'no_troques': 'Pokémon Fiel', 'old_leader': 'Líder Velho',
@@ -962,7 +977,7 @@ export class Cards {
 
                 target.stats.cardsDefended[defenseLabel] = (target.stats.cardsDefended[defenseLabel] || 0) + 1;
 
-                // ---- Sync online: um único update() atômico com todos os dados ----
+                // ---- Sync online: UPDATE ATÔMICO ENVOLVENDO OS DOIS JOGADORES ----
                 if (Network.isOnline) {
                     try {
                         const { ref, update, getDatabase } = await import('firebase/database');
@@ -971,14 +986,13 @@ export class Cards {
 
                         const atomicUpdate: any = {};
 
-                        // Dados do atacante (jogador da vez)
-                        atomicUpdate[`${roomPath}/players/${attacker.id}/cards`] =
-                            attacker.cards && attacker.cards.length > 0 ? attacker.cards : null;
-                        atomicUpdate[`${roomPath}/players/${attacker.id}/effects`] = attacker.effects || {};
+                        // Atacante com status já contabilizados
+                        atomicUpdate[`${roomPath}/players/${attacker.id}/cards`] = attacker.cards && attacker.cards.length > 0 ? attacker.cards : null;
+                        atomicUpdate[`${roomPath}/players/${attacker.id}/effects`] = attacker.effects;
+                        atomicUpdate[`${roomPath}/players/${attacker.id}/stats`] = attacker.stats;
 
-                        // Dados do defensor (carta removida + stats atualizadas)
-                        atomicUpdate[`${roomPath}/players/${target.id}/cards`] =
-                            target.cards && target.cards.length > 0 ? target.cards : null;
+                        // Defensor
+                        atomicUpdate[`${roomPath}/players/${target.id}/cards`] = target.cards && target.cards.length > 0 ? target.cards : null;
                         atomicUpdate[`${roomPath}/players/${target.id}/stats`] = target.stats;
 
                         await update(ref(db), atomicUpdate);
@@ -1072,19 +1086,13 @@ export class Cards {
             const targetP = Game.players.find((p: any) => p.id === actualTargetId);
 
             if (targetP) {
-                // checkAutoDefense agora é async e já faz o update atômico no Firebase
                 const wasBlocked = await this.checkAutoDefense(player, targetP, cardId, cardData.name);
 
                 if (wasBlocked) {
-                    // Incrementa offensiveCardsUsed e sincroniza o atacante
-                    player.effects.offensiveCardsUsed = (player.effects.offensiveCardsUsed || 0) + 1;
-                    player.stats.cardsUsed = (player.stats.cardsUsed || 0) + 1;
-                    if (Network.isOnline) {
-                        Network.syncPlayerState();
-                    }
-                    return;
+                    return; // Retorna pois a defesa atômica já validou as estátisticas e enviou pro banco
                 }
 
+                // Não foi bloqueada. Aumenta contador do turno.
                 player.effects.offensiveCardsUsed = (player.effects.offensiveCardsUsed || 0) + 1;
             }
         }
@@ -1094,20 +1102,19 @@ export class Cards {
                 alert("Você já utilizou uma carta Lendária nesta partida. Apenas um milagre por jogo é permitido!");
                 return;
             }
-            // Não marca playedLegendary aqui — só será marcado após a carta ser consumida com sucesso
         }
 
         let consumed = true;
         let effectLog = "";
         let alreadyRemoved = false;
+        let requiresGlobalSync = false;
+        let skipBottomSync = false;
 
         if (cardData.type === 'global') {
             const idx = player.cards.findIndex(c => c.id === cardId);
             if (idx > -1) {
                 player.cards.splice(idx, 1);
                 alreadyRemoved = true;
-                Game.updateHUD();
-                if (Network.isOnline) Network.syncPlayerState();
             }
         }
 
@@ -1214,8 +1221,6 @@ export class Cards {
                 player.effects.curse = false;
                 effectLog = `✨ ${player.name} se banhou com Água Benta!`;
                 Game.sendGlobalLog(`✨ ${player.name} usou Água Benta e purificou sua alma da Maldição!`);
-
-                Game.updateHUD();
                 break;
 
             case 'trade_fail':
@@ -1224,7 +1229,6 @@ export class Cards {
                     if (target) {
                         target.skipTurns += 3;
                         effectLog = `❌ Sabotagem feita com sucesso! A troca falhou terrivelmente e ${target.name} perde as próximas 3 rodadas!`;
-                        // turnsLost será gravado no bloco de stats geral ao final
                         (target as any)._pendingTurnsLost = ((target as any)._pendingTurnsLost || 0) + 3;
                     }
                 } else {
@@ -1344,7 +1348,6 @@ export class Cards {
             case 'run':
                 player.effects.escapedGym = true;
                 Battle.logBattle("💨 Fugiu com estilo!");
-                if (Network.isOnline) Network.syncPlayerState();
                 Battle.end(false);
                 break;
 
@@ -1404,11 +1407,6 @@ export class Cards {
                     targetMon.megaStone = true;
                     effectLog = `💎 A Mega Pedra começou a brilhar intensamente junto de ${targetMon.name}!`;
 
-                    const boardModal = document.getElementById('board-cards-modal');
-                    if (boardModal) boardModal.style.display = 'none';
-
-                    if (Network.isOnline) Network.syncPlayerState();
-
                 } else {
                     this.openMegaSelection(cardId);
                     consumed = false;
@@ -1429,10 +1427,6 @@ export class Cards {
 
                     effectLog = `⛏️ A Mega Pedra foi retirada de ${targetMon.name} com segurança! Você recebeu a carta Mega Pedra de volta.`;
 
-                    const boardModal = document.getElementById('board-cards-modal');
-                    if (boardModal) boardModal.style.display = 'none';
-
-                    if (Network.isOnline) Network.syncPlayerState();
                 } else {
                     this.openReclaimMegaStoneSelection(cardId);
                     consumed = false;
@@ -1454,9 +1448,6 @@ export class Cards {
 
                     effectLog = `💥 DESTRUÍDA! ${player.name} usou magia negra e destruiu a Mega Pedra que estava com o ${targetMon.name} de ${target.name}!`;
 
-                    const boardModal = document.getElementById('board-cards-modal');
-                    if (boardModal) boardModal.style.display = 'none';
-
                 } else {
                     this.openStealMegaStoneTargetSelection(cardId);
                     consumed = false;
@@ -1477,10 +1468,6 @@ export class Cards {
                     targetMon.vinculoSupremo = true;
                     effectLog = `🤝 VÍNCULO SUPREMO! ${targetMon.name} prometeu nunca abandonar ${player.name}, custe o que custar!`;
 
-                    const boardModal = document.getElementById('board-cards-modal');
-                    if (boardModal) boardModal.style.display = 'none';
-
-                    if (Network.isOnline) Network.syncPlayerState();
                 } else {
                     this.openPokemonSelectionForCard(cardId, "Escolha um Pokémon para criar um Vínculo Supremo:");
                     consumed = false;
@@ -1511,9 +1498,6 @@ export class Cards {
                         effectLog = `👋 ADEUS! ${player.name} cantou a música triste e fez ${target.name} libertar seu ${targetMon.name} para todo o sempre! (Ele desapareceu na imensidão e nunca mais poderá ser recuperado)`;
                     }
 
-                    const boardModal = document.getElementById('board-cards-modal');
-                    if (boardModal) boardModal.style.display = 'none';
-
                 } else {
                     this.openAshGoodbyeTargetSelection(cardId);
                     consumed = false;
@@ -1523,44 +1507,16 @@ export class Cards {
             case 'tremembe':
                 Game.players.forEach((p: any) => {
                     if (p.id !== player.id) {
+                        if (!p.stats) p.stats = { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
+                        p.stats.turnsLost = (p.stats.turnsLost || 0) + 20;
+                        p.stats.cardsSuffered = (p.stats.cardsSuffered || 0) + 1;
+                        if (!p.stats.effectsReceived) p.stats.effectsReceived = {};
+                        p.stats.effectsReceived['Tremembé'] = (p.stats.effectsReceived['Tremembé'] || 0) + 1;
                         p.skipTurns += 20;
                     }
                 });
                 effectLog = `⛓️ DECRETO DA PRISÃO DE TREMEMBÉ! Todos os outros jogadores ficarão enjaulados por 20 rodadas!`;
-
-                if (Network.isOnline) {
-                    try {
-                        const { ref, update: fbUpdate, getDatabase } = await import('firebase/database');
-                        const db = getDatabase();
-                        const roomPath = `rooms/${Network.currentRoomId}`;
-                        const atomicUpd: any = {};
-                        Game.players.forEach((p: any) => {
-                            if (p.id !== player.id) {
-                                if (!p.stats) p.stats = { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
-                                p.stats.turnsLost = (p.stats.turnsLost || 0) + 20;
-                                p.stats.cardsSuffered = (p.stats.cardsSuffered || 0) + 1;
-
-                                // BLINDAGEM DE STATS 
-                                if (!p.stats.effectsReceived) p.stats.effectsReceived = {};
-                                p.stats.effectsReceived['Tremembé'] = (p.stats.effectsReceived['Tremembé'] || 0) + 1;
-
-                                atomicUpd[`${roomPath}/players/${p.id}/skipTurns`] = p.skipTurns;
-                                atomicUpd[`${roomPath}/players/${p.id}/stats`] = p.stats;
-                            }
-                        });
-                        await fbUpdate(ref(db), atomicUpd);
-                    } catch (e) { console.error('[tremembe] sync:', e); }
-                } else {
-                    Game.players.forEach((p: any) => {
-                        if (p.id !== player.id) {
-                            if (!p.stats) p.stats = { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
-                            p.stats.turnsLost = (p.stats.turnsLost || 0) + 20;
-                            p.stats.cardsSuffered = (p.stats.cardsSuffered || 0) + 1;
-                            if (!p.stats.effectsReceived) p.stats.effectsReceived = {};
-                            p.stats.effectsReceived['Tremembé'] = (p.stats.effectsReceived['Tremembé'] || 0) + 1;
-                        }
-                    });
-                }
+                requiresGlobalSync = true;
                 break;
 
             case 'se_rj':
@@ -1568,20 +1524,20 @@ export class Cards {
                     if (p.id !== player.id) {
                         p.gold = 0;
                         Object.keys(p.items).forEach(k => p.items[k] = 0);
-                        if (Network.isOnline) Network.syncSpecificPlayer(p.id);
                     }
                 });
                 effectLog = `🔫 ARRastão na Sé/RJ! Todos os outros jogadores foram assaltados e perderam TODO o gold e TODOS os itens!`;
+                requiresGlobalSync = true;
                 break;
 
             case 'cassino':
                 Game.players.forEach((p: any) => {
                     if (p.id !== player.id) {
                         p.cards = p.cards.filter((c: any) => c.rarity === 'Lendária');
-                        if (Network.isOnline) Network.syncSpecificPlayer(p.id);
                     }
                 });
                 effectLog = `🎰 A BANCA SEMPRE VENCE! Todos os outros jogadores perderam todas as suas cartas apostando no Cassino! (Cartas lendárias foram poupadas)`;
+                requiresGlobalSync = true;
                 break;
 
             case 'legendary_encounter':
@@ -1619,10 +1575,6 @@ export class Cards {
 
                     effectLog = `🌟 UMA LUZ OFUSCANTE! O ${targetMon.name} lendário de ${player.name} absorveu a energia, se tornou SHINY e ganhou Vínculo Supremo!`;
 
-                    const boardModal = document.getElementById('board-cards-modal');
-                    if (boardModal) boardModal.style.display = 'none';
-
-                    if (Network.isOnline) Network.syncPlayerState();
                 } else {
                     this.openPokemonSelectionForCard(cardId, "Escolha um Pokémon Lendário para transformar em Shiny:");
                     consumed = false;
@@ -1646,12 +1598,6 @@ export class Cards {
 
                     effectLog = `🍬 Que delícia! O Rare Candy fez efeito mágico!`;
 
-                    const boardModal = document.getElementById('board-cards-modal');
-                    if (boardModal) boardModal.style.display = 'none';
-
-                    if (Network.isOnline) {
-                        Network.syncPlayerState();
-                    }
                 } else {
                     this.openPokemonSelectionForCard(cardId);
                     consumed = false;
@@ -1679,12 +1625,6 @@ export class Cards {
 
                     effectLog = `🧬 Genética alterada! A Evolução Forçada foi um sucesso!`;
 
-                    const boardModal = document.getElementById('board-cards-modal');
-                    if (boardModal) boardModal.style.display = 'none';
-
-                    if (Network.isOnline) {
-                        Network.syncPlayerState();
-                    }
                 } else {
                     this.openEvolutionSelectionForCard(cardId);
                     consumed = false;
@@ -1694,16 +1634,10 @@ export class Cards {
             case 'shiny':
                 player.effects.lureShiny = 3;
                 effectLog = `✨ Uma aura brilhante envolve ${player.name}! Suas chances de encontrar Pokémons Shinies subiram para 15% pelas próximas 3 rodadas!`;
-
-                const boardModalShiny = document.getElementById('board-cards-modal');
-                if (boardModalShiny) boardModalShiny.style.display = 'none';
-
-                if (Network.isOnline) {
-                    Network.syncPlayerState();
-                }
                 break;
 
             case 'communism':
+                skipBottomSync = true;
                 if (Network.isOnline) {
                     try {
                         const { ref, update, getDatabase, get } = await import('firebase/database');
@@ -1735,9 +1669,7 @@ export class Cards {
                                     }
                                 });
 
-                                // Guarda os lendários separados para devolver depois
                                 pData._legendaries = legendaryCards;
-
                                 allCardsPool = [...allCardsPool, ...cardsToAdd];
                             }
                         });
@@ -1816,17 +1748,14 @@ export class Cards {
                 Game.showGlobalAlert(fullMsgG + `||CARD:${cardId}`, player.name, true, false);
 
                 if (Network.isOnline) {
-                    Network.sendAction('SHOW_ALERT', {
-                        msg: fullMsgG + `||CARD:${cardId}`,
-                        playerName: player.name,
-                        endsTurn: false
-                    });
+                    Network.sendAction('SHOW_ALERT', { msg: fullMsgG + `||CARD:${cardId}`, playerName: player.name, endsTurn: false });
                     Network.sendAction('LOG', { msg: logMsgG });
                     Network.sendAction('LOG', { msg: effectLog });
                 }
                 break;
 
             case 'imposto':
+                skipBottomSync = true;
                 if (Network.isOnline) {
                     try {
                         const { ref, update, getDatabase, get } = await import('firebase/database');
@@ -1926,11 +1855,7 @@ export class Cards {
                 Game.showGlobalAlert(fullMsgI + `||CARD:${cardId}`, player.name, true, false);
 
                 if (Network.isOnline) {
-                    Network.sendAction('SHOW_ALERT', {
-                        msg: fullMsgI + `||CARD:${cardId}`,
-                        playerName: player.name,
-                        endsTurn: false
-                    });
+                    Network.sendAction('SHOW_ALERT', { msg: fullMsgI + `||CARD:${cardId}`, playerName: player.name, endsTurn: false });
                     Network.sendAction('LOG', { msg: logMsgI });
                     Network.sendAction('LOG', { msg: effectLog });
                 }
@@ -2006,13 +1931,7 @@ export class Cards {
                 });
                 Game.moveVisuals();
                 effectLog = "O FURACAO KATRINA PASSOU! Todos os jogadores foram soprados para casas aleatorias!";
-                if (Network.isOnline) {
-                    if ((Network as any).syncPlayers) {
-                        (Network as any).syncPlayers(Game.players.map((p: any) => p.id));
-                    } else {
-                        Game.players.forEach((p: any) => Network.syncSpecificPlayer(p.id));
-                    }
-                }
+                requiresGlobalSync = true;
                 break;
 
             case 'lure_type':
@@ -2030,12 +1949,13 @@ export class Cards {
         }
 
         if (consumed) {
+            // Remove da mão
             if (!alreadyRemoved) {
                 const idx = player.cards.findIndex(c => c.id === cardId);
                 if (idx > -1) player.cards.splice(idx, 1);
             }
 
-            // --- Marca carta lendária como usada só quando for consumida com sucesso ---
+            // Marca lendária
             if (cardData.rarity === 'Lendária') {
                 if (!player.effects) player.effects = {};
                 player.effects.playedLegendary = true;
@@ -2047,38 +1967,31 @@ export class Cards {
             const offensiveCardIds = ['swap', 'slow', 'rocket', 'curse', 'trade_fail', 'new_leader', 'bag', 'troques', 'michael', 'steal_mega_stone', 'ash_goodbye'];
             if (offensiveCardIds.includes(cardId) && actualTargetId !== null && actualTargetId !== player.id) {
                 if (!player.stats) player.stats = { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
-                if (!player.stats.effectsReceived) player.stats.effectsReceived = {};
-                if (!player.stats.cardsDefended) player.stats.cardsDefended = {};
-
                 player.stats.cardsUsed = (player.stats.cardsUsed || 0) + 1;
             }
 
             // =========================================================================
             //  BLINDAGEM DE STATS DO ALVO
             // =========================================================================
+            let targetObjForSync = null;
+
             if (actualTargetId !== null) {
                 const offensiveTarget = Game.players.find((p: any) => p.id === actualTargetId);
                 if (offensiveTarget && offensiveTarget.id !== player.id) {
+                    targetObjForSync = offensiveTarget;
 
-                    // Se a conta for antiga, recria as listas que faltavam!
                     if (!offensiveTarget.stats) offensiveTarget.stats = { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
                     if (!offensiveTarget.stats.effectsReceived) offensiveTarget.stats.effectsReceived = {};
-                    if (!offensiveTarget.stats.cardsDefended) offensiveTarget.stats.cardsDefended = {};
 
                     offensiveTarget.stats.cardsSuffered = (offensiveTarget.stats.cardsSuffered || 0) + 1;
                     const effectKey = cardData.name;
                     offensiveTarget.stats.effectsReceived[effectKey] = (offensiveTarget.stats.effectsReceived[effectKey] || 0) + 1;
 
-                    // Captura turnosLost marcados pelo case (ex: trade_fail)
+                    // Captura turnos perdidos agendados pelos switches (ex: trade_fail)
                     const pendingTurns = (offensiveTarget as any)._pendingTurnsLost || 0;
                     if (pendingTurns > 0) {
                         offensiveTarget.stats.turnsLost = (offensiveTarget.stats.turnsLost || 0) + pendingTurns;
                         delete (offensiveTarget as any)._pendingTurnsLost;
-                    }
-
-                    // Agora usamos o sync centralizado do Network para evitar Race Conditions!
-                    if (Network.isOnline) {
-                        Network.syncSpecificPlayer(offensiveTarget.id);
                     }
                 }
             }
@@ -2088,9 +2001,8 @@ export class Cards {
             document.getElementById('battle-cards-modal')!.style.display = 'none';
 
             let targetName = "";
-            if (actualTargetId !== null) {
-                const targetObj = Game.players.find((p: any) => p.id === actualTargetId);
-                if (targetObj) targetName = targetObj.name;
+            if (targetObjForSync) {
+                targetName = targetObjForSync.name;
             } else if (cardData.type === 'battle' && Battle.isPvP && Battle.enemyPlayer) {
                 targetName = Battle.enemyPlayer.name;
             }
@@ -2106,20 +2018,59 @@ export class Cards {
             Game.log(logMsg);
             if (effectLog) Game.log(effectLog);
 
-            if (cardId !== 'new_leader' && cardId !== 'reroll' && cardId !== 'dice' && cardId !== 'illegal_adoption') {
+            if (cardId !== 'new_leader' && cardId !== 'reroll' && cardId !== 'dice' && cardId !== 'illegal_adoption' && !skipBottomSync) {
                 Game.showGlobalAlert(fullMsg + `||CARD:${cardId}`, player.name, true, false);
             }
 
-            if (Network.isOnline) {
-                Network.syncPlayerState();
+            // =========================================================================
+            //  SYNC ÚNICO, UNIVERSAL E ATÔMICO
+            // =========================================================================
+            if (Network.isOnline && !skipBottomSync) {
+                try {
+                    const { ref, update, getDatabase } = await import('firebase/database');
+                    const db = getDatabase();
+                    const roomPath = `rooms/${Network.currentRoomId}`;
+                    const atomicUpd: any = {};
 
-                if (cardId !== 'new_leader' && cardId !== 'reroll' && cardId !== 'dice' && cardId !== 'illegal_adoption') {
-                    Network.sendAction('SHOW_ALERT', {
-                        msg: fullMsg + `||CARD:${cardId}`,
-                        playerName: player.name,
-                        endsTurn: false
+                    // Helper para higienizar antes de enviar
+                    const sanitize = (p: any) => ({
+                        id: p.id,
+                        name: p.name,
+                        avatar: typeof p.avatar === 'string' && p.avatar.includes('/') ? p.avatar.split('/').pop() : p.avatar,
+                        x: p.x,
+                        y: p.y,
+                        gold: p.gold,
+                        team: (Network as any).getSanitizedTeam ? (Network as any).getSanitizedTeam(p.team) : p.team,
+                        items: p.items || {},
+                        skipTurns: p.skipTurns || 0,
+                        badges: p.badges || [],
+                        cards: p.cards && p.cards.length > 0 ? p.cards : null,
+                        effects: p.effects || {},
+                        pokedexData: p.pokedexData || {},
+                        stats: p.stats || { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 }
                     });
 
+                    if (requiresGlobalSync) {
+                        // Cartas Globais (Tremembé, Katrina, Sé, Cassino)
+                        Game.players.forEach((p: any) => {
+                            atomicUpd[`${roomPath}/players/${p.id}`] = sanitize(p);
+                        });
+                    } else {
+                        // Update apenas em quem está envolvido no combate/efeito
+                        atomicUpd[`${roomPath}/players/${player.id}`] = sanitize(player);
+                        if (targetObjForSync) {
+                            atomicUpd[`${roomPath}/players/${targetObjForSync.id}`] = sanitize(targetObjForSync);
+                        }
+                    }
+
+                    await update(ref(db), atomicUpd);
+                } catch (e) {
+                    console.error("Erro no Sync Atômico Final:", e);
+                }
+
+                // Logs na rede
+                if (cardId !== 'new_leader' && cardId !== 'reroll' && cardId !== 'dice' && cardId !== 'illegal_adoption') {
+                    Network.sendAction('SHOW_ALERT', { msg: fullMsg + `||CARD:${cardId}`, playerName: player.name, endsTurn: false });
                     Network.sendAction('LOG', { msg: logMsg });
                     if (effectLog) Network.sendAction('LOG', { msg: effectLog });
                 } else {
