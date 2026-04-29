@@ -1836,14 +1836,13 @@ export class Game {
                 const myPlayer = this.players[me];
 
                 // --- BLINDAGEM ANTI-F5 (VÓRTICE DE BATALHA) ---
-                // Se o jogador der F5 para fugir, ele nasce em cima da casa de batalha.
-                // Isso tira o botão de rolar e força ele a lutar na mesma hora!
                 const type = MapSystem.grid[myPlayer.y][myPlayer.x];
                 const isGym = type === TILE.GYM;
                 const isNPC = !!NPC_DATA[type];
                 const isWild = [TILE.GRASS, TILE.WATER, TILE.GROUND].includes(type);
 
-                if ((isGym || isNPC || isWild) && !this.pendingTileEvent) {
+                // Só trava se ele já tiver rolado o dado nesta rodada (evita travar no início de um novo turno)
+                if ((isGym || isNPC || isWild) && !this.pendingTileEvent && myPlayer.effects.lastRollRound === this.round && myPlayer.effects.lastRollMoved) {
                     // Se for ginásio, verifica se já não venceu
                     if (isGym) {
                         const gymId = MapSystem.gymLocations[`${myPlayer.x},${myPlayer.y}`];
@@ -1854,7 +1853,10 @@ export class Game {
                                 btn.disabled = true;
                                 btn.innerText = "EM BATALHA";
                                 const BattleObj = (window as any).Battle;
-                                if (!BattleObj.active) this.handleTile(myPlayer);
+                                if (!BattleObj.active && !this.hasRolled) {
+                                    this.hasRolled = true;
+                                    this.handleTile(myPlayer);
+                                }
                                 return;
                             }
                         }
@@ -1864,7 +1866,10 @@ export class Game {
                             btn.disabled = true;
                             btn.innerText = "EM BATALHA";
                             const BattleObj = (window as any).Battle;
-                            if (!BattleObj.active) this.handleTile(myPlayer);
+                            if (!BattleObj.active && !this.hasRolled) {
+                                this.hasRolled = true;
+                                this.handleTile(myPlayer);
+                            }
                             return;
                         }
                     }
@@ -1955,7 +1960,7 @@ export class Game {
             const isNPC = !!NPC_DATA[type];
             const isWild = [TILE.GRASS, TILE.WATER, TILE.GROUND].includes(type);
 
-            if ((isGym || isNPC || isWild) && !this.pendingTileEvent) {
+            if ((isGym || isNPC || isWild) && !this.pendingTileEvent && currP.effects.lastRollRound === this.round && currP.effects.lastRollMoved) {
                 if (isGym) {
                     const gymId = MapSystem.gymLocations[`${currP.x},${currP.y}`];
                     if (gymId && !currP.badges[gymId - 1]) {
@@ -1963,7 +1968,10 @@ export class Game {
                             btn.disabled = true;
                             btn.innerText = "EM BATALHA";
                             const BattleObj = (window as any).Battle;
-                            if (!BattleObj.active) this.handleTile(currP);
+                            if (!BattleObj.active && !this.hasRolled) {
+                                this.hasRolled = true;
+                                this.handleTile(currP);
+                            }
                             return;
                         }
                     }
