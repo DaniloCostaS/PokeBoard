@@ -1229,7 +1229,6 @@ export class Cards {
                     if (target) {
                         target.skipTurns += 3;
                         effectLog = `❌ Sabotagem feita com sucesso! A troca falhou terrivelmente e ${target.name} perde as próximas 3 rodadas!`;
-                        (target as any)._pendingTurnsLost = ((target as any)._pendingTurnsLost || 0) + 3;
                     }
                 } else {
                     this.openTargetSelection(cardId);
@@ -1508,7 +1507,6 @@ export class Cards {
                 Game.players.forEach((p: any) => {
                     if (p.id !== player.id) {
                         if (!p.stats) p.stats = { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
-                        p.stats.turnsLost = (p.stats.turnsLost || 0) + 20;
                         p.stats.cardsSuffered = (p.stats.cardsSuffered || 0) + 1;
                         if (!p.stats.effectsReceived) p.stats.effectsReceived = {};
                         p.stats.effectsReceived['Tremembé'] = (p.stats.effectsReceived['Tremembé'] || 0) + 1;
@@ -1986,13 +1984,6 @@ export class Cards {
                     offensiveTarget.stats.cardsSuffered = (offensiveTarget.stats.cardsSuffered || 0) + 1;
                     const effectKey = cardData.name;
                     offensiveTarget.stats.effectsReceived[effectKey] = (offensiveTarget.stats.effectsReceived[effectKey] || 0) + 1;
-
-                    // Captura turnos perdidos agendados pelos switches (ex: trade_fail)
-                    const pendingTurns = (offensiveTarget as any)._pendingTurnsLost || 0;
-                    if (pendingTurns > 0) {
-                        offensiveTarget.stats.turnsLost = (offensiveTarget.stats.turnsLost || 0) + pendingTurns;
-                        delete (offensiveTarget as any)._pendingTurnsLost;
-                    }
                 }
             }
 
