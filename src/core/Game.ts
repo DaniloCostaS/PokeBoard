@@ -768,15 +768,32 @@ export class Game {
 
         // Botão de sacrifício
         if (isMe && p.cards.length >= 2) {
+            const btnRow = document.createElement('div');
+            btnRow.style.cssText = "grid-column: 1 / -1; display: flex; gap: 10px; margin-bottom: 10px;";
+            
             const sacBtn = document.createElement('button');
             sacBtn.className = 'btn btn-sacrifice';
-            sacBtn.style.gridColumn = '1 / -1'; // FORÇA A OCUPAR A TELA TODA NO GRID
-            sacBtn.innerHTML = `<span>🔥 SACRIFICAR CARTAS (2 ➡ 1)</span>`;
+            sacBtn.style.flex = '1';
+            sacBtn.innerHTML = `<span>🔥 SACRIFICAR (2 ➡ Random)</span>`;
             sacBtn.onclick = () => {
                 document.getElementById('board-cards-modal')!.style.display = 'none';
                 (window as any).Cards.openSacrificeModal();
             };
-            list.appendChild(sacBtn);
+            btnRow.appendChild(sacBtn);
+
+            if (p.cards.length >= 3) {
+                const mergeBtn = document.createElement('button');
+                mergeBtn.className = 'btn btn-merge';
+                mergeBtn.style.flex = '1';
+                mergeBtn.innerHTML = `<span>💎 FUNDIR (3 ➡ Raridade +1)</span>`;
+                mergeBtn.onclick = () => {
+                    document.getElementById('board-cards-modal')!.style.display = 'none';
+                    (window as any).Cards.openMergeModal();
+                };
+                btnRow.appendChild(mergeBtn);
+            }
+
+            list.appendChild(btnRow);
         }
 
         if (p.cards.length === 0) {

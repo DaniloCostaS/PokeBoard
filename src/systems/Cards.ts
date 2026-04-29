@@ -167,6 +167,172 @@ export class Cards {
         }
     }
 
+    // =========================================================================================
+    //  SISTEMA DE FUSÃO (MERGE)
+    // =========================================================================================
+    // 1. Abre o modal para selecionar as cartas para fusão
+    static openMergeModal() {
+        const Game = (window as any).Game;
+        const Network = (window as any).Network;
+        const player = Game.getCurrentPlayer();
+
+        // Validação de Turno e Jogador
+        if (Network.isOnline && player.id !== Network.myPlayerId) {
+            return alert("Você só pode fundir cartas no seu próprio turno!");
+        }
+        if (!Game.canAct()) {
+            return alert("Aguarde sua vez para realizar ações.");
+        }
+
+        // Validação mínima de cartas
+        if (player.cards.length < 3) {
+            return alert("Você precisa de pelo menos 3 cartas para realizar uma fusão.");
+        }
+
+        const list = document.getElementById('board-inventory-list')!;
+        const modal = document.getElementById('board-inventory-modal') || document.getElementById('board-cards-modal');
+
+        // Limpa e prepara título
+        if (modal) modal.style.display = 'flex';
+        list.innerHTML = `<h3 style="width:100%; text-align:center; color:#2ecc71;">Selecione 3 Cartas da MESMA raridade</h3>
+                          <p style="width:100%; text-align:center; font-size:0.8rem; color:#7f8c8d; margin-top:-10px;">Fundir 3 cartas aumenta a raridade em +1 nível.</p>
+                          <div id="merge-counter" style="width:100%; text-align:center; margin-bottom:10px;">Selecionado: 0/3</div>`;
+
+        player.cards.forEach((c: any, index: number) => {
+            const d = document.createElement('div');
+            d.className = 'card-item';
+            
+            let rarityColor = '#bdc3c7';
+            if (c.rarity === 'Épica') rarityColor = '#9b59b6';
+            if (c.rarity === 'Rara') rarityColor = '#3498db';
+            if (c.rarity === 'Incomum') rarityColor = '#2ecc71';
+            if (c.rarity === 'Lendária') rarityColor = '#f1c40f';
+
+            d.innerHTML = `
+                <div class="card-info" style="display:flex; align-items:center; gap:10px;">
+                    <input type="checkbox" class="merge-checkbox" data-index="${index}" style="transform: scale(1.5); cursor:pointer;" onchange="window.Cards.updateMergeCount()">
+                    <span class="card-name">${c.icon} ${c.name} <span style="font-size: 0.7rem; color: #fff; background: ${rarityColor}; padding: 2px 6px; border-radius: 4px; margin-left: 5px;">${c.rarity.toUpperCase()}</span></span>
+                </div>
+            `;
+            list.appendChild(d);
+        });
+
+        // Botão de Confirmar
+        const btnContainer = document.createElement('div');
+        btnContainer.style.width = '100%';
+        btnContainer.style.textAlign = 'center';
+        btnContainer.style.marginTop = '15px';
+        btnContainer.innerHTML = `
+            <button class="btn" style="background-color:#2ecc71;" onclick="window.Cards.confirmMerge()">💎 FUNDIR CARTAS</button>
+            <button class="btn btn-secondary" onclick="document.getElementById('${modal?.id}').style.display='none'">Cancelar</button>
+        `;
+        list.appendChild(btnContainer);
+
+        // Expõe função auxiliar para o checkbox 
+        (window as any).Cards.updateMergeCount = () => {
+            const checks = document.querySelectorAll('.merge-checkbox:checked');
+            const counter = document.getElementById('merge-counter');
+            if (counter) counter.innerText = `Selecionado: ${checks.length}/3`;
+
+            // Impede selecionar mais de 3
+            if (checks.length > 3) {
+                alert("Selecione apenas 3 cartas!");
+                (window.event?.target as HTMLInputElement).checked = false;
+                if (counter) counter.innerText = `Selecionado: 3/3`;
+            }
+        };
+    }
+
+    // 2. Executa a Lógica da Fusão
+    static async confirmMerge() {
+        const Game = (window as any).Game;
+        const Network = (window as any).Network;
+        const CARDS_DB = (await import('../constants')).CARDS_DB;
+        const player = Game.getCurrentPlayer();
+
+        // Coleta índices selecionados
+        const checkboxes = document.querySelectorAll('.merge-checkbox:checked');
+        if (checkboxes.length !== 3) {
+            return alert("Você deve selecionar EXATAMENTE 3 cartas.");
+        }
+
+        const indicesToRemove: number[] = [];
+        checkboxes.forEach((cb: any) => indicesToRemove.push(parseInt(cb.getAttribute('data-index'))));
+
+        // Validação de Raridade (Todas devem ser iguais)
+        const rarities = indicesToRemove.map(idx => player.cards[idx].rarity);
+        if (rarities[0] !== rarities[1] || rarities[1] !== rarities[2]) {
+            return alert("As 3 cartas selecionadas devem ter a mesma raridade para serem fundidas!");
+        }
+
+        const baseRarity = rarities[0];
+        let targetRarity = "";
+
+        if (baseRarity === 'Comum') targetRarity = 'Incomum';
+        else if (baseRarity === 'Incomum') targetRarity = 'Rara';
+        else if (baseRarity === 'Rara') targetRarity = 'Épica';
+        else if (baseRarity === 'Épica') targetRarity = 'Lendária';
+        else if (baseRarity === 'Lendária') {
+            return alert("Cartas Lendárias já estão no nível máximo e não podem ser fundidas para uma raridade superior.");
+        }
+
+        // Ordena decrescente para remover do array sem alterar os índices dos próximos
+        indicesToRemove.sort((a, b) => b - a);
+
+        const removedNames: string[] = [];
+        const removedIds: string[] = [];
+
+        // Remove cartas (do maior índice para o menor)
+        indicesToRemove.forEach(idx => {
+            if (player.cards[idx]) {
+                removedNames.push(player.cards[idx].name);
+                removedIds.push(player.cards[idx].id);
+                player.cards.splice(idx, 1);
+            }
+        });
+
+        // Sorteia nova carta da raridade alvo
+        const possibleCards = CARDS_DB.filter((c: any) => c.rarity === targetRarity);
+        const finalPool = possibleCards.length > 0 ? possibleCards : CARDS_DB;
+        
+        // Filtro para não vir uma das que foram fundidas (embora a raridade mude, por segurança)
+        const filteredPool = finalPool.filter((c: any) => !removedIds.includes(c.id));
+        const finalFinalPool = filteredPool.length > 0 ? filteredPool : finalPool;
+
+        const newCard = finalFinalPool[Math.floor(Math.random() * finalFinalPool.length)];
+
+        player.cards.push(newCard);
+
+        // Fecha modal e Atualiza HUD
+        const modal = document.getElementById('board-inventory-modal') || document.getElementById('board-cards-modal');
+        if (modal) modal.style.display = 'none';
+        Game.updateHUD();
+
+        const logMsg = `💎 ${player.name} fundiu 3 cartas [${baseRarity}] e obteve uma nova carta [${targetRarity}]: [${newCard.name}]!`;
+        const logMsgGlobal = `💎 ${player.name} fundiu 3 cartas e obteve uma [${targetRarity}]!`;
+
+        Game.log(logMsg);
+        Game.showGlobalAlert(logMsg, player.name, true, false);
+
+        // LÓGICA DE REDE (UPDATE ATÔMICO)
+        if (Network.isOnline) {
+            const { ref, update, getDatabase } = await import('firebase/database');
+            const db = getDatabase();
+
+            const updates: any = {};
+            const roomPath = `rooms/${Network.currentRoomId}`;
+
+            updates[`${roomPath}/players/${player.id}/cards`] = player.cards;
+
+            await update(ref(db), updates);
+
+            Network.sendAction('LOG', { msg: logMsgGlobal });
+            Network.sendAction('SHOW_ALERT', { msg: logMsgGlobal, playerName: player.name, endsTurn: false });
+
+            Network.syncPlayerState();
+        }
+    }
+
     static draw(player: Player, silentLog: boolean = false) {
         const Game = (window as any).Game;
         const Network = (window as any).Network;
