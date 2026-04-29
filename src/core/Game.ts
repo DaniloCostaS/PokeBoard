@@ -972,12 +972,19 @@ export class Game {
             }
         }
 
+        // --- PERSISTÊNCIA DO DADO (ANTI-F5) ---
+        p.effects.lastRollValue = result;
+        p.effects.lastRollRound = this.round;
+        p.effects.lastRollMoved = false;
+
         // --- LIMPEZA DA IMUNIDADE DE FUGA AO ROLAR O DADO ---
         if (p.effects.escapedGym) {
             p.effects.escapedGym = false;
-            const NetworkObjForce = (window as any).Network || Network;
-            if (NetworkObjForce.isOnline) NetworkObjForce.syncPlayerState();
         }
+
+        // Sincroniza o estado do jogador com os novos dados do dado e imunidade
+        const NetworkObjForce = (window as any).Network || Network;
+        if (NetworkObjForce.isOnline) NetworkObjForce.syncPlayerState();
 
         // Dispara o resultado para a rede e roda a animação
         const NetworkObj = (window as any).Network || Network;
@@ -1205,6 +1212,9 @@ export class Game {
             if (!hitTrap) {
                 this.handleTile(p);
             }
+
+            // Marca que o movimento foi concluído (para persistência anti-F5)
+            p.effects.lastRollMoved = true;
             if (Network.isOnline) Network.syncPlayerState();
         }
     }
@@ -1237,6 +1247,13 @@ export class Game {
         }
 
         if (NPC_DATA[type]) {
+            // --- EXCEÇÃO: IMUNIDADE DE FUGA (FUMAÇA NINJA) ---
+            if (p.effects.escapedGym) {
+                this.log("💨 Você usou Fumaça Ninja e o treinador não te desafiou...");
+                this.nextTurn();
+                return;
+            }
+
             const npc = NPC_DATA[type];
 
             // --- LÓGICA DINÂMICA DE IMAGEM ---
@@ -1434,6 +1451,13 @@ export class Game {
             }
         }
         else if ([TILE.GRASS, TILE.WATER, TILE.GROUND].includes(type)) {
+            // --- EXCEÇÃO: IMUNIDADE DE FUGA (FUMAÇA NINJA) ---
+            if (p.effects.escapedGym) {
+                this.log("💨 Você usou Fumaça Ninja e os pokémons selvagens te ignoraram...");
+                this.nextTurn();
+                return;
+            }
+
             if (Math.random() < 0.8) {
                 //const wildMon = this.generateWildPokemon(); 
                 const wildMon = this.generateWildPokemon(type);
@@ -1602,6 +1626,7 @@ export class Game {
         if (currentP.effects.extraTurn) {
             currentP.effects.extraTurn = false;
             this.hasRolled = false;
+            currentP.effects.lastRollRound = -1; // Permite rolar novamente no turno extra
             this.sendGlobalLog(`⏳ ${currentP.name} joga novamente!`);
             this.updateHUD();
             this.checkTurnControl();
@@ -1734,7 +1759,7 @@ export class Game {
                 if (player.effects.lastBonusRound !== this.round) {
                     player.effects.lastBonusRound = this.round;
 
-                    if (player.skipTurns === 0) {
+                    if (player.skipTurns === 0 && !player.isProcessingSkip) {
                         // Sem setTimeout! Entrega imediata para evitar atropelamento de rede
                         this.triggerDecadeBonus(player);
                     } else {
@@ -1748,6 +1773,8 @@ export class Game {
         };
 
         const processTrucoSeis = (player: Player) => {
+            if (player.skipTurns > 0 || player.isProcessingSkip) return;
+
             if (this.currentGlobalEvent?.id === 'TRUCO_SEIS') {
                 if (player.cards.length > 6) {
                     const lostCount = player.cards.length - 6;
@@ -1787,7 +1814,8 @@ export class Game {
 
             // 2. Checagem de Cartas
             if (player.cards.length === 0) {
-                Cards.draw(player, true);
+                const Cards = (window as any).Cards;
+                if (Cards) Cards.draw(player, true);
                 logMsg += `🃏 Sem cartas! Ganhou 1 carta de cortesia.`;
                 gainedAny = true;
             }
@@ -1807,21 +1835,34 @@ export class Game {
             if (this.turn === me) {
                 const myPlayer = this.players[me];
 
-                // --- BLINDAGEM ANTI-F5 (VÓRTICE DO GINÁSIO) ---
-                // Se o jogador der F5 para fugir, ele nasce em cima do ginásio invicto.
+                // --- BLINDAGEM ANTI-F5 (VÓRTICE DE BATALHA) ---
+                // Se o jogador der F5 para fugir, ele nasce em cima da casa de batalha.
                 // Isso tira o botão de rolar e força ele a lutar na mesma hora!
                 const type = MapSystem.grid[myPlayer.y][myPlayer.x];
-                if (type === TILE.GYM && !this.pendingTileEvent) {
-                    const gymId = MapSystem.gymLocations[`${myPlayer.x},${myPlayer.y}`];
-                    if (gymId && !myPlayer.badges[gymId - 1]) {
-                        // --- EXCEÇÃO: IMUNIDADE DE FUGA (FUMAÇA NINJA) ---
-                        if (myPlayer.effects.escapedGym) {
-                            // Imunidade ativa! Deixa ele rolar o dado em paz para ir embora.
+                const isGym = type === TILE.GYM;
+                const isNPC = !!NPC_DATA[type];
+                const isWild = [TILE.GRASS, TILE.WATER, TILE.GROUND].includes(type);
+
+                if ((isGym || isNPC || isWild) && !this.pendingTileEvent) {
+                    // Se for ginásio, verifica se já não venceu
+                    if (isGym) {
+                        const gymId = MapSystem.gymLocations[`${myPlayer.x},${myPlayer.y}`];
+                        if (gymId && myPlayer.badges[gymId - 1]) {
+                            // Já venceu o ginásio, ignora a trava
                         } else {
+                            if (!myPlayer.effects.escapedGym) {
+                                btn.disabled = true;
+                                btn.innerText = "EM BATALHA";
+                                const BattleObj = (window as any).Battle;
+                                if (!BattleObj.active) this.handleTile(myPlayer);
+                                return;
+                            }
+                        }
+                    } else {
+                        // NPC ou Selvagem
+                        if (!myPlayer.effects.escapedGym) {
                             btn.disabled = true;
                             btn.innerText = "EM BATALHA";
-
-                            // Trava para não abrir a batalha 2x se ele já estiver lutando
                             const BattleObj = (window as any).Battle;
                             if (!BattleObj.active) this.handleTile(myPlayer);
                             return;
@@ -1835,7 +1876,7 @@ export class Game {
                 processStartTurnGifts(myPlayer); // <--- AVALIA OS PRESENTES DE INÍCIO DE TURNO
 
                 // --- EVENTO: ROBIN HOOD (Início de Turno) ---
-                if (this.currentGlobalEvent?.id === 'ROBIN_HOOD' && !myPlayer.effects.robinHoodApplied) {
+                if (this.currentGlobalEvent?.id === 'ROBIN_HOOD' && !myPlayer.effects.robinHoodApplied && myPlayer.skipTurns === 0 && !myPlayer.isProcessingSkip) {
                     if (myPlayer.gold < 200 && myPlayer.cards.length < 2) {
                         myPlayer.gold += 800;
                         for (let i = 0; i < 5; i++) Cards.draw(myPlayer, true);
@@ -1878,8 +1919,27 @@ export class Game {
                     return;
                 }
 
-                btn.disabled = false;
-                btn.innerText = "ROLAR";
+                // --- BLINDAGEM ANTI-F5 (DADO) ---
+                if (myPlayer.effects.lastRollRound === this.round) {
+                    btn.disabled = true;
+                    btn.innerText = `Resultado: ${myPlayer.effects.lastRollValue}`;
+
+                    // Se rolou mas não moveu (F5 no meio da animação)
+                    if (!this.hasRolled && !myPlayer.effects.lastRollMoved) {
+                        this.hasRolled = true;
+                        this.animateDice(myPlayer.effects.lastRollValue || 1, me);
+                    }
+
+                    // Se já moveu mas deu F5 (re-abre o evento da casa se não estiver em batalha)
+                    const BattleObj = (window as any).Battle;
+                    if (myPlayer.effects.lastRollMoved && !this.hasRolled && (!BattleObj || !BattleObj.active)) {
+                        this.hasRolled = true;
+                        this.handleTile(myPlayer);
+                    }
+                } else {
+                    btn.disabled = false;
+                    btn.innerText = "ROLAR";
+                }
             } else {
                 btn.disabled = true;
                 btn.innerText = `Vez de ${this.players[this.turn].name}`;
@@ -1889,15 +1949,27 @@ export class Game {
 
             const currP = this.players[this.turn];
 
-            // --- BLINDAGEM ANTI-F5 NO MODO OFFLINE ---
+            // --- BLINDAGEM ANTI-F5 (VÓRTICE DE BATALHA) OFFLINE ---
             const type = MapSystem.grid[currP.y][currP.x];
-            if (type === TILE.GYM && !this.pendingTileEvent) {
-                const gymId = MapSystem.gymLocations[`${currP.x},${currP.y}`];
-                if (gymId && !currP.badges[gymId - 1]) {
-                    // --- EXCEÇÃO: IMUNIDADE DE FUGA (FUMAÇA NINJA) ---
-                    if (currP.effects.escapedGym) {
-                        // Imunidade ativa! Deixa ele rolar o dado em paz.
-                    } else {
+            const isGym = type === TILE.GYM;
+            const isNPC = !!NPC_DATA[type];
+            const isWild = [TILE.GRASS, TILE.WATER, TILE.GROUND].includes(type);
+
+            if ((isGym || isNPC || isWild) && !this.pendingTileEvent) {
+                if (isGym) {
+                    const gymId = MapSystem.gymLocations[`${currP.x},${currP.y}`];
+                    if (gymId && !currP.badges[gymId - 1]) {
+                        if (!currP.effects.escapedGym) {
+                            btn.disabled = true;
+                            btn.innerText = "EM BATALHA";
+                            const BattleObj = (window as any).Battle;
+                            if (!BattleObj.active) this.handleTile(currP);
+                            return;
+                        }
+                    }
+                } else {
+                    // NPC ou Selvagem
+                    if (!currP.effects.escapedGym) {
                         btn.disabled = true;
                         btn.innerText = "EM BATALHA";
 
@@ -1913,7 +1985,25 @@ export class Game {
             processTrucoSeis(currP);
             processStartTurnGifts(currP); // <--- AVALIA OS PRESENTES NO MODO OFFLINE
 
-            btn.disabled = false;
+            // --- BLINDAGEM ANTI-F5 (DADO) OFFLINE ---
+            if (currP.effects.lastRollRound === this.round) {
+                btn.disabled = true;
+                btn.innerText = `Resultado: ${currP.effects.lastRollValue}`;
+
+                if (!this.hasRolled && !currP.effects.lastRollMoved) {
+                    this.hasRolled = true;
+                    this.animateDice(currP.effects.lastRollValue || 1, this.turn);
+                }
+
+                const BattleObj = (window as any).Battle;
+                if (currP.effects.lastRollMoved && !this.hasRolled && (!BattleObj || !BattleObj.active)) {
+                    this.hasRolled = true;
+                    this.handleTile(currP);
+                }
+            } else {
+                btn.disabled = false;
+                btn.innerText = "ROLAR";
+            }
         }
     }
 

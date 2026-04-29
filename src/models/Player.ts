@@ -33,6 +33,9 @@ export class Player {
         lureType?: { type: string, count: number };
         playedLegendary?: boolean;
         lastGiftRound?: number;
+        lastRollValue?: number;
+        lastRollRound?: number;
+        lastRollMoved?: boolean;
     } = {};
 
     // --- ESTATÍSTICAS DE JOGO ---
