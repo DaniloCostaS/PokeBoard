@@ -2116,6 +2116,8 @@ export class Cards {
         }
 
         if (consumed) {
+            const offensiveCardIds = ['swap', 'slow', 'rocket', 'curse', 'trade_fail', 'new_leader', 'bag', 'troques', 'michael', 'steal_mega_stone', 'ash_goodbye'];
+
             // Remove da mão
             if (!alreadyRemoved) {
                 const idx = player.cards.findIndex(c => c.id === cardId);
@@ -2131,7 +2133,6 @@ export class Cards {
             // =========================================================================
             //  BLINDAGEM DE STATS DO ATACANTE
             // =========================================================================
-            const offensiveCardIds = ['swap', 'slow', 'rocket', 'curse', 'trade_fail', 'new_leader', 'bag', 'troques', 'michael', 'steal_mega_stone', 'ash_goodbye'];
             if (offensiveCardIds.includes(cardId) && actualTargetId !== null && actualTargetId !== player.id) {
                 if (!player.stats) player.stats = { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
                 player.stats.cardsUsed = (player.stats.cardsUsed || 0) + 1;
@@ -2142,7 +2143,7 @@ export class Cards {
             // =========================================================================
             let targetObjForSync = null;
 
-            if (actualTargetId !== null) {
+            if (actualTargetId !== null && offensiveCardIds.includes(cardId)) {
                 const offensiveTarget = Game.players.find((p: any) => p.id === actualTargetId);
                 if (offensiveTarget && offensiveTarget.id !== player.id) {
                     targetObjForSync = offensiveTarget;
