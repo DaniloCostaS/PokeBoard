@@ -813,10 +813,14 @@ export class Game {
         const canUseMove = isMyTurn && !this.hasRolled;
 
         const rarityFilter = (document.getElementById('board-cards-rarity-filter') as HTMLSelectElement)?.value || 'all';
+        const typeFilter = (document.getElementById('board-cards-type-filter') as HTMLSelectElement)?.value || 'all';
 
         let filteredCards = [...p.cards];
         if (rarityFilter !== 'all') {
             filteredCards = filteredCards.filter(c => c.rarity === rarityFilter);
+        }
+        if (typeFilter !== 'all') {
+            filteredCards = filteredCards.filter(c => c.type === typeFilter);
         }
 
         const typeOrder: Record<string, number> = { 'move': 1, 'battle': 2, 'auto': 3, 'global': 4 };

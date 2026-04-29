@@ -809,6 +809,7 @@ export class Battle {
 
             if (this.isPvP && Network.isOnline) {
                 Network.syncPlayerState();
+                if (this.enemyPlayer) Network.syncSpecificPlayer(this.enemyPlayer.id);
             }
 
             if (this.isPvP) {
@@ -925,6 +926,7 @@ export class Battle {
             });
             if (this.isPvP && this.enemyPlayer) {
                 Network.sendAction('PVP_SYNC_DAMAGE', { targetId: this.enemyPlayer.id, team: this.enemyPlayer.team, gold: this.enemyPlayer.gold });
+                Network.syncSpecificPlayer(this.enemyPlayer.id);
             }
         }
 

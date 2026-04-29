@@ -334,8 +334,9 @@ export class Network {
                     if (pd.team) {
                         const BattleObj = (window as any).Battle;
                         const isMyBattleEcho = (localPlayer.id === this.myPlayerId && BattleObj && BattleObj.active);
+                        const isOpponentInBattle = (BattleObj && BattleObj.active && BattleObj.isPvP && BattleObj.enemyPlayer && BattleObj.enemyPlayer.id === localPlayer.id);
 
-                        if (!isMyBattleEcho) {
+                        if (!isMyBattleEcho && !isOpponentInBattle) {
                             const remoteTeam = Array.isArray(pd.team) ? pd.team : Object.values(pd.team);
 
                             remoteTeam.forEach((remoteMon: any, idx: number) => {
@@ -446,7 +447,7 @@ export class Network {
 
             case 'BATTLE_UPDATE': Battle.updateFromNetwork(action.payload); break;
             case 'BATTLE_END': Battle.end(true); break;
-            case 'LOG': Game.log(action.payload.msg); break;
+            case 'LOG': Game.log(action.payload.msg, action.playerId); break;
             case 'SHOW_ALERT': Game.showGlobalAlert(action.payload.msg, action.payload.playerName, false, action.payload.endsTurn !== false); break;
             case 'CLOSE_ALERT': Game.closeGlobalAlert(); break;
             case 'SYNC_TRAPS': Game.renderTraps(action.payload.traps || []); break;

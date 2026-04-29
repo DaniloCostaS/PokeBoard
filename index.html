@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PokéBoard V87a</title>
+    <title>PokéBoard V87b</title>
     <link rel="stylesheet" href="style.css">
 
     <script type="importmap">
@@ -20,7 +20,7 @@
 <body>
 
     <div id="setup-screen">
-        <h1 class="title-highlight">PokéBoard V87a</h1>
+        <h1 class="title-highlight">PokéBoard V87b</h1>
         <p class="subtitle">Cartas lendárias e mais.</p>
 
         <div id="menu-phase-1">
@@ -378,6 +378,15 @@
                     <option value="Rara">Rara</option>
                     <option value="Épica">Épica</option>
                     <option value="Lendária">Lendária</option>
+                </select>
+                <select id="board-cards-type-filter" class="form-control"
+                    style="background:#2b2d42; color:#fff; border:1px solid #556; border-radius:4px; padding:5px;"
+                    onchange="window.Game.openBoardCards(window.Game.turn)">
+                    <option value="all">Todos os Tipos</option>
+                    <option value="move">Move</option>
+                    <option value="battle">Battle</option>
+                    <option value="auto">Auto</option>
+                    <option value="global">Global</option>
                 </select>
             </div>
             <div id="board-cards-list" class="scroll-list"></div><button class="btn btn-secondary mt-15"
