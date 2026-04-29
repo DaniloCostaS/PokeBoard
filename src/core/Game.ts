@@ -1811,8 +1811,11 @@ export class Game {
                         btn.innerText = `Pulando vez... (${myPlayer.skipTurns})`;
                         myPlayer.isProcessingSkip = true;
 
-                        // Executa imediatamente para garantir que salva no Firebase antes do navegador dormir
+                        // Incrementa turnsLost antes de salvar
                         myPlayer.skipTurns = Math.max(0, myPlayer.skipTurns - 1);
+                        if (!myPlayer.stats) myPlayer.stats = { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
+                        myPlayer.stats.turnsLost = (myPlayer.stats.turnsLost || 0) + 1;
+
                         this.sendGlobalLog(`${myPlayer.name} perdeu a vez! (Restam: ${myPlayer.skipTurns})`);
                         const NetworkObj = (window as any).Network || Network;
                         if (NetworkObj && NetworkObj.isOnline) NetworkObj.syncPlayerState();

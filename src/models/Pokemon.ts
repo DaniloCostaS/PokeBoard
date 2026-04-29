@@ -183,7 +183,7 @@ export class Pokemon {
 
     recalculateStats(resetHp: boolean = false) {
         const shinyBonus = this.isShiny ? 1.20 : 1.0;       
-        const legendaryBonus = this.isLegendary ? 1.10 : 1.0; 
+        const legendaryBonus = this.isLegendary ? 1.20 : 1.0; 
         const megaBonus = this.isMegaEvolution ? 1.20 : 1.0; 
         
         const totalMultiplier = shinyBonus * legendaryBonus * megaBonus;

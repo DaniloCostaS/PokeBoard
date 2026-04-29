@@ -42,8 +42,8 @@ export const CARDS_DB: CardData[] = [
     { id: 'rare_candy', name: "Rare Candy", icon: "🍬", desc: "Suba 1 nível de um pokémon de sua escolha.", type: 'move', rarity: 'Incomum' },
     { id: 'evoluir', name: "Evolução forçada", icon: "🆙", desc: "Evolua um pokémon de sua escolha.", type: 'move', rarity: 'Incomum' },
     { id: 'mega_stone', name: "Mega Pedra", icon: "💎", desc: "Mega evolui seu Pokémon durante a batalha.", type: 'move', rarity: 'Épica' },
-    { id: 'reclaim_mega_stone', name: "Recuperar Mega Pedra", icon: "⛏️", desc: "Remove a Mega Pedra de um dos SEUS Pokémon, e você ganha a carta Mega Pedra de volta no seu inventário.", type: 'move', rarity: 'Incomum' },
-    { id: 'steal_mega_stone', name: "Destruir Mega Pedra", icon: "💥", desc: "Destrói a Mega Pedra equipada em um Pokémon de outro jogador. Ninguém fica com a pedra.", type: 'move', rarity: 'Rara' },
+    { id: 'reclaim_mega_stone', name: "Recuperar Mega Pedra", icon: "⛏️", desc: "Remove a Mega Pedra de um dos SEUS Pokémon, e você ganha a carta Mega Pedra de volta no seu inventário.", type: 'move', rarity: 'Rara' },
+    { id: 'steal_mega_stone', name: "Destruir Mega Pedra", icon: "💥", desc: "Destrói a Mega Pedra equipada em um Pokémon de outro jogador. Ninguém fica com a pedra.", type: 'move', rarity: 'Épica' },
 
     // Cartas de ativação automatica.  
     { id: 'jam', name: "Interferência", icon: "📡", desc: "Anula a carta que um jogador acabou de usar conta você (Ativado automaticamente).", type: 'auto', rarity: 'Rara' },

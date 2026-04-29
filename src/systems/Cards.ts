@@ -25,7 +25,7 @@ export class Cards {
             return alert("Você precisa de pelo menos 2 cartas para realizar um sacrifício.");
         }
 
-        const list = document.getElementById('board-inventory-list')!; 
+        const list = document.getElementById('board-inventory-list')!;
         const modal = document.getElementById('board-inventory-modal') || document.getElementById('board-cards-modal');
 
         // Limpa e prepara título
@@ -81,7 +81,7 @@ export class Cards {
     static async confirmSacrifice() {
         const Game = (window as any).Game;
         const Network = (window as any).Network;
-        const CARDS_DB = (await import('../constants')).CARDS_DB; 
+        const CARDS_DB = (await import('../constants')).CARDS_DB;
         const player = Game.getCurrentPlayer();
 
         // Coleta índices selecionados
@@ -97,19 +97,21 @@ export class Cards {
         indicesToRemove.sort((a, b) => b - a);
 
         // LÓGICA LOCAL (Pré-visualização imediata)
+        const removedIds: string[] = [];
         const removedNames: string[] = [];
         const removedRarities: string[] = [];
 
         // Remove cartas (do maior índice para o menor)
         indicesToRemove.forEach(idx => {
             if (player.cards[idx]) {
+                removedIds.push(player.cards[idx].id);
                 removedNames.push(player.cards[idx].name);
                 removedRarities.push(player.cards[idx].rarity);
                 player.cards.splice(idx, 1);
             }
         });
 
-        const validPool = CARDS_DB.filter((c: any) => c.id !== 'master'); 
+        const validPool = CARDS_DB.filter((c: any) => c.id !== 'master');
 
         let targetRarity: string | undefined = undefined;
         if (removedRarities.length === 2 && removedRarities[0] === 'Épica' && removedRarities[1] === 'Épica') {
@@ -125,7 +127,12 @@ export class Cards {
         }
 
         const possibleCards = validPool.filter((c: any) => c.rarity === targetRarity);
-        const finalPool = possibleCards.length > 0 ? possibleCards : validPool;
+        let finalPool = possibleCards.length > 0 ? possibleCards : validPool;
+
+        // --- NOVO FILTRO: Não permitir vir a mesma carta que foi sacrificada ---
+        const filteredPool = finalPool.filter((c: any) => !removedIds.includes(c.id));
+        if (filteredPool.length > 0) finalPool = filteredPool;
+
         const newCard = finalPool[Math.floor(Math.random() * finalPool.length)];
 
         player.cards.push(newCard);
@@ -198,7 +205,7 @@ export class Cards {
         Game.updateHUD();
         if (Network.isOnline) Network.syncPlayerState();
 
-        return card; 
+        return card;
     }
 
     static showPlayerCards(playerId: number) { const Game = (window as any).Game; Game.openBoardCards(playerId); }
@@ -327,7 +334,7 @@ export class Cards {
         const player = Game.getCurrentPlayer();
         const modal = document.getElementById('pkmn-select-modal')!;
         const list = document.getElementById('pkmn-select-list')!;
-        const { MAPA_MEGAS } = await import('../constants/mapaMegas'); 
+        const { MAPA_MEGAS } = await import('../constants/mapaMegas');
 
         const boardCardsModal = document.getElementById('board-cards-modal');
         if (boardCardsModal) boardCardsModal.style.display = 'none';
@@ -416,7 +423,7 @@ export class Cards {
         const Game = (window as any).Game;
         const currentPlayer = Game.getCurrentPlayer();
 
-        const targets = Game.players.filter((p: any) => 
+        const targets = Game.players.filter((p: any) =>
             p.id !== currentPlayer.id && p.team.some((mon: any) => mon.megaStone)
         );
 
@@ -596,12 +603,12 @@ export class Cards {
             div.innerHTML = `<img src="${sprite}" width="40"><b>${monTemplate.name}</b>`;
             div.onclick = () => {
                 modal.style.display = 'none';
-                
+
                 const PokemonClass = (window as any).Pokemon || Game.players[0].team[0].constructor;
                 const encounterLevel = Math.max(10, Game.getGlobalAverageLevel() + 5);
                 const wildMon = new PokemonClass(monTemplate.id, encounterLevel);
                 wildMon.vinculoSupremo = true;
-                
+
                 const Battle = (window as any).Battle;
                 Battle.setup(Game.getCurrentPlayer(), wildMon, false, "Selvagem", 0, null, false, 0, "", 1);
             };
@@ -861,7 +868,7 @@ export class Cards {
             Battle.activeMon = hisMon;
             Battle.tryTriggerMegaEvolution("reagiu ao novo dono");
         }
-        
+
         if (Battle.opponent === hisMon) {
             Battle.opponent = myMon;
             Battle.tryOpponentMegaEvolution("reagiu ao novo time");
@@ -872,7 +879,7 @@ export class Cards {
 
         Game.updateHUD();
         Battle.updateUI();
-        
+
         const battleCardsModal = document.getElementById('battle-cards-modal');
         if (battleCardsModal) battleCardsModal.style.display = 'none';
 
@@ -897,33 +904,25 @@ export class Cards {
     // =========================================================================================
     //  NOVO SISTEMA DE DEFESA AUTOMÁTICA COM PRIORIDADE
     // =========================================================================================
-    static checkAutoDefense(attacker: Player, target: Player, incomingCardId: string, incomingCardName: string): boolean {
+    static async checkAutoDefense(attacker: Player, target: Player, incomingCardId: string, incomingCardName: string): Promise<boolean> {
         const Game = (window as any).Game;
         const Network = (window as any).Network;
 
         let priorityList: string[] = [];
 
         switch (incomingCardId) {
-            case 'new_leader':
-                priorityList = ['old_leader', 'jam']; 
-                break;
-            case 'bag':
-                priorityList = ['silvertape', 'jam']; 
-                break;
-            case 'troques':
-                priorityList = ['no_troques', 'jam']; 
-                break;
-            default:
-                priorityList = ['jam']; 
-                break;
+            case 'new_leader': priorityList = ['old_leader', 'jam']; break;
+            case 'bag':        priorityList = ['silvertape', 'jam']; break;
+            case 'troques':    priorityList = ['no_troques', 'jam']; break;
+            default:           priorityList = ['jam']; break;
         }
 
         for (const defenseId of priorityList) {
             const defenseCardIndex = target.cards.findIndex((c: any) => c.id === defenseId);
 
             if (defenseCardIndex > -1) {
+                // ---- Mutação local ----
                 target.cards.splice(defenseCardIndex, 1);
-
                 const attackCardIndex = attacker.cards.findIndex((c: any) => c.id === incomingCardId);
                 if (attackCardIndex > -1) attacker.cards.splice(attackCardIndex, 1);
 
@@ -931,9 +930,9 @@ export class Cards {
                 if (boardModal) boardModal.style.display = 'none';
                 Game.updateHUD();
 
+                // ---- Mensagens ----
                 let blockMsg = "";
                 let logMsg = "";
-
                 if (defenseId === 'silvertape') {
                     blockMsg = `🚫 SILVER TAPE!\n\n${target.name} usou uma fita mágica e remendou a bolsa instantaneamente! A carta [${incomingCardName}] falhou.`;
                     logMsg = `🚫 ${target.name} anulou o rasgo na bolsa com Silver Tape!`;
@@ -951,40 +950,54 @@ export class Cards {
                 Game.log(logMsg);
                 Game.showGlobalAlert(blockMsg, attacker.name, true, false);
 
-                // --- ESTATÍSTICAS: registra a defesa pelo nome da carta ---
+                // ---- Estatísticas do defensor ----
                 const defenseNames: Record<string, string> = {
-                    'jam': 'Interferência',
-                    'silvertape': 'Silver Tape',
-                    'no_troques': 'Pokémon Fiel',
-                    'old_leader': 'Líder Velho',
+                    'jam': 'Interferência', 'silvertape': 'Silver Tape',
+                    'no_troques': 'Pokémon Fiel', 'old_leader': 'Líder Velho',
                 };
                 const defenseLabel = defenseNames[defenseId] || defenseId;
                 if (!target.stats) target.stats = { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
                 target.stats.cardsDefended[defenseLabel] = (target.stats.cardsDefended[defenseLabel] || 0) + 1;
 
+                // ---- Sync online: um único update() atômico com todos os dados ----
                 if (Network.isOnline) {
-                    if ((Network as any).syncPlayers) {
-                        (Network as any).syncPlayers([attacker.id, target.id]);
-                    } else {
-                        Network.syncSpecificPlayer(target.id);
-                        Network.syncPlayerState();
+                    try {
+                        const { ref, update, getDatabase } = await import('firebase/database');
+                        const db = getDatabase();
+                        const roomPath = `rooms/${Network.currentRoomId}`;
+
+                        const atomicUpdate: any = {};
+
+                        // Dados do atacante (jogador da vez)
+                        atomicUpdate[`${roomPath}/players/${attacker.id}/cards`] =
+                            attacker.cards && attacker.cards.length > 0 ? attacker.cards : null;
+                        atomicUpdate[`${roomPath}/players/${attacker.id}/effects`] = attacker.effects || {};
+
+                        // Dados do defensor (carta removida + stats atualizadas)
+                        atomicUpdate[`${roomPath}/players/${target.id}/cards`] =
+                            target.cards && target.cards.length > 0 ? target.cards : null;
+                        atomicUpdate[`${roomPath}/players/${target.id}/stats`] = target.stats;
+
+                        await update(ref(db), atomicUpdate);
+                    } catch (e) {
+                        console.error('[checkAutoDefense] Erro ao sincronizar bloqueio:', e);
                     }
 
                     Network.sendAction('SHOW_ALERT', { msg: blockMsg, playerName: attacker.name, endsTurn: false });
-                    Network.sendAction('LOG', { msg: blockMsg });
+                    Network.sendAction('LOG', { msg: logMsg });
                 }
 
-                return true; 
+                return true;
             }
         }
 
-        return false; 
+        return false;
     }
 
     static openTypeSelection(cardId: string) {
         const modal = document.getElementById('type-selection-modal')!;
         const grid = document.getElementById('type-selection-grid')!;
-        
+
         const typeColors: { [key: string]: string } = {
             'Normal': '#A8A878', 'Fogo': '#F08030', 'Água': '#6890F0', 'Elétrico': '#F8D030',
             'Grama': '#78C850', 'Gelo': '#98D8D8', 'Lutador': '#C03028', 'Veneno': '#A040A0',
@@ -1039,7 +1052,10 @@ export class Cards {
             return alert("Esta carta não pode ser ativada manualmente. Ela protege você automaticamente quando for alvo de outra carta!");
         }
 
-        const offensiveCards = ['swap', 'slow', 'rocket', 'curse', 'trade_fail', 'new_leader', 'bag', 'troques', 'michael', 'steal_mega_stone'];
+        // Normalização do TargetId (pode vir como número ou objeto {targetId, pokemonIndex})
+        const actualTargetId = (typeof targetId === 'object' && targetId !== null) ? targetId.targetId : targetId;
+
+        const offensiveCards = ['swap', 'slow', 'rocket', 'curse', 'trade_fail', 'new_leader', 'bag', 'troques', 'michael', 'steal_mega_stone', 'ash_goodbye'];
 
         if (offensiveCards.includes(cardId)) {
             if (!player.effects) player.effects = {};
@@ -1049,16 +1065,27 @@ export class Cards {
             }
         }
 
-        if (offensiveCards.includes(cardId) && targetId !== null && targetId !== player.id) {
-            const targetP = Game.players.find((p: any) => p.id === targetId);
+        if (offensiveCards.includes(cardId) && actualTargetId !== null && actualTargetId !== player.id) {
+            const targetP = Game.players.find((p: any) => p.id === actualTargetId);
 
             if (targetP) {
-                const wasBlocked = this.checkAutoDefense(player, targetP, cardId, cardData.name);
+                // checkAutoDefense agora é async e já faz o update atômico no Firebase
+                const wasBlocked = await this.checkAutoDefense(player, targetP, cardId, cardData.name);
 
                 if (wasBlocked) {
-                    player.effects.offensiveCardsUsed = (player.effects.offensiveCardsUsed || 0) + 1; 
-                    if (Network.isOnline) Network.syncPlayerState();
-                    return; 
+                    // Incrementa offensiveCardsUsed e sincroniza o atacante
+                    player.effects.offensiveCardsUsed = (player.effects.offensiveCardsUsed || 0) + 1;
+                    if (Network.isOnline) {
+                        try {
+                            const { ref, update, getDatabase } = await import('firebase/database');
+                            const db = getDatabase();
+                            await update(ref(db, `rooms/${Network.currentRoomId}/players/${player.id}`), {
+                                effects: player.effects,
+                                cards: player.cards && player.cards.length > 0 ? player.cards : null,
+                            });
+                        } catch (e) { console.error('[activate/blocked] Erro ao sincronizar atacante:', e); }
+                    }
+                    return;
                 }
 
                 player.effects.offensiveCardsUsed = (player.effects.offensiveCardsUsed || 0) + 1;
@@ -1070,8 +1097,7 @@ export class Cards {
                 alert("Você já utilizou uma carta Lendária nesta partida. Apenas um milagre por jogo é permitido!");
                 return;
             }
-            if (!player.effects) player.effects = {};
-            player.effects.playedLegendary = true;
+            // Não marca playedLegendary aqui — só será marcado após a carta ser consumida com sucesso
         }
 
         let consumed = true;
@@ -1149,7 +1175,13 @@ export class Cards {
                     if (target) {
                         target.effects.slow = 3;
                         effectLog = `🕸️ ${target.name} não consegue correr! Está lento por 3 turnos.`;
-                        if (Network.isOnline) Network.syncSpecificPlayer(target.id);
+                        // Só atualiza os effects do alvo, sem sobrescrever stats (que ainda não foram incrementados)
+                        if (Network.isOnline) {
+                            import('firebase/database').then(({ ref, update: fbUpd, getDatabase }) => {
+                                const db = getDatabase();
+                                fbUpd(ref(db, `rooms/${Network.currentRoomId}/players/${target.id}/effects`), target.effects);
+                            });
+                        }
                     }
                 } else { this.openTargetSelection(cardId); consumed = false; }
                 break;
@@ -1193,8 +1225,12 @@ export class Cards {
                     target.effects.curse = true;
                     effectLog = `😈 MALDIÇÃO! ${target.name} causará apenas METADE do dano e não poderá usar itens na sua próxima luta de Ginásio!`;
 
+                    // Só atualiza os effects do alvo
                     if (Network.isOnline) {
-                        Network.syncSpecificPlayer(target.id);
+                        import('firebase/database').then(({ ref, update: fbUpd, getDatabase }) => {
+                            const db = getDatabase();
+                            fbUpd(ref(db, `rooms/${Network.currentRoomId}/players/${target.id}/effects`), target.effects);
+                        });
                     }
                 } else {
                     this.openTargetSelection(cardId);
@@ -1205,7 +1241,7 @@ export class Cards {
             case 'holy_water':
                 if (!player.effects.curse) {
                     alert("Você não está amaldiçoado! Guarde a Água Benta para quando precisar.");
-                    return; 
+                    return;
                 }
 
                 player.effects.curse = false;
@@ -1220,12 +1256,19 @@ export class Cards {
                     const target = Game.players.find((p: any) => p.id === targetId);
                     if (target) {
                         target.skipTurns += 3;
-                        if (!target.stats) target.stats = { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, turnsLost: 0 };
-                        target.stats.turnsLost += 3;
-                        target.stats.cardsSuffered++;
-                        target.stats.effectsReceived['Trade Fail'] = (target.stats.effectsReceived['Trade Fail'] || 0) + 1;
                         effectLog = `❌ Sabotagem feita com sucesso! A troca falhou terrivelmente e ${target.name} perde as próximas 3 rodadas!`;
-                        if (Network.isOnline) Network.syncSpecificPlayer(target.id);
+                        // turnsLost será gravado no bloco de stats geral ao final
+                        (target as any)._pendingTurnsLost = ((target as any)._pendingTurnsLost || 0) + 3;
+
+                        if (Network.isOnline) {
+                            try {
+                                const { ref, update: fbUpdate, getDatabase } = await import('firebase/database');
+                                const db = getDatabase();
+                                await fbUpdate(ref(db, `rooms/${Network.currentRoomId}/players/${target.id}`), {
+                                    skipTurns: target.skipTurns,
+                                });
+                            } catch(e) { console.error('[trade_fail] sync:', e); }
+                        }
                     }
                 } else {
                     this.openTargetSelection(cardId);
@@ -1238,25 +1281,25 @@ export class Cards {
                     const target = Game.players.find((p: any) => p.id === targetId);
                     if (target) {
                         this.startTradeFlow(player, target);
-                        consumed = false; 
+                        consumed = false;
                     }
                 } else {
                     this.openTargetSelection(cardId);
                     consumed = false;
                 }
                 break;
-                
+
             case 'illegal_adoption':
                 if (!Battle.active || Battle.isPvP || Battle.isGym || Battle.isChampion) {
                     alert("Esta carta so pode ser usada em batalhas contra NPCs comuns ou Pokemons Selvagens!");
                     consumed = false;
                     break;
                 }
-                
+
                 document.getElementById('battle-cards-modal')!.style.display = 'none';
 
                 this.startNPCBattleTradeFlow(player);
-                consumed = false; 
+                consumed = false;
                 break;
 
             case 'adotar_lixeira':
@@ -1315,7 +1358,7 @@ export class Cards {
                 break;
 
             case 'crit':
-                Battle.activeEffects.crit = 3; 
+                Battle.activeEffects.crit = 3;
                 Battle.logBattle("💥 Super Crítico! Seus próximos 3 acertos causarão dobro de dano.");
                 break;
 
@@ -1342,7 +1385,7 @@ export class Cards {
                 break;
 
             case 'run':
-                player.effects.escapedGym = true; 
+                player.effects.escapedGym = true;
                 Battle.logBattle("💨 Fugiu com estilo!");
                 if (Network.isOnline) Network.syncPlayerState();
                 Battle.end(false);
@@ -1358,7 +1401,7 @@ export class Cards {
                 const PokemonClass = (window as any).Pokemon || Game.players[0].team[0].constructor;
                 const mew = new PokemonClass(150, Battle.activeMon.level, false);
                 mew.name = "MewTwo (Aliado)";
-                mew.heal(9999); 
+                mew.heal(9999);
                 (mew as any).isTemp = true;
 
                 const originalIndex = player.team.indexOf(Battle.activeMon);
@@ -1421,7 +1464,7 @@ export class Cards {
                     if (!targetMon || !targetMon.megaStone) { consumed = false; break; }
 
                     targetMon.megaStone = false;
-                    
+
                     const megaStoneCardData = CARDS_DB.find((c: any) => c.id === 'mega_stone');
                     if (megaStoneCardData) {
                         player.cards.push(megaStoneCardData);
@@ -1483,7 +1526,7 @@ export class Cards {
 
                     targetMon.vinculoSupremo = true;
                     effectLog = `🤝 VÍNCULO SUPREMO! ${targetMon.name} prometeu nunca abandonar ${player.name}, custe o que custar!`;
-                    
+
                     const boardModal = document.getElementById('board-cards-modal');
                     if (boardModal) boardModal.style.display = 'none';
 
@@ -1538,14 +1581,38 @@ export class Cards {
                 Game.players.forEach((p: any) => {
                     if (p.id !== player.id) {
                         p.skipTurns += 20;
-                        if (!p.stats) p.stats = { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, turnsLost: 0 };
-                        p.stats.turnsLost += 20;
-                        p.stats.cardsSuffered++;
-                        p.stats.effectsReceived['Tremembé'] = (p.stats.effectsReceived['Tremembé'] || 0) + 1;
-                        if (Network.isOnline) Network.syncSpecificPlayer(p.id);
                     }
                 });
                 effectLog = `⛓️ DECRETO DA PRISÃO DE TREMEMBÉ! Todos os outros jogadores ficarão enjaulados por 20 rodadas!`;
+
+                if (Network.isOnline) {
+                    try {
+                        const { ref, update: fbUpdate, getDatabase } = await import('firebase/database');
+                        const db = getDatabase();
+                        const roomPath = `rooms/${Network.currentRoomId}`;
+                        const atomicUpd: any = {};
+                        Game.players.forEach((p: any) => {
+                            if (p.id !== player.id) {
+                                if (!p.stats) p.stats = { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
+                                p.stats.turnsLost = (p.stats.turnsLost || 0) + 20;
+                                p.stats.cardsSuffered = (p.stats.cardsSuffered || 0) + 1;
+                                p.stats.effectsReceived['Tremembé'] = (p.stats.effectsReceived['Tremembé'] || 0) + 1;
+                                atomicUpd[`${roomPath}/players/${p.id}/skipTurns`] = p.skipTurns;
+                                atomicUpd[`${roomPath}/players/${p.id}/stats`] = p.stats;
+                            }
+                        });
+                        await fbUpdate(ref(db), atomicUpd);
+                    } catch(e) { console.error('[tremembe] sync:', e); }
+                } else {
+                    Game.players.forEach((p: any) => {
+                        if (p.id !== player.id) {
+                            if (!p.stats) p.stats = { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
+                            p.stats.turnsLost = (p.stats.turnsLost || 0) + 20;
+                            p.stats.cardsSuffered = (p.stats.cardsSuffered || 0) + 1;
+                            p.stats.effectsReceived['Tremembé'] = (p.stats.effectsReceived['Tremembé'] || 0) + 1;
+                        }
+                    });
+                }
                 break;
 
             case 'se_rj':
@@ -1572,12 +1639,12 @@ export class Cards {
             case 'legendary_encounter':
                 const _POKEDEX = (await import('../constants/pokedex')).POKEDEX;
                 const legendaries = _POKEDEX.filter((p: any) => p.isLegendary);
-                
+
                 const shuffled = legendaries.sort(() => 0.5 - Math.random());
                 const selectedThree = shuffled.slice(0, 3);
-                
+
                 this.openLegendaryEncounterSelection(selectedThree);
-                
+
                 effectLog = `🦅 ${player.name} tocou a Flauta do Tempo e atraiu a presença de três divindades!`;
                 break;
 
@@ -1601,9 +1668,9 @@ export class Cards {
                     targetMon.isShiny = true;
                     targetMon.vinculoSupremo = true;
                     targetMon.recalculateStats(true);
-                    
+
                     effectLog = `🌟 UMA LUZ OFUSCANTE! O ${targetMon.name} lendário de ${player.name} absorveu a energia, se tornou SHINY e ganhou Vínculo Supremo!`;
-                    
+
                     const boardModal = document.getElementById('board-cards-modal');
                     if (boardModal) boardModal.style.display = 'none';
 
@@ -1710,7 +1777,7 @@ export class Cards {
                             if (pData.cards && Array.isArray(pData.cards)) {
                                 let cardsToAdd: any[] = [];
                                 let legendaryCards: any[] = [];
-                                
+
                                 pData.cards.forEach((c: any) => {
                                     if (parseInt(id) === player.id && c.id === cardId) {
                                     } else if (c.rarity === 'Lendária') {
@@ -1719,10 +1786,10 @@ export class Cards {
                                         cardsToAdd.push(c);
                                     }
                                 });
-                                
+
                                 // Guarda os lendários separados para devolver depois
                                 pData._legendaries = legendaryCards;
-                                
+
                                 allCardsPool = [...allCardsPool, ...cardsToAdd];
                             }
                         });
@@ -1887,7 +1954,7 @@ export class Cards {
                             others.splice(Math.floor(Math.random() * others.length), 1);
                             totalOfflineC++;
                         }
-                        
+
                         p.cards = [...legendaries, ...others];
 
                         Object.keys(p.items).forEach(k => {
@@ -2022,22 +2089,48 @@ export class Cards {
                 if (idx > -1) player.cards.splice(idx, 1);
             }
 
+            // --- Marca carta lendária como usada só quando for consumida com sucesso ---
+            if (cardData.rarity === 'Lendária') {
+                if (!player.effects) player.effects = {};
+                player.effects.playedLegendary = true;
+            }
+
             // --- ESTATÍSTICAS: apenas cartas ofensivas contra outros contam ---
-            const offensiveCardIds = ['swap', 'slow', 'rocket', 'curse', 'trade_fail', 'new_leader', 'bag', 'troques', 'michael', 'steal_mega_stone', 'ash_goodbye', 'se_rj', 'tremembe', 'cassino', 'imposto', 'communism', 'katrina'];
+            const offensiveCardIds = ['swap', 'slow', 'rocket', 'curse', 'trade_fail', 'new_leader', 'bag', 'troques', 'michael', 'steal_mega_stone', 'ash_goodbye'];
             if (offensiveCardIds.includes(cardId) && targetId !== player.id) {
                 if (!player.stats) player.stats = { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
                 player.stats.cardsUsed++;
             }
 
-            // --- ESTATÍSTICAS: efeitos sofridos pelo alvo ---
-            if (targetId !== null) {
-                const offensiveTarget = Game.players.find((p: any) => p.id === targetId);
+            // --- ESTATÍSTICAS: efeitos sofridos pelo alvo (inclui turnosLost de casos específicos) ---
+            if (actualTargetId !== null) {
+                const offensiveTarget = Game.players.find((p: any) => p.id === actualTargetId);
                 if (offensiveTarget && offensiveTarget.id !== player.id) {
                     if (!offensiveTarget.stats) offensiveTarget.stats = { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
-                    offensiveTarget.stats.cardsSuffered++;
-                    // Registra o efeito pelo nome da carta
+                    offensiveTarget.stats.cardsSuffered = (offensiveTarget.stats.cardsSuffered || 0) + 1;
                     const effectKey = cardData.name;
                     offensiveTarget.stats.effectsReceived[effectKey] = (offensiveTarget.stats.effectsReceived[effectKey] || 0) + 1;
+
+                    // Captura turnosLost marcados pelo case (ex: trade_fail)
+                    const pendingTurns = (offensiveTarget as any)._pendingTurnsLost || 0;
+                    if (pendingTurns > 0) {
+                        offensiveTarget.stats.turnsLost = (offensiveTarget.stats.turnsLost || 0) + pendingTurns;
+                        delete (offensiveTarget as any)._pendingTurnsLost;
+                    }
+
+                    // Update atômico: stats + effects do alvo em um único write
+                    if (Network.isOnline) {
+                        import('firebase/database').then(({ ref, update: fbUpd, getDatabase }) => {
+                            const db = getDatabase();
+                            const statsUpd: any = {};
+                            statsUpd[`rooms/${Network.currentRoomId}/players/${offensiveTarget.id}/stats`] = offensiveTarget.stats;
+                            statsUpd[`rooms/${Network.currentRoomId}/players/${offensiveTarget.id}/effects`] = offensiveTarget.effects || {};
+                            if (pendingTurns > 0) {
+                                statsUpd[`rooms/${Network.currentRoomId}/players/${offensiveTarget.id}/skipTurns`] = offensiveTarget.skipTurns;
+                            }
+                            fbUpd(ref(db), statsUpd).catch(e => console.error('[activate/stats]', e));
+                        });
+                    }
                 }
             }
 
@@ -2046,8 +2139,8 @@ export class Cards {
             document.getElementById('battle-cards-modal')!.style.display = 'none';
 
             let targetName = "";
-            if (targetId !== null) {
-                const targetObj = Game.players.find((p: any) => p.id === targetId);
+            if (actualTargetId !== null) {
+                const targetObj = Game.players.find((p: any) => p.id === actualTargetId);
                 if (targetObj) targetName = targetObj.name;
             } else if (cardData.type === 'battle' && Battle.isPvP && Battle.enemyPlayer) {
                 targetName = Battle.enemyPlayer.name;
