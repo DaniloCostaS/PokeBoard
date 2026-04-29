@@ -1083,6 +1083,9 @@ export class Cards {
         const Game = (window as any).Game;
         const Network = (window as any).Network;
 
+        // "O Adeus de Ash" é uma carta lendária sem defesa (nem interferência bloqueia)
+        if (incomingCardId === 'ash_goodbye') return false;
+
         let priorityList: string[] = [];
 
         switch (incomingCardId) {

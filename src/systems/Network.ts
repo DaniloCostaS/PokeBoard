@@ -6,6 +6,7 @@ import { Pokemon } from '../models/Pokemon';
 import { MapSystem } from './MapSystem';
 import { Setup } from '../core/Setup';
 import { Battle } from './Battle';
+import { GLOBAL_EVENTS } from '../constants/globalEvents';
 
 let app;
 export let db: Database;
@@ -269,6 +270,16 @@ export class Network {
                 Game.updateHUD();
                 Game.checkTurnControl();
             }
+        });
+        
+        onValue(ref(db, `rooms/${this.currentRoomId}/currentEventId`), (snapshot) => {
+            const evId = snapshot.val();
+            Game.currentGlobalEvent = GLOBAL_EVENTS.find((e: any) => e.id === evId) || null;
+            Game.updateHUD();
+        });
+
+        onValue(ref(db, `rooms/${this.currentRoomId}/eventEndRound`), (snapshot) => {
+            Game.eventEndRound = snapshot.val() || 0;
         });
 
         onValue(ref(db, `rooms/${this.currentRoomId}/battleActive`), (snapshot) => {

@@ -755,12 +755,20 @@ export class Game {
         const list = document.getElementById('board-cards-list')!;
         list.innerHTML = '';
 
-        // --- NOVA EXIBIÇÃO EM GRID PARA AS IMAGENS DAS CARTAS ---
-        list.style.display = 'grid';
-        // Usamos auto-fill com um tamanho mínimo maior para as imagens crescerem
-        list.style.gridTemplateColumns = 'repeat(auto-fill, minmax(180px, 1fr))';
-        list.style.gap = '25px';
-        list.style.padding = '20px';
+        const isMobile = window.innerWidth <= 1000;
+
+        // --- EXIBIÇÃO EM GRID OU LISTA (MOBILE) ---
+        if (isMobile) {
+            list.style.display = 'flex';
+            list.style.flexDirection = 'column';
+            list.style.gap = '10px';
+            list.style.padding = '10px';
+        } else {
+            list.style.display = 'grid';
+            list.style.gridTemplateColumns = 'repeat(auto-fill, minmax(180px, 1fr))';
+            list.style.gap = '25px';
+            list.style.padding = '20px';
+        }
         list.style.width = '100%';
         // --------------------------------------------------------
 
@@ -769,12 +777,12 @@ export class Game {
         // Botão de sacrifício
         if (isMe && p.cards.length >= 2) {
             const btnRow = document.createElement('div');
-            btnRow.style.cssText = "grid-column: 1 / -1; display: flex; gap: 10px; margin-bottom: 10px;";
-            
+            btnRow.style.cssText = isMobile ? "display: flex; gap: 10px; margin-bottom: 10px; width:100%;" : "grid-column: 1 / -1; display: flex; gap: 10px; margin-bottom: 10px;";
+
             const sacBtn = document.createElement('button');
             sacBtn.className = 'btn btn-sacrifice';
             sacBtn.style.flex = '1';
-            sacBtn.innerHTML = `<span>🔥 SACRIFICAR (2 ➡ Random)</span>`;
+            sacBtn.innerHTML = isMobile ? `<span>🔥 SACRIFICAR</span>` : `<span>🔥 SACRIFICAR (2 ➡ Random)</span>`;
             sacBtn.onclick = () => {
                 document.getElementById('board-cards-modal')!.style.display = 'none';
                 (window as any).Cards.openSacrificeModal();
@@ -785,11 +793,12 @@ export class Game {
                 const mergeBtn = document.createElement('button');
                 mergeBtn.className = 'btn btn-merge';
                 mergeBtn.style.flex = '1';
-                mergeBtn.innerHTML = `<span>💎 FUNDIR (3 ➡ Raridade +1)</span>`;
+                mergeBtn.innerHTML = isMobile ? `<span>💎 FUNDIR</span>` : `<span>💎 FUNDIR (3 ➡ Raridade +1)</span>`;
                 mergeBtn.onclick = () => {
                     document.getElementById('board-cards-modal')!.style.display = 'none';
                     (window as any).Cards.openMergeModal();
                 };
+                mergeBtn.appendChild(document.createTextNode('')); // placeholder fix
                 btnRow.appendChild(mergeBtn);
             }
 
@@ -797,7 +806,7 @@ export class Game {
         }
 
         if (p.cards.length === 0) {
-            if (list.innerHTML === '') list.innerHTML = "<em style='grid-column: 1/-1;'>Sem cartas.</em>";
+            if (list.innerHTML === '') list.innerHTML = `<em style="${isMobile ? '' : 'grid-column: 1/-1;'}">Sem cartas.</em>`;
         }
 
         const isMyTurn = this.canAct() && this.turn === pId;
@@ -824,29 +833,46 @@ export class Game {
             const borderColor = rData ? rData.color : '#8d99ae';
 
             const d = document.createElement('div');
-            d.style.cssText = "display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); width: 100%; box-sizing: border-box; position: relative;";
 
+            const btnBaseStyle = "width:100%; padding:8px; border:none; border-radius:4px; color:white; font-weight:bold; cursor:pointer;";
             let actionBtn = '';
+
             if (c.type === 'move') {
-                if (canUseMove) actionBtn = `<button class="btn" style="width:100%; margin-top:8px; padding:8px; background:#2ecc71; border:none; border-radius:4px; color:white; font-weight:bold; cursor:pointer;" onclick="window.Cards.activate('${c.id}')">USAR</button>`;
-                else actionBtn = `<button class="btn" disabled style="width:100%; margin-top:8px; padding:8px; background:#7f8c8d; border:none; border-radius:4px; color:white; font-weight:bold; cursor:not-allowed;" title="Só pode usar antes de rolar o dado">USAR</button>`;
+                if (canUseMove) actionBtn = `<button class="btn" style="${btnBaseStyle} background:#2ecc71;" onclick="window.Cards.activate('${c.id}')">USAR</button>`;
+                else actionBtn = `<button class="btn" disabled style="${btnBaseStyle} background:#7f8c8d; cursor:not-allowed;" title="Só pode usar antes de rolar o dado">USAR</button>`;
             } else if (c.type === 'global') {
-                if (canUseMove) actionBtn = `<button class="btn" style="width:100%; margin-top:8px; padding:8px; background:#e74c3c; border:none; border-radius:4px; color:white; font-weight:bold; cursor:pointer;" title="Afeta o mundo todo!" onclick="window.Cards.activate('${c.id}')">GLOBAL</button>`;
-                else actionBtn = `<button class="btn" disabled style="width:100%; margin-top:8px; padding:8px; background:#7f8c8d; border:none; border-radius:4px; color:white; font-weight:bold; cursor:not-allowed;" title="Só pode usar antes de rolar o dado no seu turno">GLOBAL</button>`;
+                if (canUseMove) actionBtn = `<button class="btn" style="${btnBaseStyle} background:#e74c3c;" title="Afeta o mundo todo!" onclick="window.Cards.activate('${c.id}')">GLOBAL</button>`;
+                else actionBtn = `<button class="btn" disabled style="${btnBaseStyle} background:#7f8c8d; cursor:not-allowed;" title="Só pode usar antes de rolar o dado no seu turno">GLOBAL</button>`;
             } else if (c.type === 'auto') {
-                actionBtn = `<button class="btn" disabled style="width:100%; margin-top:8px; padding:8px; background:#8e44ad; border:none; border-radius:4px; color:white; font-weight:bold; cursor:not-allowed;" title="Esta carta ativa automaticamente">AUTO</button>`;
+                actionBtn = `<button class="btn" disabled style="${btnBaseStyle} background:#8e44ad; cursor:not-allowed;" title="Esta carta ativa automaticamente">AUTO</button>`;
             } else {
-                actionBtn = `<button class="btn" disabled style="width:100%; margin-top:8px; padding:8px; background:#555; border:none; border-radius:4px; color:white; font-weight:bold; cursor:not-allowed;" title="Esta carta só pode ser usada em Batalha">BATTLE</button>`;
+                actionBtn = `<button class="btn" disabled style="${btnBaseStyle} background:#555; cursor:not-allowed;" title="Esta carta só pode ser usada em Batalha">BATTLE</button>`;
             }
 
-            // O caminho da imagem (.jpg) - Coloquei um title para a pessoa poder ler a descrição da carta se deixar o mouse em cima
-            d.innerHTML = `
-                <div style="position: absolute; top: -5px; right: -5px; background: ${borderColor}; color: #fff; padding: 2px 6px; font-size: 0.7rem; border-radius: 10px; font-weight: bold; border: 1px solid #222; text-shadow: 1px 1px 0 #000; box-shadow: 0 2px 4px rgba(0,0,0,0.5); z-index: 10;">
-                    ${c.rarity.toUpperCase()}
-                </div>
-                <img src="/assets/img/Cartas/${c.id}.jpg" alt="${c.name}" title="${c.desc}" style="width: 100%; aspect-ratio: 2.5/3.5; object-fit: fill; border-radius: 6px; border: 3px solid ${borderColor};">
-                ${actionBtn}
-            `;
+            if (isMobile) {
+                // Layout de Lista para Mobile (Sem imagem)
+                d.style.cssText = `display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; border-left: 5px solid ${borderColor}; width: 100%; box-sizing: border-box; margin-bottom: 2px;`;
+                d.innerHTML = `
+                    <div style="text-align: left; flex: 1; padding-right: 10px;">
+                        <div style="font-weight: bold; color: #fff; font-size: 0.9rem;">${c.icon} ${c.name}</div>
+                        <div style="font-size: 0.7rem; color: ${borderColor}; font-weight: bold;">${c.rarity.toUpperCase()} | ${c.type.toUpperCase()}</div>
+                        <div style="font-size: 0.75rem; color: #ccc; margin-top: 3px; line-height: 1.2;">${c.desc}</div>
+                    </div>
+                    <div style="width: 80px; flex-shrink: 0;">
+                        ${actionBtn}
+                    </div>
+                `;
+            } else {
+                // Layout de Grid para Desktop (Com imagem)
+                d.style.cssText = "display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); width: 100%; box-sizing: border-box; position: relative;";
+                d.innerHTML = `
+                    <div style="position: absolute; top: -5px; right: -5px; background: ${borderColor}; color: #fff; padding: 2px 6px; font-size: 0.7rem; border-radius: 10px; font-weight: bold; border: 1px solid #222; text-shadow: 1px 1px 0 #000; box-shadow: 0 2px 4px rgba(0,0,0,0.5); z-index: 10;">
+                        ${c.rarity.toUpperCase()}
+                    </div>
+                    <img src="/assets/img/Cartas/${c.id}.jpg" alt="${c.name}" title="${c.desc}" style="width: 100%; aspect-ratio: 2.5/3.5; object-fit: fill; border-radius: 6px; border: 3px solid ${borderColor};">
+                    <div style="margin-top: 8px; width: 100%;">${actionBtn}</div>
+                `;
+            }
             list.appendChild(d);
         });
 
@@ -2042,15 +2068,15 @@ export class Game {
     }
 
     static useItemBoard(key: string, pId: number) { const p = this.players[pId]; const item = SHOP_ITEMS.find(i => i.id === key); if (!item || p.items[key] <= 0) return; if (item.type === 'heal' || item.type === 'revive' || item.type === 'boost' || item.type === 'mega') { if (item.id === 'ultrafullrestore' || item.id === 'ultramaxrevive') { this.applyBoardItemEffect(p, item, -1); return; } this.openItemTargetSelector(pId, key); } }
-    static async openItemTargetSelector(pId: number, itemKey: string) { 
-        this.pendingHealItem = itemKey; 
-        const p = this.players[pId]; 
+    static async openItemTargetSelector(pId: number, itemKey: string) {
+        this.pendingHealItem = itemKey;
+        const p = this.players[pId];
         const item = SHOP_ITEMS.find(i => i.id === itemKey)!;
-        const modal = document.getElementById('pkmn-select-modal')!; 
-        const list = document.getElementById('pkmn-select-list')!; 
-        const title = document.getElementById('select-title')!; 
-        title.innerText = item.type === 'mega' ? "Escolha quem vai segurar a Mega Pedra:" : "Usar em qual Pokémon?"; 
-        list.innerHTML = ''; 
+        const modal = document.getElementById('pkmn-select-modal')!;
+        const list = document.getElementById('pkmn-select-list')!;
+        const title = document.getElementById('select-title')!;
+        title.innerText = item.type === 'mega' ? "Escolha quem vai segurar a Mega Pedra:" : "Usar em qual Pokémon?";
+        list.innerHTML = '';
 
         let MAPA_MEGAS: any = null;
         if (item.type === 'mega') {
@@ -2058,9 +2084,9 @@ export class Game {
             MAPA_MEGAS = module.MAPA_MEGAS;
         }
 
-        p.team.forEach((mon, idx) => { 
-            const div = document.createElement('div'); 
-            
+        p.team.forEach((mon, idx) => {
+            const div = document.createElement('div');
+
             if (item.type === 'mega') {
                 const canMega = !!MAPA_MEGAS[mon.id];
                 if (canMega) {
@@ -2077,39 +2103,39 @@ export class Game {
                     div.innerHTML = `<img src="${mon.getSprite()}" width="40" style="filter: grayscale(100%); opacity:0.6;"><b>${mon.name}</b><br><small style="color:#e74c3c">❌ Incompatível</small>`;
                 }
             } else {
-                div.className = `mon-select-item`; 
-                div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>(${mon.currentHp}/${mon.maxHp})</small>`; 
-                div.onclick = () => { modal.style.display = 'none'; this.applyBoardItemEffect(p, item, idx); }; 
+                div.className = `mon-select-item`;
+                div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>(${mon.currentHp}/${mon.maxHp})</small>`;
+                div.onclick = () => { modal.style.display = 'none'; this.applyBoardItemEffect(p, item, idx); };
             }
-            list.appendChild(div); 
-        }); 
+            list.appendChild(div);
+        });
 
-        const cancelBtn = document.createElement('button'); 
-        cancelBtn.className = "btn btn-secondary mt-15"; 
-        cancelBtn.innerText = "Cancelar"; 
-        cancelBtn.onclick = () => { modal.style.display = 'none'; this.pendingHealItem = null; }; 
-        list.appendChild(cancelBtn); 
-        modal.style.display = 'flex'; 
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = "btn btn-secondary mt-15";
+        cancelBtn.innerText = "Cancelar";
+        cancelBtn.onclick = () => { modal.style.display = 'none'; this.pendingHealItem = null; };
+        list.appendChild(cancelBtn);
+        modal.style.display = 'flex';
     }
-    static async applyBoardItemEffect(p: Player, item: ItemData, targetIdx: number) { 
-        let used = false; 
-        if (item.type === 'heal') { 
-            if (item.id === 'ultrafullrestore') { 
-                let count = 0; p.team.forEach(m => { if (!m.isFainted() && m.currentHp < m.maxHp) { m.heal(9999); count++; } }); 
-                if (count > 0) { used = true; alert(`${count} Pokémon curados!`); } else alert("Ninguém precisa de cura!"); 
-            } else { 
-                const target = p.team[targetIdx]; if (target.isFainted()) return alert("Não funciona em Pokémon desmaiado!"); 
-                if (target.currentHp >= target.maxHp) return alert("HP já está cheio!"); target.heal(item.val || 20); 
-                alert(`Usou ${item.name} em ${target.name}.`); used = true; 
-            } 
-        } else if (item.type === 'revive') { 
-            if (item.id === 'ultramaxrevive') { 
-                let count = 0; p.team.forEach(m => { if (m.isFainted()) { m.revive(100); count++; } }); 
-                if (count > 0) { used = true; alert(`${count} Pokémon revividos!`); } else alert("Ninguém está desmaiado!"); 
-            } else { 
-                const target = p.team[targetIdx]; if (!target.isFainted()) return alert("Este Pokémon não está desmaiado!"); 
-                target.revive(item.val || 50); alert(`Usou ${item.name} em ${target.name}.`); used = true; 
-            } 
+    static async applyBoardItemEffect(p: Player, item: ItemData, targetIdx: number) {
+        let used = false;
+        if (item.type === 'heal') {
+            if (item.id === 'ultrafullrestore') {
+                let count = 0; p.team.forEach(m => { if (!m.isFainted() && m.currentHp < m.maxHp) { m.heal(9999); count++; } });
+                if (count > 0) { used = true; alert(`${count} Pokémon curados!`); } else alert("Ninguém precisa de cura!");
+            } else {
+                const target = p.team[targetIdx]; if (target.isFainted()) return alert("Não funciona em Pokémon desmaiado!");
+                if (target.currentHp >= target.maxHp) return alert("HP já está cheio!"); target.heal(item.val || 20);
+                alert(`Usou ${item.name} em ${target.name}.`); used = true;
+            }
+        } else if (item.type === 'revive') {
+            if (item.id === 'ultramaxrevive') {
+                let count = 0; p.team.forEach(m => { if (m.isFainted()) { m.revive(100); count++; } });
+                if (count > 0) { used = true; alert(`${count} Pokémon revividos!`); } else alert("Ninguém está desmaiado!");
+            } else {
+                const target = p.team[targetIdx]; if (!target.isFainted()) return alert("Este Pokémon não está desmaiado!");
+                target.revive(item.val || 50); alert(`Usou ${item.name} em ${target.name}.`); used = true;
+            }
         } else if (item.type === 'boost') {
             const target = p.team[targetIdx];
             if (target) {
@@ -2141,11 +2167,11 @@ export class Game {
                 used = true;
             }
         }
-        
-        if (used) { 
-            p.items[item.id]--; this.updateHUD(); this.openInventoryModal(p.id); this.saveGame(); 
-            if (Network.isOnline) { Network.sendAction('LOG', { msg: `${p.name} usou ${item.name}.` }); Network.syncPlayerState(); } 
-        } 
+
+        if (used) {
+            p.items[item.id]--; this.updateHUD(); this.openInventoryModal(p.id); this.saveGame();
+            if (Network.isOnline) { Network.sendAction('LOG', { msg: `${p.name} usou ${item.name}.` }); Network.syncPlayerState(); }
+        }
     }
 
     static openSwapModal(newMon: Pokemon) {
