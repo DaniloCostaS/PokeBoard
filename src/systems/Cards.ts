@@ -1078,15 +1078,9 @@ export class Cards {
                 if (wasBlocked) {
                     // Incrementa offensiveCardsUsed e sincroniza o atacante
                     player.effects.offensiveCardsUsed = (player.effects.offensiveCardsUsed || 0) + 1;
+                    player.stats.cardsUsed = (player.stats.cardsUsed || 0) + 1;
                     if (Network.isOnline) {
-                        try {
-                            const { ref, update, getDatabase } = await import('firebase/database');
-                            const db = getDatabase();
-                            await update(ref(db, `rooms/${Network.currentRoomId}/players/${player.id}`), {
-                                effects: player.effects,
-                                cards: player.cards && player.cards.length > 0 ? player.cards : null,
-                            });
-                        } catch (e) { console.error('[activate/blocked] Erro ao sincronizar atacante:', e); }
+                        Network.syncPlayerState();
                     }
                     return;
                 }
@@ -1158,14 +1152,6 @@ export class Cards {
                         Game.moveVisuals();
                         effectLog = `🔀 A magia aconteceu! A posição de ${player.name} e ${target.name} foi invertida!`;
 
-                        if (Network.isOnline) {
-                            if ((Network as any).syncPlayers) {
-                                (Network as any).syncPlayers([player.id, target.id]);
-                            } else {
-                                Network.syncSpecificPlayer(target.id);
-                            }
-                        }
-
                         Game.hasRolled = true;
                         Game.pendingTileEvent = true;
                     } else { consumed = false; }
@@ -1179,13 +1165,6 @@ export class Cards {
                         if (!target.effects) target.effects = {};
                         target.effects.slow = 3;
                         effectLog = `🕸️ ${target.name} não consegue correr! Está lento por 3 turnos.`;
-                        // Só atualiza os effects do alvo, sem sobrescrever stats (que ainda não foram incrementados)
-                        if (Network.isOnline) {
-                            import('firebase/database').then(({ ref, update: fbUpd, getDatabase }) => {
-                                const db = getDatabase();
-                                fbUpd(ref(db, `rooms/${Network.currentRoomId}/players/${target.id}/effects`), target.effects);
-                            });
-                        }
                     }
                 } else { this.openTargetSelection(cardId); consumed = false; }
                 break;
@@ -1207,15 +1186,6 @@ export class Cards {
                             } else {
                                 Game.log(`🕵️ ALERTA: A Equipe Rocket roubou a carta [${stolenCard.name}] de ${target.name}!`);
                             }
-
-                            if (Network.isOnline) {
-                                if ((Network as any).syncPlayers) {
-                                    (Network as any).syncPlayers([player.id, target.id]);
-                                } else {
-                                    Network.syncSpecificPlayer(target.id);
-                                    Network.syncPlayerState();
-                                }
-                            }
                         } else { alert("O alvo não tem cartas!"); consumed = false; }
                     }
                 } else { this.openTargetSelection(cardId); consumed = false; }
@@ -1229,14 +1199,6 @@ export class Cards {
                     if (!target.effects) target.effects = {};
                     target.effects.curse = true;
                     effectLog = `😈 MALDIÇÃO! ${target.name} causará apenas METADE do dano e não poderá usar itens na sua próxima luta de Ginásio!`;
-
-                    // Só atualiza os effects do alvo
-                    if (Network.isOnline) {
-                        import('firebase/database').then(({ ref, update: fbUpd, getDatabase }) => {
-                            const db = getDatabase();
-                            fbUpd(ref(db, `rooms/${Network.currentRoomId}/players/${target.id}/effects`), target.effects);
-                        });
-                    }
                 } else {
                     this.openTargetSelection(cardId);
                     consumed = false;
@@ -1264,16 +1226,6 @@ export class Cards {
                         effectLog = `❌ Sabotagem feita com sucesso! A troca falhou terrivelmente e ${target.name} perde as próximas 3 rodadas!`;
                         // turnsLost será gravado no bloco de stats geral ao final
                         (target as any)._pendingTurnsLost = ((target as any)._pendingTurnsLost || 0) + 3;
-
-                        if (Network.isOnline) {
-                            try {
-                                const { ref, update: fbUpdate, getDatabase } = await import('firebase/database');
-                                const db = getDatabase();
-                                await fbUpdate(ref(db, `rooms/${Network.currentRoomId}/players/${target.id}`), {
-                                    skipTurns: target.skipTurns,
-                                });
-                            } catch (e) { console.error('[trade_fail] sync:', e); }
-                        }
                     }
                 } else {
                     this.openTargetSelection(cardId);
@@ -1505,13 +1457,6 @@ export class Cards {
                     const boardModal = document.getElementById('board-cards-modal');
                     if (boardModal) boardModal.style.display = 'none';
 
-                    if (Network.isOnline) {
-                        if ((Network as any).syncPlayers) {
-                            (Network as any).syncPlayers([player.id, target.id]);
-                        } else {
-                            Network.syncSpecificPlayer(target.id);
-                        }
-                    }
                 } else {
                     this.openStealMegaStoneTargetSelection(cardId);
                     consumed = false;
@@ -1569,13 +1514,6 @@ export class Cards {
                     const boardModal = document.getElementById('board-cards-modal');
                     if (boardModal) boardModal.style.display = 'none';
 
-                    if (Network.isOnline) {
-                        if ((Network as any).syncPlayers) {
-                            (Network as any).syncPlayers([player.id, target.id]);
-                        } else {
-                            Network.syncSpecificPlayer(target.id);
-                        }
-                    }
                 } else {
                     this.openAshGoodbyeTargetSelection(cardId);
                     consumed = false;
@@ -2040,7 +1978,6 @@ export class Cards {
                     }
 
                     effectLog = `Ouch! A bolsa de ${target.name} foi rasgada! Caiu e perdeu ${removedCount} itens aleatorios pelo caminho.`;
-                    if (Network.isOnline) Network.syncSpecificPlayer(target.id);
                 } else {
                     this.openTargetSelection(cardId);
                     consumed = false;
@@ -2054,7 +1991,6 @@ export class Cards {
                         if (!target.effects) target.effects = {};
                         target.effects.moonwalker = 3;
                         effectLog = `Moon Walker! ${target.name} vai andar para TRAS nas proximas 3 jogadas!`;
-                        if (Network.isOnline) Network.syncSpecificPlayer(target.id);
                     } else { consumed = false; }
                 } else { this.openTargetSelection(cardId); consumed = false; }
                 break;
@@ -2118,7 +2054,7 @@ export class Cards {
             }
 
             // =========================================================================
-            //  BLINDAGEM DE STATS DO ALVO (Essa parte que dava o crash silencioso)
+            //  BLINDAGEM DE STATS DO ALVO
             // =========================================================================
             if (actualTargetId !== null) {
                 const offensiveTarget = Game.players.find((p: any) => p.id === actualTargetId);
@@ -2140,18 +2076,9 @@ export class Cards {
                         delete (offensiveTarget as any)._pendingTurnsLost;
                     }
 
-                    // Update atômico: stats + effects do alvo em um único write
+                    // Agora usamos o sync centralizado do Network para evitar Race Conditions!
                     if (Network.isOnline) {
-                        import('firebase/database').then(({ ref, update: fbUpd, getDatabase }) => {
-                            const db = getDatabase();
-                            const statsUpd: any = {};
-                            statsUpd[`rooms/${Network.currentRoomId}/players/${offensiveTarget.id}/stats`] = offensiveTarget.stats;
-                            statsUpd[`rooms/${Network.currentRoomId}/players/${offensiveTarget.id}/effects`] = offensiveTarget.effects || {};
-                            if (pendingTurns > 0) {
-                                statsUpd[`rooms/${Network.currentRoomId}/players/${offensiveTarget.id}/skipTurns`] = offensiveTarget.skipTurns;
-                            }
-                            fbUpd(ref(db), statsUpd).catch(e => console.error('[activate/stats]', e));
-                        });
+                        Network.syncSpecificPlayer(offensiveTarget.id);
                     }
                 }
             }
