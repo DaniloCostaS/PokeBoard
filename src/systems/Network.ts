@@ -209,9 +209,8 @@ export class Network {
         }
 
         if (data.lixeira) {
-            const PokemonClass = (window as any).Pokemon;
             Game.lixeira = data.lixeira.map((td: any) => {
-                const po = new PokemonClass(td.id, td.level, td.isShiny);
+                const po = new Pokemon(td.id, td.level, td.isShiny);
                 Object.assign(po, td);
                 return po;
             });
@@ -307,9 +306,8 @@ export class Network {
             const lixeiraData = snapshot.val();
             const GameObj = (window as any).Game;
             if (lixeiraData) {
-                const PokemonClass = (window as any).Pokemon;
                 GameObj.lixeira = lixeiraData.map((td: any) => {
-                    const po = new PokemonClass(td.id, td.level, td.isShiny);
+                    const po = new Pokemon(td.id, td.level, td.isShiny);
                     Object.assign(po, td);
                     return po;
                 });
