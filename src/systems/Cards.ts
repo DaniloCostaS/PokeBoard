@@ -771,7 +771,7 @@ export class Cards {
                 modal.style.display = 'none';
 
                 const PokemonClass = (window as any).Pokemon || Game.players[0].team[0].constructor;
-                const encounterLevel = Math.max(10, Game.getGlobalAverageLevel() + 5);
+                const encounterLevel = 10;
                 const wildMon = new PokemonClass(monTemplate.id, encounterLevel);
                 wildMon.vinculoSupremo = true;
 
@@ -1092,6 +1092,7 @@ export class Cards {
             case 'new_leader': priorityList = ['old_leader', 'jam']; break;
             case 'bag': priorityList = ['silvertape', 'jam']; break;
             case 'troques': priorityList = ['no_troques', 'jam']; break;
+            case 'steal_mega_stone': priorityList = ['no_steal_mega', 'jam']; break;
             default: priorityList = ['jam']; break;
         }
 
@@ -1126,6 +1127,9 @@ export class Cards {
                 } else if (defenseId === 'old_leader') {
                     blockMsg = `👑 LÍDER VELHO!\n\nA tradição falou mais alto! ${target.name} invocou sua autoridade veterana e cancelou o desafio de [${incomingCardName}].`;
                     logMsg = `🚫 ${target.name} impediu o roubo de insígnia com Líder Velho!`;
+                } else if (defenseId === 'no_steal_mega') {
+                    blockMsg = `🌑 BOLINHA PERDIDA!\n\n${target.name} tinha uma bolinha de gude no bolso que desviou o raio destruidor! A carta [${incomingCardName}] falhou miseravelmente.`;
+                    logMsg = `🚫 ${target.name} salvou sua Mega Pedra com uma Bolinha Perdida!`;
                 } else {
                     blockMsg = `📡 INTERFERÊNCIA!\n\n${target.name} tinha um bloqueador de sinal! A carta [${incomingCardName}] de ${attacker.name} foi anulada!`;
                     logMsg = `📡 INTERFERÊNCIA! A carta [${incomingCardName}] de ${attacker.name} foi bloqueada por ${target.name}!`;
@@ -1138,6 +1142,7 @@ export class Cards {
                 const defenseNames: Record<string, string> = {
                     'jam': 'Interferência', 'silvertape': 'Silver Tape',
                     'no_troques': 'Pokémon Fiel', 'old_leader': 'Líder Velho',
+                    'no_steal_mega': 'Do nada bolinha perdida'
                 };
                 const defenseLabel = defenseNames[defenseId] || defenseId;
 

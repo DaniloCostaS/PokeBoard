@@ -50,6 +50,8 @@ export const CARDS_DB: CardData[] = [
     { id: 'silvertape', name: "Silver Tape", icon: "🚷", desc: "Anula a carta Bolsa furada que um jogador acabou de usar conta você (Ativado automaticamente).", type: 'auto', rarity: 'Rara' },
     { id: 'no_troques', name: "Pokémon fiel", icon: "💝", desc: "Anula a carta Troca forçada que um jogador acabou de usar conta você (Ativado automaticamente).", type: 'auto', rarity: 'Épica' },
     { id: 'old_leader', name: "Líder Velho", icon: "💝", desc: "Anula a carta Novo líder que um jogador acabou de usar conta você (Ativado automaticamente).", type: 'auto', rarity: 'Rara' },
+    { id: 'no_steal_mega', name: "Do nada bolinha perdida", icon: "🌑", desc: "Anula a carta Destruir Mega Pedra que um jogador acabou de usar conta você (Ativado automaticamente).", type: 'auto', rarity: 'Épica' },
+
 
     // Cartas fortes
     { id: 'bag', name: "Bolsa furada", icon: "🎒", desc: "Escolha um jogador e ele vai perder metade dos seus itens aleatoriamente.", type: 'move', rarity: 'Rara' },
@@ -72,6 +74,6 @@ export const CARDS_DB: CardData[] = [
     { id: 'tremembe', name: "Tremembé", icon: "⛓️", desc: "Todos os jogadores exceto você ficam 20 rodadas sem jogar.", type: 'global', rarity: 'Lendária' },
     { id: 'se_rj', name: "Sé/RJ", icon: "🔫", desc: "Todos os jogadores exceto você perdem todos os itens e todo o gold.", type: 'global', rarity: 'Lendária' },
     { id: 'cassino', name: "Cassino", icon: "🎰", desc: "Todos os jogadores exceto você perdem todas as cartas, menos as lendárias.", type: 'global', rarity: 'Lendária' },
-    { id: 'legendary_encounter', name: "Encontro Lendário", icon: "🦅", desc: "Sortear 3 lendários e escolher um dos 3 para lutar.", type: 'move', rarity: 'Lendária' },
+    { id: 'legendary_encounter', name: "Encontro Lendário", icon: "🦅", desc: "Sortear 3 lendários de level 10 e escolher um dos 3 para lutar.", type: 'move', rarity: 'Lendária' },
     { id: 'legendary_shiny', name: "Lendário Shiny", icon: "🌟", desc: "Pode transformar um pokémon lendário do seu time em shiny (e recalcula o bônus).", type: 'move', rarity: 'Lendária' }
 ];

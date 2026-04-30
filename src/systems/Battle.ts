@@ -1888,8 +1888,15 @@ export class Battle {
         this.activeEffects = {};
 
         document.getElementById('battle-modal')!.style.display = 'none';
+
         if (!isRemote) {
-            if (Network.isOnline) Network.sendAction('BATTLE_END', {}); Game.nextTurn();
+            if (Network.isOnline) Network.sendAction('BATTLE_END', {});
+            Game.nextTurn();
+        } else {
+            // BLINDAGEM: Assim que o espectador fechar a tela de batalha, reavalia de quem é a vez e libera o botão!
+            if (Game && typeof Game.checkTurnControl === 'function') {
+                Game.checkTurnControl();
+            }
         }
     }
 
