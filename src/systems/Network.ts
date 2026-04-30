@@ -262,16 +262,25 @@ export class Network {
         this.isListenerActive = true;
 
         onValue(ref(db, `rooms/${this.currentRoomId}/lastAction`), (snapshot) => { const action = snapshot.val(); if (!action || action.type === 'INIT') return; this.handleRemoteAction(action); });
-        onValue(ref(db, `rooms/${this.currentRoomId}/turn`), (snapshot) => { const turn = snapshot.val(); if (turn !== null) { Game.turn = turn; Game.updateHUD(); Game.checkTurnControl(); } });
+        onValue(ref(db, `rooms/${this.currentRoomId}/turn`), (snapshot) => {
+            const turn = snapshot.val();
+            if (turn !== null) {
+                Game.turn = turn;
+                Game.updateHUD();
+                // Todos rodam para atualizar a UI do botão. O Game.ts protege a lógica interna.
+                Game.checkTurnControl();
+            }
+        });
         onValue(ref(db, `rooms/${this.currentRoomId}/round`), (snapshot) => {
             const round = snapshot.val();
             if (round !== null) {
                 Game.round = round;
                 Game.updateHUD();
+                // Todos rodam para atualizar a UI do botão. O Game.ts protege a lógica interna.
                 Game.checkTurnControl();
             }
         });
-        
+
         onValue(ref(db, `rooms/${this.currentRoomId}/currentEventId`), (snapshot) => {
             const evId = snapshot.val();
             Game.currentGlobalEvent = GLOBAL_EVENTS.find((e: any) => e.id === evId) || null;
@@ -289,6 +298,8 @@ export class Network {
             if (isBattle === false && BattleObj && BattleObj.active) {
                 document.getElementById('battle-modal')!.style.display = 'none';
                 BattleObj.active = false;
+                // Re-ativa o controle de turno agora que a tela está limpa
+                (window as any).Game.checkTurnControl();
             }
         });
 
@@ -445,7 +456,7 @@ export class Network {
                 break;
             }
 
-            case 'BATTLE_UPDATE': Battle.updateFromNetwork(action.payload); break;
+            case 'BATTLE_UPDATE': Battle.updateFromNetwork(action.payload, action.playerId); break;
             case 'BATTLE_END': Battle.end(true); break;
             case 'LOG': Game.log(action.payload.msg, action.playerId); break;
             case 'SHOW_ALERT': Game.showGlobalAlert(action.payload.msg, action.payload.playerName, false, action.payload.endsTurn !== false); break;

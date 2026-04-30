@@ -1614,90 +1614,63 @@ export class Game {
 
         // --- NOVA LÓGICA DE RODADA E EVENTOS ---
         const nextTurnIdx = (this.turn + 1) % this.players.length;
+        const roomUpdates: any = {};
+
         if (nextTurnIdx === 0) {
-            this.round++; // Completou um ciclo inteiro
+            this.round++;
+            roomUpdates[`round`] = this.round;
 
             // 1. Limpa evento antigo
             if (this.currentGlobalEvent && this.round >= this.eventEndRound) {
                 this.currentGlobalEvent = null;
+                roomUpdates[`currentEventId`] = null;
+                roomUpdates[`eventEndRound`] = 0;
                 this.sendGlobalLog("🌍 O clima do mundo voltou à normalidade.");
-
-                // Salva a limpeza online
-                if (Network.isOnline && this.turn === Network.myPlayerId && db) {
-                    update(ref(db, `rooms/${Network.currentRoomId}`), { currentEventId: null, eventEndRound: 0 });
-                }
             }
 
-            // 2. Rola um Novo Evento (Nas rodadas de final 2 e 7: 2, 7, 12, 17...)
+            // 2. Rola um Novo Evento (Nas rodadas de final 2 e 7)
             if (this.round % 5 === 2) {
-                // Apenas quem finalizou a rodada anterior sorteia e avisa para não duplicar na rede
-                if (!Network.isOnline || this.turn === Network.myPlayerId) {
-                    const eligibleEvents = GLOBAL_EVENTS.filter((e: any) => {
-                        if (e.minRound !== undefined && this.round < e.minRound) return false;
-                        if (e.maxRound !== undefined && this.round > e.maxRound) return false;
-                        return true;
-                    });
-                    const eventPool = eligibleEvents.length > 0 ? eligibleEvents : GLOBAL_EVENTS;
-                    const ev = eventPool[Math.floor(Math.random() * eventPool.length)];
-                    const msgGlobal = `🌍 ALERTA GLOBAL! O evento ${ev.name} começou!||EVENT:${ev.id}`;
+                const eligibleEvents = GLOBAL_EVENTS.filter((e: any) => {
+                    if (e.minRound !== undefined && this.round < e.minRound) return false;
+                    if (e.maxRound !== undefined && this.round > e.maxRound) return false;
+                    return true;
+                });
+                const eventPool = eligibleEvents.length > 0 ? eligibleEvents : GLOBAL_EVENTS;
+                const ev = eventPool[Math.floor(Math.random() * eventPool.length)];
 
-                    this.currentGlobalEvent = ev;
-                    this.eventEndRound = this.round + 5;
+                this.currentGlobalEvent = ev;
+                this.eventEndRound = this.round + 5;
+                roomUpdates[`currentEventId`] = ev.id;
+                roomUpdates[`eventEndRound`] = this.eventEndRound;
 
-                    // --- GATILHOS DE INÍCIO DE EVENTO ---
-                    if (ev.id === 'TAX_SEASON') {
-                        this.players.forEach(player => {
-                            // Perde metade das cartas
-                            if (player.cards.length > 0) {
-                                const lostCount = Math.floor(player.cards.length / 2);
-                                for (let i = 0; i < lostCount; i++) {
-                                    player.cards.splice(Math.floor(Math.random() * player.cards.length), 1);
-                                }
-                            }
-                            // Perde metade dos itens
-                            for (const key in player.items) {
-                                if (player.items[key] > 0) {
-                                    player.items[key] = Math.ceil(player.items[key] / 2);
-                                }
-                            }
-                        });
-                        this.sendGlobalLog("📜 IMPOSTO DE RENDA: Todos os jogadores perderam metade de suas cartas e itens!");
-                    }
-                    // ------------------------------------
+                const msgGlobal = `🌍 ALERTA GLOBAL! O evento ${ev.name} começou!||EVENT:${ev.id}`;
 
-                    if (Network.isOnline && db) {
-                        const updates: any = {};
-                        updates[`rooms/${Network.currentRoomId}/currentEventId`] = ev.id;
-                        updates[`rooms/${Network.currentRoomId}/eventEndRound`] = this.eventEndRound;
-
-                        // Sincroniza jogadores se houve mudança no Tax
-                        if (ev.id === 'TAX_SEASON') {
-                            this.players.forEach(p => {
-                                updates[`rooms/${Network.currentRoomId}/players/${p.id}/cards`] = p.cards;
-                                updates[`rooms/${Network.currentRoomId}/players/${p.id}/items`] = p.items;
-                            });
+                // Gatilhos de início (ex: TAX_SEASON)
+                if (ev.id === 'TAX_SEASON') {
+                    this.players.forEach(p => {
+                        if (p.cards.length > 0) {
+                            const lost = Math.floor(p.cards.length / 2);
+                            for (let i = 0; i < lost; i++) p.cards.splice(Math.floor(Math.random() * p.cards.length), 1);
                         }
-                        update(ref(db), updates);
-                    }
-
-                    // Registra no Log Local (que agora também ativa a caixinha)
-                    this.log(msgGlobal);
-
-                    if (Network.isOnline) {
-                        Network.sendAction('LOG', { msg: msgGlobal });
-                    }
+                        for (const k in p.items) if (p.items[k] > 0) p.items[k] = Math.ceil(p.items[k] / 2);
+                        roomUpdates[`players/${p.id}/cards`] = p.cards;
+                        roomUpdates[`players/${p.id}/items`] = p.items;
+                    });
+                    this.sendGlobalLog("📜 IMPOSTO DE RENDA: Todos os jogadores perderam metade de suas cartas e itens!");
                 }
+
+                this.log(msgGlobal);
+                if (Network.isOnline) Network.sendAction('LOG', { msg: msgGlobal });
             }
         }
-        // Passa a vez para o próximo jogador
 
         this.turn = nextTurnIdx;
         this.hasRolled = false;
+        roomUpdates[`turn`] = this.turn;
 
-        if (Network.isOnline) {
-            // Apenas atualiza a vez, deixa o próprio jogador cuidar do seu estado quando agir
-            Network.syncTurn(this.turn, this.round);
-        } else {
+        if (Network.isOnline && db) {
+            update(ref(db, `rooms/${Network.currentRoomId}`), roomUpdates);
+        } else if (!Network.isOnline) {
             const nextP = this.players[this.turn];
             if (nextP.skipTurns > 0) {
                 nextP.skipTurns = Math.max(0, nextP.skipTurns - 1);
@@ -1716,16 +1689,19 @@ export class Game {
     }
 
     static checkTurnControl() {
+        // --- 0. BLOQUEIO SE HOUVER BATALHA ATIVA ---
+        const BattleObj = (window as any).Battle;
+        if (BattleObj && BattleObj.active) {
+            return;
+        }
+
         const btn = document.getElementById('roll-btn') as HTMLButtonElement;
         const me = Network.myPlayerId;
         const ind = document.getElementById('online-indicator');
 
-        // --- 1. LIMPEZA DO EVENTO PARA TODOS OS CLIENTES ---
-        if (this.currentGlobalEvent && this.round >= this.eventEndRound) {
-            this.currentGlobalEvent = null;
-            this.eventEndRound = 0;
-            this.updateHUD();
-        }
+        // --- 1. LIMPEZA DO EVENTO ---
+        // Removida a limpeza local para evitar race conditions com o Firebase.
+        // Agora confiamos apenas no listener do Network.ts.
 
         // --- 2. GATILHO INDIVIDUAL DO BÔNUS DA RODADA 10, 20... ---
         const processDecadeBonus = (player: Player) => {
@@ -2721,13 +2697,8 @@ export class Game {
         }
         if (eventEl) {
             // --- BLINDAGEM VISUAL: Se a rodada atual passou do limite, extermina o evento! ---
-            if (this.currentGlobalEvent && this.round >= this.eventEndRound) {
+            if (this.currentGlobalEvent && this.eventEndRound > 0 && this.round >= this.eventEndRound) {
                 this.currentGlobalEvent = null;
-                this.eventEndRound = 0;
-
-                if (Network && Network.isOnline && db) {
-                    update(ref(db, `rooms/${Network.currentRoomId}`), { currentEventId: null, eventEndRound: 0 });
-                }
             }
             // --------------------------------------------
             if (this.currentGlobalEvent) {
@@ -2746,6 +2717,9 @@ export class Game {
         if (elRoom) { const Network = (window as any).Network; elRoom.innerText = Network.isOnline ? Network.currentRoomId : "LOCAL"; }
         const avgLvl = this.getGlobalAverageLevel();
         const elAvg = document.getElementById('avg-lvl-indicator'); if (elAvg) elAvg.innerText = `Lv.${avgLvl}`;
+        const minLvl = Math.max(1, avgLvl - 2);
+        const maxLvl = Math.min(25, avgLvl + 2);
+        const elSvg = document.getElementById('svg-lvl-indicator'); if (elSvg) elSvg.innerText = `Lv.${minLvl}-Lv.${maxLvl}`;
         const elGym = document.getElementById('gym-lvl-indicator'); if (elGym) elGym.innerText = `Lv.${avgLvl + 1}`;
         let totalMons = 0; this.players.forEach(p => totalMons += p.team.length);
         const avgTeam = Math.max(1, Math.min(6, Math.round(totalMons / Math.max(1, this.players.length))));
@@ -2858,7 +2832,7 @@ export class Game {
 
     static getCurrentPlayer() { return this.players[this.turn]; }
 
-    static log(m: string) {
+    static log(m: string, actionPlayerId?: number) {
         // --- SINCRONIZADOR INVISÍVEL DE RODADA ---
         if (m.includes('||ROUND:')) {
             const r = parseInt(m.split('||ROUND:')[1]);
@@ -2896,14 +2870,13 @@ export class Game {
         }
         // --------------------------------------
 
+        // Identifica o jogador pela rede, ou usa o local se não for fornecido
+        const targetPlayer = actionPlayerId !== undefined ? this.players[actionPlayerId] : this.getCurrentPlayer();
 
-        // --- ADD PREFIXO DO JOGADOR E RODADA ---
-        const currentPlayer = this.getCurrentPlayer();
         if (!m.includes("🌍 ALERTA GLOBAL!") && !m.includes("🛠️ ADMIN HOST:")) {
-            if (currentPlayer && !m.startsWith(`[${currentPlayer.name}]`) && !m.includes(`] [${currentPlayer.name}]`)) {
-                m = `[${currentPlayer.name}] ${m}`;
+            if (targetPlayer && !m.startsWith(`[${targetPlayer.name}]`) && !m.includes(`] [${targetPlayer.name}]`)) {
+                m = `[${targetPlayer.name}] ${m}`;
             }
-            // Verifica se a mensagem já não tem uma tag de rodada no início (ex: [15])
             if (!/^\[\d+\]/.test(m)) {
                 m = `[${this.round}] ${m}`;
             }

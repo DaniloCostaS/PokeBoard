@@ -487,13 +487,14 @@ export class Battle {
         this.renderBattleScreen();
     }
 
-    static updateFromNetwork(payload: any) {
+    static updateFromNetwork(payload: any, actionPlayerId?: number) {
         if (!this.activeMon || !this.opponent) return;
 
         if (payload.plyHp !== undefined) this.activeMon.currentHp = payload.plyHp;
         if (payload.oppHp !== undefined) this.opponent.currentHp = payload.oppHp;
 
-        if (payload.msg) this.logBattle(payload.msg);
+        // Repassa o ID exato de quem gerou esse evento
+        if (payload.msg) this.logBattle(payload.msg, false, actionPlayerId);
 
         this.updateUI();
     }
@@ -1200,7 +1201,7 @@ export class Battle {
         else { this.lose(); }
     }
 
-    static logBattle(msg: string, sync: boolean = false) {
+    static logBattle(msg: string, sync: boolean = false, actionPlayerId?: number) {
         const Game = (window as any).Game;
         const el = document.getElementById('battle-msg');
         if (el) el.innerText = msg;
@@ -1211,7 +1212,8 @@ export class Battle {
             logContainer.scrollTop = 0;
         }
 
-        Game.log(`[Batalha] ${msg}`);
+        // Entrega o ID garantido para o sistema de logs central
+        Game.log(`[Batalha] ${msg}`, actionPlayerId);
 
         if (sync) {
             const Network = (window as any).Network;
@@ -2107,10 +2109,10 @@ export class Battle {
                     Game.sendGlobalLog(`💰 [Extrato] ${this.player.name} deixou cair -${lostGold}G ao desistir da batalha.`);
                     Game.sendGlobalLog(`💰 [Extrato] Novo Saldo: ${this.player.gold}G.`);
                 }
-                
+
                 Game.handleTotalDefeat(this.player);
             }
-            
+
             Game.nextTurn();
         }, 1500);
     }
