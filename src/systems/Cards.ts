@@ -185,8 +185,8 @@ export class Cards {
         }
 
         // Validação mínima de cartas
-        if (player.cards.length < 3) {
-            return alert("Você precisa de pelo menos 3 cartas para realizar uma fusão.");
+        if (player.cards.length < 4) {
+            return alert("Você precisa de pelo menos 4 cartas para realizar uma fusão.");
         }
 
         const list = document.getElementById('board-inventory-list')!;
@@ -194,9 +194,9 @@ export class Cards {
 
         // Limpa e prepara título
         if (modal) modal.style.display = 'flex';
-        list.innerHTML = `<h3 style="width:100%; text-align:center; color:#2ecc71;">Selecione 3 Cartas da MESMA raridade</h3>
-                          <p style="width:100%; text-align:center; font-size:0.8rem; color:#7f8c8d; margin-top:-10px;">Fundir 3 cartas aumenta a raridade em +1 nível.</p>
-                          <div id="merge-counter" style="width:100%; text-align:center; margin-bottom:10px;">Selecionado: 0/3</div>`;
+        list.innerHTML = `<h3 style="width:100%; text-align:center; color:#2ecc71;">Selecione 4 Cartas da MESMA raridade</h3>
+                          <p style="width:100%; text-align:center; font-size:0.8rem; color:#7f8c8d; margin-top:-10px;">Fundir 4 cartas aumenta a raridade em +1 nível.</p>
+                          <div id="merge-counter" style="width:100%; text-align:center; margin-bottom:10px;">Selecionado: 0/4</div>`;
 
         player.cards.forEach((c: any, index: number) => {
             const d = document.createElement('div');
@@ -232,13 +232,13 @@ export class Cards {
         (window as any).Cards.updateMergeCount = () => {
             const checks = document.querySelectorAll('.merge-checkbox:checked');
             const counter = document.getElementById('merge-counter');
-            if (counter) counter.innerText = `Selecionado: ${checks.length}/3`;
+            if (counter) counter.innerText = `Selecionado: ${checks.length}/4`;
 
-            // Impede selecionar mais de 3
-            if (checks.length > 3) {
-                alert("Selecione apenas 3 cartas!");
+            // Impede selecionar mais de 4
+            if (checks.length > 4) {
+                alert("Selecione apenas 4 cartas!");
                 (window.event?.target as HTMLInputElement).checked = false;
-                if (counter) counter.innerText = `Selecionado: 3/3`;
+                if (counter) counter.innerText = `Selecionado: 4/4`;
             }
         };
     }
@@ -252,8 +252,8 @@ export class Cards {
 
         // Coleta índices selecionados
         const checkboxes = document.querySelectorAll('.merge-checkbox:checked');
-        if (checkboxes.length !== 3) {
-            return alert("Você deve selecionar EXATAMENTE 3 cartas.");
+        if (checkboxes.length !== 4) {
+            return alert("Você deve selecionar EXATAMENTE 4 cartas.");
         }
 
         const indicesToRemove: number[] = [];
@@ -261,8 +261,8 @@ export class Cards {
 
         // Validação de Raridade (Todas devem ser iguais)
         const rarities = indicesToRemove.map(idx => player.cards[idx].rarity);
-        if (rarities[0] !== rarities[1] || rarities[1] !== rarities[2]) {
-            return alert("As 3 cartas selecionadas devem ter a mesma raridade para serem fundidas!");
+        if (rarities.some(r => r !== rarities[0])) {
+            return alert("As 4 cartas selecionadas devem ter a mesma raridade para serem fundidas!");
         }
 
         const baseRarity = rarities[0];
@@ -1272,7 +1272,8 @@ export class Cards {
         }
 
         if (cardData.rarity === 'Lendária') {
-            if (player.effects && player.effects.playedLegendary) {
+            // Se o jogador já usou lendária E não está no meio do processo da carta ash_goodbye
+            if (player.effects && player.effects.playedLegendary && !player.effects.ashGoodbyeRemaining) {
                 alert("Você já utilizou uma carta Lendária nesta partida. Apenas um milagre por jogo é permitido!");
                 return;
             }
@@ -1661,6 +1662,8 @@ export class Cards {
                     if (target.team.length === 1) {
                         alert("Você não pode mandar embora o último Pokémon do treinador!");
                         consumed = false;
+                        // Reabre a seleção imediatamente para o jogador escolher outro, já que esse falhou.
+                        this.openAshGoodbyeTargetSelection(cardId);
                         break;
                     }
 
@@ -1669,6 +1672,44 @@ export class Cards {
                     } else {
                         target.team.splice(pIdx, 1);
                         effectLog = `👋 ADEUS! ${player.name} cantou a música triste e fez ${target.name} libertar seu ${targetMon.name} para todo o sempre! (Ele desapareceu na imensidão e nunca mais poderá ser recuperado)`;
+                    }
+
+                    // --- NOVA LÓGICA DE 3 SELEÇÕES (CORRIGIDA) ---
+                    if (player.effects.ashGoodbyeRemaining === undefined) {
+                        player.effects.ashGoodbyeRemaining = 3;
+                    }
+                    player.effects.ashGoodbyeRemaining--;
+
+                    // Forçamos consumed = true para que o Sync Atômico no final da função activate() ocorra.
+                    // Isso garante que a remoção do Pokémon seja persistida no Firebase imediatamente.
+                    consumed = true;
+
+                    // Se não for a primeira carga, sinalizamos para pular o incremento de estatísticas de uso de cartas
+                    // e o log principal, evitando spam e contagem tripla.
+                    if (player.effects.ashGoodbyeRemaining < 2) {
+                        (player as any)._ashGoodbyeContinued = true;
+                    }
+
+                    if (player.effects.ashGoodbyeRemaining > 0) {
+                        Game.log(effectLog);
+                        // No multi-step, mostramos um alerta global sem passar o turno.
+                        Game.showGlobalAlert(effectLog, player.name, true, false);
+
+                        if (Network.isOnline) {
+                            Network.syncPlayers([player.id, target.id]);
+                        }
+
+                        // Reabre a seleção após um delay seguro
+                        setTimeout(() => {
+                            this.openAshGoodbyeTargetSelection(cardId);
+                        }, 1200);
+
+                        // Como vamos mostrar o alerta aqui, pulamos o alerta automático do final da função
+                        skipBottomSync = true; 
+                    } else {
+                        // Última carga! Limpa o contador.
+                        delete player.effects.ashGoodbyeRemaining;
+                        // Aqui deixamos skipBottomSync = false para que o último alerta e sync ocorram normalmente.
                     }
 
                 } else {
@@ -2173,7 +2214,7 @@ export class Cards {
             // =========================================================================
             //  BLINDAGEM DE STATS DO ATACANTE
             // =========================================================================
-            if (offensiveCardIds.includes(cardId) && actualTargetId !== null && actualTargetId !== player.id) {
+            if (offensiveCardIds.includes(cardId) && actualTargetId !== null && actualTargetId !== player.id && !(player as any)._ashGoodbyeContinued) {
                 if (!player.stats) player.stats = { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
                 player.stats.cardsUsed = (player.stats.cardsUsed || 0) + 1;
             }
@@ -2183,7 +2224,7 @@ export class Cards {
             // =========================================================================
             let targetObjForSync = null;
 
-            if (actualTargetId !== null && offensiveCardIds.includes(cardId)) {
+            if (actualTargetId !== null && offensiveCardIds.includes(cardId) && !(player as any)._ashGoodbyeContinued) {
                 const offensiveTarget = Game.players.find((p: any) => p.id === actualTargetId);
                 if (offensiveTarget && offensiveTarget.id !== player.id) {
                     targetObjForSync = offensiveTarget;
@@ -2219,9 +2260,10 @@ export class Cards {
             Game.log(logMsg);
             if (effectLog) Game.log(effectLog);
 
-            if (cardId !== 'new_leader' && cardId !== 'reroll' && cardId !== 'dice' && cardId !== 'illegal_adoption' && !skipBottomSync) {
+            if (cardId !== 'new_leader' && cardId !== 'reroll' && cardId !== 'dice' && cardId !== 'illegal_adoption' && !skipBottomSync && !(player as any)._ashGoodbyeContinued) {
                 Game.showGlobalAlert(fullMsg + `||CARD:${cardId}`, player.name, true, false);
             }
+            delete (player as any)._ashGoodbyeContinued;
 
             // =========================================================================
             //  SYNC ÚNICO, UNIVERSAL E ATÔMICO

@@ -71,7 +71,7 @@ export const CARDS_DB: CardData[] = [
 
     // Cartas Lendárias
     { id: 'supreme_bond', name: "Vínculo Supremo", icon: "🤝", desc: "Pokémon não te abandona jamais. Troca de pokémon, até mesmo outra carta lendária não pode remover o pokémon do jogador.", type: 'move', rarity: 'Lendária' },
-    { id: 'ash_goodbye', name: "O Adeus de Ash", icon: "👋", desc: "Mande embora o pokémon de outro jogador, sem defesa, só não pode com Vínculo Supremo.", type: 'move', rarity: 'Lendária' },
+    { id: 'ash_goodbye', name: "O Adeus de Ash", icon: "👋", desc: "Mande embora 3 pokémon (podem ser de jogadores diferentes), sem defesa, só não pode com Vínculo Supremo.", type: 'move', rarity: 'Lendária' },
     { id: 'tremembe', name: "Tremembé", icon: "⛓️", desc: "Todos os jogadores exceto você ficam 20 rodadas sem jogar.", type: 'global', rarity: 'Lendária' },
     { id: 'grande_assalto', name: "O Grande Assalto", icon: "🔫", desc: "Roube TODO o gold, itens e cartas (exceto lendárias) de todos os outros jogadores.", type: 'global', rarity: 'Lendária' },
     { id: 'legendary_encounter', name: "Encontro Lendário", icon: "🦅", desc: "Sortear 3 lendários de level 10 e escolher um dos 3 para lutar.", type: 'move', rarity: 'Lendária' },

@@ -34,6 +34,7 @@ export class Player {
         playedLegendary?: boolean;
         lastGiftRound?: number;
         tremembeUserTurns?: number;
+        ashGoodbyeRemaining?: number;
     } = {};
 
     // --- ESTATÍSTICAS DE JOGO ---
@@ -58,7 +59,7 @@ export class Player {
             // 1. Recursos Iniciais
             this.gold = 500;
             this.items = {
-                'pokeball': 6,
+                'masterball': 6,
                 'potion': 6,
                 'revive': 3
             };

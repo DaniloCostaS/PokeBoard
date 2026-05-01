@@ -796,7 +796,7 @@ export class Game {
                 const mergeBtn = document.createElement('button');
                 mergeBtn.className = 'btn btn-merge';
                 mergeBtn.style.flex = '1';
-                mergeBtn.innerHTML = isMobile ? `<span>💎 FUNDIR</span>` : `<span>💎 FUNDIR (3 ➡ Raridade +1)</span>`;
+                mergeBtn.innerHTML = isMobile ? `<span>💎 FUNDIR</span>` : `<span>💎 FUNDIR (4 ➡ Raridade +1)</span>`;
                 mergeBtn.onclick = () => {
                     document.getElementById('board-cards-modal')!.style.display = 'none';
                     (window as any).Cards.openMergeModal();
