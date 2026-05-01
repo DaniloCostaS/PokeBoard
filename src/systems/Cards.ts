@@ -201,7 +201,7 @@ export class Cards {
         player.cards.forEach((c: any, index: number) => {
             const d = document.createElement('div');
             d.className = 'card-item';
-            
+
             let rarityColor = '#bdc3c7';
             if (c.rarity === 'Épica') rarityColor = '#9b59b6';
             if (c.rarity === 'Rara') rarityColor = '#3498db';
@@ -294,7 +294,7 @@ export class Cards {
         // Sorteia nova carta da raridade alvo
         const possibleCards = CARDS_DB.filter((c: any) => c.rarity === targetRarity);
         const finalPool = possibleCards.length > 0 ? possibleCards : CARDS_DB;
-        
+
         // Filtro para não vir uma das que foram fundidas (embora a raridade mude, por segurança)
         const filteredPool = finalPool.filter((c: any) => !removedIds.includes(c.id));
         const finalFinalPool = filteredPool.length > 0 ? filteredPool : finalPool;
@@ -1687,28 +1687,35 @@ export class Cards {
                         p.skipTurns += 20;
                     }
                 });
+                player.effects.tremembeUserTurns = 20;
                 effectLog = `⛓️ DECRETO DA PRISÃO DE TREMEMBÉ! Todos os outros jogadores ficarão enjaulados por 20 rodadas!`;
                 requiresGlobalSync = true;
                 break;
 
-            case 'se_rj':
+            case 'grande_assalto':
                 Game.players.forEach((p: any) => {
                     if (p.id !== player.id) {
+                        // Rouba Gold
+                        player.gold += (p.gold || 0);
                         p.gold = 0;
-                        Object.keys(p.items).forEach(k => p.items[k] = 0);
-                    }
-                });
-                effectLog = `🔫 ARRastão na Sé/RJ! Todos os outros jogadores foram assaltados e perderam TODO o gold e TODOS os itens!`;
-                requiresGlobalSync = true;
-                break;
 
-            case 'cassino':
-                Game.players.forEach((p: any) => {
-                    if (p.id !== player.id) {
-                        p.cards = p.cards.filter((c: any) => c.rarity === 'Lendária');
+                        // Rouba Itens
+                        if (p.items) {
+                            Object.keys(p.items).forEach(k => {
+                                player.items[k] = (player.items[k] || 0) + p.items[k];
+                                p.items[k] = 0;
+                            });
+                        }
+
+                        // Rouba Cartas (Exceto Lendárias)
+                        if (p.cards) {
+                            const stolenCards = p.cards.filter((c: any) => c.rarity !== 'Lendária');
+                            player.cards.push(...stolenCards);
+                            p.cards = p.cards.filter((c: any) => c.rarity === 'Lendária');
+                        }
                     }
                 });
-                effectLog = `🎰 A BANCA SEMPRE VENCE! Todos os outros jogadores perderam todas as suas cartas apostando no Cassino! (Cartas lendárias foram poupadas)`;
+                effectLog = `💰 O GRANDE ASSALTO! ${player.name} limpou a conta de todos os adversários, roubando gold, itens e todas as cartas (exceto lendárias)!`;
                 requiresGlobalSync = true;
                 break;
 
@@ -1749,6 +1756,34 @@ export class Cards {
 
                 } else {
                     this.openPokemonSelectionForCard(cardId, "Escolha um Pokémon Lendário para transformar em Shiny:");
+                    consumed = false;
+                }
+                break;
+
+            case 'epic_shiny':
+                if (targetId !== null) {
+                    const targetMon = player.team[targetId];
+                    if (!targetMon) { consumed = false; break; }
+
+                    if (targetMon.isLegendary) {
+                        alert("Este Pokémon é Lendário! Use a carta Lendário Shiny para ele.");
+                        consumed = false;
+                        break;
+                    }
+
+                    if (targetMon.isShiny) {
+                        alert("Este Pokémon já é Shiny!");
+                        consumed = false;
+                        break;
+                    }
+
+                    targetMon.isShiny = true;
+                    targetMon.recalculateStats(true);
+
+                    effectLog = `✨ BRILHO ÉPICO! O ${targetMon.name} de ${player.name} brilhou intensamente e se tornou SHINY, ganhando 20% de bônus em todos os status!`;
+
+                } else {
+                    this.openPokemonSelectionForCard(cardId, "Escolha um Pokémon para transformar em Shiny:");
                     consumed = false;
                 }
                 break;

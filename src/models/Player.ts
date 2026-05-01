@@ -33,6 +33,7 @@ export class Player {
         lureType?: { type: string, count: number };
         playedLegendary?: boolean;
         lastGiftRound?: number;
+        tremembeUserTurns?: number;
     } = {};
 
     // --- ESTATÍSTICAS DE JOGO ---

@@ -57,6 +57,7 @@ export const CARDS_DB: CardData[] = [
     { id: 'bag', name: "Bolsa furada", icon: "🎒", desc: "Escolha um jogador e ele vai perder metade dos seus itens aleatoriamente.", type: 'move', rarity: 'Rara' },
     { id: 'troques', name: "Troca forçada", icon: "🔛", desc: "Troque um pokémon seu com um de outro jogador.", type: 'move', rarity: 'Épica' },
     { id: 'new_leader', name: "Novo líder", icon: "⚔️", desc: "Escolha um jogador: Se vencer a batalha, pegue uma insígnia aleatória que ainda não tem do adversário.", type: 'move', rarity: 'Rara' },
+    { id: 'epic_shiny', name: "Brilho Épico", icon: "✨", desc: "Transforma qualquer pokémon não-lendário em shiny (e recalcula o bônus de 20%).", type: 'move', rarity: 'Épica' },
 
     // Cartas Globais
     { id: 'communism', name: "Comunismo", icon: "♻️", desc: "Junta todas as cartas de todos os jogadores, embaralha e redistribui igualmente. As que sobrarem são destruídas.", type: 'global', rarity: 'Épica' },
@@ -72,8 +73,8 @@ export const CARDS_DB: CardData[] = [
     { id: 'supreme_bond', name: "Vínculo Supremo", icon: "🤝", desc: "Pokémon não te abandona jamais. Troca de pokémon, até mesmo outra carta lendária não pode remover o pokémon do jogador.", type: 'move', rarity: 'Lendária' },
     { id: 'ash_goodbye', name: "O Adeus de Ash", icon: "👋", desc: "Mande embora o pokémon de outro jogador, sem defesa, só não pode com Vínculo Supremo.", type: 'move', rarity: 'Lendária' },
     { id: 'tremembe', name: "Tremembé", icon: "⛓️", desc: "Todos os jogadores exceto você ficam 20 rodadas sem jogar.", type: 'global', rarity: 'Lendária' },
-    { id: 'se_rj', name: "Sé/RJ", icon: "🔫", desc: "Todos os jogadores exceto você perdem todos os itens e todo o gold.", type: 'global', rarity: 'Lendária' },
-    { id: 'cassino', name: "Cassino", icon: "🎰", desc: "Todos os jogadores exceto você perdem todas as cartas, menos as lendárias.", type: 'global', rarity: 'Lendária' },
+    { id: 'grande_assalto', name: "O Grande Assalto", icon: "🔫", desc: "Roube TODO o gold, itens e cartas (exceto lendárias) de todos os outros jogadores.", type: 'global', rarity: 'Lendária' },
     { id: 'legendary_encounter', name: "Encontro Lendário", icon: "🦅", desc: "Sortear 3 lendários de level 10 e escolher um dos 3 para lutar.", type: 'move', rarity: 'Lendária' },
     { id: 'legendary_shiny', name: "Lendário Shiny", icon: "🌟", desc: "Pode transformar um pokémon lendário do seu time em shiny (e recalcula o bônus).", type: 'move', rarity: 'Lendária' }
+
 ];

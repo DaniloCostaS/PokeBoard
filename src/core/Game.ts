@@ -588,7 +588,12 @@ export class Game {
         p.y = city.y;
 
         // Passo 3: Marca a penalidade
-        p.skipTurns += 2;
+        if (p.effects && p.effects.tremembeUserTurns && p.effects.tremembeUserTurns > 0) {
+            this.sendGlobalLog(`⚖️ DECRETO DE TREMEMBÉ! ${p.name} está sob o privilégio do decreto e foi resgatado sem perder turnos!`);
+        } else {
+            p.skipTurns += 2;
+            this.sendGlobalLog(`🚑 ${p.name} foi resgatado! Equipe totalmente curada no Centro Pokémon, mas perderá 2 turnos.`);
+        }
 
         // --- CORREÇÃO: Removemos a linha abaixo para manter os efeitos ---
         // p.effects = {};  <-- REMOVIDO! Agora os buffs/debuffs persistem.
@@ -596,8 +601,6 @@ export class Game {
 
         // Passo 4: Revive e cura todos os pokémons
         p.team.forEach(mon => { mon.currentHp = mon.maxHp; });
-
-        this.sendGlobalLog(`🚑 ${p.name} foi resgatado! Equipe totalmente curada no Centro Pokémon, mas perderá 2 turnos.`);
 
         this.showGlobalAlert(msg, p.name, true, false);
 
@@ -1579,6 +1582,12 @@ export class Game {
             if (currentP.effects.expShare && currentP.effects.expShare > 0) {
                 currentP.effects.expShare--;
                 if (currentP.effects.expShare === 0) this.sendGlobalLog(`📉 O efeito Exp. Share de ${currentP.name} acabou.`);
+                effectsChanged = true;
+            }
+
+            if (currentP.effects.tremembeUserTurns && currentP.effects.tremembeUserTurns > 0) {
+                currentP.effects.tremembeUserTurns--;
+                if (currentP.effects.tremembeUserTurns === 0) this.sendGlobalLog(`⛓️ O decreto de Tremembé de ${currentP.name} expirou.`);
                 effectsChanged = true;
             }
 
