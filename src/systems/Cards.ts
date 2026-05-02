@@ -168,6 +168,20 @@ export class Cards {
     }
 
     // =========================================================================================
+    //  AUXILIARES DE ESTATÍSTICAS
+    // =========================================================================================
+    static getRarityWeight(rarity: string): number {
+        switch (rarity) {
+            case 'Comum': return 1;
+            case 'Incomum': return 2;
+            case 'Rara': return 3;
+            case 'Épica': return 5;
+            case 'Lendária': return 10;
+            default: return 1;
+        }
+    }
+
+    // =========================================================================================
     //  SISTEMA DE FUSÃO (MERGE)
     // =========================================================================================
     // 1. Abre o modal para selecionar as cartas para fusão
@@ -923,6 +937,19 @@ export class Cards {
         const idx = player.cards.findIndex((c: any) => c.id === 'troques');
         if (idx > -1) player.cards.splice(idx, 1);
 
+        // =========================================================================
+        //  ESTATÍSTICAS DA TROCA FORÇADA (EPICA)
+        // =========================================================================
+        if (!player.stats) player.stats = { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
+        player.stats.cardsUsed = (player.stats.cardsUsed || 0) + 1;
+
+        if (!target.stats) target.stats = { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
+        if (!target.stats.effectsReceived) target.stats.effectsReceived = {};
+        
+        const weight = Cards.getRarityWeight('Épica');
+        target.stats.cardsSuffered = (target.stats.cardsSuffered || 0) + weight;
+        target.stats.effectsReceived['Troca forçada'] = (target.stats.effectsReceived['Troca forçada'] || 0) + 1;
+
         Game.updateHUD();
         const boardModal = document.getElementById('board-cards-modal');
         if (boardModal) boardModal.style.display = 'none';
@@ -946,7 +973,10 @@ export class Cards {
 
                 atomicUpd[`${roomPath}/players/${player.id}/team`] = sanitizeTeam(player.team);
                 atomicUpd[`${roomPath}/players/${player.id}/cards`] = player.cards && player.cards.length > 0 ? player.cards : null;
+                atomicUpd[`${roomPath}/players/${player.id}/stats`] = player.stats;
+
                 atomicUpd[`${roomPath}/players/${target.id}/team`] = sanitizeTeam(target.team);
+                atomicUpd[`${roomPath}/players/${target.id}/stats`] = target.stats;
 
                 await update(ref(db), atomicUpd);
             } catch (e) { console.error('[executeTrade] Sync Atômico:', e); }
@@ -1722,7 +1752,8 @@ export class Cards {
                 Game.players.forEach((p: any) => {
                     if (p.id !== player.id) {
                         if (!p.stats) p.stats = { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
-                        p.stats.cardsSuffered = (p.stats.cardsSuffered || 0) + 1;
+                        const weight = Cards.getRarityWeight(cardData.rarity);
+                        p.stats.cardsSuffered = (p.stats.cardsSuffered || 0) + weight;
                         if (!p.stats.effectsReceived) p.stats.effectsReceived = {};
                         p.stats.effectsReceived['Tremembé'] = (p.stats.effectsReceived['Tremembé'] || 0) + 1;
                         p.skipTurns += 20;
@@ -2232,7 +2263,8 @@ export class Cards {
                     if (!offensiveTarget.stats) offensiveTarget.stats = { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
                     if (!offensiveTarget.stats.effectsReceived) offensiveTarget.stats.effectsReceived = {};
 
-                    offensiveTarget.stats.cardsSuffered = (offensiveTarget.stats.cardsSuffered || 0) + 1;
+                    const weight = Cards.getRarityWeight(cardData.rarity);
+                    offensiveTarget.stats.cardsSuffered = (offensiveTarget.stats.cardsSuffered || 0) + weight;
                     const effectKey = cardData.name;
                     offensiveTarget.stats.effectsReceived[effectKey] = (offensiveTarget.stats.effectsReceived[effectKey] || 0) + 1;
                 }

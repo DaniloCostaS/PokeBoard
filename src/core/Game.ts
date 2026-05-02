@@ -2317,31 +2317,36 @@ export class Game {
             const rankEmoji = rank === 0 ? '🔴' : rank === 1 ? '🟠' : rank === 2 ? '🟡' : '⚪';
             const barColor = rank === 0 ? '#e74c3c' : rank === 1 ? '#e67e22' : '#f1c40f';
 
-            // Cores por nome de carta/efeito
-            const effectPillColors: Record<string, string> = {
-                'Slow': '#7f8c8d', 'Lentid\u00e3o': '#7f8c8d',
-                'Curse': '#8e44ad', 'Maldi\u00e7\u00e3o': '#8e44ad',
-                'Rocket': '#e74c3c', 'Trade Fail': '#c0392b',
-                'Michael': '#e67e22', 'Moonwalker': '#e67e22',
-                'Trememb\u00e9': '#2c3e50', 'Adeus de Ash': '#8e44ad',
-                'S\u00e9/RJ': '#c0392b', 'Troques': '#27ae60',
-                'Bag': '#f39c12', 'Imposto de Renda': '#e74c3c',
-                'Comunismo': '#c0392b', 'Katrina': '#2980b9',
+            // Cores dinâmicas por raridade da carta
+            const getRarityColor = (name: string, defaultColor: string) => {
+                const card = CARDS_DB.find(c => c.name === name);
+                if (card && CARD_RARITIES[card.rarity]) return CARD_RARITIES[card.rarity].color;
+                
+                // Fallbacks para nomes manuais ou traduções
+                const fallbacks: Record<string, string> = {
+                    'Slow': CARD_RARITIES['Comum'].color, 'Lentidão': CARD_RARITIES['Comum'].color,
+                    'Curse': CARD_RARITIES['Incomum'].color, 'Maldição': CARD_RARITIES['Incomum'].color,
+                    'Moonwalker': CARD_RARITIES['Rara'].color, 'Tremembé': CARD_RARITIES['Lendária'].color,
+                    'Adeus de Ash': CARD_RARITIES['Lendária'].color, 'O Adeus de Ash': CARD_RARITIES['Lendária'].color,
+                    'Troques': CARD_RARITIES['Épica'].color, 'Troca forçada': CARD_RARITIES['Épica'].color,
+                    'Imposto de Renda': CARD_RARITIES['Épica'].color, 'Comunismo': CARD_RARITIES['Épica'].color,
+                    'Katrina': CARD_RARITIES['Rara'].color, 'Furacão Katrina': CARD_RARITIES['Rara'].color,
+                    'Bolsa furada': CARD_RARITIES['Rara'].color, 'Bag': CARD_RARITIES['Rara'].color,
+                    'Novo líder': CARD_RARITIES['Rara'].color, 'Equipe Rocket': CARD_RARITIES['Incomum'].color,
+                    'Interferência': CARD_RARITIES['Rara'].color, 'Silver Tape': CARD_RARITIES['Rara'].color,
+                    'Pokémon Fiel': CARD_RARITIES['Épica'].color, 'Líder Velho': CARD_RARITIES['Rara'].color,
+                    'Do nada bolinha perdida': CARD_RARITIES['Épica'].color
+                };
+                return fallbacks[name] || defaultColor;
             };
+
             const effectTagsHTML = Object.entries(effectsRecord).map(([name, count]) => {
-                const color = effectPillColors[name] || '#555';
+                const color = getRarityColor(name, '#555');
                 return `<span style="background:${color}; color:white; font-size:0.68rem; padding:2px 7px; border-radius:12px; display:inline-flex; align-items:center; gap:3px;">${name} <b style="background:rgba(0,0,0,0.3); padding:0 4px; border-radius:8px;">${count}x</b></span>`;
             }).join('');
 
-            // Cores por carta de defesa
-            const defendPillColors: Record<string, string> = {
-                'Interferência': '#2980b9',
-                'Silver Tape': '#95a5a6',
-                'Pokémon Fiel': '#27ae60',
-                'Líder Velho': '#f39c12',
-            };
             const defendTagsHTML = Object.entries(defendedRecord).map(([name, count]) => {
-                const color = defendPillColors[name] || '#27ae60';
+                const color = getRarityColor(name, '#27ae60');
                 return `<span style="background:${color}; color:white; font-size:0.68rem; padding:2px 7px; border-radius:12px; display:inline-flex; align-items:center; gap:3px;">${name} <b style="background:rgba(0,0,0,0.3); padding:0 4px; border-radius:8px;">${count}x</b></span>`;
             }).join('');
 

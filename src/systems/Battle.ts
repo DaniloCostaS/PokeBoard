@@ -589,6 +589,9 @@ export class Battle {
         const baseAtk = (attacker.atk * 0.65) + (attacker.speed * 0.15) + (attacker.maxHp * 0.2);
         let finalDamage = (baseAtk / 5) - (defender.def / 20);
 
+        // --- INÍCIO DO LOG DE AUDITORIA ---
+        let auditLog = `\n[Cálc: Base ${finalDamage.toFixed(1)}`;
+
         const attackerPlayer = isPlayerAttacking ? this.player! : (this.enemyPlayer || null);
         let masteryBonus = 0;
 
@@ -602,12 +605,15 @@ export class Battle {
         finalDamage = Math.floor(finalDamage * masteryMultiplier);
         finalDamage = Math.max(1, finalDamage);
 
+        if (masteryBonus > 0) auditLog += ` | Maestria +${masteryBonus}%`;
+
         let logDetails = "";
 
         const spdCritChance = attacker.speed / 8;
         if (Math.random() * 100 <= spdCritChance) {
             finalDamage += 5;
             logDetails += " ⚡Crit.Vel!";
+            auditLog += ` | Crit.Vel +5`;
         }
 
         const d6 = Math.floor(Math.random() * 6) + 1;
@@ -618,6 +624,8 @@ export class Battle {
         else if (d6 === 2) rollModifier = -1;
         else if (d6 === 1) rollModifier = -2;
         finalDamage += rollModifier;
+
+        auditLog += ` | 🎲${d6}(${rollModifier > 0 ? '+' : ''}${rollModifier})`;
 
         const atkTypes = [attacker.type, attacker.secondType].filter(t => t);
         const defTypes = [defender.type, defender.secondType].filter(t => t);
@@ -662,6 +670,8 @@ export class Battle {
 
         finalDamage = Math.floor(finalDamage * finalMulti);
 
+        if (finalMulti !== 1.0) auditLog += ` | Mult. Vantagem/Clima x${finalMulti.toFixed(2)}`;
+
         if (finalMulti >= 1.5) logDetails += " 🔥!";
         else if (finalMulti > 1.0) logDetails += " ⚔️";
         else if (finalMulti < 1.0) logDetails += " 🛡️.";
@@ -674,15 +684,17 @@ export class Battle {
                 finalDamage *= 2;
                 this.activeEffects.crit--;
                 logDetails += ` [2x] (Restam: ${this.activeEffects.crit})`;
+                auditLog += ` | Carta Crit x2`;
             }
-            if (this.activeEffects.focus) { finalDamage *= 4; this.activeEffects.focus = false; logDetails += " [4x]"; }
+            if (this.activeEffects.focus) { finalDamage *= 4; this.activeEffects.focus = false; logDetails += " [4x]"; auditLog += ` | Carta Focus x4`; }
             if (this.player?.effects.curse && this.isGym) {
                 finalDamage = Math.floor(finalDamage / 2);
                 logDetails += " [😈Amaldiçoado]";
+                auditLog += ` | Maldição /2`;
             }
         } else {
-            if (this.activeEffects.guard) { finalDamage = Math.floor(finalDamage / 2); logDetails += " [🛡️]"; }
-            if (this.enemyPlayer && this.enemyPlayer.effects.curse) { finalDamage = Math.floor(finalDamage / 2); }
+            if (this.activeEffects.guard) { finalDamage = Math.floor(finalDamage / 2); logDetails += " [🛡️]"; auditLog += ` | Carta Guard /2`; }
+            if (this.enemyPlayer && this.enemyPlayer.effects.curse) { finalDamage = Math.floor(finalDamage / 2); auditLog += ` | Maldição Inimiga /2`; }
         }
 
         let reflectedAmount = 0;
@@ -699,7 +711,9 @@ export class Battle {
             }
         }
 
-        return { damage: finalDamage, msg: `(🎲${d6})${logDetails}`, avoided: false, reflected: reflectedAmount };
+        auditLog += ` => Final: ${finalDamage}]`;
+
+        return { damage: finalDamage, msg: `(🎲${d6})${logDetails}${auditLog}`, avoided: false, reflected: reflectedAmount };
     }
 
     static viewTeam() {
