@@ -1,0 +1,694 @@
+import { CardEffects } from './CardEffects';
+
+export class CardUI {
+    static openTargetSelection(cardId: string) {
+        const Game = (window as any).Game;
+        const currentPlayer = Game.getCurrentPlayer();
+
+        const targets = Game.players.filter((p: any) => p.id !== currentPlayer.id);
+
+        if (targets.length === 0) {
+            Game.showGlobalAlert("Você está sozinho na sala! Não há alvos disponíveis.", currentPlayer.name, true, false);
+            return;
+        }
+
+        const modal = document.getElementById('pkmn-select-modal')!;
+        const list = document.getElementById('pkmn-select-list')!;
+
+        const boardCardsModal = document.getElementById('board-cards-modal');
+        if (boardCardsModal) boardCardsModal.style.display = 'none';
+
+        document.getElementById('select-title')!.innerText = "Selecione o Jogador Alvo:";
+        list.innerHTML = '';
+
+        targets.forEach((target: any) => {
+            const div = document.createElement('div');
+            div.className = `mon-select-item`;
+
+            div.innerHTML = `
+                <img src="${target.avatar}" width="40" style="border-radius: 50%; border: 2px solid #ecf0f1;">
+                <b>${target.name}</b> 
+                <small style="color:#bdc3c7;">(P${target.id + 1})</small>
+            `;
+
+            div.onclick = () => {
+                modal.style.display = 'none';
+                CardEffects.activate(cardId, target.id);
+            };
+            list.appendChild(div);
+        });
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn btn-secondary mt-15';
+        cancelBtn.innerText = 'Cancelar';
+        cancelBtn.onclick = () => { modal.style.display = 'none'; };
+        list.appendChild(cancelBtn);
+
+        modal.style.display = 'flex';
+    }
+
+    static openPokemonSelectionForCard(cardId: string, customTitle: string = "Escolha quem vai comer o Rare Candy:") {
+        const Game = (window as any).Game;
+        const player = Game.getCurrentPlayer();
+        const modal = document.getElementById('pkmn-select-modal')!;
+        const list = document.getElementById('pkmn-select-list')!;
+
+        const boardCardsModal = document.getElementById('board-cards-modal');
+        if (boardCardsModal) boardCardsModal.style.display = 'none';
+
+        document.getElementById('select-title')!.innerText = customTitle;
+        list.innerHTML = '';
+
+        player.team.forEach((mon: any, index: number) => {
+            const div = document.createElement('div');
+            div.className = `mon-select-item`;
+            div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>Lv.${mon.level}</small><br><small style="color:#f1c40f">XP: ${mon.currentXp}/${mon.maxXp}</small>`;
+
+            div.onclick = () => {
+                modal.style.display = 'none';
+                CardEffects.activate(cardId, index);
+            };
+            list.appendChild(div);
+        });
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn btn-secondary mt-15';
+        cancelBtn.innerText = 'Cancelar';
+        cancelBtn.onclick = () => { modal.style.display = 'none'; };
+        list.appendChild(cancelBtn);
+
+        modal.style.display = 'flex';
+    }
+
+    static openEvolutionSelectionForCard(cardId: string) {
+        const Game = (window as any).Game;
+        const player = Game.getCurrentPlayer();
+        const modal = document.getElementById('pkmn-select-modal')!;
+        const list = document.getElementById('pkmn-select-list')!;
+
+        const boardCardsModal = document.getElementById('board-cards-modal');
+        if (boardCardsModal) boardCardsModal.style.display = 'none';
+
+        document.getElementById('select-title')!.innerText = "Escolha quem vai Evoluir:";
+        list.innerHTML = '';
+
+        player.team.forEach((mon: any, index: number) => {
+            const canEvolve = mon.evoData && mon.evoData.next && mon.evoData.next !== "";
+            const div = document.createElement('div');
+
+            if (canEvolve) {
+                div.className = `mon-select-item`;
+                div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>Lv.${mon.level}</small><br><small style="color:#2ecc71">🧬 Evolução Disponível!</small>`;
+                div.onclick = () => {
+                    modal.style.display = 'none';
+                    CardEffects.activate(cardId, index);
+                };
+            } else {
+                div.className = `mon-select-item disabled`;
+                div.innerHTML = `<img src="${mon.getSprite()}" width="40" style="filter: grayscale(100%);"><b>${mon.name}</b> <small>Lv.${mon.level}</small><br><small style="color:#e74c3c">Estágio Máximo</small>`;
+            }
+            list.appendChild(div);
+        });
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn btn-secondary mt-15';
+        cancelBtn.innerText = 'Cancelar';
+        cancelBtn.onclick = () => { modal.style.display = 'none'; };
+        list.appendChild(cancelBtn);
+
+        modal.style.display = 'flex';
+    }
+
+    static async openMegaSelection(cardId: string) {
+        const Game = (window as any).Game;
+        const player = Game.getCurrentPlayer();
+        const modal = document.getElementById('pkmn-select-modal')!;
+        const list = document.getElementById('pkmn-select-list')!;
+        const { MAPA_MEGAS } = await import('../../constants/mapaMegas');
+
+        const boardCardsModal = document.getElementById('board-cards-modal');
+        if (boardCardsModal) boardCardsModal.style.display = 'none';
+
+        document.getElementById('select-title')!.innerText = "Equipar Mega Pedra em quem?";
+        list.innerHTML = '';
+
+        player.team.forEach((mon: any, index: number) => {
+            const div = document.createElement('div');
+            const canMega = !!MAPA_MEGAS[mon.id];
+
+            if (canMega) {
+                if (mon.megaStone) {
+                    div.className = `mon-select-item disabled`;
+                    div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b><br><small style="color:#f1c40f">💎 Já Equipado</small>`;
+                } else {
+                    div.className = `mon-select-item`;
+                    div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b><br><small style="color:#2ecc71">Compatível!</small>`;
+                    div.onclick = () => {
+                        modal.style.display = 'none';
+                        CardEffects.activate(cardId, index);
+                    };
+                }
+            } else {
+                div.className = `mon-select-item disabled`;
+                div.innerHTML = `<img src="${mon.getSprite()}" width="40" style="filter: grayscale(100%); opacity:0.6;"><b>${mon.name}</b><br><small style="color:#e74c3c">Incompatível</small>`;
+            }
+            list.appendChild(div);
+        });
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn btn-secondary mt-15';
+        cancelBtn.innerText = 'Cancelar';
+        cancelBtn.onclick = () => { modal.style.display = 'none'; };
+        list.appendChild(cancelBtn);
+
+        modal.style.display = 'flex';
+    }
+
+    static openReclaimMegaStoneSelection(cardId: string) {
+        const Game = (window as any).Game;
+        const player = Game.getCurrentPlayer();
+        const modal = document.getElementById('pkmn-select-modal')!;
+        const list = document.getElementById('pkmn-select-list')!;
+
+        const boardCardsModal = document.getElementById('board-cards-modal');
+        if (boardCardsModal) boardCardsModal.style.display = 'none';
+
+        document.getElementById('select-title')!.innerText = "Escolha de qual Pokémon recuperar a Mega Pedra:";
+        list.innerHTML = '';
+
+        let hasMega = false;
+        player.team.forEach((mon: any, index: number) => {
+            const div = document.createElement('div');
+
+            if (mon.megaStone) {
+                hasMega = true;
+                div.className = `mon-select-item`;
+                div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>Lv.${mon.level}</small><br><small style="color:#2ecc71">💎 Mega Pedra Equipada!</small>`;
+                div.onclick = () => {
+                    modal.style.display = 'none';
+                    CardEffects.activate(cardId, index);
+                };
+            } else {
+                div.className = `mon-select-item disabled`;
+                div.innerHTML = `<img src="${mon.getSprite()}" width="40" style="filter: grayscale(100%);"><b>${mon.name}</b> <small>Lv.${mon.level}</small><br><small style="color:#e74c3c">Sem Mega Pedra</small>`;
+            }
+            list.appendChild(div);
+        });
+
+        if (!hasMega) {
+            alert("Nenhum de seus Pokémon possui uma Mega Pedra equipada para ser recuperada!");
+            return;
+        }
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn btn-secondary mt-15';
+        cancelBtn.innerText = 'Cancelar';
+        cancelBtn.onclick = () => { modal.style.display = 'none'; };
+        list.appendChild(cancelBtn);
+
+        modal.style.display = 'flex';
+    }
+
+    static openStealMegaStoneTargetSelection(cardId: string) {
+        const Game = (window as any).Game;
+        const currentPlayer = Game.getCurrentPlayer();
+
+        const targets = Game.players.filter((p: any) =>
+            p.id !== currentPlayer.id && p.team.some((mon: any) => mon.megaStone)
+        );
+
+        if (targets.length === 0) {
+            Game.showGlobalAlert("Nenhum adversário possui um Pokémon com Mega Pedra equipada!", currentPlayer.name, true, false);
+            return;
+        }
+
+        const modal = document.getElementById('pkmn-select-modal')!;
+        const list = document.getElementById('pkmn-select-list')!;
+
+        const boardCardsModal = document.getElementById('board-cards-modal');
+        if (boardCardsModal) boardCardsModal.style.display = 'none';
+
+        document.getElementById('select-title')!.innerText = "Escolha de qual jogador destruir a Mega Pedra:";
+        list.innerHTML = '';
+
+        targets.forEach((target: any) => {
+            const div = document.createElement('div');
+            div.className = `mon-select-item`;
+
+            div.innerHTML = `
+                <img src="${target.avatar}" width="40" style="border-radius: 50%; border: 2px solid #ecf0f1;">
+                <b>${target.name}</b> 
+                <small style="color:#bdc3c7;">(P${target.id + 1})</small>
+            `;
+
+            div.onclick = () => {
+                this.openStealMegaStonePokemonSelection(cardId, target.id);
+            };
+            list.appendChild(div);
+        });
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn btn-secondary mt-15';
+        cancelBtn.innerText = 'Cancelar';
+        cancelBtn.onclick = () => { modal.style.display = 'none'; };
+        list.appendChild(cancelBtn);
+
+        modal.style.display = 'flex';
+    }
+
+    static openStealMegaStonePokemonSelection(cardId: string, targetId: number) {
+        const Game = (window as any).Game;
+        const target = Game.players.find((p: any) => p.id === targetId);
+        if (!target) return;
+
+        const modal = document.getElementById('pkmn-select-modal')!;
+        const list = document.getElementById('pkmn-select-list')!;
+
+        document.getElementById('select-title')!.innerText = `Escolha o Pokémon de ${target.name}:`;
+        list.innerHTML = '';
+
+        target.team.forEach((mon: any, index: number) => {
+            const div = document.createElement('div');
+
+            if (mon.megaStone) {
+                div.className = `mon-select-item`;
+                div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>Lv.${mon.level}</small><br><small style="color:#e74c3c">💎 Mega Pedra Alvo</small>`;
+                div.onclick = () => {
+                    modal.style.display = 'none';
+                    CardEffects.activate(cardId, { targetId, pokemonIndex: index });
+                };
+            } else {
+                div.className = `mon-select-item disabled`;
+                div.innerHTML = `<img src="${mon.getSprite()}" width="40" style="filter: grayscale(100%);"><b>${mon.name}</b> <small>Lv.${mon.level}</small><br><small style="color:#7f8c8d">Sem Mega Pedra</small>`;
+            }
+            list.appendChild(div);
+        });
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn btn-secondary mt-15';
+        cancelBtn.innerText = 'Voltar';
+        cancelBtn.onclick = () => { this.openStealMegaStoneTargetSelection(cardId); };
+        list.appendChild(cancelBtn);
+
+        modal.style.display = 'flex';
+    }
+
+    static openAshGoodbyeTargetSelection(cardId: string) {
+        const Game = (window as any).Game;
+        const currentPlayer = Game.getCurrentPlayer();
+
+        const targets = Game.players.filter((p: any) => p.id !== currentPlayer.id);
+
+        if (targets.length === 0) {
+            Game.showGlobalAlert("Nenhum adversário encontrado!", currentPlayer.name, true, false);
+            return;
+        }
+
+        const modal = document.getElementById('pkmn-select-modal')!;
+        const list = document.getElementById('pkmn-select-list')!;
+
+        const boardCardsModal = document.getElementById('board-cards-modal');
+        if (boardCardsModal) boardCardsModal.style.display = 'none';
+
+        document.getElementById('select-title')!.innerText = "Escolha de qual jogador mandar o Pokémon embora:";
+        list.innerHTML = '';
+
+        targets.forEach((target: any) => {
+            const div = document.createElement('div');
+            div.className = `mon-select-item`;
+
+            div.innerHTML = `
+                <img src="${target.avatar}" width="40" style="border-radius: 50%; border: 2px solid #ecf0f1;">
+                <b>${target.name}</b> 
+                <small style="color:#bdc3c7;">(P${target.id + 1})</small>
+            `;
+
+            div.onclick = () => {
+                this.openAshGoodbyePokemonSelection(cardId, target.id);
+            };
+            list.appendChild(div);
+        });
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn btn-secondary mt-15';
+        cancelBtn.innerText = 'Cancelar';
+        cancelBtn.onclick = () => { modal.style.display = 'none'; };
+        list.appendChild(cancelBtn);
+
+        modal.style.display = 'flex';
+    }
+
+    static openAshGoodbyePokemonSelection(cardId: string, targetId: number) {
+        const Game = (window as any).Game;
+        const target = Game.players.find((p: any) => p.id === targetId);
+        if (!target) return;
+
+        const modal = document.getElementById('pkmn-select-modal')!;
+        const list = document.getElementById('pkmn-select-list')!;
+
+        document.getElementById('select-title')!.innerText = `Escolha o Pokémon de ${target.name} para dar o Adeus de Ash:`;
+        list.innerHTML = '';
+
+        target.team.forEach((mon: any, index: number) => {
+            const div = document.createElement('div');
+
+            if (target.team.length === 1) {
+                div.className = `mon-select-item disabled`;
+                div.innerHTML = `<img src="${mon.getSprite()}" width="40" style="filter: grayscale(100%);"><b>${mon.name}</b><br><small style="color:#e74c3c">Último Pokémon</small>`;
+            } else {
+                div.className = `mon-select-item`;
+                div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>Lv.${mon.level}</small>`;
+                div.onclick = () => {
+                    modal.style.display = 'none';
+                    CardEffects.activate(cardId, { targetId, pokemonIndex: index });
+                };
+            }
+            list.appendChild(div);
+        });
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn btn-secondary mt-15';
+        cancelBtn.innerText = 'Voltar';
+        cancelBtn.onclick = () => { this.openAshGoodbyeTargetSelection(cardId); };
+        list.appendChild(cancelBtn);
+
+        modal.style.display = 'flex';
+    }
+
+    static openLegendaryEncounterSelection(options: any[]) {
+        const Game = (window as any).Game;
+        const modal = document.getElementById('pkmn-select-modal')!;
+        const list = document.getElementById('pkmn-select-list')!;
+
+        const boardCardsModal = document.getElementById('board-cards-modal');
+        if (boardCardsModal) boardCardsModal.style.display = 'none';
+
+        document.getElementById('select-title')!.innerText = "Encontro Lendário! Escolha um para lutar e capturar:";
+        list.innerHTML = '';
+
+        options.forEach((monTemplate: any) => {
+            const div = document.createElement('div');
+            div.className = `mon-select-item`;
+            const sprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${monTemplate.id}.png`;
+            div.innerHTML = `<img src="${sprite}" width="40"><b>${monTemplate.name}</b>`;
+            div.onclick = () => {
+                modal.style.display = 'none';
+
+                const PokemonClass = (window as any).Pokemon || Game.players[0].team[0].constructor;
+                const encounterLevel = 10;
+                const wildMon = new PokemonClass(monTemplate.id, encounterLevel);
+                wildMon.vinculoSupremo = true;
+
+                const Battle = (window as any).Battle;
+                Battle.setup(Game.getCurrentPlayer(), wildMon, false, "Selvagem", 0, null, false, 0, "", 1);
+            };
+            list.appendChild(div);
+        });
+
+        modal.style.display = 'flex';
+    }
+
+    static showBallChoice(balls: any[]) {
+        let modal = document.getElementById('ball-choice-modal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'ball-choice-modal';
+            modal.style.cssText = "position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.85); display:flex; justify-content:center; align-items:center; z-index:9999;";
+            document.body.appendChild(modal);
+        }
+
+        let buttonsHTML = '';
+        balls.forEach(b => {
+            buttonsHTML += `<button class="btn" style="margin:5px; padding:15px 30px; background:#e74c3c;" onclick="window.Cards.executeMasterCard('${b.id}')">🎒 ${b.name} (x${b.count})</button>`;
+        });
+
+        buttonsHTML += `<button class="btn btn-secondary" style="margin-top:15px;" onclick="document.getElementById('ball-choice-modal').style.display='none'">Cancelar</button>`;
+
+        modal.innerHTML = `
+            <div style="background:#2b2d42; border:3px solid #8d99ae; border-radius:12px; padding:25px; color:white; text-align:center; box-shadow:0 10px 25px rgba(0,0,0,0.8);">
+                <h3 style="margin-top:0; color:#edf2f4; border-bottom:1px solid #8d99ae; padding-bottom:10px;">Infundir Pokébola</h3>
+                <p>A magia da carta Master Ball garantirá 100% de captura.<br>Qual bola deseja sacrificar?</p>
+                <div style="display:flex; flex-direction:column; gap:10px; margin-top:20px; align-items:center;">
+                    ${buttonsHTML}
+                </div>
+            </div>
+        `;
+        modal.style.display = 'flex';
+    }
+
+    static startTradeFlow(player: any, target: any) {
+        const modal = document.getElementById('pkmn-select-modal')!;
+        const list = document.getElementById('pkmn-select-list')!;
+
+        document.getElementById('select-title')!.innerText = `Escolha o SEU Pokémon para enviar a ${target.name}:`;
+        list.innerHTML = '';
+
+        player.team.forEach((mon: any, index: number) => {
+            const div = document.createElement('div');
+            div.className = `mon-select-item`;
+            div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>Lv.${mon.level}</small>`;
+            div.onclick = () => {
+                this.continueTradeFlow(player, target, index);
+            };
+            list.appendChild(div);
+        });
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn btn-secondary mt-15';
+        cancelBtn.innerText = 'Cancelar';
+        cancelBtn.onclick = () => { modal.style.display = 'none'; };
+        list.appendChild(cancelBtn);
+
+        modal.style.display = 'flex';
+    }
+
+    static continueTradeFlow(player: any, target: any, myChoice: number) {
+        const modal = document.getElementById('pkmn-select-modal')!;
+        const list = document.getElementById('pkmn-select-list')!;
+
+        document.getElementById('select-title')!.innerText = `Escolha o Pokémon de ${target.name} que você vai pegar:`;
+        list.innerHTML = '';
+
+        target.team.forEach((mon: any, index: number) => {
+            const div = document.createElement('div');
+            div.className = `mon-select-item`;
+            div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>Lv.${mon.level}</small>`;
+            div.onclick = () => {
+                modal.style.display = 'none';
+                CardEffects.executeTrade(player, target, myChoice, index);
+            };
+            list.appendChild(div);
+        });
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn btn-secondary mt-15';
+        cancelBtn.innerText = 'Cancelar Voltar';
+        cancelBtn.onclick = () => { modal.style.display = 'none'; };
+        list.appendChild(cancelBtn);
+    }
+
+    static startNPCBattleTradeFlow(player: any) {
+        const modal = document.getElementById('pkmn-select-modal')!;
+        const list = document.getElementById('pkmn-select-list')!;
+
+        document.getElementById('select-title')!.innerText = `Sequestro: Qual SEU Pokemon voce vai entregar?`;
+        list.innerHTML = '';
+
+        player.team.forEach((mon: any, index: number) => {
+            const div = document.createElement('div');
+            if (mon.isTemp || mon.isMegaEvolution) {
+                div.className = `mon-select-item disabled`;
+                div.innerHTML = `<img src="${mon.getSprite()}" width="40" style="filter: grayscale(100%);"><b>${mon.name}</b> <small style="color:red;">Bloqueado</small>`;
+            } else {
+                div.className = `mon-select-item`;
+                div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>Lv.${mon.level}</small>`;
+                div.onclick = () => {
+                    this.continueNPCBattleTradeFlow(player, index);
+                };
+            }
+            list.appendChild(div);
+        });
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn btn-secondary mt-15';
+        cancelBtn.innerText = 'Cancelar';
+        cancelBtn.onclick = () => { modal.style.display = 'none'; };
+        list.appendChild(cancelBtn);
+
+        modal.style.display = 'flex';
+    }
+
+    static continueNPCBattleTradeFlow(player: any, myChoice: number) {
+        const Battle = (window as any).Battle;
+        const modal = document.getElementById('pkmn-select-modal')!;
+        const list = document.getElementById('pkmn-select-list')!;
+
+        document.getElementById('select-title')!.innerText = `Sequestro: Qual Pokemon INIMIGO voce vai levar?`;
+        list.innerHTML = '';
+
+        Battle.oppTeamList.forEach((mon: any, index: number) => {
+            const div = document.createElement('div');
+            if (mon.isTemp || mon.isMegaEvolution) {
+                div.className = `mon-select-item disabled`;
+                div.innerHTML = `<img src="${mon.getSprite()}" width="40" style="filter: grayscale(100%);"><b>${mon.name}</b> <small style="color:red;">Bloqueado</small>`;
+            } else {
+                div.className = `mon-select-item`;
+                div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>Lv.${mon.level}</small>`;
+                div.onclick = () => {
+                    modal.style.display = 'none';
+                    CardEffects.executeNPCBattleTrade(player, myChoice, index);
+                };
+            }
+            list.appendChild(div);
+        });
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn btn-secondary mt-15';
+        cancelBtn.innerText = 'Voltar';
+        cancelBtn.onclick = () => { this.startNPCBattleTradeFlow(player); };
+        list.appendChild(cancelBtn);
+    }
+
+    static openTypeSelection(cardId: string) {
+        const modal = document.getElementById('type-selection-modal')!;
+        const grid = document.getElementById('type-selection-grid')!;
+
+        const typeColors: { [key: string]: string } = {
+            'Normal': '#A8A878', 'Fogo': '#F08030', 'Água': '#6890F0', 'Elétrico': '#F8D030',
+            'Grama': '#78C850', 'Gelo': '#98D8D8', 'Lutador': '#C03028', 'Veneno': '#A040A0',
+            'Terra': '#E0C068', 'Voador': '#A890F0', 'Psíquico': '#F85888', 'Inseto': '#A8B820',
+            'Pedra': '#B8A038', 'Fantasma': '#705898', 'Dragão': '#7038F8', 'Noturno': '#705848',
+            'Aço': '#B8B8D0', 'Fada': '#EE99AC'
+        };
+
+        grid.innerHTML = '';
+        Object.keys(typeColors).forEach(type => {
+            const btn = document.createElement('button');
+            btn.className = 'btn';
+            btn.style.background = typeColors[type];
+            btn.style.fontSize = '0.75rem';
+            btn.style.padding = '10px 5px';
+            btn.style.border = '2px solid rgba(0,0,0,0.2)';
+            btn.innerText = type;
+            btn.onclick = () => {
+                modal.style.display = 'none';
+                CardEffects.activate(cardId, type);
+            };
+            grid.appendChild(btn);
+        });
+
+        modal.style.display = 'flex';
+    }
+
+    static openSacrificeModal() {
+        const Game = (window as any).Game;
+        const Network = (window as any).Network;
+        const player = Game.getCurrentPlayer();
+
+        if (Network.isOnline && player.id !== Network.myPlayerId) return alert("Você só pode sacrificar cartas no seu próprio turno!");
+        if (!Game.canAct()) return alert("Aguarde sua vez para realizar ações.");
+        if (player.cards.length < 2) return alert("Você precisa de pelo menos 2 cartas para realizar um sacrifício.");
+
+        const list = document.getElementById('board-inventory-list')!;
+        const modal = document.getElementById('board-inventory-modal') || document.getElementById('board-cards-modal');
+
+        if (modal) modal.style.display = 'flex';
+        list.innerHTML = `<h3 style="width:100%; text-align:center; color:#e74c3c;">Selecione 2 Cartas para Sacrificar</h3>
+                          <div id="sacrifice-counter" style="width:100%; text-align:center; margin-bottom:10px;">Selecionado: 0/2</div>`;
+
+        player.cards.forEach((c: any, index: number) => {
+            const d = document.createElement('div');
+            d.className = 'card-item';
+            let rarityColor = '#bdc3c7';
+            if (c.rarity === 'Épica') rarityColor = '#9b59b6';
+            if (c.rarity === 'Rara') rarityColor = '#3498db';
+            if (c.rarity === 'Incomum') rarityColor = '#2ecc71';
+
+            d.innerHTML = `
+                <div class="card-info" style="display:flex; align-items:center; gap:10px;">
+                    <input type="checkbox" class="sacrifice-checkbox" data-index="${index}" style="transform: scale(1.5); cursor:pointer;" onchange="window.Cards.updateSacrificeCount()">
+                    <span class="card-name">${c.icon} ${c.name} <span style="font-size: 0.7rem; color: #fff; background: ${rarityColor}; padding: 2px 6px; border-radius: 4px; margin-left: 5px;">${c.rarity.toUpperCase()}</span></span>
+                </div>
+            `;
+            list.appendChild(d);
+        });
+
+        const btnContainer = document.createElement('div');
+        btnContainer.style.width = '100%';
+        btnContainer.style.textAlign = 'center';
+        btnContainer.style.marginTop = '15px';
+        btnContainer.innerHTML = `
+            <button class="btn" style="background-color:#e67e22;" onclick="window.Cards.confirmSacrifice()">🔥 SACRIFICAR</button>
+            <button class="btn btn-secondary" onclick="document.getElementById('${modal?.id}').style.display='none'">Cancelar</button>
+        `;
+        list.appendChild(btnContainer);
+
+        (window as any).Cards.updateSacrificeCount = () => {
+            const checks = document.querySelectorAll('.sacrifice-checkbox:checked');
+            const counter = document.getElementById('sacrifice-counter');
+            if (counter) counter.innerText = `Selecionado: ${checks.length}/2`;
+            if (checks.length > 2) {
+                alert("Selecione apenas 2 cartas!");
+                (window.event?.target as HTMLInputElement).checked = false;
+                if (counter) counter.innerText = `Selecionado: 2/2`;
+            }
+        };
+    }
+
+    static openMergeModal() {
+        const Game = (window as any).Game;
+        const Network = (window as any).Network;
+        const player = Game.getCurrentPlayer();
+
+        if (Network.isOnline && player.id !== Network.myPlayerId) return alert("Você só pode fundir cartas no seu próprio turno!");
+        if (!Game.canAct()) return alert("Aguarde sua vez para realizar ações.");
+        if (player.cards.length < 4) return alert("Você precisa de pelo menos 4 cartas para realizar uma fusão.");
+
+        const list = document.getElementById('board-inventory-list')!;
+        const modal = document.getElementById('board-inventory-modal') || document.getElementById('board-cards-modal');
+
+        if (modal) modal.style.display = 'flex';
+        list.innerHTML = `<h3 style="width:100%; text-align:center; color:#2ecc71;">Selecione 4 Cartas da MESMA raridade</h3>
+                          <p style="width:100%; text-align:center; font-size:0.8rem; color:#7f8c8d; margin-top:-10px;">Fundir 4 cartas aumenta a raridade em +1 nível.</p>
+                          <div id="merge-counter" style="width:100%; text-align:center; margin-bottom:10px;">Selecionado: 0/4</div>`;
+
+        player.cards.forEach((c: any, index: number) => {
+            const d = document.createElement('div');
+            d.className = 'card-item';
+            let rarityColor = '#bdc3c7';
+            if (c.rarity === 'Épica') rarityColor = '#9b59b6';
+            if (c.rarity === 'Rara') rarityColor = '#3498db';
+            if (c.rarity === 'Incomum') rarityColor = '#2ecc71';
+            if (c.rarity === 'Lendária') rarityColor = '#f1c40f';
+
+            d.innerHTML = `
+                <div class="card-info" style="display:flex; align-items:center; gap:10px;">
+                    <input type="checkbox" class="merge-checkbox" data-index="${index}" style="transform: scale(1.5); cursor:pointer;" onchange="window.Cards.updateMergeCount()">
+                    <span class="card-name">${c.icon} ${c.name} <span style="font-size: 0.7rem; color: #fff; background: ${rarityColor}; padding: 2px 6px; border-radius: 4px; margin-left: 5px;">${c.rarity.toUpperCase()}</span></span>
+                </div>
+            `;
+            list.appendChild(d);
+        });
+
+        const btnContainer = document.createElement('div');
+        btnContainer.style.width = '100%';
+        btnContainer.style.textAlign = 'center';
+        btnContainer.style.marginTop = '15px';
+        btnContainer.innerHTML = `
+            <button class="btn" style="background-color:#2ecc71;" onclick="window.Cards.confirmMerge()">💎 FUNDIR CARTAS</button>
+            <button class="btn btn-secondary" onclick="document.getElementById('${modal?.id}').style.display='none'">Cancelar</button>
+        `;
+        list.appendChild(btnContainer);
+
+        (window as any).Cards.updateMergeCount = () => {
+            const checks = document.querySelectorAll('.merge-checkbox:checked');
+            const counter = document.getElementById('merge-counter');
+            if (counter) counter.innerText = `Selecionado: ${checks.length}/4`;
+            if (checks.length > 4) {
+                alert("Selecione apenas 4 cartas!");
+                (window.event?.target as HTMLInputElement).checked = false;
+                if (counter) counter.innerText = `Selecionado: 4/4`;
+            }
+        };
+    }
+}

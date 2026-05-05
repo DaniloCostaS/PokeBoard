@@ -121,6 +121,11 @@ export class Battle {
     static openCardSelection() { BattleUI.openCardSelection(); }
     static getHpColor(current: number, max: number) { return BattleUI.getHpColor(current, max); }
 
+    // AQUI ESTÁ A CORREÇÃO QUE FALTAVA:
+    static logBattle(msg: string, sync: boolean = false, actionPlayerId?: number) {
+        BattleUI.logBattle(msg, sync, actionPlayerId);
+    }
+
     static useCard(cardId: string) {
         if (BattleCore.cardsUsedThisBattle >= 3) return alert("🚫 Você já usou o limite máximo de 3 cartas nesta batalha!");
         const Network = (window as any).Network;
