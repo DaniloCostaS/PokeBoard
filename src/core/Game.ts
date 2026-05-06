@@ -67,6 +67,7 @@ export class Game {
     static getCurrentPlayer() { return GameState.getCurrentPlayer(); }
     static canAct() { return GameState.canAct(); }
     static getGlobalAverageLevel() { return GameState.getGlobalAverageLevel(); }
+    static getGlobalAverageTeamSize() { return GameState.getGlobalAverageTeamSize(); } // <-- CORREÇÃO AQUI
 
     // ==========================================
     // MÉTODOS DE RENDERIZAÇÃO E UI (GameUI)

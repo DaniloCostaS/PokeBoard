@@ -282,4 +282,34 @@ export class GameMovement {
             setTimeout(() => tile.classList.remove('step-highlight'), 300);
         }
     }
+
+    // ==========================================
+    // MODAIS DA CARTA RE-ROLL (DADOS)
+    // ==========================================
+    static showDiceChoice(r1: number, r2: number) {
+        let modal = document.getElementById('dice-choice-modal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'dice-choice-modal';
+            modal.style.cssText = "position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.85); display:flex; justify-content:center; align-items:center; z-index:9999;";
+            document.body.appendChild(modal);
+        }
+
+        modal.innerHTML = `
+            <div style="background:#2b2d42; border:3px solid #8d99ae; border-radius:12px; padding:25px; color:white; text-align:center; box-shadow:0 10px 25px rgba(0,0,0,0.8);">
+                <h3 style="margin-top:0; color:#edf2f4; border-bottom:1px solid #8d99ae; padding-bottom:10px;">Re-Roll! Escolha seu destino:</h3>
+                <div style="display:flex; justify-content:center; gap:20px; margin-top:20px;">
+                    <button class="btn" style="font-size:2rem; padding:20px 40px; background:#e74c3c; border:none; border-radius:8px; color:white; cursor:pointer;" onclick="window.Game.chooseDice(${r1})">🎲 ${r1}</button>
+                    <button class="btn" style="font-size:2rem; padding:20px 40px; background:#3498db; border:none; border-radius:8px; color:white; cursor:pointer;" onclick="window.Game.chooseDice(${r2})">🎲 ${r2}</button>
+                </div>
+            </div>
+        `;
+        modal.style.display = 'flex';
+    }
+
+    static chooseDice(val: number) {
+        const modal = document.getElementById('dice-choice-modal');
+        if (modal) modal.style.display = 'none';
+        this.forceDice(val);
+    }
 }

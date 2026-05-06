@@ -6,33 +6,78 @@ import { Cards } from './Cards';
 
 export class Battle {
 
-    // --- ESTADO DA BATALHA (Mapeando para o Core) ---
+    // ==========================================
+    // ESTADO DA BATALHA (GETTERS E SETTERS)
+    // ==========================================
     static get active() { return BattleCore.active; }
     static set active(val) { BattleCore.active = val; }
 
     static get player() { return BattleCore.player; }
-    static get activeMon() { return BattleCore.activeMon; }
-    static get opponent() { return BattleCore.opponent; }
-    static get enemyPlayer() { return BattleCore.enemyPlayer; }
-    static get isPvP() { return BattleCore.isPvP; }
-    static get isNPC() { return BattleCore.isNPC; }
-    static get isGym() { return BattleCore.isGym; }
-    static get gymId() { return BattleCore.gymId; }
-    static get reward() { return BattleCore.reward; }
-    static get battleTitle() { return BattleCore.battleTitle; }
-    static get plyTeamList() { return BattleCore.plyTeamList; }
-    static get oppTeamList() { return BattleCore.oppTeamList; }
-    static get pendingCapture() { return BattleCore.pendingCapture; }
-    static get isPlayerTurn() { return BattleCore.isPlayerTurn; }
-    static get processingAction() { return BattleCore.processingAction; }
-    static get activeEffects() { return BattleCore.activeEffects; }
-    static get itemsUsedThisBattle() { return BattleCore.itemsUsedThisBattle; }
-    static get cardsUsedThisBattle() { return BattleCore.cardsUsedThisBattle; }
-    static get currentTerrain() { return BattleCore.currentTerrain; }
-    static get isAutoPvE() { return BattleCore.isAutoPvE; }
-    static get isChampion() { return BattleCore.isChampion; }
+    static set player(val) { BattleCore.player = val; }
 
-    // --- INTERFACES DO CORE ---
+    static get activeMon() { return BattleCore.activeMon; }
+    static set activeMon(val) { BattleCore.activeMon = val; }
+
+    static get opponent() { return BattleCore.opponent; }
+    static set opponent(val) { BattleCore.opponent = val; }
+
+    static get enemyPlayer() { return BattleCore.enemyPlayer; }
+    static set enemyPlayer(val) { BattleCore.enemyPlayer = val; }
+
+    static get isPvP() { return BattleCore.isPvP; }
+    static set isPvP(val) { BattleCore.isPvP = val; }
+
+    static get isNPC() { return BattleCore.isNPC; }
+    static set isNPC(val) { BattleCore.isNPC = val; }
+
+    static get isGym() { return BattleCore.isGym; }
+    static set isGym(val) { BattleCore.isGym = val; }
+
+    static get gymId() { return BattleCore.gymId; }
+    static set gymId(val) { BattleCore.gymId = val; }
+
+    static get reward() { return BattleCore.reward; }
+    static set reward(val) { BattleCore.reward = val; }
+
+    static get battleTitle() { return BattleCore.battleTitle; }
+    static set battleTitle(val) { BattleCore.battleTitle = val; }
+
+    static get plyTeamList() { return BattleCore.plyTeamList; }
+    static set plyTeamList(val) { BattleCore.plyTeamList = val; }
+
+    static get oppTeamList() { return BattleCore.oppTeamList; }
+    static set oppTeamList(val) { BattleCore.oppTeamList = val; }
+
+    static get pendingCapture() { return BattleCore.pendingCapture; }
+    static set pendingCapture(val) { BattleCore.pendingCapture = val; }
+
+    static get isPlayerTurn() { return BattleCore.isPlayerTurn; }
+    static set isPlayerTurn(val) { BattleCore.isPlayerTurn = val; }
+
+    static get processingAction() { return BattleCore.processingAction; }
+    static set processingAction(val) { BattleCore.processingAction = val; }
+
+    static get activeEffects() { return BattleCore.activeEffects; }
+    static set activeEffects(val) { BattleCore.activeEffects = val; }
+
+    static get itemsUsedThisBattle() { return BattleCore.itemsUsedThisBattle; }
+    static set itemsUsedThisBattle(val) { BattleCore.itemsUsedThisBattle = val; }
+
+    static get cardsUsedThisBattle() { return BattleCore.cardsUsedThisBattle; }
+    static set cardsUsedThisBattle(val) { BattleCore.cardsUsedThisBattle = val; }
+
+    static get currentTerrain() { return BattleCore.currentTerrain; }
+    static set currentTerrain(val) { BattleCore.currentTerrain = val; }
+
+    static get isAutoPvE() { return BattleCore.isAutoPvE; }
+    static set isAutoPvE(val) { BattleCore.isAutoPvE = val; }
+
+    static get isChampion() { return BattleCore.isChampion; }
+    static set isChampion(val) { BattleCore.isChampion = val; }
+
+    // ==========================================
+    // INTERFACES DO CORE
+    // ==========================================
     static setup(player: Player, enemyMon: any, isPvP: boolean = false, _label: string = "", reward: number = 0, enemyPlayer: Player | null = null, isGym: boolean = false, gymId: number = 0, npcImage: string = "", terrainTile: number = 1) {
         BattleCore.setup(player, enemyMon, isPvP, _label, reward, enemyPlayer, isGym, gymId, npcImage, terrainTile);
     }
@@ -44,7 +89,6 @@ export class Battle {
     static toggleAutoPvE() { BattleCore.toggleAutoPvE(); }
     static end(isRemote: boolean) { BattleCore.end(isRemote); }
 
-    // Adicionados para evitar quebras silenciosas por outras classes (ex: Pokemon.ts ou Cards.ts)
     static captureSuccess() { BattleCore.captureSuccess(); }
     static attemptCapture(item: any) { BattleCore.attemptCapture(item); }
     static tryTriggerMegaEvolution(msg?: string) { BattleCore.tryTriggerMegaEvolution(msg); }
@@ -58,7 +102,9 @@ export class Battle {
     static autoAttackNext() { BattleCore.autoAttackNext(); }
     static startAutoPvP() { BattleCore.startAutoPvP(); }
 
-    // --- FUNÇÕES DA NETWORK (Mantidas na Facade para facilidade de comunicação) ---
+    // ==========================================
+    // FUNÇÕES DA NETWORK (Para comunicação remota)
+    // ==========================================
     static startFromNetwork(payload: any) {
         const Game = (window as any).Game;
         const Network = (window as any).Network;
@@ -129,7 +175,9 @@ export class Battle {
         BattleUI.updateUI();
     }
 
-    // --- INTERFACES DO UI E CARTAS ---
+    // ==========================================
+    // INTERFACES DO UI E CARTAS
+    // ==========================================
     static updateUI() { BattleUI.updateUI(); }
     static updateButtons() { BattleUI.updateButtons(); }
     static viewTeam() { BattleUI.viewTeam(); }
