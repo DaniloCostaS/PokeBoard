@@ -8,10 +8,13 @@ import { Pokemon } from '../models/Pokemon';
 
 /**
  * FACADE PRINCIPAL
+ * Mantém a interface do antigo Game.ts para que os outros arquivos continuem funcionando perfeitamente!
  */
 export class Game {
 
-    // --- ESTADO GLOBAL ---
+    // ==========================================
+    // ESTADO GLOBAL (GETTERS E SETTERS)
+    // ==========================================
     static get players() { return GameState.players; }
     static set players(val) { GameState.players = val; }
 
@@ -27,16 +30,47 @@ export class Game {
     static get traps() { return GameState.traps; }
     static set traps(val) { GameState.traps = val; }
 
-    static get currentGlobalEvent() { return GameState.currentGlobalEvent; }
     static get lixeira() { return GameState.lixeira; }
+    static set lixeira(val) { GameState.lixeira = val; }
 
-    // --- MÉTODOS NUCLEARES ---
+    static get currentGlobalEvent() { return GameState.currentGlobalEvent; }
+    static set currentGlobalEvent(val) { GameState.currentGlobalEvent = val; }
+
+    static get eventEndRound() { return GameState.eventEndRound; }
+    static set eventEndRound(val) { GameState.eventEndRound = val; }
+
+    static get gymTeams() { return GameState.gymTeams; }
+    static set gymTeams(val) { GameState.gymTeams = val; }
+
+    static get activeGyms() { return GameState.activeGyms; }
+    static set activeGyms(val) { GameState.activeGyms = val; }
+
+    static get globalLogs() { return GameState.globalLogs; }
+    static set globalLogs(val) { GameState.globalLogs = val; }
+
+    static get isCityEvent() { return GameState.isCityEvent; }
+    static set isCityEvent(val) { GameState.isCityEvent = val; }
+
+    static get hasRolled() { return GameState.hasRolled; }
+    static set hasRolled(val) { GameState.hasRolled = val; }
+
+    static get pendingTileEvent() { return GameState.pendingTileEvent; }
+    static set pendingTileEvent(val) { GameState.pendingTileEvent = val; }
+
+    static get bonusMovement() { return GameState.bonusMovement; }
+    static set bonusMovement(val) { GameState.bonusMovement = val; }
+
+    // ==========================================
+    // MÉTODOS NUCLEARES
+    // ==========================================
     static init(players: Player[], mapSize: number) { GameState.init(players, mapSize); }
     static getCurrentPlayer() { return GameState.getCurrentPlayer(); }
     static canAct() { return GameState.canAct(); }
     static getGlobalAverageLevel() { return GameState.getGlobalAverageLevel(); }
 
-    // --- MÉTODOS DE RENDERIZAÇÃO E UI (GameUI) ---
+    // ==========================================
+    // MÉTODOS DE RENDERIZAÇÃO E UI (GameUI)
+    // ==========================================
     static updateHUD() { GameUI.updateHUD(); }
     static renderBoard() { GameUI.renderBoard(); }
     static renderTraps(newTraps?: any[]) { GameUI.renderTraps(newTraps); }
@@ -60,6 +94,7 @@ export class Game {
     static showEventDetails() { (GameUI as any).showEventDetails(); }
     static openInventoryModal(pId: number, readOnly: boolean = false) { (GameUI as any).openInventoryModal(pId, readOnly); }
     static openCardLibrary() { (GameUI as any).openCardLibrary(); }
+    static openItemLibrary() { (GameUI as any).openItemLibrary(); }
     static openBoardCards(pId: number) { (GameUI as any).openBoardCards(pId); }
     static openPokedex(pId: number, filterId: number | null = null) { (GameUI as any).openPokedex(pId, filterId); }
     static openPokedexEntry(targetId: number) { (GameUI as any).openPokedexEntry(targetId); }
@@ -69,7 +104,9 @@ export class Game {
     static openCaptureRules() { (GameUI as any).openCaptureRules(); }
     static openCombatRules() { (GameUI as any).openCombatRules(); }
 
-    // --- PAINEL ADMIN ---
+    // ==========================================
+    // PAINEL ADMIN E HOST
+    // ==========================================
     static openAdminPanel() { (GameUI as any).openAdminPanel(); }
     static adminGiveCard() { (GameEvents as any).adminGiveCard(); }
     static adminClearDebuffs() { (GameEvents as any).adminClearDebuffs(); }
@@ -78,14 +115,20 @@ export class Game {
     static adminSetRound() { (GameEvents as any).adminSetRound(); }
     static adminSetTurn() { (GameEvents as any).adminSetTurn(); }
 
-    // --- MÉTODOS DE MOVIMENTAÇÃO E DADOS ---
+    // ==========================================
+    // MÉTODOS DE MOVIMENTAÇÃO E DADOS
+    // ==========================================
     static rollDice() { GameMovement.rollDice(); }
     static forceDice(val: number) { GameMovement.forceDice(val); }
     static debugMove() { GameMovement.debugMove(); }
     static performVisualStep(pId: number, x: number, y: number) { GameMovement.performVisualStep(pId, x, y); }
     static animateDice(result: number, playerId: number) { GameMovement.animateDice(result, playerId); }
+    static showDiceChoice(r1: number, r2: number) { (GameMovement as any).showDiceChoice(r1, r2); }
+    static chooseDice(val: number) { (GameMovement as any).chooseDice(val); }
 
-    // --- MÉTODOS DE EVENTOS E TURNOS (GameEvents) ---
+    // ==========================================
+    // MÉTODOS DE EVENTOS E TURNOS
+    // ==========================================
     static nextTurn() { GameEvents.nextTurn(); }
     static handleTile(p: Player) { GameEvents.handleTile(p); }
     static handleCityChoice(c: string) { GameEvents.handleCityChoice(c); }
@@ -93,19 +136,27 @@ export class Game {
     static handleTotalDefeat(p: Player) { GameEvents.handleTotalDefeat(p); }
     static rescueFromLixeira(idx: number) { GameEvents.rescueFromLixeira(idx); }
     static checkTurnControl() { GameEvents.checkTurnControl(); }
+    static getLastCityCoord(p: Player) { return GameEvents.getLastCityCoord(p); }
+    static placeTrap(x: number, y: number, ownerId: number) { (GameMovement as any).placeTrap(x, y, ownerId); }
 
     static addItem(player: Player, itemId: string, amount: number = 1) { GameEvents.addItem(player, itemId, amount); }
     static useItemBoard(key: string, pId: number) { GameEvents.useItemBoard(key, pId); }
 
-    // --- SAVE E LOAD ---
+    // ==========================================
+    // SAVE E LOAD
+    // ==========================================
     static saveGame() { GameState.saveGame(); }
     static loadGame() { GameState.loadGame(); }
     static getSaveData() { return GameState.getSaveData(); }
+    static exportSave() { (GameState as any).exportSave(); }
+    static importSave(i: HTMLInputElement) { (GameState as any).importSave(i); }
 
-    // --- SPAWNS ---
+    // ==========================================
+    // SPAWNS
+    // ==========================================
     static generateWildPokemon(tileType: number) { return GameSpawns.generateWildPokemon(tileType); }
     static generateGymTeams() { GameSpawns.generateGymTeams(); }
 }
 
-// Vincula o Game ao window
+// Vincula o Game ao window para comunicação com DOM e index.html
 (window as any).Game = Game;

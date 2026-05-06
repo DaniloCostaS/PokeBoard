@@ -885,6 +885,68 @@ export class GameUI {
         document.getElementById('library-modal')!.style.display = 'flex';
     }
 
+    static openItemLibrary() {
+        const list = document.getElementById('item-library-list')!;
+        list.innerHTML = '';
+
+        const modalContent = document.querySelector('#item-library-modal .modal-content') as HTMLElement || document.querySelector('#item-library-modal .modal-box') as HTMLElement;
+        if (modalContent) {
+            modalContent.style.width = "98%";
+            modalContent.style.maxWidth = "1400px";
+            modalContent.style.maxHeight = "95vh";
+            modalContent.style.padding = "30px";
+            modalContent.style.overflowY = "auto";
+        }
+
+        list.style.display = 'grid';
+        list.style.gridTemplateColumns = 'repeat(auto-fill, minmax(220px, 1fr))';
+        list.style.gap = '25px';
+        list.style.padding = '20px';
+        list.style.width = '100%';
+
+        const typeFilter = (document.getElementById('item-library-type-filter') as HTMLSelectElement)?.value || 'all';
+
+        let filtered = SHOP_ITEMS.filter(i => {
+            if (typeFilter !== 'all' && i.type !== typeFilter) return false;
+            return true;
+        });
+
+        const typeOrder: Record<string, number> = { 'heal': 1, 'revive': 2, 'capture': 3, 'mega': 4, 'boost': 5, 'hold': 6 };
+
+        filtered.sort((a, b) => {
+            if (typeOrder[a.type] !== typeOrder[b.type]) return (typeOrder[a.type] || 99) - (typeOrder[b.type] || 99);
+            return a.name.localeCompare(b.name);
+        });
+
+        filtered.forEach(item => {
+            const d = document.createElement('div');
+            d.style.cssText = "display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); width: 100%; box-sizing: border-box; position: relative; border: 1px solid #556;";
+
+            const typeLabel = item.type === 'heal' ? 'Cura' :
+                              item.type === 'revive' ? 'Reviver' :
+                              item.type === 'capture' ? 'Captura' :
+                              item.type === 'mega' ? 'Mega Stone' :
+                              item.type === 'boost' ? 'Boost' :
+                              item.type === 'hold' ? 'Segurar' : (item.type as string).toUpperCase();
+
+            const borderColor = item.type === 'mega' ? '#f1c40f' : '#3498db';
+
+            d.innerHTML = `
+                <div style="position: absolute; top: -5px; right: -5px; background: ${borderColor}; color: #fff; padding: 2px 6px; font-size: 0.7rem; border-radius: 10px; font-weight: bold; border: 1px solid #222; text-shadow: 1px 1px 0 #000; box-shadow: 0 2px 4px rgba(0,0,0,0.5); z-index: 10;">
+                    ${typeLabel.toUpperCase()}
+                </div>
+                <div style="display:flex; justify-content:center; align-items:center; width:100%; height:80px; margin-bottom:10px;">
+                    <img src="/assets/img/Itens/${item.icon}" alt="${item.name}" style="max-height: 100%; max-width: 100%; object-fit: contain; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4));">
+                </div>
+                <div style="margin-top: 8px; font-size: 1rem; text-align: center; color: #f1c40f; font-weight:bold;">${item.name}</div>
+                <div style="font-size: 0.85rem; color: #edf2f4; margin-top:5px; text-align:center; flex-grow:1;">${item.desc}</div>
+                <div style="margin-top: 10px; font-size: 0.9rem; color: #2ecc71; font-weight:bold; background:rgba(0,0,0,0.3); padding:4px 10px; border-radius:4px; width:100%; text-align:center;">💰 ${item.price} G</div>
+            `;
+            list.appendChild(d);
+        });
+        document.getElementById('item-library-modal')!.style.display = 'flex';
+    }
+
     static openXpRules() {
         document.getElementById('xp-rules-modal')!.style.display = 'flex';
     }

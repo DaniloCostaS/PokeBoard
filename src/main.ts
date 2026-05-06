@@ -17,6 +17,7 @@ declare global {
         openInventory: (playerId: number, readOnly?: boolean) => void;
         openCards: (playerId: number) => void;
         openCardLibrary: () => void;
+        openItemLibrary: () => void;
         openXpRules: () => void;
     }
 }
@@ -36,6 +37,7 @@ window.openCards = (id) => {
     Cards.showPlayerCards(id); 
 };
 window.openCardLibrary = () => Game.openCardLibrary();
+window.openItemLibrary = () => Game.openItemLibrary();
 window.openXpRules = () => Game.openXpRules();
 
 // Inicialização

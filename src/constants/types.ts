@@ -17,6 +17,7 @@ export interface PokemonData {
 export interface ItemData {
     id: string;
     name: string;
+    desc: string;
     icon: string;
     price: number;
     type: 'heal' | 'capture' | 'revive' | 'boost' | 'mega' | 'hold';

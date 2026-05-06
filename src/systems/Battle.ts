@@ -44,6 +44,20 @@ export class Battle {
     static toggleAutoPvE() { BattleCore.toggleAutoPvE(); }
     static end(isRemote: boolean) { BattleCore.end(isRemote); }
 
+    // Adicionados para evitar quebras silenciosas por outras classes (ex: Pokemon.ts ou Cards.ts)
+    static captureSuccess() { BattleCore.captureSuccess(); }
+    static attemptCapture(item: any) { BattleCore.attemptCapture(item); }
+    static tryTriggerMegaEvolution(msg?: string) { BattleCore.tryTriggerMegaEvolution(msg); }
+    static tryOpponentMegaEvolution(msg?: string) { BattleCore.tryOpponentMegaEvolution(msg); }
+    static revertMew() { BattleCore.revertMew(); }
+    static revertOpponentMew() { BattleCore.revertOpponentMew(); }
+    static checkWinCondition() { BattleCore.checkWinCondition(); }
+    static handleFaint() { BattleCore.handleFaint(); }
+    static win() { BattleCore.win(); }
+    static lose() { BattleCore.lose(); }
+    static autoAttackNext() { BattleCore.autoAttackNext(); }
+    static startAutoPvP() { BattleCore.startAutoPvP(); }
+
     // --- FUNÇÕES DA NETWORK (Mantidas na Facade para facilidade de comunicação) ---
     static startFromNetwork(payload: any) {
         const Game = (window as any).Game;
@@ -116,15 +130,14 @@ export class Battle {
     }
 
     // --- INTERFACES DO UI E CARTAS ---
+    static updateUI() { BattleUI.updateUI(); }
+    static updateButtons() { BattleUI.updateButtons(); }
     static viewTeam() { BattleUI.viewTeam(); }
     static openBag() { BattleUI.openBag(); }
     static openCardSelection() { BattleUI.openCardSelection(); }
     static getHpColor(current: number, max: number) { return BattleUI.getHpColor(current, max); }
-
-    // AQUI ESTÁ A CORREÇÃO QUE FALTAVA:
-    static logBattle(msg: string, sync: boolean = false, actionPlayerId?: number) {
-        BattleUI.logBattle(msg, sync, actionPlayerId);
-    }
+    static logBattle(msg: string, sync: boolean = false, actionPlayerId?: number) { BattleUI.logBattle(msg, sync, actionPlayerId); }
+    static async animateCaptureSequence(ballIcon: string, isSuccess: boolean) { await BattleUI.animateCaptureSequence(ballIcon, isSuccess); }
 
     static useCard(cardId: string) {
         if (BattleCore.cardsUsedThisBattle >= 3) return alert("🚫 Você já usou o limite máximo de 3 cartas nesta batalha!");

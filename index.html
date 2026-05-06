@@ -153,6 +153,7 @@
                 <div id="champion-global-banner" style="display: none;"></div>
                 <button class="btn btn-secondary" onclick="window.Game.openCardLibrary()">📖 Ver Todas as
                     Cartas</button>
+                <button class="btn btn-secondary" onclick="window.Game.openItemLibrary()">🎒 Ver Todos os Itens</button>
                 <button class="btn btn-secondary" style="background: #e67e22;"
                     onclick="window.Game.openCaptureRules()">🦅 Regras de Captura</button>
                 <button class="btn btn-secondary" style="background: #e74c3c;"
@@ -421,6 +422,27 @@
             <div id="library-list" class="scroll-list" style="max-height: 80%;"></div><button
                 class="btn btn-secondary mt-15"
                 onclick="document.getElementById('library-modal').style.display='none'">Fechar</button>
+        </div>
+    </div>
+    <div id="item-library-modal" class="modal-overlay">
+        <div class="modal-box" style="width: 1200px;">
+            <h3>🎒 Enciclopédia de Itens</h3>
+            <div style="display:flex; gap:10px; margin-bottom: 15px; justify-content:center;">
+                <select id="item-library-type-filter" class="form-control"
+                    style="background:#2b2d42; color:#fff; border:1px solid #556; border-radius:4px; padding:5px;"
+                    onchange="window.Game.openItemLibrary()">
+                    <option value="all">Todos os Tipos</option>
+                    <option value="heal">Cura</option>
+                    <option value="revive">Reviver</option>
+                    <option value="capture">Captura</option>
+                    <option value="mega">Mega Stone</option>
+                    <option value="boost">Boost</option>
+                    <option value="hold">Segurar (Hold)</option>
+                </select>
+            </div>
+            <div id="item-library-list" class="scroll-list" style="max-height: 80%;"></div><button
+                class="btn btn-secondary mt-15"
+                onclick="document.getElementById('item-library-modal').style.display='none'">Fechar</button>
         </div>
     </div>
     <div id="battle-cards-modal" class="modal-overlay" style="z-index: 1200;">
