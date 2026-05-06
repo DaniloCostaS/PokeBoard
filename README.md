@@ -21,32 +21,60 @@ O PokéBoard coloca você no papel de um treinador competindo em uma jornada emo
 - **Frontend / Interface:** HTML5 puro e CSS Vanilla (`style.css`), sem frameworks visuais pesados.
 - **Backend / Multiplayer:** [Firebase](https://firebase.google.com/) Realtime Database (App modular V10+).
 
-## 📁 Estrutura de Diretórios 
+## 📁 Estrutura Detalhada do Projeto
 
-Toda a lógica foi desenvolvida modularmente. Abaixo está a visão macro do projeto:
+A arquitetura do **PokéBoard V91** segue um padrão modular para facilitar a manutenção e escalabilidade. Abaixo está o detalhamento de cada diretório e seus respectivos arquivos:
 
-```text
-c:\Desenvolvimentos\PokeBoard\
-├── public/                 # Asset estáticos puros (Imagens de treinadores, pokemons e tilesets).
-├── src/                    # Código-fonte compilável do jogo em TypeScript.
-│   ├── constants/          # Constantes estáticas e dados JSON-like (Pokédex, Itens, NPCs, Ginásios, Tipos, Raridades).
-│   ├── core/               # Núcleo Central (Game.ts gerencia as interações, Setup.ts lida com as inicializações).
-│   ├── models/             # Interfaces (Tipos TS estritos garantindo qualidade e redução de bugs de código).
-│   ├── systems/            # Módulos operacionais isolados do núcleo:
-│   │   ├── Battle.ts       # Mecanismo, cálculos e fluxo de turnos em Combates PVE/PVP.
-│   │   ├── Cards.ts        # Gerenciamento do deck de cartas do jogador no tabuleiro e batalhas.
-│   │   ├── MapSystem.ts    # Renderização da grade procedural do jogo (Tiles vazios, NPCs, Mato Alto, etc).
-│   │   ├── Network.ts      # Envio e recebimento remoto via Firebase.
-│   │   └── Shop.ts         # Central de Compras (Centro Pokémon / Loja de Itens).
-│   ├── main.ts             # Boostrap do jogo (Injeta as classes e objetos no escopo global para o DOM interagir).
-│   └── style.css           # Estilizações da Engine Web, Grids e Animações base.
-├── docs/                   # Documentações e design patterns.
-├── index.html              # UI (User Interface) e Modais.
-├── package.json            # Manifest do Projeto (Comandos CLI e Dependências Dev/Prod).
-├── tsconfig.json           # Regras do compilador TypeScript.
-├── firebase.json           # Configurações de Deploy no Firebase Hosting.
-└── inventario.json         # Inventário em JSON espelhando a estrutura modular detalhada deste Readme.
-```
+### 📂 `src/modules/` (Lógica de Domínio)
+Esta é a nova camada central onde reside toda a inteligência do jogo, separada por domínios:
+- **`battle/`**: Gerencia o sistema de combate.
+    - `BattleCore.ts`: Lógica principal, controle de turnos e fluxo de batalha.
+    - `BattleCalc.ts`: Cálculos matemáticos de dano, esquiva, crítico e vantagens de tipo.
+    - `BattleUI.ts`: Manipulação do DOM específica para a tela de batalha.
+- **`cards/`**: Sistema de cartas estratégicas.
+    - `CardManager.ts`: Controle do inventário de cartas e sorteios.
+    - `CardEffects.ts`: Implementação técnica do efeito de cada carta no jogo.
+    - `CardUI.ts`: Interface visual do deck e animações de uso.
+- **`game/`**: Gerenciamento global do estado.
+    - `GameState.ts`: Controle de turnos, rounds e persistência local/remota.
+    - `GameEvents.ts`: Lógica dos Eventos Globais (ex: Blood Moon, Gold Rush).
+    - `GameMovement.ts`: Lógica de movimentação dos jogadores no tabuleiro.
+    - `GameSpawns.ts`: Geração de encontros selvagens e NPCs.
+    - `GameUI.ts`: Atualização de elementos da UI principal (HUD, Logs).
+- **`map/`**: Geração do mundo.
+    - `MapGenerator.ts`: Algoritmo procedural para criação da grade do tabuleiro.
+    - `MapRender.ts`: Renderização visual e cálculo de coordenadas (Isometric/Grid).
+- **`network/`**: Comunicação Multiplayer.
+    - `FirebaseInit.ts`: Configuração e conexão com o Firebase Realtime Database.
+    - `NetworkActions.ts`: Comandos de envio (Sync de ataques, movimentos, etc).
+    - `NetworkSync.ts`: Listeners que recebem e aplicam mudanças de outros jogadores.
+- **`shop/`**: Sistema econômico.
+    - `ShopLogic.ts`: Processamento de compras e validação de saldo.
+    - `ShopUI.ts`: Interface do PokéMart e Centro Pokémon.
+
+### 📂 `src/systems/` (Facades / Pontes)
+Arquivos que servem como interfaces simplificadas para o mundo externo (especialmente chamadas vindas do `index.html`).
+- `Battle.ts`, `Cards.ts`, `MapSystem.ts`, `Network.ts`, `Shop.ts`: Atuam como roteadores que delegam as chamadas para os seus respectivos `modules`.
+
+### 📂 `src/core/` (Orquestração)
+- `Game.ts`: A classe "Master" que inicializa e coordena todos os sistemas.
+- `Setup.ts`: Lida com a configuração inicial do ambiente e variáveis globais.
+
+### 📂 `src/models/` (Definições de Dados)
+- `Player.ts`: Classe que define a estrutura de um Treinador (Time, Insígnias, Gold).
+- `Pokemon.ts`: Classe que define os atributos e métodos de um Pokémon individual (XP, HP, Stats).
+
+### 📂 `src/constants/` (Base de Dados)
+Contém toda a informação estática do jogo:
+- `pokedex.ts`: Lista completa de Pokémons, tipos e atributos base.
+- `items.ts` / `cards.ts`: Catálogo de itens e cartas disponíveis.
+- `gyms.ts` / `npcs.ts`: Definições dos Líderes de Ginásio e Treinadores.
+- `typeChart.ts`: Tabela de vantagens e fraquezas elementares.
+
+### 📂 Outros Arquivos
+- **`index.html`**: Estrutura de visualização principal e definição de Modais.
+- **`src/style.css`**: Todo o design visual, layouts de grid e animações CSS.
+- **`inventario.json`**: Documento técnico que mapeia a saúde e progresso da estrutura do projeto.
 
 ## 🚀 Como Iniciar
 

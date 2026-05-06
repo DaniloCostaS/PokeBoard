@@ -58,8 +58,12 @@
             "descricao": "Lógica principal responsável pelo andamento global do Game."
           },
           {
+            "nome": "modules (battle, cards, game, map, network, shop)",
+            "descricao": "Nova arquitetura modular com lógica de domínio isolada para cada sistema do jogo."
+          },
+          {
             "nome": "systems (Battle.ts, Cards.ts, MapSystem.ts, Network.ts, Shop.ts)",
-            "descricao": "Sistemas vitais encapsulados em módulos independentes."
+            "descricao": "Facades que expõem as funcionalidades dos módulos para o escopo global e interações via HTML."
           },
           {
             "nome": "constants",
