@@ -102,6 +102,8 @@ export class GameUI {
             const totalCards = p.cards.length;
 
             let effectsHTML = `<div style="display:flex; gap:4px; flex-wrap:wrap; margin-top:2px; min-height:18px;">`;
+            const protectedCardsCount = p.cards.filter((c:any) => c.isProtected).length;
+            if (protectedCardsCount > 0) effectsHTML += `<span style="background:#f39c12; color:white; font-size:0.65rem; padding:1px 4px; border-radius:4px;" title="Cartas Protegidas">🔒 ${protectedCardsCount}</span>`;
             if (p.skipTurns > 0) effectsHTML += `<span style="background:#c0392b; color:white; font-size:0.65rem; padding:1px 4px; border-radius:4px;" title="Paralisado">🚫 ${p.skipTurns}</span>`;
             if (p.effects.slow && p.effects.slow > 0) effectsHTML += `<span style="background:#7f8c8d; color:white; font-size:0.65rem; padding:1px 4px; border-radius:4px;" title="Lentidão">🕸️ ${p.effects.slow}</span>`;
             if (p.effects.curse) effectsHTML += `<span style="background:#2c3e50; color:#e74c3c; font-size:0.65rem; padding:1px 4px; border-radius:4px; border:1px solid #e74c3c;" title="Amaldiçoado">😈 CURSE</span>`;
@@ -1053,26 +1055,35 @@ export class GameUI {
             return a.name.localeCompare(b.name);
         });
 
-        filteredCards.forEach(c => {
+        filteredCards.forEach((c) => {
+            const originalIndex = p.cards.indexOf(c);
             const rData = CARD_RARITIES[c.rarity];
-            const borderColor = rData ? rData.color : '#8d99ae';
+            let borderColor = rData ? rData.color : '#8d99ae';
+            if (c.isProtected) borderColor = '#f1c40f'; // Golden border for protected
 
             const d = document.createElement('div');
 
             const btnBaseStyle = "width:100%; padding:8px; border:none; border-radius:4px; color:white; font-weight:bold; cursor:pointer;";
             let actionBtn = '';
 
-            if (c.type === 'move') {
-                if (canUseMove) actionBtn = `<button class="btn" style="${btnBaseStyle} background:#2ecc71;" onclick="window.Cards.activate('${c.id}')">USAR</button>`;
-                else actionBtn = `<button class="btn" disabled style="${btnBaseStyle} background:#7f8c8d; cursor:not-allowed;" title="Só pode usar antes de rolar o dado">USAR</button>`;
-            } else if (c.type === 'global') {
-                if (canUseMove) actionBtn = `<button class="btn" style="${btnBaseStyle} background:#e74c3c;" title="Afeta o mundo todo!" onclick="window.Cards.activate('${c.id}')">GLOBAL</button>`;
-                else actionBtn = `<button class="btn" disabled style="${btnBaseStyle} background:#7f8c8d; cursor:not-allowed;" title="Só pode usar antes de rolar o dado no seu turno">GLOBAL</button>`;
-            } else if (c.type === 'auto') {
-                actionBtn = `<button class="btn" disabled style="${btnBaseStyle} background:#8e44ad; cursor:not-allowed;" title="Esta carta ativa automaticamente">AUTO</button>`;
+            if (c.isProtected) {
+                if (canUseMove) actionBtn = `<button class="btn" style="${btnBaseStyle} background:#f39c12; color:#fff;" onclick="window.Cards.unprotectCard(${p.id}, ${originalIndex})">🔓 DESPROTEGER</button>`;
+                else actionBtn = `<button class="btn" disabled style="${btnBaseStyle} background:#7f8c8d; cursor:not-allowed;" title="Só pode desproteger no seu turno">PROTEGIDA</button>`;
             } else {
-                actionBtn = `<button class="btn" disabled style="${btnBaseStyle} background:#555; cursor:not-allowed;" title="Esta carta só pode ser usada em Batalha">BATTLE</button>`;
+                if (c.type === 'move') {
+                    if (canUseMove) actionBtn = `<button class="btn" style="${btnBaseStyle} background:#2ecc71;" onclick="window.Cards.activate('${c.id}')">USAR</button>`;
+                    else actionBtn = `<button class="btn" disabled style="${btnBaseStyle} background:#7f8c8d; cursor:not-allowed;" title="Só pode usar antes de rolar o dado">USAR</button>`;
+                } else if (c.type === 'global') {
+                    if (canUseMove) actionBtn = `<button class="btn" style="${btnBaseStyle} background:#e74c3c;" title="Afeta o mundo todo!" onclick="window.Cards.activate('${c.id}')">GLOBAL</button>`;
+                    else actionBtn = `<button class="btn" disabled style="${btnBaseStyle} background:#7f8c8d; cursor:not-allowed;" title="Só pode usar antes de rolar o dado no seu turno">GLOBAL</button>`;
+                } else if (c.type === 'auto') {
+                    actionBtn = `<button class="btn" disabled style="${btnBaseStyle} background:#8e44ad; cursor:not-allowed;" title="Esta carta ativa automaticamente">AUTO</button>`;
+                } else {
+                    actionBtn = `<button class="btn" disabled style="${btnBaseStyle} background:#555; cursor:not-allowed;" title="Esta carta só pode ser usada em Batalha">BATTLE</button>`;
+                }
             }
+
+            const isProtectedTag = c.isProtected ? `<div style="font-size: 0.7rem; color: #f1c40f; font-weight: bold; margin-top:2px;">🔒 Protegida</div>` : ``;
 
             if (isMobile) {
                 d.style.cssText = `display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; border-left: 5px solid ${borderColor}; width: 100%; box-sizing: border-box; margin-bottom: 2px;`;
@@ -1080,6 +1091,7 @@ export class GameUI {
                     <div style="text-align: left; flex: 1; padding-right: 10px;">
                         <div style="font-weight: bold; color: #fff; font-size: 0.9rem;">${c.icon} ${c.name}</div>
                         <div style="font-size: 0.7rem; color: ${borderColor}; font-weight: bold;">${c.rarity.toUpperCase()} | ${c.type.toUpperCase()}</div>
+                        ${isProtectedTag}
                         <div style="font-size: 0.75rem; color: #ccc; margin-top: 3px; line-height: 1.2;">${c.desc}</div>
                     </div>
                     <div style="width: 80px; flex-shrink: 0;">
@@ -1088,7 +1100,10 @@ export class GameUI {
                 `;
             } else {
                 d.style.cssText = "display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); width: 100%; box-sizing: border-box; position: relative;";
+                const protectedBadge = c.isProtected ? `<div style="position: absolute; top: -10px; left: -10px; font-size: 1.5rem; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8)); z-index: 15;" title="Carta Protegida">🔒</div>` : '';
+                
                 d.innerHTML = `
+                    ${protectedBadge}
                     <div style="position: absolute; top: -5px; right: -5px; background: ${borderColor}; color: #fff; padding: 2px 6px; font-size: 0.7rem; border-radius: 10px; font-weight: bold; border: 1px solid #222; text-shadow: 1px 1px 0 #000; box-shadow: 0 2px 4px rgba(0,0,0,0.5); z-index: 10;">
                         ${c.rarity.toUpperCase()}
                     </div>

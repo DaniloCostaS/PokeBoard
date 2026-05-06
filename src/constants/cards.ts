@@ -58,6 +58,7 @@ export const CARDS_DB: CardData[] = [
     { id: 'troques', name: "Troca forçada", icon: "🔛", desc: "Troque um pokémon seu com um de outro jogador.", type: 'move', rarity: 'Épica' },
     { id: 'new_leader', name: "Novo líder", icon: "⚔️", desc: "Escolha um jogador: Se vencer a batalha, pegue uma insígnia aleatória que ainda não tem do adversário.", type: 'move', rarity: 'Rara' },
     { id: 'epic_shiny', name: "Brilho Épico", icon: "✨", desc: "Transforma qualquer pokémon não-lendário em shiny (e recalcula o bônus de 20%).", type: 'move', rarity: 'Épica' },
+    { id: 'card_protector', name: "Cadeado", icon: "🔒", desc: "Escolha uma de suas cartas para proteger contra roubo ou perdas. Cartas protegidas não podem ser ativadas. Limite de 3 por jogador.", type: 'move', rarity: 'Rara' },
 
     // Cartas Globais
     { id: 'communism', name: "Comunismo", icon: "♻️", desc: "Junta todas as cartas de todos os jogadores, embaralha e redistribui igualmente. As que sobrarem são destruídas.", type: 'global', rarity: 'Épica' },

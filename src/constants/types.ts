@@ -48,6 +48,7 @@ export interface CardData {
     desc: string;
     type: 'move' | 'battle' | 'auto' | 'global';
     rarity: 'Comum' | 'Incomum' | 'Rara' | 'Épica' | 'Lendária';
+    isProtected?: boolean;
 }
 
 export interface Coord {

@@ -597,6 +597,7 @@ export class CardUI {
                           <div id="sacrifice-counter" style="width:100%; text-align:center; margin-bottom:10px;">Selecionado: 0/2</div>`;
 
         player.cards.forEach((c: any, index: number) => {
+            if (c.isProtected) return;
             const d = document.createElement('div');
             d.className = 'card-item';
             let rarityColor = '#bdc3c7';
@@ -653,6 +654,7 @@ export class CardUI {
                           <div id="merge-counter" style="width:100%; text-align:center; margin-bottom:10px;">Selecionado: 0/4</div>`;
 
         player.cards.forEach((c: any, index: number) => {
+            if (c.isProtected) return;
             const d = document.createElement('div');
             d.className = 'card-item';
             let rarityColor = '#bdc3c7';
@@ -690,5 +692,65 @@ export class CardUI {
                 if (counter) counter.innerText = `Selecionado: 4/4`;
             }
         };
+    }
+
+    static openProtectCardSelection(cardId: string) {
+        const Game = (window as any).Game;
+        const player = Game.getCurrentPlayer();
+        const list = document.getElementById('board-inventory-list')!;
+        
+        const boardCardsModal = document.getElementById('board-cards-modal');
+        if (boardCardsModal) boardCardsModal.style.display = 'none';
+
+        const modal = document.getElementById('board-inventory-modal') || boardCardsModal;
+
+        if (modal) modal.style.display = 'flex';
+        list.innerHTML = `<h3 style="width:100%; text-align:center; color:#f1c40f;">Selecione uma Carta para Proteger</h3>
+                          <p style="width:100%; text-align:center; font-size:0.8rem; color:#7f8c8d; margin-top:-10px;">Cartas protegidas não podem ser usadas até serem desprotegidas.</p>`;
+
+        let hasProtectable = false;
+        player.cards.forEach((c: any, index: number) => {
+            const d = document.createElement('div');
+            
+            if (c.id === 'card_protector') {
+                d.className = 'card-item disabled';
+                d.innerHTML = `<span class="card-name" style="filter: grayscale(100%);">${c.icon} ${c.name} <small style="color:#e74c3c">(Não aplicável)</small></span>`;
+            } else if (c.isProtected) {
+                d.className = 'card-item disabled';
+                d.innerHTML = `<span class="card-name">${c.icon} ${c.name} <small style="color:#f1c40f">🔒 Já Protegida</small></span>`;
+            } else {
+                hasProtectable = true;
+                d.className = 'card-item';
+                d.style.cursor = 'pointer';
+                d.innerHTML = `<span class="card-name">${c.icon} ${c.name}</span>`;
+                d.onclick = () => {
+                    if (modal) modal.style.display = 'none';
+                    const CardEffects = (window as any).Cards || (window as any).CardEffects;
+                    if (CardEffects.activate) {
+                        CardEffects.activate(cardId, index);
+                    } else if (CardEffects.CardEffects && CardEffects.CardEffects.activate) {
+                        CardEffects.CardEffects.activate(cardId, index);
+                    } else {
+                        import('./CardEffects').then(m => m.CardEffects.activate(cardId, index));
+                    }
+                };
+            }
+            list.appendChild(d);
+        });
+
+        if (!hasProtectable) {
+            alert("Você não tem cartas válidas para proteger!");
+            if (modal) modal.style.display = 'none';
+            return;
+        }
+
+        const btnContainer = document.createElement('div');
+        btnContainer.style.width = '100%';
+        btnContainer.style.textAlign = 'center';
+        btnContainer.style.marginTop = '15px';
+        btnContainer.innerHTML = `
+            <button class="btn btn-secondary" onclick="document.getElementById('${modal?.id}').style.display='none'">Cancelar</button>
+        `;
+        list.appendChild(btnContainer);
     }
 }

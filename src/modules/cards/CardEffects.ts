@@ -22,7 +22,7 @@ export class CardEffects {
         }
 
         for (const defenseId of priorityList) {
-            const defenseCardIndex = target.cards.findIndex((c: any) => c.id === defenseId);
+            const defenseCardIndex = target.cards.findIndex((c: any) => c.id === defenseId && !c.isProtected);
 
             if (defenseCardIndex > -1) {
                 target.cards.splice(defenseCardIndex, 1);
@@ -250,6 +250,25 @@ export class CardEffects {
         setTimeout(() => { Battle.captureSuccess(); }, 1500);
     }
 
+    static unprotectCard(pId: number, index: number, refreshUI: boolean = true) {
+        const Game = (window as any).Game;
+        const Network = (window as any).Network;
+        const player = Game.players.find((p: any) => p.id === pId);
+
+        if (!player || !player.cards || index < 0 || index >= player.cards.length) return;
+
+        player.cards[index].isProtected = false;
+        
+        Game.log(`🔓 ${player.name} removeu a proteção da carta [${player.cards[index].name}].`);
+        
+        if (Network.isOnline) {
+            Network.syncPlayerState();
+        }
+        
+        // Refresh UI if requested
+        if (refreshUI) Game.openBoardCards(pId);
+    }
+
     static async activate(cardId: string, targetId: any = null) {
         const Game = (window as any).Game;
         const Battle = (window as any).Battle;
@@ -262,6 +281,11 @@ export class CardEffects {
 
         const cardData = CARDS_DB.find(c => c.id === cardId);
         if (!cardData) return;
+
+        const usableCardIndex = player.cards.findIndex((c: any) => c.id === cardId && !c.isProtected);
+        if (usableCardIndex === -1 && cardId !== 'card_protector') {
+            return alert("Esta carta está sob proteção do Cadeado e não pode ser usada!");
+        }
 
         if (cardData.type === 'move' && Battle.active) return alert("Cartas MOVE só podem ser usadas no tabuleiro!");
 
@@ -371,7 +395,7 @@ export class CardEffects {
                 if (targetId !== null) {
                     const target = Game.players.find((p: any) => p.id === targetId);
                     if (target) {
-                        const nonLegendaryIndices = target.cards.map((c: any, i: number) => c.rarity === 'Lendária' ? -1 : i).filter((i: number) => i !== -1);
+                        const nonLegendaryIndices = target.cards.map((c: any, i: number) => c.rarity === 'Lendária' || c.isProtected ? -1 : i).filter((i: number) => i !== -1);
                         if (nonLegendaryIndices.length > 0) {
                             const stolenIdx = nonLegendaryIndices[Math.floor(Math.random() * nonLegendaryIndices.length)];
                             const stolenCard = target.cards.splice(stolenIdx, 1)[0];
@@ -516,6 +540,26 @@ export class CardEffects {
                 } else { CardUI.openMegaSelection(cardId); consumed = false; }
                 break;
 
+            case 'card_protector':
+                if (targetId !== null) {
+                    const targetCard = player.cards[targetId];
+                    if (!targetCard) { consumed = false; break; }
+                    
+                    const protectedCount = player.cards.filter((c: any) => c.isProtected).length;
+                    if (protectedCount >= 3) { alert("Você já atingiu o limite de 3 cartas protegidas!"); consumed = false; break; }
+                    if (targetCard.isProtected) { alert("Esta carta já está protegida!"); consumed = false; break; }
+                    if (targetCard.id === 'card_protector') { alert("Você não pode proteger o Cadeado!"); consumed = false; break; }
+                    
+                    targetCard.isProtected = true;
+                    effectLog = `🔒 CADEADO ATIVADO! ${player.name} protegeu sua carta [${targetCard.name}] contra roubos!`;
+                } else {
+                    const protectedCount = player.cards.filter((c: any) => c.isProtected).length;
+                    if (protectedCount >= 3) { alert("Você já atingiu o limite de 3 cartas protegidas!"); consumed = false; break; }
+                    CardUI.openProtectCardSelection(cardId);
+                    consumed = false;
+                }
+                break;
+
             case 'reclaim_mega_stone':
                 if (targetId !== null) {
                     const targetMon = player.team[targetId];
@@ -599,7 +643,7 @@ export class CardEffects {
                     if (p.id !== player.id) {
                         player.gold += (p.gold || 0); p.gold = 0;
                         if (p.items) { Object.keys(p.items).forEach(k => { player.items[k] = (player.items[k] || 0) + p.items[k]; p.items[k] = 0; }); }
-                        if (p.cards) { const stolenCards = p.cards.filter((c: any) => c.rarity !== 'Lendária'); player.cards.push(...stolenCards); p.cards = p.cards.filter((c: any) => c.rarity === 'Lendária'); }
+                        if (p.cards) { const stolenCards = p.cards.filter((c: any) => c.rarity !== 'Lendária' && !c.isProtected); player.cards.push(...stolenCards); p.cards = p.cards.filter((c: any) => c.rarity === 'Lendária' || c.isProtected); }
                     }
                 });
                 effectLog = `💰 O GRANDE ASSALTO! ${player.name} limpou a conta de todos os adversários!`;
@@ -683,7 +727,7 @@ export class CardEffects {
                                 let cardsToAdd: any[] = []; let legendaryCards: any[] = [];
                                 pData.cards.forEach((c: any) => {
                                     if (parseInt(id) === player.id && c.id === cardId) { }
-                                    else if (c.rarity === 'Lendária') legendaryCards.push(c);
+                                    else if (c.rarity === 'Lendária' || c.isProtected) legendaryCards.push(c);
                                     else cardsToAdd.push(c);
                                 });
                                 pData._legendaries = legendaryCards;
@@ -711,13 +755,13 @@ export class CardEffects {
 
                         finalSyncUpdates[`${roomPath}/global/communism`] = null;
                         await update(ref(db), finalSyncUpdates);
-                        effectLog = `REVOLUCAO GLOBAL! Todas as cartas do jogo foram redistribuidas! Cada jogador tem ${perPlayer} cartas. (${leftovers} destruidas)`;
+                        effectLog = `REVOLUCAO GLOBAL! Todas as cartas não protegidas do jogo foram redistribuidas! Cada jogador tem ${perPlayer} cartas. (${leftovers} destruidas)`;
                     } catch (err) { console.error("Erro no Comunismo Online:", err); effectLog = "Erro na redistribuição global."; }
                 } else {
                     let offlinePool: any[] = [];
                     Game.players.forEach((p: any) => {
-                        let nonLendaries = p.cards.filter((c: any) => c.rarity !== 'Lendária');
-                        p._legendaries = p.cards.filter((c: any) => c.rarity === 'Lendária');
+                        let nonLendaries = p.cards.filter((c: any) => c.rarity !== 'Lendária' && !c.isProtected);
+                        p._legendaries = p.cards.filter((c: any) => c.rarity === 'Lendária' || c.isProtected);
                         offlinePool = [...offlinePool, ...nonLendaries];
                         p.cards = [];
                     });
@@ -771,8 +815,8 @@ export class CardEffects {
                                 if (impIdx > -1) cards.splice(impIdx, 1);
                             }
 
-                            const legendaries = cards.filter(c => c.rarity === 'Lendária');
-                            const others = cards.filter(c => c.rarity !== 'Lendária');
+                            const legendaries = cards.filter(c => c.rarity === 'Lendária' || c.isProtected);
+                            const others = cards.filter(c => c.rarity !== 'Lendária' && !c.isProtected);
 
                             const toRemoveC = Math.floor(others.length / 2);
                             for (let i = 0; i < toRemoveC; i++) { others.splice(Math.floor(Math.random() * others.length), 1); totalCardsL++; }
@@ -790,20 +834,20 @@ export class CardEffects {
                         });
 
                         await update(ref(db), impUpdates);
-                        effectLog = `A RECEITA FEDERAL CHEGOU! O Leao abocanhou a conta de todos na mesa! (${totalCardsL} cartas e ${totalItemsL} itens retidos!)`;
+                        effectLog = `A RECEITA FEDERAL CHEGOU! O Leao abocanhou a conta de todos na mesa! (${totalCardsL} cartas desprotegidas e ${totalItemsL} itens retidos!)`;
                     } catch (err) { console.error("Erro no Imposto:", err); effectLog = "Erro na coleta de impostos."; }
                 } else {
                     let totalOfflineC = 0; let totalOfflineI = 0;
                     Game.players.forEach((p: any) => {
-                        const legendaries = p.cards.filter((c: any) => c.rarity === 'Lendária');
-                        const others = p.cards.filter((c: any) => c.rarity !== 'Lendária');
+                        const legendaries = p.cards.filter((c: any) => c.rarity === 'Lendária' || c.isProtected);
+                        const others = p.cards.filter((c: any) => c.rarity !== 'Lendária' && !c.isProtected);
                         const toRemC = Math.floor(others.length / 2);
                         for (let i = 0; i < toRemC; i++) { others.splice(Math.floor(Math.random() * others.length), 1); totalOfflineC++; }
                         p.cards = [...legendaries, ...others];
 
                         Object.keys(p.items).forEach(k => { const toRemI = Math.floor(p.items[k] / 2); p.items[k] -= toRemI; totalOfflineI += toRemI; });
                     });
-                    effectLog = `IMPOSTO! O Leao passou por aqui! (${totalOfflineC} cartas e ${totalOfflineI} itens perdidos!)`;
+                    effectLog = `IMPOSTO! O Leao passou por aqui! (${totalOfflineC} cartas desprotegidas e ${totalOfflineI} itens perdidos!)`;
                 }
 
                 Game.updateHUD();
@@ -872,7 +916,9 @@ export class CardEffects {
             const offensiveCardIds = ['swap', 'slow', 'rocket', 'curse', 'trade_fail', 'new_leader', 'bag', 'troques', 'michael', 'steal_mega_stone', 'ash_goodbye'];
 
             if (!alreadyRemoved) {
-                const idx = player.cards.findIndex(c => c.id === cardId);
+                let idx = player.cards.findIndex(c => c.id === cardId && !c.isProtected);
+                if (idx === -1) idx = player.cards.findIndex(c => c.id === cardId);
+                
                 if (idx > -1) player.cards.splice(idx, 1);
             }
 

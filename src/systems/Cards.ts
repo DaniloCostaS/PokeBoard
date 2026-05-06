@@ -58,6 +58,7 @@ export class Cards {
 
     // Repasses necessários para funções que estavam expostas no HTML (ex: window.Cards.executeMasterCard)
     static executeMasterCard(ballId: string) { CardEffects.executeMasterCard(ballId); }
+    static unprotectCard(pId: number, index: number, refreshUI: boolean = true) { CardEffects.unprotectCard(pId, index, refreshUI); }
 
 }
 
