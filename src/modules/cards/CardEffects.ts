@@ -561,11 +561,11 @@ export class CardEffects {
                     if (targetMon.vinculoSupremo) effectLog = `🤝 O ADEUS DE ASH FALHOU! ${targetMon.name} se recusa a ir embora devido ao Vínculo Supremo!`;
                     else { target.team.splice(pIdx, 1); effectLog = `👋 ADEUS! ${player.name} fez ${target.name} libertar seu ${targetMon.name} para todo o sempre!`; }
 
-                    if (player.effects.ashGoodbyeRemaining === undefined) player.effects.ashGoodbyeRemaining = 3;
+                    if (player.effects.ashGoodbyeRemaining === undefined) player.effects.ashGoodbyeRemaining = 2;
                     player.effects.ashGoodbyeRemaining--;
                     consumed = true;
 
-                    if (player.effects.ashGoodbyeRemaining < 2) (player as any)._ashGoodbyeContinued = true;
+                    if (player.effects.ashGoodbyeRemaining < 1) (player as any)._ashGoodbyeContinued = true;
 
                     if (player.effects.ashGoodbyeRemaining > 0) {
                         Game.log(effectLog);

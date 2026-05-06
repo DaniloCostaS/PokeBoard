@@ -22,5 +22,15 @@ export const SHOP_ITEMS: ItemData[] = [
 
     // --- ESPECIAIS ---
     { id: 'megastone', name: 'Mega Stone', icon: 'MegaStone.png', price: 5000, type: 'mega' },
-    { id: 'vitamin', name: 'Vitaminas', icon: 'Vitamina.png', price: 500, type: 'boost', val: 1 }
+    { id: 'vitamin', name: 'Vitaminas', icon: 'Vitamina.png', price: 500, type: 'boost', val: 1 },
+
+    // --- Itens paera Segurar ---
+    { id: 'amulet_coin', name: 'Moeda de amuleto', icon: 'amulet_coin.png', price: 999999, type: 'hold' },
+    { id: 'leftovers', name: 'Restos', icon: 'leftovers.png', price: 999999, type: 'hold' },
+    { id: 'quick_claw', name: 'Garra Rápida', icon: 'quick_claw.png', price: 999999, type: 'hold' },
+    { id: 'sitrus_berry', name: 'Sitrus Berry', icon: 'sitrus_berry.png', price: 999999, type: 'hold' },
+    { id: 'scope_lens', name: 'Scope Lens', icon: 'scope_lens.png', price: 999999, type: 'hold' },
+    { id: 'choice_band', name: 'Choice Band', icon: 'choice_band.png', price: 999999, type: 'hold' },
+    { id: 'choice_scarf', name: 'Choice Scarf', icon: 'choice_scarf.png', price: 999999, type: 'hold' },
+    { id: 'rocky_helmet', name: 'Rocky Helmet', icon: 'rocky_helmet.png', price: 999999, type: 'hold' }
 ];

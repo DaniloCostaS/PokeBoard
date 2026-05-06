@@ -19,7 +19,7 @@ export interface ItemData {
     name: string;
     icon: string;
     price: number;
-    type: 'heal' | 'capture' | 'revive' | 'boost' | 'mega';
+    type: 'heal' | 'capture' | 'revive' | 'boost' | 'mega' | 'hold';
     val?: number;
     rate?: number;
 }

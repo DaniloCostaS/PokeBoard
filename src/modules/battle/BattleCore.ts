@@ -791,6 +791,11 @@ export class BattleCore {
             }
 
             if (this.opponent) {
+                if (this.opponent.isLegendary || this.opponent.isShiny) {
+                    Game.lixeira.push(this.opponent);
+                    if (NetworkObj.isOnline) NetworkObj.syncLixeira();
+                }
+
                 const oppId = this.opponent.id;
                 if (!this.player!.pokedexData) this.player!.pokedexData = {};
                 if (!this.player!.pokedexData[oppId]) this.player!.pokedexData[oppId] = { seen: 0, caught: 0, defeated: 0 };
@@ -958,6 +963,13 @@ export class BattleCore {
                 this.activeMon!.gainXp(5, this.player!);
 
                 if (this.opponent) {
+                    if (this.opponent.isLegendary || this.opponent.isShiny) {
+                        const Game = (window as any).Game;
+                        const NetworkObj = (window as any).Network || Network;
+                        Game.lixeira.push(this.opponent);
+                        if (NetworkObj.isOnline) NetworkObj.syncLixeira();
+                    }
+
                     const oppId = this.opponent.id;
                     if (!this.player!.pokedexData) this.player!.pokedexData = {};
                     if (!this.player!.pokedexData[oppId]) this.player!.pokedexData[oppId] = { seen: 0, caught: 0, defeated: 0 };
@@ -997,12 +1009,19 @@ export class BattleCore {
             }
 
             if (this.player) {
+                if (this.isGym) this.player.effects.curse = false;
                 const lostGold = this.player.gold >= 100 ? 100 : this.player.gold;
                 this.player.gold = Math.max(0, this.player.gold - 100);
                 if (lostGold > 0) {
                     Game.sendGlobalLog(`💰 [Extrato] ${this.player.name} deixou cair -${lostGold}G ao desistir da batalha.`);
                     Game.sendGlobalLog(`💰 [Extrato] Novo Saldo: ${this.player.gold}G.`);
                 }
+
+                if (this.opponent && (this.opponent.isLegendary || this.opponent.isShiny)) {
+                    Game.lixeira.push(this.opponent);
+                    if (NetworkObj.isOnline) NetworkObj.syncLixeira();
+                }
+
                 Game.handleTotalDefeat(this.player);
             }
             Game.nextTurn();
