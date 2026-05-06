@@ -844,4 +844,111 @@ export class GameEvents {
             GameUI.openSwapModal(mon);
         }
     }
+
+    // ==========================================
+    // AÇÕES DO PAINEL ADMINISTRATIVO
+    // ==========================================
+    static adminGiveCard() {
+        const select = document.getElementById('admin-player-select') as HTMLSelectElement;
+        if (!select) return;
+        const pIdx = parseInt(select.value, 10);
+        const p = GameState.players[pIdx];
+        if (!p) return;
+
+        const CardsObj = (window as any).Cards;
+        if (CardsObj) {
+            CardsObj.draw(p, true);
+            GameUI.sendGlobalLog(`🛠️ ADMIN HOST: Concedeu 1 Carta Aleatória para ${p.name}!`);
+            const NetworkObj = (window as any).Network;
+            if (NetworkObj && NetworkObj.isOnline) NetworkObj.syncSpecificPlayer(p.id);
+            GameUI.updateHUD();
+        }
+    }
+
+    static adminClearDebuffs() {
+        const select = document.getElementById('admin-player-select') as HTMLSelectElement;
+        if (!select) return;
+        const pIdx = parseInt(select.value, 10);
+        const p = GameState.players[pIdx];
+        if (!p) return;
+
+        p.effects = {};
+        p.skipTurns = 0;
+        p.isProcessingSkip = false;
+
+        GameUI.sendGlobalLog(`🛠️ ADMIN HOST: Os efeitos de status negativos do jogador ${p.name} foram purificados!`);
+        const NetworkObj = (window as any).Network;
+        if (NetworkObj && NetworkObj.isOnline) NetworkObj.syncSpecificPlayer(p.id);
+        GameUI.updateHUD();
+    }
+
+    static adminSetSkipTurns() {
+        const select = document.getElementById('admin-player-select') as HTMLSelectElement;
+        const valInput = document.getElementById('admin-skip-val') as HTMLInputElement;
+        if (!select || !valInput) return;
+        const pIdx = parseInt(select.value, 10);
+        const val = parseInt(valInput.value, 10);
+        const p = GameState.players[pIdx];
+        if (!p || isNaN(val) || val < 0) return;
+
+        p.skipTurns = val;
+        p.isProcessingSkip = false;
+
+        GameUI.sendGlobalLog(`🛠️ ADMIN HOST: Ajustou os turnos a perder de ${p.name} para ${val}!`);
+        const NetworkObj = (window as any).Network;
+        if (NetworkObj && NetworkObj.isOnline) NetworkObj.syncSpecificPlayer(p.id);
+        GameUI.updateHUD();
+    }
+
+    static adminGiveGold() {
+        const select = document.getElementById('admin-player-select') as HTMLSelectElement;
+        const valInput = document.getElementById('admin-gold-val') as HTMLInputElement;
+        if (!select || !valInput) return;
+        const pIdx = parseInt(select.value, 10);
+        const val = parseInt(valInput.value, 10);
+        const p = GameState.players[pIdx];
+        if (!p || isNaN(val)) return;
+
+        p.gold = Math.max(0, p.gold + val);
+
+        GameUI.sendGlobalLog(`🛠️ ADMIN HOST: Concedeu ${val} Moedas para ${p.name}!`);
+        const NetworkObj = (window as any).Network;
+        if (NetworkObj && NetworkObj.isOnline) NetworkObj.syncSpecificPlayer(p.id);
+        GameUI.updateHUD();
+    }
+
+    static adminSetRound() {
+        const valInput = document.getElementById('admin-round-val') as HTMLInputElement;
+        if (!valInput) return;
+        const val = parseInt(valInput.value, 10);
+        if (isNaN(val) || val < 1) return;
+
+        GameState.round = val;
+        GameUI.sendGlobalLog(`🛠️ ADMIN HOST: A rodada principal foi alterada à força para a Rodada ${val}!`);
+
+        const NetworkObj = (window as any).Network;
+        if (NetworkObj && NetworkObj.isOnline) NetworkObj.syncTurn(GameState.turn, GameState.round);
+
+        GameUI.updateHUD();
+        this.checkTurnControl();
+    }
+
+    static adminSetTurn() {
+        const select = document.getElementById('admin-turn-select') as HTMLSelectElement;
+        if (!select) return;
+        const tIdx = parseInt(select.value, 10);
+        const p = GameState.players[tIdx];
+        if (!p) return;
+
+        GameState.turn = tIdx;
+        GameState.hasRolled = false;
+
+        GameUI.sendGlobalLog(`🛠️ ADMIN HOST: A vez do jogador foi forçada e passada para ${p.name}!`);
+
+        const NetworkObj = (window as any).Network;
+        if (NetworkObj && NetworkObj.isOnline) NetworkObj.syncTurn(GameState.turn, GameState.round);
+
+        GameUI.updateHUD();
+        this.checkTurnControl();
+    }
 }

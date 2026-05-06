@@ -290,6 +290,38 @@ export class GameUI {
         });
     }
 
+    // ==========================================
+    // PAINEL ADMINISTRATIVO / SUPORTE HOST
+    // ==========================================
+    static openAdminPanel() {
+        const modal = document.getElementById('admin-modal');
+        const pSelect = document.getElementById('admin-player-select') as HTMLSelectElement;
+        const tSelect = document.getElementById('admin-turn-select') as HTMLSelectElement;
+        const rInput = document.getElementById('admin-round-val') as HTMLInputElement;
+
+        if (!modal || !pSelect || !tSelect || !rInput) return;
+
+        pSelect.innerHTML = '';
+        tSelect.innerHTML = '';
+
+        GameState.players.forEach((p, idx) => {
+            const opt = document.createElement('option');
+            opt.value = idx.toString();
+            opt.innerText = `[${idx}] ${p.name}`;
+            pSelect.appendChild(opt);
+
+            const optT = document.createElement('option');
+            optT.value = idx.toString();
+            optT.innerText = `[${idx}] ${p.name}`;
+            tSelect.appendChild(optT);
+        });
+
+        rInput.value = GameState.round.toString();
+        tSelect.value = GameState.turn.toString();
+
+        modal.style.display = 'flex';
+    }
+
     static log(m: string, actionPlayerId?: number) {
         if (m.includes('||ROUND:')) {
             const r = parseInt(m.split('||ROUND:')[1]);

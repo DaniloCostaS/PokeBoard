@@ -8,12 +8,10 @@ import { Pokemon } from '../models/Pokemon';
 
 /**
  * FACADE PRINCIPAL
- * Este arquivo atua como um tradutor. Ele recebe as chamadas antigas do 
- * sistema e delega para os novos módulos que criamos.
  */
 export class Game {
 
-    // --- ESTADO GLOBAL (Getters/Setters para não quebrar compatibilidade) ---
+    // --- ESTADO GLOBAL ---
     static get players() { return GameState.players; }
     static set players(val) { GameState.players = val; }
 
@@ -30,6 +28,7 @@ export class Game {
     static set traps(val) { GameState.traps = val; }
 
     static get currentGlobalEvent() { return GameState.currentGlobalEvent; }
+    static get lixeira() { return GameState.lixeira; }
 
     // --- MÉTODOS NUCLEARES ---
     static init(players: Player[], mapSize: number) { GameState.init(players, mapSize); }
@@ -37,12 +36,12 @@ export class Game {
     static canAct() { return GameState.canAct(); }
     static getGlobalAverageLevel() { return GameState.getGlobalAverageLevel(); }
 
-    // --- MÉTODOS DE RENDERIZAÇÃO (UI) ---
+    // --- MÉTODOS DE RENDERIZAÇÃO E UI (GameUI) ---
     static updateHUD() { GameUI.updateHUD(); }
     static renderBoard() { GameUI.renderBoard(); }
     static renderTraps(newTraps?: any[]) { GameUI.renderTraps(newTraps); }
     static moveVisuals() { GameUI.moveVisuals(); }
-    static renderChampionBanner() { (GameUI as any).renderChampionBanner(); } // Caso tenha migrado a função
+    static renderChampionBanner() { (GameUI as any).renderChampionBanner(); }
 
     static log(m: string, actionPlayerId?: number) { GameUI.log(m, actionPlayerId); }
     static sendGlobalLog(msg: string) { GameUI.sendGlobalLog(msg); }
@@ -54,26 +53,39 @@ export class Game {
     static confirmGlobalAlert() { GameUI.confirmGlobalAlert(); }
     static closeGlobalAlert() { GameUI.closeGlobalAlert(); }
 
-    static openPokemonDetail(pIdx: number, sIdx: number, champ?: any) { GameUI.openPokemonDetail(pIdx, sIdx, champ); }
-    static openSwapModal(newMon: Pokemon) { GameUI.openSwapModal(newMon); }
-    static openLixeira(selectMode: boolean = false) { GameUI.openLixeira(selectMode); }
-    static openPlayerStats() { GameUI.openPlayerStats(); }
-    static openInventoryModal(pId: number, readOnly: boolean = false) { GameUI.openInventoryModal(pId, readOnly); }
-    static openCardLibrary() { GameUI.openCardLibrary(); }
-    static openBoardCards(pId: number) { GameUI.openBoardCards(pId); }
-    static openPokedex(pId: number, filterId: number | null = null) { GameUI.openPokedex(pId, filterId); }
-    static openPokedexEntry(targetId: number) { GameUI.openPokedexEntry(targetId); }
-    static filterPokedex() { GameUI.filterPokedex(); }
-    static openXpRules() { GameUI.openXpRules(); }
-    static openCaptureRules() { GameUI.openCaptureRules(); }
-    static openCombatRules() { GameUI.openCombatRules(); }
+    static openPokemonDetail(pIdx: number, sIdx: number, champ?: any) { (GameUI as any).openPokemonDetail(pIdx, sIdx, champ); }
+    static openSwapModal(newMon: Pokemon) { (GameUI as any).openSwapModal(newMon); }
+    static openLixeira(selectMode: boolean = false) { (GameUI as any).openLixeira(selectMode); }
+    static openPlayerStats() { (GameUI as any).openPlayerStats(); }
+    static showEventDetails() { (GameUI as any).showEventDetails(); }
+    static openInventoryModal(pId: number, readOnly: boolean = false) { (GameUI as any).openInventoryModal(pId, readOnly); }
+    static openCardLibrary() { (GameUI as any).openCardLibrary(); }
+    static openBoardCards(pId: number) { (GameUI as any).openBoardCards(pId); }
+    static openPokedex(pId: number, filterId: number | null = null) { (GameUI as any).openPokedex(pId, filterId); }
+    static openPokedexEntry(targetId: number) { (GameUI as any).openPokedexEntry(targetId); }
+    static filterPokedex() { (GameUI as any).filterPokedex(); }
+
+    static openXpRules() { (GameUI as any).openXpRules(); }
+    static openCaptureRules() { (GameUI as any).openCaptureRules(); }
+    static openCombatRules() { (GameUI as any).openCombatRules(); }
+
+    // --- PAINEL ADMIN ---
+    static openAdminPanel() { (GameUI as any).openAdminPanel(); }
+    static adminGiveCard() { (GameEvents as any).adminGiveCard(); }
+    static adminClearDebuffs() { (GameEvents as any).adminClearDebuffs(); }
+    static adminSetSkipTurns() { (GameEvents as any).adminSetSkipTurns(); }
+    static adminGiveGold() { (GameEvents as any).adminGiveGold(); }
+    static adminSetRound() { (GameEvents as any).adminSetRound(); }
+    static adminSetTurn() { (GameEvents as any).adminSetTurn(); }
 
     // --- MÉTODOS DE MOVIMENTAÇÃO E DADOS ---
     static rollDice() { GameMovement.rollDice(); }
     static forceDice(val: number) { GameMovement.forceDice(val); }
     static debugMove() { GameMovement.debugMove(); }
+    static performVisualStep(pId: number, x: number, y: number) { GameMovement.performVisualStep(pId, x, y); }
+    static animateDice(result: number, playerId: number) { GameMovement.animateDice(result, playerId); }
 
-    // --- MÉTODOS DE EVENTOS ---
+    // --- MÉTODOS DE EVENTOS E TURNOS (GameEvents) ---
     static nextTurn() { GameEvents.nextTurn(); }
     static handleTile(p: Player) { GameEvents.handleTile(p); }
     static handleCityChoice(c: string) { GameEvents.handleCityChoice(c); }
@@ -92,10 +104,8 @@ export class Game {
 
     // --- SPAWNS ---
     static generateWildPokemon(tileType: number) { return GameSpawns.generateWildPokemon(tileType); }
-
-    // (Caso alguma carta, logica de evento ou UI usar alguma variável que eu não tenha mapeado,
-    // basta criar o proxy correspondente aqui)
+    static generateGymTeams() { GameSpawns.generateGymTeams(); }
 }
 
-// Vincula a Game ao window para chamadas originárias do HTML "onclick=window.Game.rollDice()"
+// Vincula o Game ao window
 (window as any).Game = Game;
