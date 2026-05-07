@@ -33,10 +33,13 @@ export class CardManager {
 
         player.cards.push(card);
 
+        // Registro de Extrato de Cartas (Global)
+        Game.sendGlobalLog(`🃏 [Extrato] ${player.name} obteve uma carta. Total: ${player.cards.length}`);
+
         if (!silentLog) {
             const isMe = !Network.isOnline || player.id === Network.myPlayerId;
             if (isMe) {
-                Game.log(`🃏 Você obteve a carta: ${card.icon} ${card.name}`);
+                Game.log(`🃏 Você obteve a carta: ${card.icon} ${card.name} (Total: ${player.cards.length})`);
                 if (Network.isOnline) {
                     Network.sendAction('LOG', { msg: `🃏 ${player.name} obteve uma Carta Misteriosa!` });
                 }
@@ -101,10 +104,11 @@ export class CardManager {
         if (modal) modal.style.display = 'none';
         Game.updateHUD();
 
-        const logMsg = `🔥 ${player.name} sacrificou [${removedNames.join(', ')}] e invocou uma nova carta: [${newCard.name}]!`;
+        const logMsg = `🔥 ${player.name} sacrificou [${removedNames.join(', ')}] e invocou uma nova carta: [${newCard.name}]! (Total: ${player.cards.length})`;
         const logMsgGlobal = `🔥 ${player.name} sacrificou duas cartas e invocou uma nova carta!`;
 
         Game.log(logMsg);
+        Game.sendGlobalLog(`🃏 [Extrato] ${player.name} sacrificou cartas. Total: ${player.cards.length}`);
         Game.showGlobalAlert(logMsg, player.name, true, false);
 
         if (Network.isOnline) {
@@ -165,10 +169,11 @@ export class CardManager {
         if (modal) modal.style.display = 'none';
         Game.updateHUD();
 
-        const logMsg = `💎 ${player.name} fundiu cartas [${baseRarity}] e obteve uma nova carta [${targetRarity}]: [${newCard.name}]!`;
+        const logMsg = `💎 ${player.name} fundiu cartas [${baseRarity}] e obteve uma nova carta [${targetRarity}]: [${newCard.name}]! (Total: ${player.cards.length})`;
         const logMsgGlobal = `💎 ${player.name} fundiu cartas e obteve uma [${targetRarity}]!`;
 
         Game.log(logMsg);
+        Game.sendGlobalLog(`🃏 [Extrato] ${player.name} fundiu cartas. Total: ${player.cards.length}`);
         Game.showGlobalAlert(logMsg, player.name, true, false);
 
         if (Network.isOnline) {

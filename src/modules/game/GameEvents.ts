@@ -507,6 +507,7 @@ export class GameEvents {
                             for (let i = 0; i < lost; i++) p.cards.splice(Math.floor(Math.random() * p.cards.length), 1);
                         }
                         for (const k in p.items) if (p.items[k] > 0) p.items[k] = Math.ceil(p.items[k] / 2);
+                        GameUI.sendGlobalLog(`🃏 [Extrato] ${p.name} pagou impostos. Cartas restantes: ${p.cards.length}`);
                         roomUpdates[`players/${p.id}/cards`] = p.cards;
                         roomUpdates[`players/${p.id}/items`] = p.items;
                     });
@@ -573,7 +574,7 @@ export class GameEvents {
                     while (player.cards.length > 6) {
                         player.cards.splice(Math.floor(Math.random() * player.cards.length), 1);
                     }
-                    GameUI.sendGlobalLog(`🃏 ${player.name} excedeu o limite do TRUCO e perdeu ${lostCount} carta(s)!`);
+                    GameUI.sendGlobalLog(`🃏 ${player.name} excedeu o limite do TRUCO e perdeu ${lostCount} carta(s)! (Total: ${player.cards.length})`);
 
                     if (GameState.turn === NetworkObj.myPlayerId || !NetworkObj.isOnline) {
                         GameUI.showGlobalAlert(`🃏 GRITARAM TRUCO!\n\nVocê tinha mais de 6 cartas e precisou descartar ${lostCount} aleatoriamente para continuar.`, player.name, true, false);

@@ -29,6 +29,9 @@ export class CardEffects {
                 const attackCardIndex = attacker.cards.findIndex((c: any) => c.id === incomingCardId);
                 if (attackCardIndex > -1) attacker.cards.splice(attackCardIndex, 1);
 
+                Game.sendGlobalLog(`🃏 [Extrato] ${target.name} usou uma defesa automática. Total: ${target.cards.length}`);
+                Game.sendGlobalLog(`🃏 [Extrato] ${attacker.name} teve sua carta bloqueada. Total: ${attacker.cards.length}`);
+
                 attacker.effects = attacker.effects || {};
                 attacker.effects.offensiveCardsUsed = (attacker.effects.offensiveCardsUsed || 0) + 1;
                 if (!attacker.stats) attacker.stats = { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
@@ -229,7 +232,10 @@ export class CardEffects {
         player.items[ballId]--;
 
         const idx = player.cards.findIndex((c: any) => c.id === 'master');
-        if (idx > -1) player.cards.splice(idx, 1);
+        if (idx > -1) {
+            player.cards.splice(idx, 1);
+            Game.sendGlobalLog(`🃏 [Extrato] ${player.name} usou uma carta Master Ball. Total: ${player.cards.length}`);
+        }
 
         document.getElementById('ball-choice-modal')!.style.display = 'none';
         document.getElementById('board-cards-modal')!.style.display = 'none';
@@ -406,6 +412,10 @@ export class CardEffects {
                             const stolenIdx = nonLegendaryIndices[Math.floor(Math.random() * nonLegendaryIndices.length)];
                             const stolenCard = target.cards.splice(stolenIdx, 1)[0];
                             player.cards.push(stolenCard);
+                            
+                            Game.sendGlobalLog(`🃏 [Extrato] ${target.name} perdeu uma carta (Roubo). Total: ${target.cards.length}`);
+                            Game.sendGlobalLog(`🃏 [Extrato] ${player.name} roubou uma carta. Total: ${player.cards.length}`);
+                            
                             effectLog = `🚀 BINGO! Uma carta foi roubada e foi parar na mão de ${player.name}!`;
 
                             const privateMsg = `🕵️ ALERTA: A Equipe Rocket roubou sua carta [${stolenCard.name}]!||PRIVATE:${target.id}`;
@@ -590,7 +600,10 @@ export class CardEffects {
                     if (!targetMon || !targetMon.megaStone) { consumed = false; break; }
                     targetMon.megaStone = false;
                     const megaStoneCardData = CARDS_DB.find((c: any) => c.id === 'mega_stone');
-                    if (megaStoneCardData) player.cards.push(megaStoneCardData);
+                    if (megaStoneCardData) {
+                        player.cards.push(megaStoneCardData);
+                        Game.sendGlobalLog(`🃏 [Extrato] ${player.name} recuperou sua Mega Pedra como carta. Total: ${player.cards.length}`);
+                    }
                     effectLog = `⛏️ A Mega Pedra foi retirada de ${targetMon.name} com segurança!`;
                 } else { CardUI.openReclaimMegaStoneSelection(cardId); consumed = false; }
                 break;
@@ -668,8 +681,10 @@ export class CardEffects {
                         player.gold += (p.gold || 0); p.gold = 0;
                         if (p.items) { Object.keys(p.items).forEach(k => { player.items[k] = (player.items[k] || 0) + p.items[k]; p.items[k] = 0; }); }
                         if (p.cards) { const stolenCards = p.cards.filter((c: any) => c.rarity !== 'Lendária' && !c.isProtected); player.cards.push(...stolenCards); p.cards = p.cards.filter((c: any) => c.rarity === 'Lendária' || c.isProtected); }
+                        Game.sendGlobalLog(`🃏 [Extrato] ${p.name} perdeu suas cartas no Grande Assalto. Total: ${p.cards.length}`);
                     }
                 });
+                Game.sendGlobalLog(`🃏 [Extrato] ${player.name} acumulou o saque! Novo Total: ${player.cards.length}`);
                 effectLog = `💰 O GRANDE ASSALTO! ${player.name} limpou a conta de todos os adversários!`;
                 requiresGlobalSync = true;
                 break;
@@ -797,6 +812,7 @@ export class CardEffects {
                     Game.players.forEach((p: any) => {
                         p.cards = [...(p._legendaries || [])];
                         for (let i = 0; i < perPlayer; i++) { if (offlinePool.length > 0) p.cards.push(offlinePool.pop()); }
+                        Game.sendGlobalLog(`🃏 [Extrato] ${p.name} agora possui ${p.cards.length} cartas (Comunismo).`);
                     });
                     effectLog = `REVOLUCAO local! Cartas redistribuidas! Cada jogador tem ${perPlayer} cartas. (${leftovers} destruidas)`;
                 }
@@ -945,6 +961,8 @@ export class CardEffects {
                 
                 if (idx > -1) player.cards.splice(idx, 1);
             }
+
+            Game.sendGlobalLog(`🃏 [Extrato] ${player.name} usou uma carta. Total: ${player.cards.length}`);
 
             if (cardData.rarity === 'Lendária') {
                 if (!player.effects) player.effects = {};
