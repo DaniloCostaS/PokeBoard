@@ -25,9 +25,9 @@ export const SHOP_ITEMS: ItemData[] = [
     { id: 'vitamin', name: 'Vitaminas', desc: "Aumenta +1 em todos os status do pokémon.", icon: 'Vitamina.png', price: 500, type: 'boost', val: 1 },
 
     // --- Itens paera Segurar ---
-    { id: 'amulet_coin', name: 'Moeda de amuleto', desc: "Ganha 100G sempre que derrotar um pokémon, com o pokémon que estiver segurando esse item.", icon: 'amulet_coin.png', price: 1, type: 'hold' },
-    { id: 'leftovers', name: 'Restos', desc: "Restaura 10 de HP por turno, com o pokémon que estiver segurando esse item.", icon: 'leftovers.png', price: 1, type: 'hold' },
-    { id: 'quick_claw', name: 'Garra Rápida', desc: "Aumenta em 50% a chance de atacar primeiro, com o pokémon que estiver segurando esse item.", icon: 'quick_claw.png', price: 1, type: 'hold' },
+    { id: 'amulet_coin', name: 'Moeda de amuleto', desc: "Ganha 100G sempre que derrotar um pokémon, com o pokémon que estiver segurando esse item.", icon: 'amulet_coin.png', price: 999999, type: 'hold' },
+    { id: 'leftovers', name: 'Restos', desc: "Restaura 10 de HP por turno, com o pokémon que estiver segurando esse item.", icon: 'leftovers.png', price: 999999, type: 'hold' },
+    { id: 'quick_claw', name: 'Garra Rápida', desc: "Aumenta em 50% a chance de atacar primeiro, com o pokémon que estiver segurando esse item.", icon: 'quick_claw.png', price: 999999, type: 'hold' },
     { id: 'sitrus_berry', name: 'Sitrus Berry', desc: "Restaura 50% HP quando estiver em perigo, com o pokémon que estiver segurando esse item. Esse item é consumido após o uso.", icon: 'sitrus_berry.png', price: 999999, type: 'hold' },
     { id: 'scope_lens', name: 'Scope Lens', desc: "Aumenta a chance de crítico em 30%, com o pokémon que estiver segurando esse item.", icon: 'scope_lens.png', price: 999999, type: 'hold' },
     { id: 'choice_band', name: 'Choice Band', desc: "Aumenta o ataque em 10%, com o pokémon que estiver segurando esse item.", icon: 'choice_band.png', price: 999999, type: 'hold' },

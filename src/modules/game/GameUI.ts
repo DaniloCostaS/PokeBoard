@@ -300,6 +300,27 @@ export class GameUI {
     // ==========================================
     // PAINEL ADMINISTRATIVO / SUPORTE HOST
     // ==========================================
+    static currentLogFilter: string = 'all';
+
+    static filterLogs(type: string) {
+        this.currentLogFilter = type;
+        const container = document.getElementById('log-container');
+        if (!container) return;
+
+        const searchInput = document.getElementById('log-search-input') as HTMLInputElement;
+        const searchText = searchInput ? searchInput.value.toLowerCase().trim() : "";
+
+        const entries = container.querySelectorAll('.log-entry');
+        entries.forEach((el: any) => {
+            const entryType = el.getAttribute('data-type');
+            const entryText = el.innerText.toLowerCase();
+            const matchesType = (type === 'all' || entryType === type);
+            const matchesSearch = searchText === "" || entryText.includes(searchText);
+
+            el.style.display = (matchesType && matchesSearch) ? "block" : "none";
+        });
+    }
+
     static openAdminPanel() {
         const modal = document.getElementById('admin-modal');
         const pSelect = document.getElementById('admin-player-select') as HTMLSelectElement;

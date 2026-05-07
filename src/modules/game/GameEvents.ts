@@ -502,12 +502,29 @@ export class GameEvents {
 
                 if (ev.id === 'TAX_SEASON') {
                     GameState.players.forEach(p => {
+                        const lostCards: string[] = [];
                         if (p.cards.length > 0) {
-                            const lost = Math.floor(p.cards.length / 2);
-                            for (let i = 0; i < lost; i++) p.cards.splice(Math.floor(Math.random() * p.cards.length), 1);
+                            const legendaryCards = p.cards.filter(c => c.rarity === 'Lendária' || c.isProtected);
+                            const nonLegendaryCards = p.cards.filter(c => c.rarity !== 'Lendária' && !c.isProtected);
+
+                            const totalToLose = Math.floor(p.cards.length / 2);
+                            const actuallyLost: any[] = [];
+
+                            if (totalToLose > 0 && nonLegendaryCards.length > 0) {
+                                const amountToLose = Math.min(totalToLose, nonLegendaryCards.length);
+                                for (let i = 0; i < amountToLose; i++) {
+                                    const randIdx = Math.floor(Math.random() * nonLegendaryCards.length);
+                                    actuallyLost.push(nonLegendaryCards.splice(randIdx, 1)[0]);
+                                }
+                            }
+
+                            p.cards = [...legendaryCards, ...nonLegendaryCards];
+                            actuallyLost.forEach(c => lostCards.push(`${c.icon} ${c.name}`));
                         }
                         for (const k in p.items) if (p.items[k] > 0) p.items[k] = Math.ceil(p.items[k] / 2);
-                        GameUI.sendGlobalLog(`🃏 [Extrato] ${p.name} pagou impostos. Cartas restantes: ${p.cards.length}`);
+                        
+                        const lostNames = lostCards.length > 0 ? `: ${lostCards.join(', ')}` : "";
+                        GameUI.sendGlobalLog(`🃏 [Extrato] ${p.name} pagou impostos${lostNames}. Cartas restantes: ${p.cards.length}`);
                         roomUpdates[`players/${p.id}/cards`] = p.cards;
                         roomUpdates[`players/${p.id}/items`] = p.items;
                     });
@@ -570,17 +587,31 @@ export class GameEvents {
             if (player.skipTurns > 0 || player.isProcessingSkip) return;
             if (GameState.currentGlobalEvent?.id === 'TRUCO_SEIS') {
                 if (player.cards.length > 6) {
-                    const lostCount = player.cards.length - 6;
-                    while (player.cards.length > 6) {
-                        player.cards.splice(Math.floor(Math.random() * player.cards.length), 1);
-                    }
-                    GameUI.sendGlobalLog(`🃏 ${player.name} excedeu o limite do TRUCO e perdeu ${lostCount} carta(s)! (Total: ${player.cards.length})`);
+                    const legendaryCards = player.cards.filter(c => c.rarity === 'Lendária' || c.isProtected);
+                    const nonLegendaryCards = player.cards.filter(c => c.rarity !== 'Lendária' && !c.isProtected);
 
-                    if (GameState.turn === NetworkObj.myPlayerId || !NetworkObj.isOnline) {
-                        GameUI.showGlobalAlert(`🃏 GRITARAM TRUCO!\n\nVocê tinha mais de 6 cartas e precisou descartar ${lostCount} aleatoriamente para continuar.`, player.name, true, false);
-                        GameUI.updateHUD();
+                    const neededToLose = player.cards.length - 6;
+                    const actuallyLost: any[] = [];
+
+                    if (neededToLose > 0 && nonLegendaryCards.length > 0) {
+                        const amountToLose = Math.min(neededToLose, nonLegendaryCards.length);
+                        for (let i = 0; i < amountToLose; i++) {
+                            const randIdx = Math.floor(Math.random() * nonLegendaryCards.length);
+                            actuallyLost.push(nonLegendaryCards.splice(randIdx, 1)[0]);
+                        }
                     }
-                    if (NetworkObj && NetworkObj.isOnline) NetworkObj.syncSpecificPlayer(player.id);
+
+                    if (actuallyLost.length > 0) {
+                        player.cards = [...legendaryCards, ...nonLegendaryCards];
+                        const lostNames = actuallyLost.map(c => `${c.icon} ${c.name}`).join(', ');
+                        GameUI.sendGlobalLog(`🃏 ${player.name} excedeu o limite do TRUCO e perdeu ${actuallyLost.length} carta(s): ${lostNames}! (Total: ${player.cards.length})`);
+
+                        if (GameState.turn === NetworkObj.myPlayerId || !NetworkObj.isOnline) {
+                            GameUI.showGlobalAlert(`🃏 GRITARAM TRUCO!\n\nVocê tinha mais de 6 cartas e precisou descartar ${actuallyLost.length} aleatoriamente para continuar.\n\nPerdidas: ${lostNames}`, player.name, true, false);
+                            GameUI.updateHUD();
+                        }
+                        if (NetworkObj && NetworkObj.isOnline) NetworkObj.syncSpecificPlayer(player.id);
+                    }
                 }
             }
         };
