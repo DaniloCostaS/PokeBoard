@@ -568,7 +568,7 @@ export class CardEffects {
                     if (!targetMon) { consumed = false; break; }
                     const { MAPA_MEGAS } = await import('../../constants/mapaMegas');
                     if (!MAPA_MEGAS[targetMon.id]) { alert(`O Pokémon não reage a esta Mega Pedra!`); consumed = false; break; }
-                    if (targetMon.megaStone) { alert(`${targetMon.name} já está segurando uma Mega Pedra!`); consumed = false; break; }
+                    if (targetMon.megaStone || targetMon.heldItem) { alert(`${targetMon.name} já está segurando um item! Remova-o antes de equipar outro.`); consumed = false; break; }
                     targetMon.megaStone = true;
                     effectLog = `💎 A Mega Pedra começou a brilhar intensamente junto de ${targetMon.name}!`;
                 } else { CardUI.openMegaSelection(cardId); consumed = false; }

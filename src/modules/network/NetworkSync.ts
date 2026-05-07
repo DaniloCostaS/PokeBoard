@@ -29,7 +29,8 @@ export class NetworkSync {
             baseStats: mon.baseStats || { hp: 10, atk: 10, def: 10, spd: 10 },
             bonusStats: mon.bonusStats || { hp: 0, atk: 0, def: 0, spd: 0 },
             wins: mon.wins || 0,
-            vinculoSupremo: mon.vinculoSupremo || false
+            vinculoSupremo: mon.vinculoSupremo || false,
+            heldItem: mon.heldItem || null
         }));
     }
 

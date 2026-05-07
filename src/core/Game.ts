@@ -103,6 +103,7 @@ export class Game {
     static openPokedexEntry(targetId: number) { (GameUI as any).openPokedexEntry(targetId); }
     static filterPokedex() { (GameUI as any).filterPokedex(); }
 
+    static removeHeldItem(pId: number, slotIdx: number) { GameEvents.removeHeldItem(pId, slotIdx); }
     static openXpRules() { (GameUI as any).openXpRules(); }
     static openCaptureRules() { (GameUI as any).openCaptureRules(); }
     static openCombatRules() { (GameUI as any).openCombatRules(); }

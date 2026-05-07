@@ -723,7 +723,7 @@ export class GameEvents {
         const p = GameState.players[pId];
         const item = SHOP_ITEMS.find(i => i.id === key);
         if (!item || p.items[key] <= 0) return;
-        if (item.type === 'heal' || item.type === 'revive' || item.type === 'boost' || item.type === 'mega') {
+        if (item.type === 'heal' || item.type === 'revive' || item.type === 'boost' || item.type === 'mega' || item.type === 'hold') {
             if (item.id === 'ultrafullrestore' || item.id === 'ultramaxrevive') {
                 this.applyBoardItemEffect(p, item, -1);
                 return;
@@ -770,12 +770,23 @@ export class GameEvents {
                     alert(`O Pokémon ${targetMon.name} não reage a esta Mega Pedra!`);
                     return;
                 }
-                if (targetMon.megaStone) {
-                    alert(`${targetMon.name} já está segurando uma Mega Pedra!`);
+                if (targetMon.megaStone || targetMon.heldItem) {
+                    alert(`${targetMon.name} já está segurando um item! Remova-o antes de equipar outro.`);
                     return;
                 }
                 targetMon.megaStone = true;
                 alert(`💎 A Mega Pedra foi vinculada a ${targetMon.name}! Ele agora pode Mega Evoluir em batalha.`);
+                used = true;
+            }
+        } else if (item.type === 'hold') {
+            const targetMon = p.team[targetIdx];
+            if (targetMon) {
+                if (targetMon.megaStone || targetMon.heldItem) {
+                    alert(`${targetMon.name} já está segurando um item! Remova-o antes de equipar outro.`);
+                    return;
+                }
+                targetMon.heldItem = item.id;
+                alert(`📦 ${targetMon.name} agora está segurando: ${item.name}!`);
                 used = true;
             }
         }
@@ -843,6 +854,29 @@ export class GameEvents {
                 NetworkObj.syncLixeira();
             }
             GameUI.openSwapModal(mon);
+        }
+    }
+
+    static removeHeldItem(pId: number, slotIdx: number) {
+        const p = GameState.players[pId];
+        const mon = p.team[slotIdx];
+        if (!mon) return;
+
+        const NetworkObj = (window as any).Network || Network;
+
+        if (mon.heldItem) {
+            const itemKey = mon.heldItem;
+            const itemData = SHOP_ITEMS.find(i => i.id === itemKey);
+            mon.heldItem = null;
+            p.items[itemKey] = (p.items[itemKey] || 0) + 1;
+            
+            GameUI.sendGlobalLog(`📦 ${p.name} removeu o item ${itemData?.name || itemKey} de ${mon.name}.`);
+            GameUI.updateHUD();
+            (GameUI as any).openPokemonDetail(pId, slotIdx);
+
+            if (NetworkObj.isOnline) {
+                NetworkObj.syncPlayerState();
+            }
         }
     }
 

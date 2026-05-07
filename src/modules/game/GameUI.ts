@@ -68,7 +68,11 @@ export class GameUI {
 
                 if (m.isShiny) auraClass = 'aura-shiny';
 
-                const megaIcon = m.megaStone ? `<img src="/assets/img/megaStone.png" style="width:16px; height:16px; margin-left:4px;" title="Mega Stone Equipada">` : '';
+                const megaIcon = m.megaStone ? `<img src="/assets/img/megaStone.png" style="width:16px; height:16px; margin-left:4px;" title="Mega Pedra Equipada">` : '';
+                
+                const heldItemData = m.heldItem ? SHOP_ITEMS.find(i => i.id === m.heldItem) : null;
+                const itemIcon = heldItemData ? `<img src="/assets/img/Itens/${heldItemData.icon}" style="width:16px; height:16px; margin-left:4px;" title="Item Segurando: ${heldItemData.name}">` : '';
+
                 const vinculoIcon = m.vinculoSupremo ? `<span style="font-size:14px; margin-left:4px;" title="Vínculo Supremo">🤝</span>` : '';
 
                 return ` 
@@ -78,6 +82,7 @@ export class GameUI {
                         <div class="poke-header"> 
                             <span>${m.name}</span> 
                             ${megaIcon}
+                            ${itemIcon}
                             ${vinculoIcon}
                             <span class="poke-lvl">Lv.${m.level}</span> 
                         </div> 
@@ -724,6 +729,35 @@ export class GameUI {
             ${createStatRow("Vel", mon.speed, ivs.spd, bonus.spd, "💨")}
         `;
 
+        let itemSection = document.getElementById('detail-item-section');
+        if (!itemSection) {
+            itemSection = document.createElement('div');
+            itemSection.id = 'detail-item-section';
+            grid.parentElement?.insertBefore(itemSection, grid.nextSibling);
+        }
+        itemSection.style.cssText = "margin-top: 15px; background: rgba(0,0,0,0.05); padding: 10px; border-radius: 8px; border: 1px solid #ddd;";
+        
+        let itemHTML = `<div style="font-weight: bold; color: #2c3e50; font-size: 0.9rem; margin-bottom: 5px;">📦 Item Segurando</div>`;
+        if (mon.heldItem || mon.megaStone) {
+            const heldId = mon.heldItem || 'megastone';
+            const heldData = SHOP_ITEMS.find(i => i.id === heldId);
+            const isMe = !championData && (GameState.canAct() && GameState.turn === playerIndex);
+            const canRemove = isMe && mon.heldItem; // Only allow removal if it's a held item, not mega stone
+
+            itemHTML += `
+                <div style="display:flex; align-items:center; justify-content:space-between; background:#fff; padding:8px; border-radius:6px; border:1px solid #eee;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <img src="/assets/img/Itens/${heldData?.icon || 'MegaStone.png'}" style="width:24px; height:24px; object-fit:contain;">
+                        <span style="font-weight:bold; color:#2c3e50; font-size:0.9rem;">${heldData?.name || 'Mega Pedra'}</span>
+                    </div>
+                    ${canRemove ? `<button class="btn btn-mini" style="background:#e74c3c; color:white; border:none; padding:4px 10px; border-radius:4px; cursor:pointer;" onclick="window.Game.removeHeldItem(${playerIndex}, ${slotIndex})">Remover</button>` : ''}
+                </div>
+            `;
+        } else {
+            itemHTML += `<div style="color:#7f8c8d; font-size:0.8rem; font-style:italic; text-align:center; padding:5px;">Nenhum item equipado.</div>`;
+        }
+        itemSection.innerHTML = itemHTML;
+
         let resoText = "0%";
         let masteryHTML = "";
 
@@ -1171,7 +1205,7 @@ export class GameUI {
                     const d = document.createElement('div');
                     d.className = 'shop-item';
                     let btnHTML = '';
-                    if (canUse && (item.type === 'heal' || item.type === 'revive' || item.type === 'boost' || item.type === 'mega')) {
+                    if (canUse && (item.type === 'heal' || item.type === 'revive' || item.type === 'boost' || item.type === 'mega' || item.type === 'hold')) {
                         btnHTML = `<button class="btn btn-mini" style="width:auto;" onclick="window.Game.useItemBoard('${key}', ${pId})">Usar</button>`;
                     }
                     d.innerHTML = `<div style="display:flex; align-items:center;"><img src="/assets/img/Itens/${item.icon}" class="item-icon-mini"><span>${item.name} x${p.items[key]}</span></div>${btnHTML}`;
@@ -1311,7 +1345,8 @@ export class GameUI {
         const modal = document.getElementById('pkmn-select-modal')!;
         const list = document.getElementById('pkmn-select-list')!;
         const title = document.getElementById('select-title')!;
-        title.innerText = item.type === 'mega' ? "Escolha quem vai segurar a Mega Pedra:" : "Usar em qual Pokémon?";
+        title.innerText = item.type === 'mega' ? "Escolha quem vai segurar a Mega Pedra:" : 
+                          item.type === 'hold' ? "Escolha quem vai segurar este item:" : "Usar em qual Pokémon?";
         list.innerHTML = '';
 
         let MAPA_MEGAS: any = null;
