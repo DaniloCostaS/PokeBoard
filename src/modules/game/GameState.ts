@@ -32,6 +32,7 @@ export class GameState {
 
     static activeGyms: number[] = [];
     static globalLogs: { text: string, style: string, type?: string }[] = [];
+    static cardLogs: { round: number, attacker: string, card: string, target: string, timestamp: number }[] = [];
     static lixeira: Pokemon[] = [];
     static globalChampion: any = null;
 

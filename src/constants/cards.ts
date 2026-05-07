@@ -67,6 +67,7 @@ export const CARDS_DB: CardData[] = [
     // Cartas Troll
     //{ id: 'rodada180', name: "Rodada 180", icon: "🔞", desc: "Se o Alan jogar essa carta, a partida vai para a rodada 180, tornando ele um Deus e ele vence.", type: 'move', rarity: 'Troll' }
     { id: 'michael', name: "Moon Walker", icon: "💃", desc: "Escolha um jogador. Nos próximos 3 rolagens de dados para andar, ele vai andar o número para trás.", type: 'move', rarity: 'Rara' },
+    { id: 'spy', name: "Espião", icon: "🕵️", desc: "Escolha um jogador e veja 3 cartas aleatórias da mão dele (mesmo as protegidas ou lendárias).", type: 'move', rarity: 'Rara' },
     { id: 'katrina', name: "Furacão Katrina", icon: "🌪️", desc: "Todos os jogadores são movidos para casas aleatórias no tabuleiro.", type: 'global', rarity: 'Rara' },
     { id: 'lure_type', name: "Lure Type", icon: "🆎", desc: "Escolha uma tipagem. Os próximos 2 selvagens que encontrar será da tipagem escolhida.", type: 'move', rarity: 'Incomum' },
 

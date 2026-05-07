@@ -148,6 +148,11 @@ export class NetworkSync {
         update(ref(db, `rooms/${NetworkState.currentRoomId}`), { logs: logs });
     }
 
+    static syncCardLogs(logs: any[]) {
+        if (!NetworkState.isOnline) return;
+        update(ref(db, `rooms/${NetworkState.currentRoomId}`), { cardLogs: logs });
+    }
+
     static syncTurn(newTurn: number, newRound: number = 1) {
         if (!NetworkState.isOnline) return;
         update(ref(db, `rooms/${NetworkState.currentRoomId}`), { turn: newTurn, round: newRound });

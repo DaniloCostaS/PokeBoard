@@ -1,4 +1,5 @@
 import { CardEffects } from './CardEffects';
+import { CARD_RARITIES } from '../../constants';
 
 export class CardUI {
     static openTargetSelection(cardId: string) {
@@ -752,5 +753,42 @@ export class CardUI {
             <button class="btn btn-secondary" onclick="document.getElementById('${modal?.id}').style.display='none'">Cancelar</button>
         `;
         list.appendChild(btnContainer);
+    }
+
+    static showRevealedCards(target: any, cards: any[]) {
+        const modal = document.getElementById('pkmn-select-modal')!;
+        const list = document.getElementById('pkmn-select-list')!;
+
+        document.getElementById('select-title')!.innerText = `Cartas de ${target.name}:`;
+        list.innerHTML = '';
+
+        cards.forEach((c: any) => {
+            const div = document.createElement('div');
+            div.className = `mon-select-item disabled`;
+            div.style.flexDirection = 'column';
+            div.style.alignItems = 'center';
+            div.style.padding = '15px';
+            div.style.gap = '10px';
+
+            const rData = CARD_RARITIES[c.rarity];
+            const rarityColor = rData ? rData.color : '#bdc3c7';
+
+            div.innerHTML = `
+                <div style="font-weight: bold; color: ${rarityColor}; text-transform: uppercase; font-size: 0.7rem; border: 1px solid ${rarityColor}; padding: 2px 6px; border-radius: 10px;">${c.rarity}</div>
+                <img src="/assets/img/Cartas/${c.id}.jpg" style="width: 120px; border-radius: 8px; border: 3px solid ${rarityColor}; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
+                <div style="font-weight: bold; font-size: 1rem; color: #fff;">${c.icon} ${c.name}</div>
+                <div style="font-size: 0.75rem; color: #bdc3c7; text-align: center; max-width: 150px;">${c.desc}</div>
+                ${c.isProtected ? '<div style="color: #f1c40f; font-size: 0.8rem; font-weight: bold; margin-top: 5px;">🔒 PROTEGIDA</div>' : ''}
+            `;
+            list.appendChild(div);
+        });
+
+        const okBtn = document.createElement('button');
+        okBtn.className = 'btn btn-secondary mt-15';
+        okBtn.innerText = 'Entendido';
+        okBtn.onclick = () => { modal.style.display = 'none'; };
+        list.appendChild(okBtn);
+
+        modal.style.display = 'flex';
     }
 }

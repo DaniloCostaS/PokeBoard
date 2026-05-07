@@ -61,6 +61,7 @@ export class Network {
     static syncSpecificPlayer(targetId: number) { NetworkSync.syncSpecificPlayer(targetId); }
     static syncPlayers(ids: number[]) { NetworkSync.syncPlayers(ids); }
     static syncLogs(logs: any[]) { NetworkSync.syncLogs(logs); }
+    static syncCardLogs(logs: any[]) { NetworkSync.syncCardLogs(logs); }
     static syncTurn(newTurn: number, newRound: number = 1) { NetworkSync.syncTurn(newTurn, newRound); }
     static syncLixeira() { NetworkSync.syncLixeira(); }
 }

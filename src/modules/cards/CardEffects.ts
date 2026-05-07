@@ -60,6 +60,12 @@ export class CardEffects {
                 Game.log(logMsg);
                 Game.showGlobalAlert(blockMsg, attacker.name, true, false);
 
+                // Log no novo painel de ataques
+                const GameUIClass = (window as any).GameUI || Game;
+                if (GameUIClass.recordCardLog) {
+                    GameUIClass.recordCardLog(attacker.name, `${incomingCardName} (BLOQUEADA)`, target.name);
+                }
+
                 const defenseNames: Record<string, string> = {
                     'jam': 'Interferência', 'silvertape': 'Silver Tape',
                     'no_troques': 'Pokémon Fiel', 'old_leader': 'Líder Velho',
@@ -407,6 +413,24 @@ export class CardEffects {
                             else Game.log(`🕵️ ALERTA: A Equipe Rocket roubou a carta [${stolenCard.name}] de ${target.name}!`);
                         } else { alert("O alvo não tem cartas!"); consumed = false; }
                     }
+                } else { CardUI.openTargetSelection(cardId); consumed = false; }
+                break;
+
+            case 'spy':
+                if (targetId !== null) {
+                    const target = Game.players.find((p: any) => p.id === targetId);
+                    if (target) {
+                        if (target.cards.length === 0) {
+                            alert("Este jogador não possui cartas!");
+                            consumed = false;
+                        } else {
+                            // Sorteia 3 cartas aleatórias da mão inteira (incluindo protegidas e lendárias)
+                            const shuffledCards = [...target.cards].sort(() => 0.5 - Math.random());
+                            const revealed = shuffledCards.slice(0, 3);
+                            CardUI.showRevealedCards(target, revealed);
+                            effectLog = `🕵️ ${player.name} usou Espião e viu 3 cartas da mão de ${target.name}!`;
+                        }
+                    } else { consumed = false; }
                 } else { CardUI.openTargetSelection(cardId); consumed = false; }
                 break;
 
@@ -968,6 +992,26 @@ export class CardEffects {
                 Game.showGlobalAlert(fullMsg + `||CARD:${cardId}`, player.name, true, false);
             }
             delete (player as any)._ashGoodbyeContinued;
+
+            // --- NOVO: Registro de Log de Carta ---
+            let targetNameForLog = "Si mesmo";
+            if (cardData.type === 'global') {
+                targetNameForLog = "Todos";
+            } else if (actualTargetId !== null && actualTargetId !== player.id) {
+                const t = Game.players.find((p: any) => p.id === actualTargetId);
+                if (t) targetNameForLog = t.name;
+            } else if (cardId === 'rocket' || cardId === 'swap' || cardId === 'slow' || cardId === 'curse' || cardId === 'trade_fail' || cardId === 'new_leader' || cardId === 'bag' || cardId === 'troques' || cardId === 'spy' || cardId === 'steal_mega_stone' || cardId === 'ash_goodbye') {
+                // Se for ofensiva mas alvo ainda não definido (abriu modal), não loga aqui.
+                // Mas geralmente quando chega aqui com 'consumed = true', o alvo já foi resolvido ou é global.
+            }
+            
+            // Só loga se consumiu e tem efeito relevante
+            if (consumed && cardData.name) {
+                const GameUIClass = (window as any).GameUI || Game;
+                if (GameUIClass.recordCardLog) {
+                    GameUIClass.recordCardLog(player.name, cardData.name, targetNameForLog);
+                }
+            }
 
             if (Network.isOnline && !skipBottomSync) {
                 try {

@@ -421,6 +421,47 @@ export class GameUI {
         }
     }
 
+    static recordCardLog(attackerName: string, cardName: string, targetName: string) {
+        const entry = {
+            round: GameState.round,
+            attacker: attackerName,
+            card: cardName,
+            target: targetName,
+            timestamp: Date.now()
+        };
+
+        const NetworkObj = (window as any).Network || Network;
+        if (NetworkObj.isOnline) {
+            // No modo online, enviamos como ação para o host processar ou syncar
+            GameState.cardLogs.unshift(entry);
+            if (GameState.cardLogs.length > 20) GameState.cardLogs.pop();
+            if (NetworkObj.syncCardLogs) NetworkObj.syncCardLogs(GameState.cardLogs);
+        } else {
+            GameState.cardLogs.unshift(entry);
+            if (GameState.cardLogs.length > 20) GameState.cardLogs.pop();
+        }
+        this.renderCardLogs();
+    }
+
+    static renderCardLogs() {
+        const container = document.getElementById('card-log-container');
+        if (!container) return;
+
+        if (GameState.cardLogs.length === 0) {
+            container.innerHTML = `<div style="color: #7f8c8d; text-align: center; padding-top: 20px; font-style: italic;">Nenhum ataque registrado...</div>`;
+            return;
+        }
+
+        container.innerHTML = GameState.cardLogs.map(entry => `
+            <div class="card-log-entry">
+                <span class="round">R${entry.round}</span>
+                <span class="attacker">${entry.attacker}</span> usou 
+                <b class="card-name">${entry.card}</b> em 
+                <span class="target">${entry.target}</span>
+            </div>
+        `).join('');
+    }
+
     static showGlobalAlert(msg: string, playerName: string, isMyTurn: boolean, endsTurn: boolean = true) {
         GameState.alertEndsTurn = endsTurn;
 

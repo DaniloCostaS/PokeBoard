@@ -80,6 +80,8 @@ export class Game {
 
     static log(m: string, actionPlayerId?: number) { GameUI.log(m, actionPlayerId); }
     static sendGlobalLog(msg: string) { GameUI.sendGlobalLog(msg); }
+    static recordCardLog(attacker: string, card: string, target: string) { GameUI.recordCardLog(attacker, card, target); }
+    static renderCardLogs() { GameUI.renderCardLogs(); }
     static filterLogs(type: string) { (GameUI as any).filterLogs(type); }
 
     static showGlobalAlert(msg: string, playerName: string, isMyTurn: boolean, endsTurn: boolean = true) {

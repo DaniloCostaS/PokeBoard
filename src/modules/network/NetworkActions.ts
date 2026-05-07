@@ -4,6 +4,8 @@ import { Player } from '../../models/Player';
 import { Pokemon } from '../../models/Pokemon';
 import { MapSystem } from '../../systems/MapSystem';
 import { Setup } from '../../core/Setup';
+import { GameState } from '../game/GameState';
+import { GameUI } from '../game/GameUI';
 import { GLOBAL_EVENTS } from '../../constants/globalEvents';
 import { ref, set, get, onValue, update } from 'firebase/database';
 
@@ -243,6 +245,14 @@ export class NetworkActions {
             Game.lixeira = [];
         }
 
+        if (data.cardLogs) {
+            GameState.cardLogs = data.cardLogs;
+            GameUI.renderCardLogs();
+        } else {
+            GameState.cardLogs = [];
+            GameUI.renderCardLogs();
+        }
+
         const playerArray = Object.values(data.players).map((pd: any) => {
             const avatarFile = (pd.avatar || "Red.jpg").split('/').pop();
             const pl = new Player(pd.id, pd.name, avatarFile, true);
@@ -338,6 +348,14 @@ export class NetworkActions {
                 });
             } else {
                 Game.lixeira = [];
+            }
+        });
+
+        onValue(ref(db, `rooms/${NetworkState.currentRoomId}/cardLogs`), (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                GameState.cardLogs = data;
+                GameUI.renderCardLogs();
             }
         });
 

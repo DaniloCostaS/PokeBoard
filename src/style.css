@@ -511,6 +511,40 @@ body {
     margin-bottom: 2px;
 }
 
+.card-log-entry {
+    background: rgba(255, 255, 255, 0.05);
+    border-left: 3px solid #c0392b;
+    padding: 6px;
+    border-radius: 0 4px 4px 0;
+    animation: slideIn 0.3s ease-out;
+}
+
+.card-log-entry .round {
+    color: #95a5a6;
+    font-weight: bold;
+    margin-right: 5px;
+}
+
+.card-log-entry .attacker {
+    color: #e74c3c;
+    font-weight: bold;
+}
+
+.card-log-entry .card-name {
+    color: #f1c40f;
+    font-style: italic;
+}
+
+.card-log-entry .target {
+    color: #3498db;
+    font-weight: bold;
+}
+
+@keyframes slideIn {
+    from { transform: translateX(20px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
 /* --- LEGENDA DE EVOLUÇÃO (POSICIONAMENTO NO PAINEL) --- */
 .evo-legend {
     /* Novo estilo para ficar dentro do painel */
