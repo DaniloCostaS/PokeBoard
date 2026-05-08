@@ -327,16 +327,6 @@ export class NetworkActions {
             Game.eventEndRound = snapshot.val() || 0;
         });
 
-        onValue(ref(db, `rooms/${NetworkState.currentRoomId}/battleActive`), (snapshot) => {
-            const isBattle = snapshot.val();
-            const BattleObj = (window as any).Battle;
-
-            if (isBattle === false && BattleObj && BattleObj.active) {
-                document.getElementById('battle-modal')!.style.display = 'none';
-                BattleObj.active = false;
-                if (typeof Game.checkTurnControl === 'function') Game.checkTurnControl();
-            }
-        });
 
         onValue(ref(db, `rooms/${NetworkState.currentRoomId}/lixeira`), (snapshot) => {
             const lixeiraData = snapshot.val();
@@ -445,7 +435,13 @@ export class NetworkActions {
         switch (action.type) {
             case 'ROLL': Game.animateDice(action.payload.result, action.playerId); break;
             case 'MOVE_ANIMATION': Game.performVisualStep(action.payload.playerId, action.payload.x, action.payload.y); break;
-            case 'BATTLE_START': Battle.startFromNetwork(action.payload); break;
+            case 'BATTLE_START': 
+                if (Battle.active && Battle.player && Battle.player.id === NetworkState.myPlayerId) {
+                    console.warn("BATTLE_START ignorado: Jogador já está em uma batalha local.");
+                    return;
+                }
+                Battle.startFromNetwork(action.payload); 
+                break;
 
             case 'BATTLE_OPP_SWITCH':
                 if (!Battle.active) return;
@@ -484,7 +480,11 @@ export class NetworkActions {
             }
 
             case 'BATTLE_UPDATE': Battle.updateFromNetwork(action.payload, action.playerId); break;
-            case 'BATTLE_END': Battle.end(true); break;
+            case 'BATTLE_END': 
+                if (Battle.active && Battle.player && Battle.player.id === action.playerId) {
+                    Battle.end(true);
+                }
+                break;
             case 'LOG': Game.log(action.payload.msg, action.playerId); break;
             case 'SHOW_ALERT': Game.showGlobalAlert(action.payload.msg, action.payload.playerName, false, action.payload.endsTurn !== false); break;
             case 'CLOSE_ALERT': Game.closeGlobalAlert(); break;
@@ -533,7 +533,7 @@ export class NetworkActions {
                 const actionData = { type: action.type, payload: action.payload, playerId: NetworkState.myPlayerId, timestamp: Date.now() };
                 const updates: any = {};
                 updates['lastAction'] = actionData;
-                if (action.type === 'BATTLE_START') updates['battleActive'] = true;
+                if (action.type === 'BATTLE_START') updates['battleActive'] = NetworkState.myPlayerId;
                 if (action.type === 'BATTLE_END') updates['battleActive'] = false;
 
                 try {
