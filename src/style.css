@@ -1327,7 +1327,7 @@ body {
     }
 
     /* 6 - Demais Informações (Log da partida, Regras, Debug) */
-    .panel-header {
+    #match-log-header {
         order: 6;
         border-radius: 8px 8px 0 0;
         margin-top: 10px;
@@ -1343,13 +1343,29 @@ body {
         margin-bottom: 15px;
     }
 
-    .evo-legend {
+    #card-log-header {
         order: 8;
+        border-radius: 8px 8px 0 0;
+        margin-top: 10px;
+    }
+
+    #card-log-container {
+        order: 9;
+        max-height: 150px !important; /* Força altura menor no mobile */
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid #444;
+        border-top: none;
+        border-radius: 0 0 8px 8px;
+        margin-bottom: 15px;
+    }
+
+    .evo-legend {
+        order: 10;
         margin: 10px auto 15px auto;
     }
 
     .extra-space {
-        order: 9;
+        order: 11;
         margin-bottom: 30px;
     }
 

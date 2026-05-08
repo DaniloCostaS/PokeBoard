@@ -1029,6 +1029,12 @@ export class BattleCore {
     }
 
     static useItem(key: string, data: ItemData) {
+        if (this.isGym && this.player!.effects.curse) {
+            const Game = (window as any).Game;
+            Game.showGlobalAlert("😈 Sua mochila foi selada pela Maldição! Você não pode usar itens nesta Batalha de Ginásio!", this.player!.name, true, false);
+            return;
+        }
+
         if (this.isChampion) return alert("🚫 As regras da Liga proíbem o uso de Itens de Cura no Desafio do Campeão!");
         if (data.type === 'revive') return alert("Você não pode reviver Pokémon durante a batalha!");
 

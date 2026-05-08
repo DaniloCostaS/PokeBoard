@@ -308,6 +308,12 @@ export class BattleUI {
 
     static openCardSelection() {
         const Game = (window as any).Game;
+
+        if (BattleCore.isGym && BattleCore.player!.effects.curse) {
+            Game.showGlobalAlert("😈 Sua mochila foi selada pela Maldição! Você não pode usar cartas nesta Batalha de Ginásio!", BattleCore.player!.name, true, false);
+            return;
+        }
+
         if (Game.currentGlobalEvent?.id === 'EMP') return alert("📡 Cartas bloqueadas pela Tempestade Eletromagnética!");
 
         if (!BattleCore.isPvP && BattleCore.activeMon && ((BattleCore.activeMon as any).isTemp || (BattleCore.activeMon as any).isMegaEvolution)) {

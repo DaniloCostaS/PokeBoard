@@ -188,6 +188,12 @@ export class Battle {
     static async animateCaptureSequence(ballIcon: string, isSuccess: boolean) { await BattleUI.animateCaptureSequence(ballIcon, isSuccess); }
 
     static useCard(cardId: string) {
+        if (BattleCore.isGym && BattleCore.player!.effects.curse) {
+            const Game = (window as any).Game;
+            Game.showGlobalAlert("😈 Sua mochila foi selada pela Maldição! Você não pode usar cartas nesta Batalha de Ginásio!", BattleCore.player!.name, true, false);
+            return;
+        }
+
         if (BattleCore.cardsUsedThisBattle >= 3) return alert("🚫 Você já usou o limite máximo de 3 cartas nesta batalha!");
         const Network = (window as any).Network;
         const Game = (window as any).Game;
