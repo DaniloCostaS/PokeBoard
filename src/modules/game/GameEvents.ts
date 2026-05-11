@@ -414,6 +414,7 @@ export class GameEvents {
 
     static nextTurn() {
         GameState.saveGame();
+        GameState.turnStarted = false; // Requer nova confirmação do próximo jogador
         const currentP = GameState.getCurrentPlayer();
         const NetworkObj = (window as any).Network || Network;
         currentP.resetTurnFlags();
@@ -565,182 +566,173 @@ export class GameEvents {
         const NetworkObj = (window as any).Network || Network;
         if (BattleObj && BattleObj.active) return;
 
-        const btn = document.getElementById('roll-btn') as HTMLButtonElement;
+        const rollBtn = document.getElementById('roll-btn') as HTMLButtonElement;
+        const iniciarBtn = document.getElementById('iniciar-turno-btn') as HTMLButtonElement;
         const me = NetworkObj.myPlayerId;
         const ind = document.getElementById('online-indicator');
 
-        const processDecadeBonus = (player: Player) => {
-            if (GameState.round > 1 && GameState.round % 10 === 0) {
-                if (player.effects.lastBonusRound !== GameState.round) {
-                    player.effects.lastBonusRound = GameState.round;
-                    if (player.skipTurns === 0 && !player.isProcessingSkip) {
-                        this.triggerDecadeBonus(player);
-                    } else {
-                        GameUI.log(`❌ ${player.name} está paralisado e perdeu o bônus da Rodada ${GameState.round}!`);
-                        if (NetworkObj && NetworkObj.isOnline) NetworkObj.syncSpecificPlayer(player.id);
-                    }
-                }
-            }
-        };
-
-        const processTrucoSeis = (player: Player) => {
-            if (player.skipTurns > 0 || player.isProcessingSkip) return;
-            if (GameState.currentGlobalEvent?.id === 'TRUCO_SEIS') {
-                if (player.cards.length > 6) {
-                    const legendaryCards = player.cards.filter(c => c.rarity === 'Lendária' || c.isProtected);
-                    const nonLegendaryCards = player.cards.filter(c => c.rarity !== 'Lendária' && !c.isProtected);
-
-                    const neededToLose = player.cards.length - 6;
-                    const actuallyLost: any[] = [];
-
-                    if (neededToLose > 0 && nonLegendaryCards.length > 0) {
-                        const amountToLose = Math.min(neededToLose, nonLegendaryCards.length);
-                        for (let i = 0; i < amountToLose; i++) {
-                            const randIdx = Math.floor(Math.random() * nonLegendaryCards.length);
-                            actuallyLost.push(nonLegendaryCards.splice(randIdx, 1)[0]);
-                        }
-                    }
-
-                    if (actuallyLost.length > 0) {
-                        player.cards = [...legendaryCards, ...nonLegendaryCards];
-                        const lostNames = actuallyLost.map(c => `${c.icon} ${c.name}`).join(', ');
-                        GameUI.sendGlobalLog(`🃏 ${player.name} excedeu o limite do TRUCO e perdeu ${actuallyLost.length} carta(s): ${lostNames}! (Total: ${player.cards.length})`);
-
-                        if (GameState.turn === NetworkObj.myPlayerId || !NetworkObj.isOnline) {
-                            GameUI.showGlobalAlert(`🃏 GRITARAM TRUCO!\n\nVocê tinha mais de 6 cartas e precisou descartar ${actuallyLost.length} aleatoriamente para continuar.\n\nPerdidas: ${lostNames}`, player.name, true, false);
-                            GameUI.updateHUD();
-                        }
-                        if (NetworkObj && NetworkObj.isOnline) NetworkObj.syncSpecificPlayer(player.id);
-                    }
-                }
-            }
-        };
-
-        const processStartTurnGifts = (player: Player) => {
-            if (player.skipTurns > 0 || player.isProcessingSkip) return;
-            if (player.effects.lastGiftRound === GameState.round) return;
-            player.effects.lastGiftRound = GameState.round;
-
-            let gainedAny = false;
-            let logMsg = "";
-            const balls = ['pokeball', 'greatball', 'ultraball', 'masterball'];
-            const hasAnyBall = balls.some(b => (player.items[b] || 0) > 0);
-
-            if (!hasAnyBall) {
-                this.addItem(player, 'pokeball', 1);
-                logMsg += `🎒 Sem Pokébolas! Ganhou 1 Pokébola de cortesia. `;
-                gainedAny = true;
-            }
-
-            if (player.cards.length === 0) {
-                const CardsObj = (window as any).Cards || Cards;
-                if (CardsObj) CardsObj.draw(player, true);
-                logMsg += `🃏 Sem cartas! Ganhou 1 carta de cortesia.`;
-                gainedAny = true;
-            }
-
-            if (gainedAny) {
-                GameUI.sendGlobalLog(logMsg);
-                if (GameState.turn === NetworkObj.myPlayerId || !NetworkObj.isOnline) {
-                    GameUI.showGlobalAlert(`🎁 SUPORTE DE EMERGÊNCIA!\n\n${logMsg}`, player.name, true, false);
-                    GameUI.updateHUD();
-                }
-                if (NetworkObj && NetworkObj.isOnline) NetworkObj.syncSpecificPlayer(player.id);
-            }
-        };
-
         if (NetworkObj.isOnline) {
             if (ind) ind.innerText = "FIREBASE";
-            if (GameState.turn === me) {
-                const myPlayer = GameState.players[me];
-                const type = MapSystem.grid[myPlayer.y][myPlayer.x];
-
-                if (type === TILE.GYM && !GameState.pendingTileEvent) {
-                    const gymId = MapSystem.gymLocations[`${myPlayer.x},${myPlayer.y}`];
-                    if (gymId && !myPlayer.badges[gymId - 1]) {
-                        if (!myPlayer.effects.escapedGym) {
-                            btn.disabled = true;
-                            btn.innerText = "EM BATALHA";
-                            if (!BattleObj.active) this.handleTile(myPlayer);
-                            return;
-                        }
-                    }
-                }
-
-                processDecadeBonus(myPlayer);
-                processTrucoSeis(myPlayer);
-                processStartTurnGifts(myPlayer);
-
-                if (GameState.currentGlobalEvent?.id === 'ROBIN_HOOD' && !myPlayer.effects.robinHoodApplied && myPlayer.skipTurns === 0 && !myPlayer.isProcessingSkip) {
-                    if (myPlayer.gold < 200 && myPlayer.cards.length < 2) {
-                        myPlayer.gold += 800;
-                        const CardsObj = (window as any).Cards || Cards;
-                        for (let i = 0; i < 5; i++) CardsObj.draw(myPlayer, true);
-                        myPlayer.effects.robinHoodApplied = true;
-
-                        const robinMsg = `🎁 AJUDA HUMANITÁRIA! Robin Hood te deu 800G e 5 Cartas por estar em dificuldade!`;
-                        GameUI.sendGlobalLog(robinMsg);
-                        GameUI.showGlobalAlert(robinMsg, myPlayer.name, true, false);
-
-                        if (NetworkObj.isOnline) NetworkObj.syncPlayerState();
-                        GameUI.updateHUD();
-                    }
-                }
-
-                if (myPlayer.skipTurns > 0 || myPlayer.isProcessingSkip) {
-                    btn.disabled = true;
-                    if (!myPlayer.isProcessingSkip) {
-                        btn.innerText = `Pulando vez... (${myPlayer.skipTurns})`;
-                        myPlayer.isProcessingSkip = true;
-
-                        myPlayer.skipTurns = Math.max(0, myPlayer.skipTurns - 1);
-                        if (!myPlayer.stats) myPlayer.stats = { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
-                        myPlayer.stats.turnsLost = (myPlayer.stats.turnsLost || 0) + 1;
-
-                        GameUI.sendGlobalLog(`${myPlayer.name} perdeu a vez! (Restam: ${myPlayer.skipTurns})`);
-                        if (NetworkObj && NetworkObj.isOnline) NetworkObj.syncPlayerState();
-
-                        setTimeout(() => {
-                            myPlayer.isProcessingSkip = false;
-                            if (GameState.turn === me) {
-                                this.nextTurn();
-                            }
-                        }, 2000);
-                    }
-                    return;
-                }
-
-                btn.disabled = false;
-                btn.innerText = "ROLAR";
-            } else {
-                btn.disabled = true;
-                btn.innerText = `Vez de ${GameState.players[GameState.turn].name}`;
-            }
         } else {
             if (ind) ind.innerText = "OFFLINE";
-            const currP = GameState.players[GameState.turn];
-            const type = MapSystem.grid[currP.y][currP.x];
+        }
 
-            if (type === TILE.GYM && !GameState.pendingTileEvent) {
-                const gymId = MapSystem.gymLocations[`${currP.x},${currP.y}`];
-                if (gymId && !currP.badges[gymId - 1]) {
-                    if (!currP.effects.escapedGym) {
-                        btn.disabled = true;
-                        btn.innerText = "EM BATALHA";
-                        if (!BattleObj.active) this.handleTile(currP);
-                        return;
-                    }
+        const isMyTurn = NetworkObj.isOnline ? (GameState.turn === me) : true;
+
+        if (!isMyTurn) {
+            rollBtn.disabled = true;
+            rollBtn.style.display = '';
+            rollBtn.innerText = `Vez de ${GameState.players[GameState.turn].name}`;
+            if (iniciarBtn) iniciarBtn.style.display = 'none';
+            GameState.turnStarted = false;
+            return;
+        }
+
+        // É a vez deste jogador
+        if (!GameState.turnStarted) {
+            // Aguardando o jogador clicar em "Iniciar Turno"
+            rollBtn.disabled = true;
+            rollBtn.style.display = 'none';
+            if (iniciarBtn) {
+                iniciarBtn.style.display = '';
+                iniciarBtn.disabled = false;
+                iniciarBtn.innerText = '🎮 Iniciar Turno';
+            }
+            return;
+        }
+
+        // Turno já iniciado
+        if (iniciarBtn) iniciarBtn.style.display = 'none';
+        rollBtn.style.display = '';
+
+        const currP = GameState.players[GameState.turn];
+        const type = MapSystem.grid[currP.y][currP.x];
+
+        if (type === TILE.GYM && !GameState.pendingTileEvent) {
+            const gymId = MapSystem.gymLocations[`${currP.x},${currP.y}`];
+            if (gymId && !currP.badges[gymId - 1]) {
+                if (!currP.effects.escapedGym) {
+                    rollBtn.disabled = true;
+                    rollBtn.innerText = "EM BATALHA";
+                    if (!BattleObj.active) this.handleTile(currP);
+                    return;
                 }
             }
-
-            processDecadeBonus(currP);
-            processTrucoSeis(currP);
-            processStartTurnGifts(currP);
-
-            btn.disabled = false;
-            btn.innerText = "ROLAR";
         }
+
+        rollBtn.disabled = false;
+        rollBtn.innerText = "ROLAR";
     }
+
+    static iniciarTurno() {
+        const NetworkObj = (window as any).Network || Network;
+        const me = NetworkObj.myPlayerId;
+        const isMyTurn = NetworkObj.isOnline ? (GameState.turn === me) : true;
+        if (!isMyTurn || GameState.turnStarted) return;
+
+        const iniciarBtn = document.getElementById('iniciar-turno-btn') as HTMLButtonElement;
+        if (iniciarBtn) { iniciarBtn.disabled = true; iniciarBtn.innerText = '⏳ Iniciando...'; }
+
+        const currP = GameState.players[NetworkObj.isOnline ? me : GameState.turn];
+
+        // Bônus de década
+        if (GameState.round > 1 && GameState.round % 10 === 0) {
+            if (currP.effects.lastBonusRound !== GameState.round) {
+                currP.effects.lastBonusRound = GameState.round;
+                if (currP.skipTurns === 0 && !currP.isProcessingSkip) {
+                    this.triggerDecadeBonus(currP);
+                } else {
+                    GameUI.log(`❌ ${currP.name} está paralisado e perdeu o bônus da Rodada ${GameState.round}!`);
+                    if (NetworkObj.isOnline) NetworkObj.syncSpecificPlayer(currP.id);
+                }
+            }
+        }
+
+        // Truco Seis
+        if (currP.skipTurns === 0 && !currP.isProcessingSkip && GameState.currentGlobalEvent?.id === 'TRUCO_SEIS') {
+            if (currP.cards.length > 6) {
+                const legendaryCards = currP.cards.filter((c: any) => c.rarity === 'Lendária' || c.isProtected);
+                const nonLegendaryCards = currP.cards.filter((c: any) => c.rarity !== 'Lendária' && !c.isProtected);
+                const neededToLose = currP.cards.length - 6;
+                const actuallyLost: any[] = [];
+                if (neededToLose > 0 && nonLegendaryCards.length > 0) {
+                    const amountToLose = Math.min(neededToLose, nonLegendaryCards.length);
+                    for (let i = 0; i < amountToLose; i++) {
+                        const randIdx = Math.floor(Math.random() * nonLegendaryCards.length);
+                        actuallyLost.push(nonLegendaryCards.splice(randIdx, 1)[0]);
+                    }
+                }
+                if (actuallyLost.length > 0) {
+                    currP.cards = [...legendaryCards, ...nonLegendaryCards];
+                    const lostNames = actuallyLost.map((c: any) => `${c.icon} ${c.name}`).join(', ');
+                    GameUI.sendGlobalLog(`🃏 ${currP.name} excedeu o limite do TRUCO e perdeu ${actuallyLost.length} carta(s): ${lostNames}! (Total: ${currP.cards.length})`);
+                    GameUI.showGlobalAlert(`🃏 GRITARAM TRUCO!\n\nVocê tinha mais de 6 cartas e precisou descartar ${actuallyLost.length} aleatoriamente.\n\nPerdidas: ${lostNames}`, currP.name, true, false);
+                    GameUI.updateHUD();
+                    if (NetworkObj.isOnline) NetworkObj.syncSpecificPlayer(currP.id);
+                }
+            }
+        }
+
+        // Suporte de emergência (pokebola/carta de cortesia)
+        if (currP.skipTurns === 0 && !currP.isProcessingSkip && currP.effects.lastGiftRound !== GameState.round) {
+            currP.effects.lastGiftRound = GameState.round;
+            let logMsg = ""; let gainedAny = false;
+            const balls = ['pokeball', 'greatball', 'ultraball', 'masterball'];
+            if (!balls.some((b: string) => (currP.items[b] || 0) > 0)) {
+                this.addItem(currP, 'pokeball', 1); logMsg += `🎒 Sem Pokébolas! Ganhou 1 Pokébola de cortesia. `; gainedAny = true;
+            }
+            if (currP.cards.length === 0) {
+                const CardsObj = (window as any).Cards || Cards;
+                if (CardsObj) CardsObj.draw(currP, true); logMsg += `🃏 Sem cartas! Ganhou 1 carta de cortesia.`; gainedAny = true;
+            }
+            if (gainedAny) {
+                GameUI.sendGlobalLog(logMsg);
+                GameUI.showGlobalAlert(`🎁 SUPORTE DE EMERGÊNCIA!\n\n${logMsg}`, currP.name, true, false);
+                GameUI.updateHUD();
+                if (NetworkObj.isOnline) NetworkObj.syncSpecificPlayer(currP.id);
+            }
+        }
+
+        // Robin Hood
+        if (GameState.currentGlobalEvent?.id === 'ROBIN_HOOD' && !currP.effects.robinHoodApplied && currP.skipTurns === 0 && !currP.isProcessingSkip) {
+            if (currP.gold < 200 && currP.cards.length < 2) {
+                currP.gold += 800;
+                const CardsObj = (window as any).Cards || Cards;
+                for (let i = 0; i < 5; i++) CardsObj.draw(currP, true);
+                currP.effects.robinHoodApplied = true;
+                const robinMsg = `🎁 AJUDA HUMANITÁRIA! Robin Hood te deu 800G e 5 Cartas!`;
+                GameUI.sendGlobalLog(robinMsg); GameUI.showGlobalAlert(robinMsg, currP.name, true, false);
+                if (NetworkObj.isOnline) NetworkObj.syncPlayerState();
+                GameUI.updateHUD();
+            }
+        }
+
+        // Verificar Skip Turns — pular a vez automaticamente
+        if (currP.skipTurns > 0 || currP.isProcessingSkip) {
+            if (!currP.isProcessingSkip) {
+                if (iniciarBtn) iniciarBtn.style.display = 'none';
+                const rollBtn = document.getElementById('roll-btn') as HTMLButtonElement;
+                rollBtn.style.display = ''; rollBtn.disabled = true;
+                rollBtn.innerText = `Pulando vez... (${currP.skipTurns})`;
+                currP.isProcessingSkip = true;
+                currP.skipTurns = Math.max(0, currP.skipTurns - 1);
+                if (!currP.stats) currP.stats = { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
+                currP.stats.turnsLost = (currP.stats.turnsLost || 0) + 1;
+                GameUI.sendGlobalLog(`${currP.name} perdeu a vez! (Restam: ${currP.skipTurns})`);
+                if (NetworkObj.isOnline) NetworkObj.syncPlayerState();
+                setTimeout(() => {
+                    currP.isProcessingSkip = false;
+                    if (NetworkObj.isOnline ? (GameState.turn === me) : true) this.nextTurn();
+                }, 2000);
+            }
+            return;
+        }
+
+        // Tudo certo, liberar o turno
+        GameState.turnStarted = true;
+        this.checkTurnControl();
+    }
+
 
     static addItem(player: Player, itemId: string, amount: number = 1) {
         if (!player.items[itemId]) { player.items[itemId] = 0; }
@@ -754,6 +746,12 @@ export class GameEvents {
         const p = GameState.players[pId];
         const item = SHOP_ITEMS.find(i => i.id === key);
         if (!item || p.items[key] <= 0) return;
+        // Bloquear uso de itens do tabuleiro se o turno ainda não foi iniciado
+        const NetworkObj = (window as any).Network || Network;
+        if (NetworkObj.isOnline && !GameState.turnStarted && GameState.turn === NetworkObj.myPlayerId) {
+            alert('⏳ Clique em "Iniciar Turno" antes de usar itens!');
+            return;
+        }
         if (item.type === 'heal' || item.type === 'revive' || item.type === 'boost' || item.type === 'mega' || item.type === 'hold') {
             if (item.id === 'ultrafullrestore' || item.id === 'ultramaxrevive') {
                 this.applyBoardItemEffect(p, item, -1);

@@ -301,6 +301,13 @@ export class CardEffects {
 
         if (cardData.type === 'move' && Battle.active) return alert("Cartas MOVE só podem ser usadas no tabuleiro!");
 
+        // Bloquear qualquer carta (exceto auto) se o turno ainda não foi iniciado
+        if (cardData.type !== 'auto') {
+            if (Network && Network.isOnline && !Game.turnStarted) {
+                return alert('⏳ Clique em "Iniciar Turno" antes de usar cartas!');
+            }
+        }
+
         if (cardData.type === 'battle') {
             if (!Battle.active) return alert("Cartas BATTLE só podem ser usadas em batalha!");
             if (!Battle.isPvP && Battle.activeMon && ((Battle.activeMon as any).isTemp || (Battle.activeMon as any).isMegaEvolution)) {

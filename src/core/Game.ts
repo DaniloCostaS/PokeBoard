@@ -54,6 +54,9 @@ export class Game {
     static get hasRolled() { return GameState.hasRolled; }
     static set hasRolled(val) { GameState.hasRolled = val; }
 
+    static get turnStarted() { return GameState.turnStarted; }
+    static set turnStarted(val) { GameState.turnStarted = val; }
+
     static get pendingTileEvent() { return GameState.pendingTileEvent; }
     static set pendingTileEvent(val) { GameState.pendingTileEvent = val; }
 
@@ -140,6 +143,7 @@ export class Game {
     static handleTotalDefeat(p: Player) { GameEvents.handleTotalDefeat(p); }
     static rescueFromLixeira(idx: number) { GameEvents.rescueFromLixeira(idx); }
     static checkTurnControl() { GameEvents.checkTurnControl(); }
+    static iniciarTurno() { GameEvents.iniciarTurno(); }
     static getLastCityCoord(p: Player) { return GameEvents.getLastCityCoord(p); }
     static placeTrap(x: number, y: number, ownerId: number) { (GameMovement as any).placeTrap(x, y, ownerId); }
 

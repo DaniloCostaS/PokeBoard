@@ -16,6 +16,7 @@ export class GameState {
     static pendingTileEvent: boolean = false;
     static isCityEvent: boolean = false;
     static hasRolled: boolean = false;
+    static turnStarted: boolean = false; // Jogador deve clicar "Iniciar Turno" antes de agir
     static forcedDiceValue: number = 0;
     static bonusMovement: number = 0;
     static traps: { x: number, y: number, ownerId: number }[] = [];
@@ -93,6 +94,13 @@ export class GameState {
         const NetworkObj = (window as any).Network || Network;
         if (!NetworkObj.isOnline) return true;
         return this.turn === NetworkObj.myPlayerId;
+    }
+
+    static canActFull() {
+        // Verifica se pode executar ações (turno iniciado + é a vez do jogador)
+        if (!this.canAct()) return false;
+        if (!this.turnStarted) return false;
+        return true;
     }
 
     static getCurrentPlayer() {
