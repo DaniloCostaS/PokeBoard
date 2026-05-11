@@ -270,13 +270,13 @@ export class CardEffects {
         if (!player || !player.cards || index < 0 || index >= player.cards.length) return;
 
         player.cards[index].isProtected = false;
-        
+
         Game.log(`🔓 ${player.name} removeu a proteção da carta [${player.cards[index].name}].`);
-        
+
         if (Network.isOnline) {
             Network.syncPlayerState();
         }
-        
+
         // Refresh UI if requested
         if (refreshUI) Game.openBoardCards(pId);
     }
@@ -412,10 +412,10 @@ export class CardEffects {
                             const stolenIdx = nonLegendaryIndices[Math.floor(Math.random() * nonLegendaryIndices.length)];
                             const stolenCard = target.cards.splice(stolenIdx, 1)[0];
                             player.cards.push(stolenCard);
-                            
+
                             Game.sendGlobalLog(`🃏 [Extrato] ${target.name} perdeu uma carta (Roubo). Total: ${target.cards.length}`);
                             Game.sendGlobalLog(`🃏 [Extrato] ${player.name} roubou uma carta. Total: ${player.cards.length}`);
-                            
+
                             effectLog = `🚀 BINGO! Uma carta foi roubada e foi parar na mão de ${player.name}!`;
 
                             const privateMsg = `🕵️ ALERTA: A Equipe Rocket roubou sua carta [${stolenCard.name}]!||PRIVATE:${target.id}`;
@@ -578,12 +578,12 @@ export class CardEffects {
                 if (targetId !== null) {
                     const targetCard = player.cards[targetId];
                     if (!targetCard) { consumed = false; break; }
-                    
+
                     const protectedCount = player.cards.filter((c: any) => c.isProtected).length;
                     if (protectedCount >= 3) { alert("Você já atingiu o limite de 3 cartas protegidas!"); consumed = false; break; }
                     if (targetCard.isProtected) { alert("Esta carta já está protegida!"); consumed = false; break; }
                     if (targetCard.id === 'card_protector') { alert("Você não pode proteger o Cadeado!"); consumed = false; break; }
-                    
+
                     targetCard.isProtected = true;
                     effectLog = `🔒 CADEADO ATIVADO! ${player.name} protegeu sua carta [${targetCard.name}] contra roubos!`;
                 } else {
@@ -958,7 +958,7 @@ export class CardEffects {
             if (!alreadyRemoved) {
                 let idx = player.cards.findIndex(c => c.id === cardId && !c.isProtected);
                 if (idx === -1) idx = player.cards.findIndex(c => c.id === cardId);
-                
+
                 if (idx > -1) player.cards.splice(idx, 1);
             }
 
@@ -1022,7 +1022,7 @@ export class CardEffects {
                 // Se for ofensiva mas alvo ainda não definido (abriu modal), não loga aqui.
                 // Mas geralmente quando chega aqui com 'consumed = true', o alvo já foi resolvido ou é global.
             }
-            
+
             // Só loga se consumiu e tem efeito relevante
             if (consumed && cardData.name) {
                 const GameUIClass = (window as any).GameUI || Game;

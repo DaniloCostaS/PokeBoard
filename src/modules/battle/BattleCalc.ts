@@ -142,7 +142,7 @@ export class BattleCalc {
                 auditLog += ` | Carta Crit x2`;
             }
             if (BattleCore.activeEffects.focus) { finalDamage *= 4; BattleCore.activeEffects.focus = false; logDetails += " [4x]"; auditLog += ` | Carta Focus x4`; }
-            if (BattleCore.player?.effects.curse && BattleCore.isGym) {
+            if (BattleCore.player?.effects.curse && (BattleCore.isGym || BattleCore.isChampion)) {
                 finalDamage = Math.floor(finalDamage / 2);
                 logDetails += " [😈Amaldiçoado]";
                 auditLog += ` | Maldição /2`;

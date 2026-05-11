@@ -25,7 +25,7 @@ export const CARDS_DB: CardData[] = [
 
     // Outras Cartas
     { id: 'master', name: "Master Ball", icon: "🟣", desc: "Captura 100% garantida usando qualquer pokebola (Só pode ser usado se tiver pokebola).", type: 'battle', rarity: 'Rara' },
-    { id: 'holy_water', name: "Água Benta", icon: "🫗", desc: "Remova o efeito da maldição do seu jogador.", type: 'move', rarity: 'Incomum' },
+    { id: 'holy_water', name: "Água Benta", icon: "🫗", desc: "Remova o efeito da maldição do seu jogador.", type: 'move', rarity: 'Rara' },
     { id: 'destiny', name: "Destino Selado", icon: "🌠", desc: "Se vencer a batalha, ganhe 2 recompensas (Gold/Carta).", type: 'battle', rarity: 'Comum' },
     { id: 'illegal_adoption', name: "Sequestro Relampago", icon: "⚡", desc: "Durante uma batalha contra NPC ou Selvagem, troque um Pokemon do seu time por um do adversario.", type: 'battle', rarity: 'Rara' },
     { id: 'adotar_lixeira', name: "Segunda Chance", icon: "💚", desc: "Escolha um Pokémon da Lixeira para resgatar e adicionar ao seu time.", type: 'move', rarity: 'Rara' },
@@ -35,7 +35,7 @@ export const CARDS_DB: CardData[] = [
     { id: 'slow', name: "Campo Grudento", icon: "🕸️", desc: "Escolha um jogador: ele rola apenas 1d1 nos próximos 3 turnos.", type: 'move', rarity: 'Comum' },
     { id: 'swap', name: "Troca Rápida", icon: "🔀", desc: "Troque de posição com qualquer jogador.", type: 'move', rarity: 'Incomum' },
     { id: 'rocket', name: "Equipe Rocket", icon: "🚀", desc: "Roube uma carta aleatória de outro jogador.", type: 'move', rarity: 'Incomum' },
-    { id: 'curse', name: "Maldição", icon: "☠️", desc: "Escolha um jogador: ele causa metade do dano na próxima batalha inteira contra líder de ginasio e não poderá usar itens.", type: 'move', rarity: 'Incomum' },
+    { id: 'curse', name: "Maldição", icon: "☠️", desc: "Escolha um jogador: ele causa metade do dano na próxima batalha inteira contra líder de ginasio ou rei da liga e não poderá usar itens.", type: 'move', rarity: 'Rara' },
     { id: 'trade_fail', name: "Troca Mal-Sucedida", icon: "❌", desc: "O jogador alvo perde os 3 próximos turnos.", type: 'move', rarity: 'Rara' },
 
     // Cartas de UP pokémon
@@ -66,8 +66,8 @@ export const CARDS_DB: CardData[] = [
 
     // Cartas Troll
     //{ id: 'rodada180', name: "Rodada 180", icon: "🔞", desc: "Se o Alan jogar essa carta, a partida vai para a rodada 180, tornando ele um Deus e ele vence.", type: 'move', rarity: 'Troll' }
-    { id: 'michael', name: "Moon Walker", icon: "💃", desc: "Escolha um jogador. Nos próximos 3 rolagens de dados para andar, ele vai andar o número para trás.", type: 'move', rarity: 'Rara' },
-    { id: 'spy', name: "Espião", icon: "🕵️", desc: "Escolha um jogador e veja 3 cartas aleatórias da mão dele (mesmo as protegidas ou lendárias).", type: 'move', rarity: 'Rara' },
+    { id: 'michael', name: "Moon Walker", icon: "💃", desc: "Escolha um jogador. Nos próximos 3 rolagens de dados para andar, ele vai andar o número para trás.", type: 'move', rarity: 'Incomum' },
+    { id: 'spy', name: "Espião", icon: "🕵️", desc: "Escolha um jogador e veja 3 cartas aleatórias da mão dele (mesmo as protegidas ou lendárias).", type: 'move', rarity: 'Incomum' },
     { id: 'katrina', name: "Furacão Katrina", icon: "🌪️", desc: "Todos os jogadores são movidos para casas aleatórias no tabuleiro.", type: 'global', rarity: 'Rara' },
     { id: 'lure_type', name: "Lure Type", icon: "🆎", desc: "Escolha uma tipagem. Os próximos 2 selvagens que encontrar será da tipagem escolhida.", type: 'move', rarity: 'Incomum' },
 

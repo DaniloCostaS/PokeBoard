@@ -700,7 +700,7 @@ export class BattleCore {
 
         if (NetworkObj.isOnline && this.isPvP && NetworkObj.myPlayerId === this.enemyPlayer?.id) return;
 
-        if (this.isGym) this.player!.effects.curse = false;
+        if (this.isGym || this.isChampion) this.player!.effects.curse = false;
         this.revertMew();
         let gain = 0; let msg = "VITÓRIA! ";
 
@@ -825,7 +825,7 @@ export class BattleCore {
     static lose() {
         const Game = (window as any).Game;
         const NetworkObj = (window as any).Network || Network;
-        if (this.isGym) this.player!.effects.curse = false;
+        if (this.isGym || this.isChampion) this.player!.effects.curse = false;
         this.revertMew();
         let msg = "DERROTA... ";
 
@@ -1009,7 +1009,7 @@ export class BattleCore {
             }
 
             if (this.player) {
-                if (this.isGym) this.player.effects.curse = false;
+                if (this.isGym || this.isChampion) this.player.effects.curse = false;
                 const lostGold = this.player.gold >= 100 ? 100 : this.player.gold;
                 this.player.gold = Math.max(0, this.player.gold - 100);
                 if (lostGold > 0) {
