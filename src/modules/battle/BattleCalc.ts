@@ -42,7 +42,10 @@ export class BattleCalc {
             return { damage: 0, msg: "🛡️ BLOQUEIO TOTAL!", avoided: true, reflected: 0 };
         }
 
-        const baseAtk = (attacker.atk * 0.65) + (attacker.speed * 0.15) + (attacker.maxHp * 0.2);
+        const baseAtkRaw = (attacker.atk * 0.65) + (attacker.speed * 0.15) + (attacker.maxHp * 0.2);
+        // choice_band: +10% atk quando atacante carrega o item
+        const hasChoiceBand = isPlayerAttacking && (attacker as any).heldItem === 'choice_band';
+        const baseAtk = hasChoiceBand ? baseAtkRaw * 1.10 : baseAtkRaw;
         let finalDamage = (baseAtk / 5) - (defender.def / 20);
 
         let auditLog = `\n[Cálc: Base ${finalDamage.toFixed(1)}`;
@@ -71,14 +74,18 @@ export class BattleCalc {
             auditLog += ` | Crit.Vel +5`;
         }
 
+        const hasScopeLens = isPlayerAttacking && (attacker as any).heldItem === 'scope_lens';
         const d6 = Math.floor(Math.random() * 6) + 1;
         let rollModifier = 0;
-        if (d6 === 6) { rollModifier = +5; logDetails += " 🎲Crit!"; }
+        // scope_lens: 5 ou 6 no dado é crítico
+        if (d6 === 6 || (hasScopeLens && d6 === 5)) { rollModifier = +5; logDetails += " 🎲Crit!"; }
         else if (d6 === 5) rollModifier = +3;
         else if (d6 === 4) rollModifier = +2;
         else if (d6 === 2) rollModifier = -1;
         else if (d6 === 1) rollModifier = -2;
         finalDamage += rollModifier;
+        if (hasScopeLens && d6 === 5) { auditLog += ` | Scope Lens Crit!`; }
+        else if (hasScopeLens) { auditLog += ` | Scope Lens`; }
 
         auditLog += ` | 🎲${d6}(${rollModifier > 0 ? '+' : ''}${rollModifier})`;
 
@@ -164,6 +171,14 @@ export class BattleCalc {
                 reflectedAmount += finalDamage;
                 logDetails += " 🔄REFLETIDO!";
             }
+        }
+
+        // rocky_helmet: reflete 15% do dano ao atacante quando defensor carrega o item
+        const defenderHasHelmet = !isPlayerAttacking && (defender as any).heldItem === 'rocky_helmet';
+        if (defenderHasHelmet && finalDamage > 0) {
+            reflectedAmount += Math.floor(finalDamage * 0.15);
+            logDetails += " [⛑️Helmet!]";
+            auditLog += ` | Rocky Helmet 15%`;
         }
 
         auditLog += ` => Final: ${finalDamage}]`;

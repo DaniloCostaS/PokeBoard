@@ -899,9 +899,9 @@ export class GameEvents {
             const itemKey = mon.heldItem;
             const itemData = SHOP_ITEMS.find(i => i.id === itemKey);
             mon.heldItem = null;
-            p.items[itemKey] = (p.items[itemKey] || 0) + 1;
-            
-            GameUI.sendGlobalLog(`📦 ${p.name} removeu o item ${itemData?.name || itemKey} de ${mon.name}.`);
+            // Held items são perdidos ao serem removidos (não voltam para a bolsa)
+
+            GameUI.sendGlobalLog(`📦 ${p.name} removeu o item ${itemData?.name || itemKey} de ${mon.name}. O item foi perdido.`);
             GameUI.updateHUD();
             (GameUI as any).openPokemonDetail(pId, slotIdx);
 

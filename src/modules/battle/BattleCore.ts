@@ -290,15 +290,22 @@ export class BattleCore {
         this.processingAction = true;
         BattleUI.updateButtons();
 
-        const playerSpeed = this.activeMon.speed;
+        // choice_scarf: +20% de velocidade efetiva para determinar quem vai primeiro
+        const scarfBonus = (this.activeMon as any).heldItem === 'choice_scarf' ? 1.20 : 1.0;
+        const playerSpeed = Math.floor(this.activeMon.speed * scarfBonus);
         const enemySpeed = this.opponent.speed;
         let playerGoesFirst = true;
 
-        if (playerSpeed > enemySpeed) playerGoesFirst = true;
+        // quick_claw: 100% de chance de ir primeiro quando o ativo carrega o item
+        const hasQuickClaw = (this.activeMon as any).heldItem === 'quick_claw';
+        if (hasQuickClaw) {
+            playerGoesFirst = true;
+            BattleUI.logBattle(`⚡ Garra Rápida! ${this.activeMon.name} age primeiro!`, true);
+        } else if (playerSpeed > enemySpeed) playerGoesFirst = true;
         else if (enemySpeed > playerSpeed) playerGoesFirst = false;
         else playerGoesFirst = Math.random() > 0.5;
 
-        BattleUI.logBattle(`Velocidade: ${this.activeMon.name}(${playerSpeed}) vs ${this.opponent.name}(${enemySpeed})`, true);
+        if (!hasQuickClaw) BattleUI.logBattle(`Velocidade: ${this.activeMon.name}(${playerSpeed}) vs ${this.opponent.name}(${enemySpeed})`, true);
 
         const finishTurnSequence = () => {
             const Game = (window as any).Game;
@@ -319,6 +326,14 @@ export class BattleCore {
                     BattleUI.logBattle("🤢 O Nevoeiro Tóxico sufoca os Pokémons em campo!", true);
                     BattleUI.updateUI();
                 }
+            }
+
+            // leftovers: restaura 10 HP no final de cada turno
+            if (this.activeMon && this.activeMon.currentHp > 0 && (this.activeMon as any).heldItem === 'leftovers') {
+                const heal = 10;
+                this.activeMon.currentHp = Math.min(this.activeMon.maxHp, this.activeMon.currentHp + heal);
+                BattleUI.logBattle(`🌿 Restos restauraram ${heal} HP de ${this.activeMon.name}!`);
+                BattleUI.updateUI();
             }
 
             this.processingAction = false;
@@ -440,6 +455,13 @@ export class BattleCore {
             const oppStats = this.opponent.maxHp + this.opponent.atk + this.opponent.def + this.opponent.speed;
             const xpGain = Math.max(1, Math.floor(oppStats / 9));
             this.activeMon.gainXp(xpGain, this.player!);
+
+            // amulet_coin: +50G ao derrotar um pokémon
+            if ((this.activeMon as any).heldItem === 'amulet_coin' && this.player) {
+                this.player.gold += 50;
+                BattleUI.logBattle(`💰 Moeda de Amuleto! +50G (Total: ${this.player.gold}G)`);
+            }
+
             BattleUI.updateUI();
             if (NetworkObj.isOnline) NetworkObj.syncPlayerState();
             setTimeout(() => { this.checkWinCondition(); }, 1000);
@@ -514,6 +536,19 @@ export class BattleCore {
         logMsg += ` HP final ${this.activeMon.currentHp}/${this.activeMon.maxHp}.`;
         BattleUI.logBattle(logMsg);
         BattleUI.updateUI();
+
+        // sitrus_berry: restaura 50% do HP máximo quando HP cair a 20% ou menos
+        if (this.activeMon && this.activeMon.currentHp > 0 && (this.activeMon as any).heldItem === 'sitrus_berry') {
+            const hpPercent = this.activeMon.currentHp / this.activeMon.maxHp;
+            if (hpPercent <= 0.20) {
+                const heal = Math.floor(this.activeMon.maxHp * 0.5);
+                this.activeMon.currentHp = Math.min(this.activeMon.maxHp, this.activeMon.currentHp + heal);
+                (this.activeMon as any).heldItem = null; // consumido
+                BattleUI.logBattle(`🍒 Sitrus Berry! ${this.activeMon.name} recuperou ${heal} HP e consumiu a berry!`, true);
+                BattleUI.updateUI();
+                if (NetworkObj.isOnline) NetworkObj.syncPlayerState();
+            }
+        }
 
         if (this.activeEffects.counter && this.activeEffects.counter > 0) {
             const reflect = Math.floor(totalDmg * 1.0);
