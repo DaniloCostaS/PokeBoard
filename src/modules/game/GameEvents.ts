@@ -10,8 +10,9 @@ import { Network, db } from '../../systems/Network';
 import { ref, update } from 'firebase/database';
 import { TILE, NPC_DATA, SHOP_ITEMS } from '../../constants';
 import { GLOBAL_EVENTS } from '../../constants/globalEvents';
-import { GYM_DATA } from '../../constants/gyms'; // ADICIONE ESTA LINHA
-import { GameSpawns } from './GameSpawns';       // ADICIONE ESTA LINHA
+import { GYM_DATA } from '../../constants/gyms';
+import { GameSpawns } from './GameSpawns';
+import { NotificationSystem } from './NotificationSystem';
 import type { ItemData } from '../../constants';
 
 export class GameEvents {
@@ -598,6 +599,11 @@ export class GameEvents {
                 iniciarBtn.disabled = false;
                 iniciarBtn.innerText = '🎮 Iniciar Turno';
             }
+            // 🔔 Notifica o jogador se ele não estiver olhando para a aba
+            if (NetworkObj.isOnline) {
+                const currP = GameState.players[me];
+                if (currP) NotificationSystem.notifyMyTurn(currP.name, GameState.round, GameState.turn);
+            }
             return;
         }
 
@@ -629,6 +635,11 @@ export class GameEvents {
         const me = NetworkObj.myPlayerId;
         const isMyTurn = NetworkObj.isOnline ? (GameState.turn === me) : true;
         if (!isMyTurn || GameState.turnStarted) return;
+
+        // Solicitar permissão de notificação (idempotente, só pede uma vez)
+        NotificationSystem.requestPermission();
+        // Cancela notificação pendente — jogador já está aqui
+        NotificationSystem.cancelPending();
 
         const iniciarBtn = document.getElementById('iniciar-turno-btn') as HTMLButtonElement;
         if (iniciarBtn) { iniciarBtn.disabled = true; iniciarBtn.innerText = '⏳ Iniciando...'; }
