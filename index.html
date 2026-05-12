@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PokéBoard V92</title>
+    <title>PokéBoard V92a</title>
     <link rel="stylesheet" href="style.css">
 
     <script type="importmap">
@@ -20,7 +20,7 @@
 <body>
 
     <div id="setup-screen">
-        <h1 class="title-highlight">PokéBoard V92</h1>
+        <h1 class="title-highlight">PokéBoard V92a</h1>
         <p class="subtitle">Cartas lendárias e mais.</p>
 
         <div id="menu-phase-1">
@@ -146,7 +146,9 @@
 
             <div class="panel-box dice-section">
                 <div id="d20-display">🎲 6</div>
-                <button id="iniciar-turno-btn" class="btn" style="display:none; background: linear-gradient(135deg, #27ae60, #2ecc71); font-size:1rem; font-weight:bold; letter-spacing:0.5px;" onclick="window.Game.iniciarTurno()">🎮 Iniciar Turno</button>
+                <button id="iniciar-turno-btn" class="btn"
+                    style="display:none; background: linear-gradient(135deg, #27ae60, #2ecc71); font-size:1rem; font-weight:bold; letter-spacing:0.5px;"
+                    onclick="window.Game.iniciarTurno()">🎮 Iniciar Turno</button>
                 <button id="roll-btn" class="btn btn-roll" onclick="window.Game.rollDice()">ROLAR</button>
             </div>
 

@@ -639,31 +639,66 @@ export class CardEffects {
 
             case 'ash_goodbye':
                 if (targetId !== null) {
-                    const tId = targetId.targetId; const pIdx = targetId.pokemonIndex;
+                    const tId = targetId.targetId;
+                    const pIdx = targetId.pokemonIndex;
                     const target = Game.players.find((p: any) => p.id === tId);
                     if (!target) { consumed = false; break; }
+
+                    // Garante que ashGoodbyeRemaining está inicializado
+                    if (player.effects.ashGoodbyeRemaining === undefined) {
+                        player.effects.ashGoodbyeRemaining = 2;
+                    }
+
                     const targetMon = target.team[pIdx];
-                    if (!targetMon) { consumed = false; break; }
+                    if (!targetMon) {
+                        // índice inválido (team pode ter mudado) — reabre seleção
+                        consumed = false;
+                        setTimeout(() => { CardUI.openAshGoodbyeTargetSelection(cardId); }, 300);
+                        break;
+                    }
 
-                    if (target.team.length === 1) { alert("Você não pode mandar embora o último Pokémon do treinador!"); consumed = false; CardUI.openAshGoodbyeTargetSelection(cardId); break; }
-                    if (targetMon.vinculoSupremo) effectLog = `🤝 O ADEUS DE ASH FALHOU! ${targetMon.name} se recusa a ir embora devido ao Vínculo Supremo!`;
-                    else { target.team.splice(pIdx, 1); effectLog = `👋 ADEUS! ${player.name} fez ${target.name} libertar seu ${targetMon.name} para todo o sempre!`; }
+                    if (target.team.length === 1) {
+                        alert("Você não pode mandar embora o último Pokémon do treinador!");
+                        consumed = false;
+                        setTimeout(() => { CardUI.openAshGoodbyeTargetSelection(cardId); }, 300);
+                        break;
+                    }
 
-                    if (player.effects.ashGoodbyeRemaining === undefined) player.effects.ashGoodbyeRemaining = 2;
+                    if (targetMon.vinculoSupremo) {
+                        effectLog = `🤝 O ADEUS DE ASH FALHOU! ${targetMon.name} se recusa a ir embora devido ao Vínculo Supremo!`;
+                        // Não remove, mas conta a tentativa
+                    } else {
+                        target.team.splice(pIdx, 1);
+                        effectLog = `👋 ADEUS! ${player.name} fez ${target.name} libertar seu ${targetMon.name} para todo o sempre!`;
+                    }
+
                     player.effects.ashGoodbyeRemaining--;
-                    consumed = true;
+                    const remaining = player.effects.ashGoodbyeRemaining;
 
-                    if (player.effects.ashGoodbyeRemaining < 1) (player as any)._ashGoodbyeContinued = true;
+                    // Log e sync imediato do alvo
+                    Game.log(effectLog);
+                    Game.showGlobalAlert(effectLog, player.name, true, false);
+                    if (Network.isOnline) Network.syncPlayers([player.id, target.id]);
 
-                    if (player.effects.ashGoodbyeRemaining > 0) {
-                        Game.log(effectLog);
-                        Game.showGlobalAlert(effectLog, player.name, true, false);
-                        if (Network.isOnline) Network.syncPlayers([player.id, target.id]);
-                        setTimeout(() => { CardUI.openAshGoodbyeTargetSelection(cardId); }, 1200);
+                    Game.updateHUD();
+
+                    if (remaining > 0) {
+                        // Ainda há seleções a fazer — marca como continuação para não consumir a carta ainda
+                        (player as any)._ashGoodbyeContinued = true;
                         skipBottomSync = true;
-                    } else { delete player.effects.ashGoodbyeRemaining; }
+                        consumed = false; // não remove a carta ainda
+                        setTimeout(() => { CardUI.openAshGoodbyeTargetSelection(cardId); }, 1200);
+                    } else {
+                        // Última seleção — finaliza normalmente
+                        delete player.effects.ashGoodbyeRemaining;
+                        consumed = true;
+                    }
 
-                } else { CardUI.openAshGoodbyeTargetSelection(cardId); consumed = false; }
+                } else {
+                    // Ainda não foi escolhido alvo — abre seleção
+                    CardUI.openAshGoodbyeTargetSelection(cardId);
+                    consumed = false;
+                }
                 break;
 
             case 'tremembe':

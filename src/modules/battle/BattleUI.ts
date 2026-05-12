@@ -75,7 +75,16 @@ export class BattleUI {
             if (BattleCore.isPvP && BattleCore.enemyPlayer) oppName = BattleCore.enemyPlayer.name;
             else if (BattleCore.isGym) oppName = "Líder de Ginásio";
             else if (BattleCore.isNPC && (BattleCore.opponent as any)._npcName) oppName = (BattleCore.opponent as any)._npcName;
-            titleEl.innerHTML = `👁️ <span style="color:#ffd700;">Assistindo ${BattleCore.player.name} contra ${oppName}</span>`;
+            titleEl.innerHTML = `
+                <div style="display:flex; align-items:center; justify-content:space-between; width:100%; gap:10px;">
+                    <span>👁️ <span style="color:#ffd700;">Assistindo ${BattleCore.player.name} contra ${oppName}</span></span>
+                    <button id="btn-close-spectator"
+                        onclick="document.getElementById('battle-modal').style.display='none'"
+                        style="background:rgba(231,76,60,0.85); border:none; border-radius:6px; color:#fff; padding:4px 12px; font-size:0.85rem; cursor:pointer; font-weight:bold; white-space:nowrap; flex-shrink:0;"
+                        title="Fechar visualização e voltar ao tabuleiro">
+                        ✕ Fechar Visualização
+                    </button>
+                </div>`;
         } else {
             titleEl.innerText = BattleCore.battleTitle;
         }
