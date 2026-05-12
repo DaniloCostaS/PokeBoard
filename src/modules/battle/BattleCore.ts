@@ -292,20 +292,26 @@ export class BattleCore {
 
         // choice_scarf: +20% de velocidade efetiva para determinar quem vai primeiro
         const scarfBonus = (this.activeMon as any).heldItem === 'choice_scarf' ? 1.20 : 1.0;
+        const enemyScarfBonus = (this.opponent as any).heldItem === 'choice_scarf' ? 1.20 : 1.0;
         const playerSpeed = Math.floor(this.activeMon.speed * scarfBonus);
-        const enemySpeed = this.opponent.speed;
+        const enemySpeed = Math.floor(this.opponent.speed * enemyScarfBonus);
         let playerGoesFirst = true;
 
         // quick_claw: 100% de chance de ir primeiro quando o ativo carrega o item
         const hasQuickClaw = (this.activeMon as any).heldItem === 'quick_claw';
-        if (hasQuickClaw) {
+        const enemyHasQuickClaw = (this.opponent as any).heldItem === 'quick_claw';
+        
+        if (hasQuickClaw && !enemyHasQuickClaw) {
             playerGoesFirst = true;
             BattleUI.logBattle(`⚡ Garra Rápida! ${this.activeMon.name} age primeiro!`, true);
+        } else if (enemyHasQuickClaw && !hasQuickClaw) {
+            playerGoesFirst = false;
+            BattleUI.logBattle(`⚡ Garra Rápida! ${this.opponent.name} age primeiro!`, true);
         } else if (playerSpeed > enemySpeed) playerGoesFirst = true;
         else if (enemySpeed > playerSpeed) playerGoesFirst = false;
         else playerGoesFirst = Math.random() > 0.5;
 
-        if (!hasQuickClaw) BattleUI.logBattle(`Velocidade: ${this.activeMon.name}(${playerSpeed}) vs ${this.opponent.name}(${enemySpeed})`, true);
+        if (!hasQuickClaw && !enemyHasQuickClaw) BattleUI.logBattle(`Velocidade: ${this.activeMon.name}(${playerSpeed}) vs ${this.opponent.name}(${enemySpeed})`, true);
 
         const finishTurnSequence = () => {
             const Game = (window as any).Game;
@@ -333,6 +339,12 @@ export class BattleCore {
                 const heal = 10;
                 this.activeMon.currentHp = Math.min(this.activeMon.maxHp, this.activeMon.currentHp + heal);
                 BattleUI.logBattle(`🌿 Restos restauraram ${heal} HP de ${this.activeMon.name}!`);
+                BattleUI.updateUI();
+            }
+            if (this.opponent && this.opponent.currentHp > 0 && (this.opponent as any).heldItem === 'leftovers') {
+                const heal = 10;
+                this.opponent.currentHp = Math.min(this.opponent.maxHp, this.opponent.currentHp + heal);
+                BattleUI.logBattle(`🌿 Restos restauraram ${heal} HP de ${this.opponent.name}!`);
                 BattleUI.updateUI();
             }
 
@@ -549,6 +561,9 @@ export class BattleCore {
                 if (NetworkObj.isOnline) NetworkObj.syncPlayerState();
             }
         }
+        
+        // sitrus berry também para o inimigo, pois ele tomou dano no final de performPlayerAttack também
+        // (Isso é feito logo após calcular o ataque do inimigo, mas poderia checar antes. Como não sabemos quem atacou por último, checamos de ambos.)
 
         if (this.activeEffects.counter && this.activeEffects.counter > 0) {
             const reflect = Math.floor(totalDmg * 1.0);
@@ -573,6 +588,13 @@ export class BattleCore {
                 const plyStats = this.activeMon.maxHp + this.activeMon.atk + this.activeMon.def + this.activeMon.speed;
                 const oppXpGain = Math.max(1, Math.floor(plyStats / 9));
                 this.opponent.gainXp(oppXpGain, this.enemyPlayer);
+                
+                // amulet_coin: +50G ao derrotar um pokémon (para o inimigo)
+                if ((this.opponent as any).heldItem === 'amulet_coin') {
+                    this.enemyPlayer.gold += 50;
+                    BattleUI.logBattle(`💰 Moeda de Amuleto! +50G para ${this.enemyPlayer.name} (Total: ${this.enemyPlayer.gold}G)`);
+                }
+
                 if (NetworkObj.isOnline) NetworkObj.syncSpecificPlayer(this.enemyPlayer.id);
             }
             BattleUI.updateUI();

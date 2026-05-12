@@ -44,7 +44,7 @@ export class BattleCalc {
 
         const baseAtkRaw = (attacker.atk * 0.65) + (attacker.speed * 0.15) + (attacker.maxHp * 0.2);
         // choice_band: +10% atk quando atacante carrega o item
-        const hasChoiceBand = isPlayerAttacking && (attacker as any).heldItem === 'choice_band';
+        const hasChoiceBand = (attacker as any).heldItem === 'choice_band';
         const baseAtk = hasChoiceBand ? baseAtkRaw * 1.10 : baseAtkRaw;
         let finalDamage = (baseAtk / 5) - (defender.def / 20);
 
@@ -74,7 +74,7 @@ export class BattleCalc {
             auditLog += ` | Crit.Vel +5`;
         }
 
-        const hasScopeLens = isPlayerAttacking && (attacker as any).heldItem === 'scope_lens';
+        const hasScopeLens = (attacker as any).heldItem === 'scope_lens';
         const d6 = Math.floor(Math.random() * 6) + 1;
         let rollModifier = 0;
         // scope_lens: 5 ou 6 no dado é crítico
@@ -174,7 +174,7 @@ export class BattleCalc {
         }
 
         // rocky_helmet: reflete 15% do dano ao atacante quando defensor carrega o item
-        const defenderHasHelmet = !isPlayerAttacking && (defender as any).heldItem === 'rocky_helmet';
+        const defenderHasHelmet = (defender as any).heldItem === 'rocky_helmet';
         if (defenderHasHelmet && finalDamage > 0) {
             reflectedAmount += Math.floor(finalDamage * 0.15);
             logDetails += " [⛑️Helmet!]";
