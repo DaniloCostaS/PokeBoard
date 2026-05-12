@@ -77,6 +77,11 @@ export class NotificationSystem {
 
     private static _send(playerName: string, round: number): void {
         try {
+
+            if ('vibrate' in navigator) {
+                navigator.vibrate([200, 100, 200, 100, 200]);
+            }
+
             const n = new Notification('🎮 PokéBoard — Sua vez!', {
                 body: `${playerName}, é a sua vez de jogar! (Rodada ${round})`,
                 icon: '/assets/img/icon-pokeboard.png',

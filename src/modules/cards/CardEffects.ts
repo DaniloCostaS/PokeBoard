@@ -375,7 +375,10 @@ export class CardEffects {
                     consumed = false;
                 } else {
                     const r1 = Math.floor(Math.random() * 6) + 1;
-                    const r2 = Math.floor(Math.random() * 6) + 1;
+                    let r2 = Math.floor(Math.random() * 6) + 1;
+                    while (r2 === r1) {
+                        r2 = Math.floor(Math.random() * 6) + 1;
+                    }
                     Game.showDiceChoice(r1, r2);
                     effectLog = `🎲 Re-Roll ativado! ${player.name} rasgou o tecido do tempo e está escolhendo entre dois destinos...`;
                 }
