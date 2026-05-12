@@ -29,9 +29,12 @@ export class ShopUI {
             const btnStyle = priceMulti === 2 ? 'width:auto; background:#e74c3c;' : 'width:auto;';
 
             div.innerHTML = `
-                <div style="display:flex; align-items:center;">
-                    <img src="/assets/img/Itens/${item.icon}" class="item-icon-mini">
-                    <span>${item.name}</span>
+                <div style="display:flex; align-items:center; gap:8px; flex:1; min-width:0;">
+                    <img src="/assets/img/Itens/${item.icon}" class="item-icon-mini" style="flex-shrink:0;">
+                    <div style="display:flex; flex-direction:column; min-width:0;">
+                        <span style="font-weight:600;">${item.name}</span>
+                        <span style="font-size:0.72em; color:#a0aec0; line-height:1.3; white-space:normal;">${item.desc}</span>
+                    </div>
                 </div>
                 <button class="btn" style="${btnStyle}" onclick="window.Shop.buy('${item.id}', ${finalPrice})">${finalPrice}G</button>
             `;

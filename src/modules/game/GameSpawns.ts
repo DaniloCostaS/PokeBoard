@@ -1,7 +1,7 @@
 import { POKEDEX } from '../../constants/pokedex';
 import { GYM_DATA } from '../../constants/gyms';
 import { RARIDADE_DATA } from '../../constants/Raridades';
-import { TILE } from '../../constants';
+import { TILE, SHOP_ITEMS } from '../../constants';
 import { Pokemon } from '../../models/Pokemon';
 import { Network } from '../../systems/Network';
 import { GameState } from './GameState';
@@ -129,6 +129,15 @@ export class GameSpawns {
         if (GameState.currentGlobalEvent?.id === 'SHINY_FEVER' && Math.random() <= 0.30) {
             wildMon.isShiny = true;
             wildMon.recalculateStats(true);
+        }
+
+        // 30% de chance do selvagem vir segurando um item hold
+        if (Math.random() < 0.30) {
+            const holdItems = SHOP_ITEMS.filter(i => i.type === 'hold');
+            if (holdItems.length > 0) {
+                const picked = holdItems[Math.floor(Math.random() * holdItems.length)];
+                (wildMon as any).heldItem = picked.id;
+            }
         }
 
         return wildMon;

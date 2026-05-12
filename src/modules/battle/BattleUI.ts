@@ -166,6 +166,22 @@ export class BattleUI {
         document.getElementById('ply-shiny-tag')!.style.display = BattleCore.activeMon.isShiny ? 'inline-block' : 'none';
         document.getElementById('ply-stats')!.innerHTML = `<span>⚔️${BattleCore.activeMon.atk}</span> <span>🛡️${BattleCore.activeMon.def}</span> <span>💨${BattleCore.activeMon.speed}</span>`;
 
+        // Item segurado - jogador
+        const plyHeldId = (BattleCore.activeMon as any).heldItem;
+        const plyHeldEl = document.getElementById('ply-held-item');
+        if (plyHeldEl) {
+            if (plyHeldId) {
+                const hData = SHOP_ITEMS.find(i => i.id === plyHeldId);
+                plyHeldEl.innerHTML = hData
+                    ? `<img src="/assets/img/Itens/${hData.icon}" style="width:14px;height:14px;vertical-align:middle;"> <span>${hData.name}</span>`
+                    : '';
+                plyHeldEl.style.display = 'flex';
+            } else {
+                plyHeldEl.innerHTML = '';
+                plyHeldEl.style.display = 'none';
+            }
+        }
+
         document.getElementById('opp-name')!.innerText = BattleCore.opponent.name;
         document.getElementById('opp-lvl')!.innerHTML = `
             <div style="display: flex; align-items: center; justify-content: center;">
@@ -187,6 +203,22 @@ export class BattleUI {
         document.getElementById('opp-hp-text')!.innerText = `${BattleCore.opponent.currentHp}/${BattleCore.opponent.maxHp}`;
         document.getElementById('opp-shiny-tag')!.style.display = BattleCore.opponent.isShiny ? 'inline-block' : 'none';
         document.getElementById('opp-stats')!.innerHTML = `<span>⚔️${BattleCore.opponent.atk}</span> <span>🛡️${BattleCore.opponent.def}</span> <span>💨${BattleCore.opponent.speed}</span>`;
+
+        // Item segurado - oponente
+        const oppHeldId = (BattleCore.opponent as any).heldItem;
+        const oppHeldEl = document.getElementById('opp-held-item');
+        if (oppHeldEl) {
+            if (oppHeldId) {
+                const hData = SHOP_ITEMS.find(i => i.id === oppHeldId);
+                oppHeldEl.innerHTML = hData
+                    ? `<img src="/assets/img/Itens/${hData.icon}" style="width:14px;height:14px;vertical-align:middle;"> <span>${hData.name}</span>`
+                    : '';
+                oppHeldEl.style.display = 'flex';
+            } else {
+                oppHeldEl.innerHTML = '';
+                oppHeldEl.style.display = 'none';
+            }
+        }
 
         const oppTrainer = document.getElementById('opp-trainer-img') as HTMLImageElement;
         if (BattleCore.isPvP && BattleCore.enemyPlayer) {

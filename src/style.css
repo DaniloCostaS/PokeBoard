@@ -883,7 +883,8 @@ body {
     justify-content: space-between;
     padding: 10px;
     border-bottom: 1px solid #eee;
-    align-items: center;
+    align-items: flex-start;
+    gap: 8px;
 }
 
 .item-icon {
