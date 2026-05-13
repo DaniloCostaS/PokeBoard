@@ -25,7 +25,7 @@
 
         <div id="menu-phase-1">
             <button class="btn" onclick="window.Setup.showOfflineSetup()">🏠 JOGAR OFFLINE</button>
-            <button class="btn" style="background:#8e44ad;" onclick="window.Setup.showOnlineMenu()">🌐 JOGAR
+            <button class="btn" style="background:#8e44ad;" onclick="window.Setup.showOnlineLogin()">🌐 JOGAR
                 ONLINE</button>
             <div id="reconnect-area"
                 style="display:none; margin-top:10px; padding:10px; background:#e8f8f5; border:1px solid #2ecc71; border-radius:5px;">
@@ -42,13 +42,23 @@
             </div>
         </div>
 
+        <div id="online-login" style="display: none; margin-top: 15px;">
+            <h3 style="margin-bottom: 15px;">Acesso ao Lobby</h3>
+            <label style="font-weight: bold;">Usuário (Nickname):</label>
+            <input type="text" id="login-username" class="input-field" placeholder="Ex: Ash Ketchum" style="margin-bottom: 10px; padding: 10px; width: 90%; font-size: 1.1rem; text-align: center;" maxlength="15">
+            <label style="font-weight: bold;">Senha:</label>
+            <input type="password" id="login-password" class="input-field" placeholder="***" style="margin-bottom: 15px; padding: 10px; width: 90%; font-size: 1.1rem; text-align: center;">
+            <button class="btn" onclick="window.Setup.loginOnline()" style="background:#27ae60;">ACESSAR / CADASTRAR</button>
+            <button class="btn btn-secondary" style="margin-top:10px;" onclick="location.reload()">Voltar</button>
+        </div>
+
         <div id="menu-phase-online" style="display:none;">
             <h3>Modo Online (Firebase)</h3>
 
             <div class="setup-group">
                 <label>Seu Nome:</label>
                 <input type="text" id="online-player-name" placeholder="Ex: Ash Ketchum"
-                    style="width:90%; padding:10px; font-weight:bold; margin-bottom: 10px;">
+                    style="width:90%; padding:10px; font-weight:bold; margin-bottom: 10px;" disabled>
 
                 <label>Seu Avatar:</label>
                 <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
@@ -68,7 +78,19 @@
                 <div style="display:flex; gap:5px; margin-top:10px;">
                     <input type="text" id="room-code-input" placeholder="Código da Sala" style="flex:1; padding:10px;">
                     <button class="btn" style="width:auto; margin:0;"
-                        onclick="window.Network.joinRoom()">Entrar</button>
+                        onclick="window.Network.joinRoom(document.getElementById('room-code-input').value)">Entrar</button>
+                </div>
+
+                <div style="display:flex; flex-direction:column; gap:5px; margin-top:15px; border-top:1px solid #eee; padding-top:10px;">
+                    <button class="btn btn-secondary" onclick="window.Setup.toggleUserRooms()">🎮 Minhas Salas em Andamento</button>
+                    <div id="user-rooms-list" style="display:none; margin-bottom: 10px;">
+                        <div id="user-rooms-container" style="display: flex; flex-direction: column; gap: 5px;"></div>
+                    </div>
+
+                    <button class="btn btn-secondary" onclick="window.Setup.searchOpenRooms()">🔍 Buscar Partidas Abertas</button>
+                    <div id="search-rooms-list" style="display:none; margin-bottom: 10px;">
+                        <div id="search-rooms-container" style="display: flex; flex-direction: column; gap: 5px;"></div>
+                    </div>
                 </div>
             </div>
 

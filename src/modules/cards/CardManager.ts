@@ -31,10 +31,10 @@ export class CardManager {
 
         const canGetLegendary = (!player.effects || !player.effects.playedLegendary) && !player.cards.some((c: any) => c.rarity === 'Lendária');
 
-        if (canGetLegendary && resultChance <= 1) targetRarity = 'Lendária';
+        if (canGetLegendary && resultChance <= 2) targetRarity = 'Lendária';
         else if (resultChance <= 8) targetRarity = 'Épica';
         else if (resultChance <= 26) targetRarity = 'Rara';
-        else if (resultChance <= 54) targetRarity = 'Incomum';
+        else if (resultChance <= 53) targetRarity = 'Incomum';
 
         const validDb = this.getValidCardsDb();
         const possibleCards = validDb.filter((c: any) => c.rarity === targetRarity);

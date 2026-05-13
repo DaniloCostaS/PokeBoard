@@ -107,7 +107,15 @@ export class NetworkActions {
             lastAction: { type: "INIT", timestamp: Date.now() }
         };
 
-        await set(ref(db, 'rooms/' + roomCode), initialData);
+        const updates: any = {};
+        updates['rooms/' + roomCode] = initialData;
+
+        const loggedUser = (window as any).loggedUser;
+        if (loggedUser) {
+            updates[`users/${loggedUser}/rooms/${roomCode}`] = true;
+        }
+
+        await update(ref(db), updates);
 
         localStorage.setItem('pkbd_session', JSON.stringify({ roomId: roomCode, id: 0 }));
         NetworkState.isOnline = true;
@@ -118,9 +126,9 @@ export class NetworkActions {
         document.getElementById('host-controls')!.style.display = 'block';
     }
 
-    static async joinRoom() {
+    static async joinRoom(roomCode?: string) {
         if (!this.checkInput()) return;
-        const code = (document.getElementById('room-code-input') as HTMLInputElement).value.toUpperCase();
+        const code = (roomCode || (document.getElementById('room-code-input') as HTMLInputElement).value).toUpperCase();
         if (!code) return alert("Digite o código!");
 
         const roomRef = ref(db, 'rooms/' + code);
@@ -171,7 +179,16 @@ export class NetworkActions {
             pokedexData: myPlayerObj.pokedexData || {}
         };
 
-        await set(ref(db, `rooms/${code}/players/${NetworkState.myPlayerId}`), newPlayer);
+        const updates: any = {};
+        updates[`rooms/${code}/players/${NetworkState.myPlayerId}`] = newPlayer;
+
+        const loggedUser = (window as any).loggedUser;
+        if (loggedUser) {
+            updates[`users/${loggedUser}/rooms/${code}`] = true;
+        }
+
+        await update(ref(db), updates);
+        
         localStorage.setItem('pkbd_session', JSON.stringify({ roomId: code, id: NetworkState.myPlayerId }));
         NetworkState.isOnline = true;
         this.setupLobbyListener();

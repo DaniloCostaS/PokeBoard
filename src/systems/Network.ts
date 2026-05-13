@@ -42,7 +42,7 @@ export class Network {
     static checkInput() { return NetworkActions.checkInput(); }
     static reconnect() { return NetworkActions.reconnect(); }
     static async createRoom() { return await NetworkActions.createRoom(); }
-    static async joinRoom() { return await NetworkActions.joinRoom(); }
+    static async joinRoom(roomCode?: string) { return await NetworkActions.joinRoom(roomCode); }
     static setupLobbyListener() { NetworkActions.setupLobbyListener(); }
     static async initializeGameFromFirebase() { await NetworkActions.initializeGameFromFirebase(); }
     static setupGameLoopListener() { NetworkActions.setupGameLoopListener(); }

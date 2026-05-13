@@ -7,12 +7,140 @@ import { MapSystem } from '../systems/MapSystem';
 
 export class Setup {
     static showOfflineSetup() { document.getElementById('menu-phase-1')!.style.display = 'none'; document.getElementById('menu-phase-setup')!.style.display = 'block'; }
-    static showOnlineMenu() { document.getElementById('menu-phase-1')!.style.display = 'none'; document.getElementById('menu-phase-online')!.style.display = 'block'; const sel = document.getElementById('online-avatar-select') as HTMLSelectElement; if (sel && sel.options.length === 0) { sel.innerHTML = TRAINER_IMAGES.map(img => `<option value="${img.file}">${img.label}</option>`).join(''); } this.updateOnlinePreview(); }
+    static showOnlineLogin() { document.getElementById('menu-phase-1')!.style.display = 'none'; document.getElementById('online-login')!.style.display = 'block'; }
+    static showOnlineMenu() { document.getElementById('online-login')!.style.display = 'none'; document.getElementById('menu-phase-online')!.style.display = 'block'; const sel = document.getElementById('online-avatar-select') as HTMLSelectElement; if (sel && sel.options.length === 0) { sel.innerHTML = TRAINER_IMAGES.map(img => `<option value="${img.file}">${img.label}</option>`).join(''); } this.updateOnlinePreview(); }
     static updateOnlinePreview() { const sel = document.getElementById('online-avatar-select') as HTMLSelectElement; const img = document.getElementById('online-avatar-preview') as HTMLImageElement; if (sel && img && sel.value) { img.src = `/assets/img/Treinadores/${sel.value}`; } }
     static showLobbyUIOnly() { const ctrl = document.getElementById('online-lobby-controls'); if (ctrl) ctrl.style.display = 'none'; if (!Network.isHost) { const hc = document.getElementById('host-controls'); if (hc) hc.style.display = 'none'; } }
     static showSetupScreen() { document.getElementById('menu-phase-online')!.style.display = 'none'; document.getElementById('menu-phase-setup')!.style.display = 'block'; }
     static updateSlots() { const numInput = document.getElementById('num-players') as HTMLSelectElement; if (!numInput) return; const n = parseInt(numInput.value); const c = document.getElementById('player-slots-container')!; c.innerHTML = ''; const defs = ["Ash", "Gary", "Misty", "Brock", "May", "Dawn", "Serena", "Goh"]; for (let i = 0; i < n; i++) { const defImg = TRAINER_IMAGES[i % TRAINER_IMAGES.length].file; const opts = TRAINER_IMAGES.map(img => `<option value="${img.file}" ${img.file === defImg ? 'selected' : ''}>${img.label}</option>`).join(''); c.innerHTML += `<div class="setup-row"><strong>P${i + 1}</strong><input type="text" id="p${i}-name" value="${defs[i] || 'Player'}" style="width:100px;"><div class="avatar-selection"><img id="p${i}-preview" src="/assets/img/Treinadores/${defImg}" class="avatar-preview"><select id="p${i}-av" onchange="window.Setup.updatePreview(${i})">${opts}</select></div></div>`; } }
     static updatePreview(i: number) { (document.getElementById(`p${i}-preview`) as HTMLImageElement).src = `/assets/img/Treinadores/${(document.getElementById(`p${i}-av`) as HTMLSelectElement).value}`; }
+
+    static async loginOnline() {
+        const usernameInput = document.getElementById('login-username') as HTMLInputElement;
+        const passwordInput = document.getElementById('login-password') as HTMLInputElement;
+        const username = usernameInput.value.trim();
+        const password = passwordInput.value;
+
+        if (!username || !password) return alert("Preencha nickname e senha!");
+
+        const userRef = ref(db, `users/${username}`);
+        const snap = await get(userRef);
+
+        if (snap.exists()) {
+            const data = snap.val();
+            if (data.password !== password) {
+                return alert("Senha incorreta!");
+            }
+        } else {
+            // Register new user
+            const updates: any = {};
+            updates[`users/${username}`] = { password: password, rooms: {} };
+            await update(ref(db), updates);
+            alert("Novo usuário registrado com sucesso!");
+        }
+
+        (window as any).loggedUser = username;
+
+        this.showOnlineMenu();
+
+        const nameInput = document.getElementById('online-player-name') as HTMLInputElement;
+        if (nameInput) {
+            nameInput.value = username;
+            nameInput.disabled = true;
+        }
+    }
+
+    static toggleUserRooms() {
+        const listDiv = document.getElementById('user-rooms-list');
+        if (!listDiv) return;
+        if (listDiv.style.display === 'none') {
+            listDiv.style.display = 'block';
+            this.loadUserRooms((window as any).loggedUser);
+        } else {
+            listDiv.style.display = 'none';
+        }
+    }
+
+    static async loadUserRooms(username: string) {
+        const userRef = ref(db, `users/${username}/rooms`);
+        const snap = await get(userRef);
+        
+        const listDiv = document.getElementById('user-rooms-list');
+        const containerDiv = document.getElementById('user-rooms-container');
+        if (!listDiv || !containerDiv) return;
+
+        if (snap.exists()) {
+            const rooms = snap.val();
+            const roomCodes = Object.keys(rooms);
+            
+            // Validate if rooms are still active
+            const validRooms = [];
+            for (const code of roomCodes) {
+                const roomSnap = await get(ref(db, `rooms/${code}/status`));
+                if (roomSnap.exists() && roomSnap.val() !== "FINISHED") {
+                    validRooms.push(code);
+                } else {
+                    // Remove old room
+                    await update(ref(db), { [`users/${username}/rooms/${code}`]: null });
+                }
+            }
+
+            if (validRooms.length > 0) {
+                containerDiv.innerHTML = validRooms.map(code => 
+                    `<button class="btn" style="background:#8e44ad; padding:10px; margin:0; width: 100%;" onclick="window.Network.joinRoom('${code}')">Reconectar a [${code}]</button>`
+                ).join('');
+            } else {
+                containerDiv.innerHTML = '<p style="text-align:center; font-size: 0.9rem;">Nenhuma sala em andamento.</p>';
+            }
+        } else {
+            containerDiv.innerHTML = '<p style="text-align:center; font-size: 0.9rem;">Nenhuma sala em andamento.</p>';
+        }
+    }
+
+    static async searchOpenRooms() {
+        const listDiv = document.getElementById('search-rooms-list');
+        const containerDiv = document.getElementById('search-rooms-container');
+        if (!listDiv || !containerDiv) return;
+
+        if (listDiv.style.display === 'block') {
+            listDiv.style.display = 'none';
+            return;
+        }
+
+        listDiv.style.display = 'block';
+        containerDiv.innerHTML = '<p style="text-align:center; font-size: 0.9rem;">Buscando partidas...</p>';
+
+        const { query, orderByChild, equalTo } = await import('firebase/database');
+        const roomsRef = ref(db, 'rooms');
+        const q = query(roomsRef, orderByChild('status'), equalTo('LOBBY'));
+        
+        const snap = await get(q);
+        if (snap.exists()) {
+            const rooms = snap.val();
+            const openRooms = [];
+            
+            for (const code in rooms) {
+                const room = rooms[code];
+                const playerCount = Object.keys(room.players || {}).length;
+                if (playerCount < 8) {
+                    const hostName = room.players && room.players[0] ? room.players[0].name : "Desconhecido";
+                    openRooms.push({ code, hostName, playerCount });
+                }
+            }
+
+            if (openRooms.length > 0) {
+                containerDiv.innerHTML = openRooms.map(r => 
+                    `<button class="btn" style="background:#2980b9; padding:10px; margin:0; width: 100%;" onclick="window.Network.joinRoom('${r.code}')">
+                        Entrar: ${r.hostName} (${r.playerCount}/8)
+                    </button>`
+                ).join('');
+            } else {
+                containerDiv.innerHTML = '<p style="text-align:center; font-size: 0.9rem;">Nenhuma partida aberta encontrada.</p>';
+            }
+        } else {
+            containerDiv.innerHTML = '<p style="text-align:center; font-size: 0.9rem;">Nenhuma partida aberta encontrada.</p>';
+        }
+    }
 
     // START OFFLINE
     static start() {
