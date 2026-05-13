@@ -50,95 +50,107 @@ export class Setup {
         }
     }
 
-    static toggleUserRooms() {
-        const listDiv = document.getElementById('user-rooms-list');
-        if (!listDiv) return;
-        if (listDiv.style.display === 'none') {
-            listDiv.style.display = 'block';
-            this.loadUserRooms((window as any).loggedUser);
-        } else {
-            listDiv.style.display = 'none';
+    static async openUserRoomsHub() {
+        const username = (window as any).loggedUser;
+        if (!username) {
+            alert("Erro: Usuário não está logado!");
+            return;
         }
-    }
 
-    static async loadUserRooms(username: string) {
+        const modal = document.getElementById('rooms-hub-modal')!;
+        const title = document.getElementById('rooms-hub-title')!;
+        const containerDiv = document.getElementById('rooms-hub-container')!;
+
+        title.innerText = "🎮 Minhas Salas em Andamento";
+        containerDiv.innerHTML = '<p style="text-align:center; font-size: 0.9rem; color: #fff;">Buscando suas salas...</p>';
+        modal.style.display = 'flex';
+
         const userRef = ref(db, `users/${username}/rooms`);
         const snap = await get(userRef);
-        
-        const listDiv = document.getElementById('user-rooms-list');
-        const containerDiv = document.getElementById('user-rooms-container');
-        if (!listDiv || !containerDiv) return;
 
         if (snap.exists()) {
             const rooms = snap.val();
             const roomCodes = Object.keys(rooms);
             
-            // Validate if rooms are still active
             const validRooms = [];
             for (const code of roomCodes) {
-                const roomSnap = await get(ref(db, `rooms/${code}/status`));
-                if (roomSnap.exists() && roomSnap.val() !== "FINISHED") {
-                    validRooms.push(code);
+                const roomSnap = await get(ref(db, `rooms/${code}`));
+                if (roomSnap.exists()) {
+                    const roomData = roomSnap.val();
+                    if (roomData.status !== "FINISHED") {
+                        validRooms.push({ code, data: roomData });
+                    } else {
+                        await update(ref(db), { [`users/${username}/rooms/${code}`]: null });
+                    }
                 } else {
-                    // Remove old room
                     await update(ref(db), { [`users/${username}/rooms/${code}`]: null });
                 }
             }
 
             if (validRooms.length > 0) {
-                containerDiv.innerHTML = validRooms.map(code => 
-                    `<button class="btn" style="background:#8e44ad; padding:10px; margin:0; width: 100%;" onclick="window.Network.joinRoom('${code}')">Reconectar a [${code}]</button>`
-                ).join('');
+                containerDiv.innerHTML = validRooms.map(room => {
+                    const hostName = room.data.players && room.data.players[0] ? room.data.players[0].name : "Desconhecido";
+                    const round = room.data.round || 1;
+                    const playerCount = Object.keys(room.data.players || {}).length;
+                    
+                    return `
+                    <div style="background: #34495e; padding: 15px; border-radius: 8px; border: 1px solid #7f8c8d; text-align: left; position: relative;">
+                        <h4 style="margin: 0 0 5px 0; color: #f1c40f;">Sala: [${room.code}]</h4>
+                        <p style="margin: 0 0 3px 0; font-size: 0.85rem; color: #ecf0f1;">👤 <b>Host:</b> ${hostName}</p>
+                        <p style="margin: 0 0 3px 0; font-size: 0.85rem; color: #ecf0f1;">👥 <b>Jogadores:</b> ${playerCount}/8</p>
+                        <p style="margin: 0 0 10px 0; font-size: 0.85rem; color: #ecf0f1;">🔄 <b>Rodada Atual:</b> ${round}</p>
+                        <button class="btn" style="background:#8e44ad; padding:8px; margin:0; width: 100%; font-size: 0.9rem;" onclick="document.getElementById('rooms-hub-modal').style.display='none'; window.Network.joinRoom('${room.code}')">Reconectar</button>
+                    </div>`;
+                }).join('');
             } else {
-                containerDiv.innerHTML = '<p style="text-align:center; font-size: 0.9rem;">Nenhuma sala em andamento.</p>';
+                containerDiv.innerHTML = '<p style="text-align:center; font-size: 0.9rem; color: #fff;">Nenhuma sala em andamento.</p>';
             }
         } else {
-            containerDiv.innerHTML = '<p style="text-align:center; font-size: 0.9rem;">Nenhuma sala em andamento.</p>';
+            containerDiv.innerHTML = '<p style="text-align:center; font-size: 0.9rem; color: #fff;">Nenhuma sala em andamento.</p>';
         }
     }
 
-    static async searchOpenRooms() {
-        const listDiv = document.getElementById('search-rooms-list');
-        const containerDiv = document.getElementById('search-rooms-container');
-        if (!listDiv || !containerDiv) return;
+    static async openSearchHub() {
+        const modal = document.getElementById('rooms-hub-modal')!;
+        const title = document.getElementById('rooms-hub-title')!;
+        const containerDiv = document.getElementById('rooms-hub-container')!;
 
-        if (listDiv.style.display === 'block') {
-            listDiv.style.display = 'none';
-            return;
-        }
+        title.innerText = "🔍 Partidas Abertas";
+        containerDiv.innerHTML = '<p style="text-align:center; font-size: 0.9rem; color: #fff;">Buscando partidas...</p>';
+        modal.style.display = 'flex';
 
-        listDiv.style.display = 'block';
-        containerDiv.innerHTML = '<p style="text-align:center; font-size: 0.9rem;">Buscando partidas...</p>';
-
-        const { query, orderByChild, equalTo } = await import('firebase/database');
         const roomsRef = ref(db, 'rooms');
-        const q = query(roomsRef, orderByChild('status'), equalTo('LOBBY'));
+        const snap = await get(roomsRef);
         
-        const snap = await get(q);
         if (snap.exists()) {
             const rooms = snap.val();
             const openRooms = [];
             
             for (const code in rooms) {
                 const room = rooms[code];
-                const playerCount = Object.keys(room.players || {}).length;
-                if (playerCount < 8) {
-                    const hostName = room.players && room.players[0] ? room.players[0].name : "Desconhecido";
-                    openRooms.push({ code, hostName, playerCount });
+                if (room.status === 'LOBBY') {
+                    const playerCount = Object.keys(room.players || {}).length;
+                    if (playerCount < 8) {
+                        const hostName = room.players && room.players[0] ? room.players[0].name : "Desconhecido";
+                        openRooms.push({ code, hostName, playerCount });
+                    }
                 }
             }
 
             if (openRooms.length > 0) {
-                containerDiv.innerHTML = openRooms.map(r => 
-                    `<button class="btn" style="background:#2980b9; padding:10px; margin:0; width: 100%;" onclick="window.Network.joinRoom('${r.code}')">
-                        Entrar: ${r.hostName} (${r.playerCount}/8)
-                    </button>`
-                ).join('');
+                containerDiv.innerHTML = openRooms.map(r => `
+                    <div style="background: #34495e; padding: 15px; border-radius: 8px; border: 1px solid #7f8c8d; text-align: left; position: relative;">
+                        <h4 style="margin: 0 0 5px 0; color: #3498db;">Sala: [${r.code}]</h4>
+                        <p style="margin: 0 0 3px 0; font-size: 0.85rem; color: #ecf0f1;">👤 <b>Host:</b> ${r.hostName}</p>
+                        <p style="margin: 0 0 10px 0; font-size: 0.85rem; color: #ecf0f1;">👥 <b>Jogadores:</b> ${r.playerCount}/8</p>
+                        <button class="btn" style="background:#2980b9; padding:8px; margin:0; width: 100%; font-size: 0.9rem;" onclick="document.getElementById('rooms-hub-modal').style.display='none'; window.Network.joinRoom('${r.code}')">Entrar na Partida</button>
+                    </div>
+                `).join('');
             } else {
-                containerDiv.innerHTML = '<p style="text-align:center; font-size: 0.9rem;">Nenhuma partida aberta encontrada.</p>';
+                containerDiv.innerHTML = '<p style="text-align:center; font-size: 0.9rem; color: #fff;">Nenhuma partida aberta encontrada.</p>';
             }
         } else {
-            containerDiv.innerHTML = '<p style="text-align:center; font-size: 0.9rem;">Nenhuma partida aberta encontrada.</p>';
+            containerDiv.innerHTML = '<p style="text-align:center; font-size: 0.9rem; color: #fff;">Nenhuma partida aberta encontrada.</p>';
         }
     }
 

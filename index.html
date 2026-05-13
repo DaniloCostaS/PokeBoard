@@ -82,15 +82,8 @@
                 </div>
 
                 <div style="display:flex; flex-direction:column; gap:5px; margin-top:15px; border-top:1px solid #eee; padding-top:10px;">
-                    <button class="btn btn-secondary" onclick="window.Setup.toggleUserRooms()">🎮 Minhas Salas em Andamento</button>
-                    <div id="user-rooms-list" style="display:none; margin-bottom: 10px;">
-                        <div id="user-rooms-container" style="display: flex; flex-direction: column; gap: 5px;"></div>
-                    </div>
-
-                    <button class="btn btn-secondary" onclick="window.Setup.searchOpenRooms()">🔍 Buscar Partidas Abertas</button>
-                    <div id="search-rooms-list" style="display:none; margin-bottom: 10px;">
-                        <div id="search-rooms-container" style="display: flex; flex-direction: column; gap: 5px;"></div>
-                    </div>
+                    <button class="btn btn-secondary" onclick="window.Setup.openUserRoomsHub()">🎮 Minhas Salas em Andamento</button>
+                    <button class="btn btn-secondary" onclick="window.Setup.openSearchHub()">🔍 Buscar Partidas Abertas</button>
                 </div>
             </div>
 
@@ -839,6 +832,17 @@
             </div>
             <button class="btn btn-secondary mt-15" style="background: #34495e; border: none;"
                 onclick="document.getElementById('type-selection-modal').style.display='none'">Cancelar</button>
+        </div>
+    </div>
+
+    <!-- ROOMS HUB MODAL -->
+    <div id="rooms-hub-modal" class="modal">
+        <div class="modal-content" style="max-width: 500px; background: #2c3e50;">
+            <h2 id="rooms-hub-title" style="margin-bottom: 15px; color: #f1c40f;">Hub de Salas</h2>
+            <div id="rooms-hub-container" style="display: flex; flex-direction: column; gap: 10px; max-height: 400px; overflow-y: auto; padding: 5px;">
+                <!-- Cards will be injected here -->
+            </div>
+            <button class="btn" style="background:#e74c3c; margin-top: 15px;" onclick="document.getElementById('rooms-hub-modal').style.display='none'">Fechar</button>
         </div>
     </div>
 
