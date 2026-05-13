@@ -1267,6 +1267,27 @@ export class GameUI {
         POKEDEX.forEach(mon => {
             if (filterId !== null && mon.id !== filterId) return;
 
+            if (GameState.settings) {
+                const getGenById = (id: number) => {
+                    if (id >= 10000) return 0;
+                    if (id <= 151) return 1;
+                    if (id <= 251) return 2;
+                    if (id <= 386) return 3;
+                    if (id <= 493) return 4;
+                    if (id <= 649) return 5;
+                    if (id <= 721) return 6;
+                    if (id <= 809) return 7;
+                    if (id <= 905) return 8;
+                    return 9;
+                };
+                
+                const pGen = getGenById(mon.id);
+                if (pGen > 0 && !GameState.settings.generations.includes(pGen)) return;
+                if (mon.id >= 10000 && !GameState.settings.megas) return;
+                if (GameState.settings.legendaries === 'no' && mon.isLegendary) return;
+                if (GameState.settings.legendaries === 'only' && !mon.isLegendary) return;
+            }
+
             const dexEntry = p.pokedexData[mon.id] || { seen: 0, caught: 0, defeated: 0 };
 
             const c1 = colors[mon.type] || "#777";

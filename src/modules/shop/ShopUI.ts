@@ -20,7 +20,12 @@ export class ShopUI {
             list.appendChild(warning);
         }
 
-        SHOP_ITEMS.forEach(item => {
+        let validItems = SHOP_ITEMS;
+        if ((window as any).GameState && (window as any).GameState.settings && !(window as any).GameState.settings.megas) {
+            validItems = validItems.filter(i => i.id !== 'megastone');
+        }
+
+        validItems.forEach(item => {
             const finalPrice = item.price * priceMulti;
 
             const div = document.createElement('div');

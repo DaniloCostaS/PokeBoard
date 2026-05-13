@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PokéBoard V92a</title>
+    <title>PokéBoard V93</title>
     <link rel="stylesheet" href="style.css">
 
     <script type="importmap">
@@ -20,8 +20,8 @@
 <body>
 
     <div id="setup-screen">
-        <h1 class="title-highlight">PokéBoard V92a</h1>
-        <p class="subtitle">Cartas lendárias e mais.</p>
+        <h1 class="title-highlight">PokéBoard V93</h1>
+        <p class="subtitle">Nova funcionalidade de itens para segurar.</p>
 
         <div id="menu-phase-1">
             <button class="btn" onclick="window.Setup.showOfflineSetup()">🏠 JOGAR OFFLINE</button>
@@ -84,6 +84,40 @@
                     <option value="20" selected>Médio (20x20)</option>
                     <option value="30">Grande (30x30)</option>
                 </select>
+
+                <div class="setup-group" style="margin-top: 10px;">
+                    <label>Gerações:</label>
+                    <div id="online-gen-select"
+                        style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; font-size: 0.8rem;">
+                        <label><input type="checkbox" value="1" checked> Gen 1</label>
+                        <label><input type="checkbox" value="2" checked> Gen 2</label>
+                        <label><input type="checkbox" value="3" checked> Gen 3</label>
+                        <label><input type="checkbox" value="4" checked> Gen 4</label>
+                        <label><input type="checkbox" value="5" checked> Gen 5</label>
+                        <label><input type="checkbox" value="6" checked> Gen 6</label>
+                        <label><input type="checkbox" value="7" checked> Gen 7</label>
+                        <label><input type="checkbox" value="8" checked> Gen 8</label>
+                        <label><input type="checkbox" value="9" checked> Gen 9</label>
+                    </div>
+                </div>
+
+                <div class="setup-group" style="margin-top: 10px;">
+                    <label>Lendários:</label>
+                    <select id="online-legendary-rule">
+                        <option value="yes" selected>Sim</option>
+                        <option value="no">Não</option>
+                        <option value="only">Somente Lendários</option>
+                    </select>
+                </div>
+
+                <div class="setup-group" style="margin-top: 10px;">
+                    <label>Mega Evoluções:</label>
+                    <select id="online-mega-rule">
+                        <option value="yes" selected>Sim</option>
+                        <option value="no">Não</option>
+                    </select>
+                </div>
+
                 <button class="btn" style="margin-top:10px; background:#27ae60;"
                     onclick="window.Setup.startOnlineGame()">🚀 INICIAR JOGO (TODOS)</button>
             </div>
@@ -112,6 +146,40 @@
                     <option value="30">Grande (30x30)</option>
                 </select>
             </div>
+
+            <div class="setup-group">
+                <label>Gerações:</label>
+                <div id="offline-gen-select"
+                    style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; font-size: 0.8rem; margin-bottom: 10px;">
+                    <label><input type="checkbox" value="1" checked> Gen 1</label>
+                    <label><input type="checkbox" value="2" checked> Gen 2</label>
+                    <label><input type="checkbox" value="3" checked> Gen 3</label>
+                    <label><input type="checkbox" value="4" checked> Gen 4</label>
+                    <label><input type="checkbox" value="5" checked> Gen 5</label>
+                    <label><input type="checkbox" value="6" checked> Gen 6</label>
+                    <label><input type="checkbox" value="7" checked> Gen 7</label>
+                    <label><input type="checkbox" value="8" checked> Gen 8</label>
+                    <label><input type="checkbox" value="9" checked> Gen 9</label>
+                </div>
+            </div>
+
+            <div class="setup-group">
+                <label>Lendários:</label>
+                <select id="offline-legendary-rule">
+                    <option value="yes" selected>Sim</option>
+                    <option value="no">Não</option>
+                    <option value="only">Somente Lendários</option>
+                </select>
+            </div>
+
+            <div class="setup-group">
+                <label>Mega Evoluções:</label>
+                <select id="offline-mega-rule">
+                    <option value="yes" selected>Sim</option>
+                    <option value="no">Não</option>
+                </select>
+            </div>
+
             <div id="player-slots-container"></div>
             <button id="btn-start-game" class="btn" onclick="window.Setup.start()">🚀 INICIAR JORNADA</button>
         </div>
@@ -575,7 +643,9 @@
                                 <div id="ply-shiny-tag" class="shiny-tag" style="display:none; margin-top:3px;">✨ SHINY
                                     ✨</div>
                                 <div class="battle-stats" id="ply-stats" style="margin-top:3px;"></div>
-                                <div id="ply-held-item" style="display:none; align-items:center; gap:4px; font-size:0.65em; color:#f1c40f; background:rgba(241,196,15,0.15); border:1px solid rgba(241,196,15,0.4); border-radius:4px; padding:1px 5px; margin-top:3px; white-space:nowrap;"></div>
+                                <div id="ply-held-item"
+                                    style="display:none; align-items:center; gap:4px; font-size:0.65em; color:#f1c40f; background:rgba(241,196,15,0.15); border:1px solid rgba(241,196,15,0.4); border-radius:4px; padding:1px 5px; margin-top:3px; white-space:nowrap;">
+                                </div>
                             </div>
                             <div id="ply-team-indicator" class="battle-team-indicator"></div>
                         </div>
@@ -602,7 +672,9 @@
                                 <div id="opp-shiny-tag" class="shiny-tag" style="display:none; margin-top:3px;">✨ SHINY
                                     ✨</div>
                                 <div class="battle-stats" id="opp-stats" style="margin-top:3px;"></div>
-                                <div id="opp-held-item" style="display:none; align-items:center; gap:4px; font-size:0.65em; color:#f1c40f; background:rgba(241,196,15,0.15); border:1px solid rgba(241,196,15,0.4); border-radius:4px; padding:1px 5px; margin-top:3px; white-space:nowrap;"></div>
+                                <div id="opp-held-item"
+                                    style="display:none; align-items:center; gap:4px; font-size:0.65em; color:#f1c40f; background:rgba(241,196,15,0.15); border:1px solid rgba(241,196,15,0.4); border-radius:4px; padding:1px 5px; margin-top:3px; white-space:nowrap;">
+                                </div>
                             </div>
                             <div id="opp-team-indicator" class="battle-team-indicator"></div>
                         </div>

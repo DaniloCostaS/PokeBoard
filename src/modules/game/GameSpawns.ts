@@ -8,14 +8,36 @@ import { GameState } from './GameState';
 
 export class GameSpawns {
 
+    static getGenById(id: number): number {
+        if (id >= 10000) return 0; // Megas/Forms
+        if (id <= 151) return 1;
+        if (id <= 251) return 2;
+        if (id <= 386) return 3;
+        if (id <= 493) return 4;
+        if (id <= 649) return 5;
+        if (id <= 721) return 6;
+        if (id <= 809) return 7;
+        if (id <= 905) return 8;
+        return 9;
+    }
+
     static generateGymTeams() {
         GameState.gymTeams = {};
 
         GYM_DATA.forEach(gym => {
-            const validCandidates = POKEDEX.filter(p =>
-                (!p.nextForm || p.nextForm === "") &&
-                (gym.type.includes(p.type) || (p.secondType && gym.type.includes(p.secondType)))
-            );
+            const validCandidates = POKEDEX.filter(p => {
+                if (p.nextForm && p.nextForm !== "") return false;
+                if (!gym.type.includes(p.type) && (!p.secondType || !gym.type.includes(p.secondType))) return false;
+
+                const pGen = this.getGenById(p.id);
+                if (pGen > 0 && !GameState.settings.generations.includes(pGen)) return false;
+                if (p.id >= 10000 && !GameState.settings.megas) return false;
+
+                if (GameState.settings.legendaries === 'no' && p.isLegendary) return false;
+                if (GameState.settings.legendaries === 'only' && !p.isLegendary) return false;
+
+                return true;
+            });
 
             const roster: number[] = [];
 
@@ -63,7 +85,7 @@ export class GameSpawns {
         else if (globalAvg >= 5 && globalAvg < 10) { allowedStages = [1, 2]; allowLegendaries = true; }
         else { allowedStages = [1, 2, 3]; allowLegendaries = true; }
 
-        if (GameState.currentGlobalEvent?.id === 'LEGENDARY_FEVER') {
+        if (GameState.settings.legendaries === 'yes' && GameState.currentGlobalEvent?.id === 'LEGENDARY_FEVER') {
             allowLegendaries = true;
         }
 
@@ -72,8 +94,19 @@ export class GameSpawns {
             const match2 = p.secondType && allowedTypes.includes(p.secondType);
 
             if (!match1 && !match2) return false;
-            if (!allowedStages.includes(p.stage)) return false;
-            if (p.isLegendary && !allowLegendaries) return false;
+            
+            // Only enforce stages if not 'only' legendaries, because legendary basic stages are often non-existent or skip stages
+            if (GameState.settings.legendaries !== 'only' && !allowedStages.includes(p.stage)) return false;
+
+            if (p.isLegendary && !allowLegendaries && GameState.settings.legendaries !== 'only') return false;
+
+            const pGen = this.getGenById(p.id);
+            if (pGen > 0 && !GameState.settings.generations.includes(pGen)) return false;
+            if (p.id >= 10000 && !GameState.settings.megas) return false;
+
+            if (GameState.settings.legendaries === 'no' && p.isLegendary) return false;
+            if (GameState.settings.legendaries === 'only' && !p.isLegendary) return false;
+
             return true;
         });
 
@@ -104,7 +137,11 @@ export class GameSpawns {
             }
         }
 
-        if (GameState.currentGlobalEvent?.id === 'LEGENDARY_FEVER' && Math.random() <= 0.30) {
+        if (GameState.settings.legendaries === 'yes' && GameState.currentGlobalEvent?.id === 'LEGENDARY_FEVER' && Math.random() <= 0.30) {
+            selectedRarityId = 'Lendário';
+        }
+
+        if (GameState.settings.legendaries === 'only') {
             selectedRarityId = 'Lendário';
         }
 

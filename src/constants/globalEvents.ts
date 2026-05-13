@@ -45,5 +45,5 @@ export const GLOBAL_EVENTS: GlobalEvent[] = [
     { id: 'MYSTIC_AURA', icon: '🔮', name: 'Aura Mística', minRound: 1, maxRound: 999, desc: 'Uma energia estranha permeia o ar. Ataques do tipo Psíquico e Fada ganham impressionantes +50% de dano extra devido à forte ressonância mágica.' },
 
     // Eventos de evento aleatório
-    { id: 'LOTTERY_DAY', icon: '🎰', name: 'Sorteio da Loteria', minRound: 1, maxRound: 999, desc: 'As casas de Evento patrocinaram o jogo! Cair em um Evento (???) não causa os efeitos normais; em vez disso, o jogador ganha 500G e uma carta aleatória instantaneamente.' },
+    { id: 'LOTTERY_DAY', icon: '🎰', name: 'Sorteio da Loteria', minRound: 1, maxRound: 999, desc: 'As casas de Evento patrocinaram o jogo! Cair em um Evento (???) não causa os efeitos normais; em vez disso, o jogador ganha 500G, uma carta e um item aleatório instantaneamente.' },
 ];

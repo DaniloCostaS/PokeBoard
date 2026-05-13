@@ -1,6 +1,7 @@
 import type { CardData } from '../constants';
 import { CARDS_DB } from '../constants'; // Import necessário para o sorteio
 import { Pokemon } from './Pokemon';
+import { POKEDEX } from '../constants/pokedex';
 
 export class Player {
     id: number;
@@ -83,19 +84,50 @@ export class Player {
             //this.cards = JSON.parse(JSON.stringify(CARDS_DB));
 
             // 3. Pokemon Inicial (com chance de Shiny)
-            const starters = [1, 4, 7, 152, 155, 158, 252, 255, 258, 387, 390, 393, 650, 653, 656, 722, 725, 728, 810, 813, 816, 906, 909, 912];
-            //const starters = [3];
-            let randomStarterId = starters[Math.floor(Math.random() * starters.length)];
-
-            let isStarterShiny = Math.random() < 0.02;
-
-            this.team.push(new Pokemon(randomStarterId, 1, isStarterShiny));
-
-            // ==============================================================
-            // NOVO: POKÉDEX (Registra o Inicial como Visto e Capturado)
-            // ==============================================================
+            // O Starter é inicializado como um Bulbasaur genérico aqui. 
+            // Ele será substituído pelo starter correto de acordo com as configurações da partida
+            // logo em seguida, seja no modo Offline (Setup.start) ou Online (quando o Host clica Iniciar).
+            const randomStarterId = 1;
+            this.team.push(new Pokemon(randomStarterId, 1, false));
             this.pokedexData[randomStarterId] = { seen: 1, caught: 1, defeated: 0 };
         }
+    }
+
+    assignStarter(settings: any) {
+        this.team = [];
+        
+        let validStarters = [1, 4, 7, 152, 155, 158, 252, 255, 258, 387, 390, 393, 495, 498, 501, 650, 653, 656, 722, 725, 728, 810, 813, 816, 906, 909, 912];
+        
+        if (settings.legendaries === 'only') {
+            validStarters = POKEDEX.filter((p: any) => p.isLegendary && settings.generations.includes(this.getGenById(p.id))).map((p: any) => p.id);
+        } else {
+            validStarters = validStarters.filter(id => {
+                const p = POKEDEX.find((poke: any) => poke.id === id);
+                if (!p) return false;
+                return settings.generations.includes(this.getGenById(id));
+            });
+        }
+        
+        if (validStarters.length === 0) validStarters = [133]; // Eevee fallback
+        
+        const randomStarterId = validStarters[Math.floor(Math.random() * validStarters.length)];
+        let isStarterShiny = Math.random() < 0.02;
+
+        this.team.push(new Pokemon(randomStarterId, 1, isStarterShiny));
+        this.pokedexData[randomStarterId] = { seen: 1, caught: 1, defeated: 0 };
+    }
+
+    getGenById(id: number): number {
+        if (id >= 10000) return 0;
+        if (id <= 151) return 1;
+        if (id <= 251) return 2;
+        if (id <= 386) return 3;
+        if (id <= 493) return 4;
+        if (id <= 649) return 5;
+        if (id <= 721) return 6;
+        if (id <= 809) return 7;
+        if (id <= 905) return 8;
+        return 9;
     }
 
     isDefeated() { return this.getBattleTeam(false).length === 0 || this.getBattleTeam(false).every(p => p.isFainted()); }

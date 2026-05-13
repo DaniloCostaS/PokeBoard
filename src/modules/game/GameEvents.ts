@@ -187,7 +187,12 @@ export class GameEvents {
                 p.gold += 500;
                 const CardsObj = (window as any).Cards || Cards;
                 CardsObj.draw(p, true);
-                const lotteryMsg = `🎰 DIA DE LOTERIA! Você visitou a casa de Evento e ganhou o prêmio acumulado de 500G e 1 Carta!`;
+
+                const normalItems = SHOP_ITEMS.filter(i => !['ultrafullrestore', 'ultramaxrevive', 'masterball'].includes(i.id));
+                const randomItem = normalItems[Math.floor(Math.random() * normalItems.length)];
+                this.addItem(p, randomItem.id, 1);
+
+                const lotteryMsg = `🎰 DIA DE LOTERIA! Você visitou a casa de Evento e ganhou o prêmio acumulado de 500G, 1 Carta e 1 ${randomItem.name}!`;
                 GameUI.sendGlobalLog(lotteryMsg);
                 GameUI.showGlobalAlert(lotteryMsg, p.name, true);
                 if (NetworkObj.isOnline) {
@@ -617,7 +622,7 @@ export class GameEvents {
         if (type === TILE.GYM && !GameState.pendingTileEvent) {
             const gymId = MapSystem.gymLocations[`${currP.x},${currP.y}`];
             if (gymId && !currP.badges[gymId - 1]) {
-                if (!currP.effects.escapedGym) {
+                if (GameState.currentGlobalEvent?.id !== 'GYM_VACATION' && !currP.effects.escapedGym) {
                     rollBtn.disabled = true;
                     rollBtn.innerText = "EM BATALHA";
                     if (!BattleObj.active) this.handleTile(currP);

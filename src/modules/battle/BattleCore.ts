@@ -102,7 +102,21 @@ export class BattleCore {
 
             const battleIds = rosterIds.slice(0, teamSize);
 
-            this.oppTeamList = battleIds.map((id: number) => new Pokemon(id, gymLevel, false, true));
+            const holdItems = ['amulet_coin', 'leftovers', 'quick_claw', 'sitrus_berry', 'scope_lens', 'choice_band', 'choice_scarf', 'rocky_helmet'];
+
+            this.oppTeamList = battleIds.map((id: number) => {
+                const mon = new Pokemon(id, gymLevel, false, true);
+                const GameState = (window as any).GameState;
+                const canMega = GameState.settings && GameState.settings.megas !== false;
+                
+                if (canMega && MAPA_MEGAS[mon.id]) {
+                    mon.megaStone = true;
+                } else {
+                    const randomHoldItem = holdItems[Math.floor(Math.random() * holdItems.length)];
+                    (mon as any).heldItem = randomHoldItem;
+                }
+                return mon;
+            });
             this.opponent = this.oppTeamList[0];
 
             this.plyTeamList = player.team.filter(p => !p.isFainted());

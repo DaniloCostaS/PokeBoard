@@ -1,5 +1,6 @@
 import { CARDS_DB } from '../../constants';
 import type { Player } from '../../models/Player';
+import { GameState } from '../game/GameState';
 
 export class CardManager {
     static getRarityWeight(rarity: string): number {
@@ -11,6 +12,14 @@ export class CardManager {
             case 'Lendária': return 10;
             default: return 1;
         }
+    }
+
+    static getValidCardsDb() {
+        let db = CARDS_DB;
+        if (GameState.settings && !GameState.settings.megas) {
+            db = db.filter(c => !['mega_stone', 'reclaim_mega_stone', 'steal_mega_stone'].includes(c.id));
+        }
+        return db;
     }
 
     static draw(player: Player, silentLog: boolean = false) {
@@ -27,8 +36,9 @@ export class CardManager {
         else if (resultChance <= 26) targetRarity = 'Rara';
         else if (resultChance <= 54) targetRarity = 'Incomum';
 
-        const possibleCards = CARDS_DB.filter(c => c.rarity === targetRarity);
-        const finalPool = possibleCards.length > 0 ? possibleCards : CARDS_DB;
+        const validDb = this.getValidCardsDb();
+        const possibleCards = validDb.filter((c: any) => c.rarity === targetRarity);
+        const finalPool = possibleCards.length > 0 ? possibleCards : validDb;
         const card = finalPool[Math.floor(Math.random() * finalPool.length)];
 
         player.cards.push(card);
@@ -77,7 +87,7 @@ export class CardManager {
             }
         });
 
-        const validPool = CARDS_DB.filter((c: any) => c.id !== 'master');
+        const validPool = this.getValidCardsDb().filter((c: any) => c.id !== 'master');
         let targetRarity: string | undefined = undefined;
 
         if (removedRarities.length === 2 && removedRarities[0] === 'Épica' && removedRarities[1] === 'Épica') {
@@ -157,8 +167,9 @@ export class CardManager {
             }
         });
 
-        const possibleCards = CARDS_DB.filter((c: any) => c.rarity === targetRarity);
-        const finalPool = possibleCards.length > 0 ? possibleCards : CARDS_DB;
+        const validDb = this.getValidCardsDb();
+        const possibleCards = validDb.filter((c: any) => c.rarity === targetRarity);
+        const finalPool = possibleCards.length > 0 ? possibleCards : validDb;
         const filteredPool = finalPool.filter((c: any) => !removedIds.includes(c.id));
         const finalFinalPool = filteredPool.length > 0 ? filteredPool : finalPool;
 

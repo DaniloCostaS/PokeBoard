@@ -2,7 +2,7 @@ import { TRAINER_IMAGES } from '../constants/trainerImages';
 import { Player } from '../models/Player';
 import { Game } from './Game';
 import { Network, db } from '../systems/Network';
-import { update, ref } from 'firebase/database';
+import { update, ref, get } from 'firebase/database';
 import { MapSystem } from '../systems/MapSystem';
 
 export class Setup {
@@ -18,16 +18,29 @@ export class Setup {
     static start() {
         const n = parseInt((document.getElementById('num-players') as HTMLSelectElement).value);
         const mapSize = parseInt((document.getElementById('map-size') as HTMLSelectElement).value);
-        const ps = [];
+        const ps: Player[] = [];
         for (let i = 0; i < n; i++) {
-            ps.push(new Player(i, (document.getElementById(`p${i}-name`) as HTMLInputElement).value, (document.getElementById(`p${i}-av`) as HTMLSelectElement).value, false));
+            const p = new Player(i, (document.getElementById(`p${i}-name`) as HTMLInputElement).value, (document.getElementById(`p${i}-av`) as HTMLSelectElement).value, false);
+            ps.push(p);
         }
+
+        const gens = Array.from(document.querySelectorAll('#offline-gen-select input:checked')).map(el => parseInt((el as HTMLInputElement).value));
+        const leg = (document.getElementById('offline-legendary-rule') as HTMLSelectElement).value as any;
+        const mega = (document.getElementById('offline-mega-rule') as HTMLSelectElement).value === 'yes';
+
+        const settings = { 
+            generations: gens.length > 0 ? gens : [1, 2, 3, 4, 5, 6, 7, 8, 9], 
+            legendaries: leg, 
+            megas: mega 
+        };
+
+        ps.forEach(p => p.assignStarter(settings));
 
         // Ordem original baseada no registro (quem for entrando na sala)
 
         document.getElementById('setup-screen')!.style.display = 'none';
         document.getElementById('game-container')!.style.display = 'flex';
-        Game.init(ps, mapSize);
+        Game.init(ps, mapSize, settings);
     }
 
     // START ONLINE (Host)
@@ -36,12 +49,38 @@ export class Setup {
         const mapSize = parseInt((document.getElementById('online-map-size') as HTMLSelectElement).value);
         MapSystem.generate(mapSize);
 
+        const gens = Array.from(document.querySelectorAll('#online-gen-select input:checked')).map(el => parseInt((el as HTMLInputElement).value));
+        const leg = (document.getElementById('online-legendary-rule') as HTMLSelectElement).value as any;
+        const mega = (document.getElementById('online-mega-rule') as HTMLSelectElement).value === 'yes';
+
+        const settings = { 
+            generations: gens.length > 0 ? gens : [1, 2, 3, 4, 5, 6, 7, 8, 9], 
+            legendaries: leg, 
+            megas: mega 
+        };
+
         // Ordem original do lobby mantida
 
-        const updateData = {
+        const updateData: any = {
             status: "PLAYING",
-            map: { size: mapSize, grid: MapSystem.grid, gymLocations: MapSystem.gymLocations }
+            map: { size: mapSize, grid: MapSystem.grid, gymLocations: MapSystem.gymLocations },
+            settings: settings
         };
-        if (db) { await update(ref(db, `rooms/${Network.currentRoomId}`), updateData); }
+
+        // Let's just update the teams in db
+        if (db) { 
+            const snap = await get(ref(db, `rooms/${Network.currentRoomId}/players`));
+            if (snap.exists()) {
+                const playersData = snap.val();
+                Object.values(playersData).forEach((pd: any) => {
+                    const tempPlayer = new Player(pd.id, pd.name, pd.avatar, true); // true = no starter logic
+                    tempPlayer.assignStarter(settings);
+                    pd.team = tempPlayer.team;
+                    pd.pokedexData = Object.assign({}, pd.pokedexData, tempPlayer.pokedexData);
+                });
+                updateData.players = playersData;
+            }
+            await update(ref(db, `rooms/${Network.currentRoomId}`), updateData); 
+        }
     }
 }

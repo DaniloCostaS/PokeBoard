@@ -284,7 +284,7 @@ export class NetworkActions {
 
         document.getElementById('setup-screen')!.style.display = 'none';
         document.getElementById('game-container')!.style.display = 'flex';
-        Game.init(playerArray, MapSystem.size);
+        Game.init(playerArray, MapSystem.size, data.settings);
         this.setupGameLoopListener();
     }
 

@@ -66,7 +66,7 @@ export class Game {
     // ==========================================
     // MÉTODOS NUCLEARES
     // ==========================================
-    static init(players: Player[], mapSize: number) { GameState.init(players, mapSize); }
+    static init(players: Player[], mapSize: number, settings?: any) { GameState.init(players, mapSize, settings); }
     static getCurrentPlayer() { return GameState.getCurrentPlayer(); }
     static canAct() { return GameState.canAct(); }
     static getGlobalAverageLevel() { return GameState.getGlobalAverageLevel(); }

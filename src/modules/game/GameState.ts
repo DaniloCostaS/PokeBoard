@@ -8,7 +8,19 @@ import { GameSpawns } from './GameSpawns';
 import { GameUI } from './GameUI';
 import { GameEvents } from './GameEvents';
 
+export interface GameSettings {
+    generations: number[];
+    legendaries: 'yes' | 'no' | 'only';
+    megas: boolean;
+}
+
 export class GameState {
+    static settings: GameSettings = {
+        generations: [1, 2, 3, 4, 5, 6, 7, 8, 9],
+        legendaries: 'yes',
+        megas: true
+    };
+
     static players: Player[] = [];
     static turn: number = 0;
     static round: number = 1;
@@ -37,7 +49,10 @@ export class GameState {
     static lixeira: Pokemon[] = [];
     static globalChampion: any = null;
 
-    static init(players: Player[], mapSize: number) {
+    static init(players: Player[], mapSize: number, settings?: GameSettings) {
+        if (settings) {
+            this.settings = settings;
+        }
         if (!this.activeGyms || this.activeGyms.length === 0) {
             const allGyms = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
             this.activeGyms = allGyms.sort(() => Math.random() - 0.5).slice(0, 8);
@@ -58,7 +73,8 @@ export class GameState {
             if (db) update(ref(db, `rooms/${NetworkObj.currentRoomId}`), {
                 grid: MapSystem.grid,
                 gymLocations: MapSystem.gymLocations,
-                gymTeams: this.gymTeams
+                gymTeams: this.gymTeams,
+                settings: this.settings
             });
         }
 
@@ -125,7 +141,15 @@ export class GameState {
     }
 
     static getSaveData() {
-        return { players: this.players, turn: this.turn, mapSize: MapSystem.size, grid: MapSystem.grid, gymLoc: MapSystem.gymLocations, lastBonusRoundClaimed: this.lastBonusRoundClaimed };
+        return { 
+            players: this.players, 
+            turn: this.turn, 
+            mapSize: MapSystem.size, 
+            grid: MapSystem.grid, 
+            gymLoc: MapSystem.gymLocations, 
+            lastBonusRoundClaimed: this.lastBonusRoundClaimed,
+            settings: this.settings 
+        };
     }
 
     static saveGame() {
@@ -142,6 +166,9 @@ export class GameState {
         MapSystem.grid = d.grid;
         MapSystem.gymLocations = d.gymLoc || {};
         this.lastBonusRoundClaimed = d.lastBonusRoundClaimed || 0;
+        if (d.settings) {
+            this.settings = d.settings;
+        }
         this.players = d.players.map((pd: any) => {
             const file = pd.avatar.split('/').pop();
             const pl = new Player(pd.id, pd.name, file, true);
@@ -157,6 +184,6 @@ export class GameState {
         this.turn = d.turn;
         document.getElementById('setup-screen')!.style.display = 'none';
         document.getElementById('game-container')!.style.display = 'flex';
-        this.init(this.players, d.mapSize);
+        this.init(this.players, d.mapSize, this.settings);
     }
 }
