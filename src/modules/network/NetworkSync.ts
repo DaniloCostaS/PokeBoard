@@ -4,34 +4,63 @@ import { Player } from '../../models/Player';
 
 export class NetworkSync {
 
-    static getSanitizedTeam(team: any[]) {
+    static getSanitizedTeam(team: any[], player?: Player) {
         if (!team) return [];
-        return team.map((mon: any) => ({
-            id: mon.id,
-            name: mon.name,
-            type: mon.type,
-            secondType: mon.secondType || "",
-            baseTotal: mon.baseTotal || 0,
-            currentHp: mon.currentHp,
-            maxHp: mon.maxHp,
-            level: mon.level,
-            currentXp: mon.currentXp,
-            maxXp: mon.maxXp,
-            isShiny: mon.isShiny,
-            isLegendary: mon.isLegendary,
-            atk: mon.atk,
-            def: mon.def,
-            speed: mon.speed,
-            stage: mon.stage || 1,
-            evoData: mon.evoData || { next: null, trigger: null },
-            megaStone: mon.megaStone || false,
-            ivs: mon.ivs || { hp: 0, atk: 0, def: 0, spd: 0 },
-            baseStats: mon.baseStats || { hp: 10, atk: 10, def: 10, spd: 10 },
-            bonusStats: mon.bonusStats || { hp: 0, atk: 0, def: 0, spd: 0 },
-            wins: mon.wins || 0,
-            vinculoSupremo: mon.vinculoSupremo || false,
-            heldItem: mon.heldItem || null
-        }));
+        return team.map((mon: any) => {
+            const data: any = {
+                id: mon.id,
+                name: mon.name,
+                type: mon.type,
+                secondType: mon.secondType || "",
+                baseTotal: mon.baseTotal || 0,
+                currentHp: mon.currentHp,
+                maxHp: mon.maxHp,
+                level: mon.level,
+                currentXp: mon.currentXp,
+                maxXp: mon.maxXp,
+                isShiny: mon.isShiny,
+                isLegendary: mon.isLegendary,
+                atk: mon.atk,
+                def: mon.def,
+                speed: mon.speed,
+                stage: mon.stage || 1,
+                evoData: mon.evoData || { next: null, trigger: null },
+                megaStone: mon.megaStone || false,
+                ivs: mon.ivs || { hp: 0, atk: 0, def: 0, spd: 0 },
+                baseStats: mon.baseStats || { hp: 10, atk: 10, def: 10, spd: 10 },
+                bonusStats: mon.bonusStats || { hp: 0, atk: 0, def: 0, spd: 0 },
+                wins: mon.wins || 0,
+                vinculoSupremo: mon.vinculoSupremo || false,
+                heldItem: mon.heldItem || null,
+                masteryBonus: mon.masteryBonus || 0
+            };
+
+            // Enhanced saving for Global Champion
+            if (player && player.pokedexData) {
+                // Resonance: +10% per additional capture
+                const dexEntry = player.pokedexData[mon.id];
+                const caught = dexEntry ? (dexEntry.caught || 0) : 0;
+                if (caught > 1) {
+                    const resonancePerc = Math.min(100, (caught - 1) * 10);
+                    const multiplier = 1 + (resonancePerc / 100);
+                    data.maxHp = Math.floor(data.maxHp * multiplier);
+                    data.currentHp = data.maxHp;
+                    data.atk = Math.floor(data.atk * multiplier);
+                    data.def = Math.floor(data.def * multiplier);
+                    data.speed = Math.floor(data.speed * multiplier);
+                }
+
+                // Mastery: Saved to be applied in battles
+                const BattleCalc = (window as any).BattleCalc;
+                if (BattleCalc && BattleCalc.getTypeMasteryBonus) {
+                    const m1 = BattleCalc.getTypeMasteryBonus(player, mon.type);
+                    const m2 = mon.secondType ? BattleCalc.getTypeMasteryBonus(player, mon.secondType) : 0;
+                    data.masteryBonus = m1 + m2;
+                }
+            }
+
+            return data;
+        });
     }
 
     static async loadGlobalChampion() {
@@ -54,7 +83,7 @@ export class NetworkSync {
             const championData = {
                 name: player.name,
                 avatar: player.avatar.split('/').pop(),
-                team: this.getSanitizedTeam(player.team)
+                team: this.getSanitizedTeam(player.team, player)
             };
             await set(ref(db, 'global/champion'), championData);
         } catch (e) { console.error("Erro ao salvar campeão", e); }

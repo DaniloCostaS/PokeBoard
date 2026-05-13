@@ -25,8 +25,31 @@ export class BattleCalc {
         return bonus;
     }
 
+    static getResonanceMultiplier(player: Player, pokemonId: number): number {
+        if (!player || !player.pokedexData) return 1.0;
+        const dexEntry = player.pokedexData[pokemonId];
+        const caught = dexEntry ? (dexEntry.caught || 0) : 0;
+        if (caught <= 1) return 1.0;
+        const resonancePerc = Math.min(100, (caught - 1) * 10);
+        return 1 + (resonancePerc / 100);
+    }
+
     static calculateDamage(attacker: Pokemon, defender: Pokemon, isPlayerAttacking: boolean): { damage: number, msg: string, avoided: boolean, reflected: number } {
-        let dodgeChance = (defender.speed - attacker.speed) / 5;
+        const attackerPlayer = isPlayerAttacking ? BattleCore.player! : (BattleCore.enemyPlayer || null);
+        const defenderPlayer = !isPlayerAttacking ? BattleCore.player! : (BattleCore.enemyPlayer || null);
+
+        // Resonance (Aumenta todos os status baseado em capturas repetidas)
+        // Nota: Para o Campeão, isso já foi "assado" nos status salvos em NetworkSync
+        const atkReso = attackerPlayer ? this.getResonanceMultiplier(attackerPlayer, attacker.id) : 1.0;
+        const defReso = defenderPlayer ? this.getResonanceMultiplier(defenderPlayer, defender.id) : 1.0;
+
+        const effAtk = attacker.atk * atkReso;
+        const effDef = defender.def * defReso;
+        const effSpeed = attacker.speed * atkReso;
+        const effMaxHp = attacker.maxHp * atkReso;
+        const effDefSpeed = defender.speed * defReso;
+
+        let dodgeChance = (effDefSpeed - effSpeed) / 5;
         dodgeChance = Math.max(10, dodgeChance);
 
         const ignoreDodge = (isPlayerAttacking && BattleCore.activeEffects.sniper);
@@ -35,28 +58,30 @@ export class BattleCalc {
             return { damage: 0, msg: "💨 ESQUIVOU!", avoided: true, reflected: 0 };
         }
 
-        let blockChance = (defender.def - attacker.atk) / 5;
+        let blockChance = (effDef - effAtk) / 5;
         blockChance = Math.max(0, Math.min(90, blockChance));
 
         if (Math.random() * 100 <= blockChance) {
             return { damage: 0, msg: "🛡️ BLOQUEIO TOTAL!", avoided: true, reflected: 0 };
         }
 
-        const baseAtkRaw = (attacker.atk * 0.65) + (attacker.speed * 0.15) + (attacker.maxHp * 0.2);
+        const baseAtkRaw = (effAtk * 0.65) + (effSpeed * 0.15) + (effMaxHp * 0.2);
         // choice_band: +10% atk quando atacante carrega o item
         const hasChoiceBand = (attacker as any).heldItem === 'choice_band';
         const baseAtk = hasChoiceBand ? baseAtkRaw * 1.10 : baseAtkRaw;
-        let finalDamage = (baseAtk / 5) - (defender.def / 20);
+        let finalDamage = (baseAtk / 5) - (effDef / 20);
 
         let auditLog = `\n[Cálc: Base ${finalDamage.toFixed(1)}`;
 
-        const attackerPlayer = isPlayerAttacking ? BattleCore.player! : (BattleCore.enemyPlayer || null);
         let masteryBonus = 0;
 
         if (attackerPlayer) {
             const m1 = this.getTypeMasteryBonus(attackerPlayer, attacker.type);
             const m2 = attacker.secondType ? this.getTypeMasteryBonus(attackerPlayer, attacker.secondType) : 0;
-            masteryBonus = Math.max(m1, m2);
+            masteryBonus = m1 + m2;
+        } else if ((attacker as any).masteryBonus) {
+            // Usa bônus de maestria que foi salvo no Rei da Liga
+            masteryBonus = (attacker as any).masteryBonus;
         }
 
         const masteryMultiplier = 1 + (masteryBonus / 100);
@@ -64,10 +89,11 @@ export class BattleCalc {
         finalDamage = Math.max(1, finalDamage);
 
         if (masteryBonus > 0) auditLog += ` | Maestria +${masteryBonus}%`;
+        if (atkReso > 1) auditLog += ` | Ressonância x${atkReso.toFixed(2)}`;
 
         let logDetails = "";
 
-        const spdCritChance = attacker.speed / 8;
+        const spdCritChance = effSpeed / 8;
         if (Math.random() * 100 <= spdCritChance) {
             finalDamage += 5;
             logDetails += " ⚡Crit.Vel!";
@@ -169,7 +195,7 @@ export class BattleCalc {
             logDetails += " [🔗LINK!]";
         }
 
-        if (defender.def > (attacker.atk * 1.5)) {
+        if (effDef > (effAtk * 1.5)) {
             if (Math.random() * 100 <= 15) {
                 reflectedAmount += finalDamage;
                 logDetails += " 🔄REFLETIDO!";

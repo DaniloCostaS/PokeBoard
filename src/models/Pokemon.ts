@@ -16,6 +16,7 @@ export class Pokemon {
     isMegaEvolution: boolean = false;
     vinculoSupremo: boolean = false;
     heldItem: string | null = null;
+    masteryBonus: number = 0;
 
     ivs: { hp: number, atk: number, def: number, spd: number };
     baseStats: { hp: number, atk: number, def: number, spd: number };

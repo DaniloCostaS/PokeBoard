@@ -1532,9 +1532,10 @@ export class GameUI {
 
                 const spriteUrl = mon.getSprite();
                 
+                const heldItemData = (mon as any).heldItem ? SHOP_ITEMS.find(i => i.id === (mon as any).heldItem) : null;
                 const iconsHtml = [
                     mon.megaStone ? '<span title="Mega Pedra Equipada" style="filter: drop-shadow(0 0 2px #3498db); font-size: 1rem;">💎</span>' : '',
-                    (mon as any).heldItem ? '<span title="Item Equipado" style="filter: drop-shadow(0 0 2px #e67e22); font-size: 1rem;">🎒</span>' : ''
+                    heldItemData ? `<img src="/assets/img/Itens/${heldItemData.icon}" style="width:18px; height:18px; filter: drop-shadow(0 0 2px rgba(0,0,0,0.3));" title="Item: ${heldItemData.name}">` : ((mon as any).heldItem ? '🎒' : '')
                 ].filter(Boolean).join(' ');
 
                 card.innerHTML = `
@@ -1738,9 +1739,12 @@ export class GameUI {
                         typesHtml += ` <span style="background:${bg2}; color:white; font-size:0.65rem; padding:2px 5px; border-radius:4px; border:1px solid rgba(255,255,255,0.3);">${p.secondType}</span>`;
                     }
 
+                    const hId = p.heldItem;
+                    const hData = hId ? SHOP_ITEMS.find(i => i.id === hId) : null;
                     const iconsHtml = [
                         p.megaStone ? '<span title="Mega Pedra Equipada" style="filter: drop-shadow(0 0 2px #3498db);">💎</span>' : '',
-                        isShiny ? '<span title="Shiny" style="filter: drop-shadow(0 0 2px #f1c40f);">✨</span>' : ''
+                        isShiny ? '<span title="Shiny" style="filter: drop-shadow(0 0 2px #f1c40f);">✨</span>' : '',
+                        (hData && !p.megaStone) ? `<img src="/assets/img/Itens/${hData.icon}" style="width:20px; height:20px; filter: drop-shadow(0 0 2px rgba(0,0,0,0.5));" title="Item: ${hData.name}">` : (hId && !p.megaStone ? '🎒' : '')
                     ].filter(Boolean).join(' ');
 
                     card.innerHTML = `
@@ -1758,6 +1762,7 @@ export class GameUI {
                             <div style="display:flex; justify-content:space-between; align-items:center;"><span>🛡️</span> <b>${p.def}</b></div>
                             <div style="display:flex; justify-content:space-between; align-items:center;"><span>💨</span> <b>${p.speed}</b></div>
                         </div>
+                        ${p.masteryBonus > 0 ? `<div style="margin-top:6px; font-size:0.65rem; color:#f1c40f; font-weight:bold; background: rgba(0,0,0,0.4); padding: 2px 4px; border-radius: 4px;">🔥 Maestria: +${p.masteryBonus}%</div>` : ''}
                     `;
 
                     listContainer.appendChild(card);

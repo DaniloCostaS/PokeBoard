@@ -7,7 +7,7 @@ import { Setup } from '../../core/Setup';
 import { GameState } from '../game/GameState';
 import { GameUI } from '../game/GameUI';
 import { GLOBAL_EVENTS } from '../../constants/globalEvents';
-import { ref, set, get, onValue, update } from 'firebase/database';
+import { ref, get, onValue, update } from 'firebase/database';
 
 export class NetworkActions {
 
