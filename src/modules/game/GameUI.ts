@@ -1388,24 +1388,43 @@ export class GameUI {
         p.team.forEach((mon, idx) => {
             const div = document.createElement('div');
 
+            const isShiny = mon.isShiny;
+            const detailedHTML = `
+                <div style="display: flex; align-items: center; gap: 12px; text-align: left; width: 100%; justify-content: flex-start; border: 1px solid ${isShiny ? '#f1c40f' : '#555'}; background: ${isShiny ? 'rgba(241, 196, 15, 0.1)' : 'transparent'}; padding: 8px; border-radius: 6px; box-sizing: border-box;">
+                    <img src="${mon.getSprite()}" width="50" style="object-fit:contain; filter: drop-shadow(0 0 3px ${isShiny ? '#f1c40f' : 'transparent'});">
+                    <div style="display:flex; flex-direction:column; gap:4px; flex:1;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                            <b style="font-size:1.1rem; color:${isShiny ? '#f1c40f' : '#fff'};">${mon.name} ${isShiny ? '✨' : ''}</b>
+                            <span style="font-size:0.9rem; font-weight:bold; color:#f1c40f; background:rgba(0,0,0,0.5); padding:2px 6px; border-radius:4px;">Lv.${mon.level}</span>
+                        </div>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap:4px; font-size:0.8rem; color:#ecf0f1; background:rgba(0,0,0,0.3); padding:4px; border-radius:4px; text-align:center;">
+                            <span title="HP Atual / Máx">❤️ ${mon.currentHp}/${mon.maxHp}</span>
+                            <span title="Ataque">⚔️ ${mon.atk}</span>
+                            <span title="Defesa">🛡️ ${mon.def}</span>
+                            <span title="Velocidade">💨 ${mon.speed}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
             if (item.type === 'mega') {
                 const canMega = !!MAPA_MEGAS[mon.id];
                 if (canMega) {
                     if (mon.megaStone) {
                         div.className = `mon-select-item disabled`;
-                        div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b><br><small style="color:#f1c40f">💎 Já Equipado</small>`;
+                        div.innerHTML = detailedHTML + `<div style="width:100%; text-align:center; margin-top:5px;"><small style="color:#f1c40f; font-weight:bold;">💎 Já Equipado</small></div>`;
                     } else {
                         div.className = `mon-select-item`;
-                        div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b><br><small style="color:#2ecc71">✅ Compatível!</small>`;
+                        div.innerHTML = detailedHTML + `<div style="width:100%; text-align:center; margin-top:5px;"><small style="color:#2ecc71; font-weight:bold;">✅ Compatível!</small></div>`;
                         div.onclick = () => { modal.style.display = 'none'; GameEvents.applyBoardItemEffect(p, item, idx); };
                     }
                 } else {
                     div.className = `mon-select-item disabled`;
-                    div.innerHTML = `<img src="${mon.getSprite()}" width="40" style="filter: grayscale(100%); opacity:0.6;"><b>${mon.name}</b><br><small style="color:#e74c3c">❌ Incompatível</small>`;
+                    div.innerHTML = detailedHTML.replace('width="50"', 'width="50" style="filter: grayscale(100%); opacity:0.6;"') + `<div style="width:100%; text-align:center; margin-top:5px;"><small style="color:#e74c3c; font-weight:bold;">❌ Incompatível</small></div>`;
                 }
             } else {
                 div.className = `mon-select-item`;
-                div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>(${mon.currentHp}/${mon.maxHp})</small>`;
+                div.innerHTML = detailedHTML;
                 div.onclick = () => { modal.style.display = 'none'; GameEvents.applyBoardItemEffect(p, item, idx); };
             }
             list.appendChild(div);
@@ -1487,16 +1506,26 @@ export class GameUI {
             GameState.lixeira.forEach((mon, idx) => {
                 const card = document.createElement('div');
                 card.className = 'dex-card';
-                card.style.cssText = "display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); width: 150px; cursor: pointer;";
+                const isShiny = mon.isShiny;
+                card.style.cssText = `display: flex; flex-direction: column; align-items: center; background: ${isShiny ? 'rgba(241, 196, 15, 0.1)' : 'rgba(0,0,0,0.5)'}; padding: 10px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); border: 1px solid ${isShiny ? '#f1c40f' : 'transparent'}; width: 160px; cursor: pointer; position: relative; box-sizing: border-box;`;
 
                 const spriteUrl = mon.getSprite();
+                
+                const iconsHtml = [
+                    mon.megaStone ? '<span title="Mega Pedra Equipada" style="filter: drop-shadow(0 0 2px #3498db); font-size: 1rem;">💎</span>' : '',
+                    (mon as any).heldItem ? '<span title="Item Equipado" style="filter: drop-shadow(0 0 2px #e67e22); font-size: 1rem;">🎒</span>' : ''
+                ].filter(Boolean).join(' ');
+
                 card.innerHTML = `
-                    <img src="${spriteUrl}" style="width: 70px; height: 70px; object-fit: contain;">
-                    <b style="font-size: 1rem; color: #fff;">${mon.name}</b>
-                    <small style="color: #e67e22; font-weight: bold;">Lv.${mon.level}</small>
-                    <div style="font-size: 0.85rem; color: #7f8c8d; margin-top: 4px; display: flex; gap: 5px;">
-                        <span>❤️ ${mon.maxHp}</span>
-                        <span>⚔️ ${mon.atk}</span>
+                    <div style="position:absolute; top:4px; right:6px; display:flex; gap:4px; z-index: 10;">${iconsHtml}</div>
+                    <img src="${spriteUrl}" style="width: 70px; height: 70px; object-fit: contain; ${isShiny ? 'filter: drop-shadow(0 0 5px #f1c40f);' : ''}">
+                    <b style="font-size: 1rem; color: ${isShiny ? '#f1c40f' : '#fff'}; text-align: center;">${mon.name} ${isShiny ? '✨' : ''}</b>
+                    <small style="color: #e67e22; font-weight: bold; margin-bottom: 5px;">Lv.${mon.level}</small>
+                    <div style="width: 100%; background: rgba(0,0,0,0.4); border-radius: 6px; padding: 6px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 0.75rem; color: #ecf0f1; box-sizing:border-box;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;"><span>❤️</span> <b>${mon.maxHp}</b></div>
+                        <div style="display:flex; justify-content:space-between; align-items:center;"><span>⚔️</span> <b>${mon.atk}</b></div>
+                        <div style="display:flex; justify-content:space-between; align-items:center;"><span>🛡️</span> <b>${mon.def}</b></div>
+                        <div style="display:flex; justify-content:space-between; align-items:center;"><span>💨</span> <b>${mon.speed}</b></div>
                     </div>
                 `;
 

@@ -300,7 +300,7 @@ export class BattleCore {
         // quick_claw: 100% de chance de ir primeiro quando o ativo carrega o item
         const hasQuickClaw = (this.activeMon as any).heldItem === 'quick_claw';
         const enemyHasQuickClaw = (this.opponent as any).heldItem === 'quick_claw';
-        
+
         if (hasQuickClaw && !enemyHasQuickClaw) {
             playerGoesFirst = true;
             BattleUI.logBattle(`⚡ Garra Rápida! ${this.activeMon.name} age primeiro!`, true);
@@ -468,10 +468,10 @@ export class BattleCore {
             const xpGain = Math.max(1, Math.floor(oppStats / 9));
             this.activeMon.gainXp(xpGain, this.player!);
 
-            // amulet_coin: +50G ao derrotar um pokémon
+            // amulet_coin: +100G ao derrotar um pokémon
             if ((this.activeMon as any).heldItem === 'amulet_coin' && this.player) {
-                this.player.gold += 50;
-                BattleUI.logBattle(`💰 Moeda de Amuleto! +50G (Total: ${this.player.gold}G)`);
+                this.player.gold += 100;
+                BattleUI.logBattle(`💰 Moeda de Amuleto! +100G (Total: ${this.player.gold}G)`);
             }
 
             BattleUI.updateUI();
@@ -561,7 +561,7 @@ export class BattleCore {
                 if (NetworkObj.isOnline) NetworkObj.syncPlayerState();
             }
         }
-        
+
         // sitrus berry também para o inimigo, pois ele tomou dano no final de performPlayerAttack também
         // (Isso é feito logo após calcular o ataque do inimigo, mas poderia checar antes. Como não sabemos quem atacou por último, checamos de ambos.)
 
@@ -588,11 +588,11 @@ export class BattleCore {
                 const plyStats = this.activeMon.maxHp + this.activeMon.atk + this.activeMon.def + this.activeMon.speed;
                 const oppXpGain = Math.max(1, Math.floor(plyStats / 9));
                 this.opponent.gainXp(oppXpGain, this.enemyPlayer);
-                
-                // amulet_coin: +50G ao derrotar um pokémon (para o inimigo)
+
+                // amulet_coin: +100G ao derrotar um pokémon (para o inimigo)
                 if ((this.opponent as any).heldItem === 'amulet_coin') {
-                    this.enemyPlayer.gold += 50;
-                    BattleUI.logBattle(`💰 Moeda de Amuleto! +50G para ${this.enemyPlayer.name} (Total: ${this.enemyPlayer.gold}G)`);
+                    this.enemyPlayer.gold += 100;
+                    BattleUI.logBattle(`💰 Moeda de Amuleto! +100G para ${this.enemyPlayer.name} (Total: ${this.enemyPlayer.gold}G)`);
                 }
 
                 if (NetworkObj.isOnline) NetworkObj.syncSpecificPlayer(this.enemyPlayer.id);
@@ -820,10 +820,6 @@ export class BattleCore {
                 Game.sendGlobalLog(`💰 [Extrato] ${this.player!.name} recebeu +${gain}G (Luta PvP - Sistema).`);
             }
             Game.sendGlobalLog(`[PvP] ${this.enemyPlayer.name} foi derrotado por ${this.player?.name}!`);
-
-            if (NetworkObj.isOnline) {
-                NetworkObj.sendAction('PVP_SYNC_DAMAGE', { targetId: this.enemyPlayer.id, team: this.enemyPlayer.team, gold: this.enemyPlayer.gold, badges: this.enemyPlayer.badges, resetPos: true, skipTurn: true });
-            }
         } else if (this.isGym) {
             gain = (Game.currentGlobalEvent?.id === 'GOLD_RUSH') ? 2000 : 1000;
             Game.sendGlobalLog(`💰 [Extrato] ${this.player!.name} recebeu +${gain}G (Líder de Ginásio).`);

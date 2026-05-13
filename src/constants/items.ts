@@ -25,11 +25,11 @@ export const SHOP_ITEMS: ItemData[] = [
     { id: 'vitamin', name: 'Vitaminas', desc: "Aumenta +1 em todos os status do pokémon.", icon: 'Vitamina.png', price: 500, type: 'boost', val: 1 },
 
     // --- Itens paera Segurar ---
-    { id: 'amulet_coin', name: 'Moeda de amuleto', desc: "Ganha 50G sempre que derrotar um pokémon, com o pokémon que estiver segurando esse item.", icon: 'amulet_coin.png', price: 1500, type: 'hold' },
+    { id: 'amulet_coin', name: 'Moeda de amuleto', desc: "Ganha 100G sempre que derrotar um pokémon, com o pokémon que estiver segurando esse item.", icon: 'amulet_coin.png', price: 1500, type: 'hold' },
     { id: 'leftovers', name: 'Restos', desc: "Restaura 10 de HP por turno, com o pokémon que estiver segurando esse item.", icon: 'leftovers.png', price: 1500, type: 'hold' },
     { id: 'quick_claw', name: 'Garra Rápida', desc: "Aumenta em 100% a chance de atacar primeiro, com o pokémon que estiver segurando esse item.", icon: 'quick_claw.png', price: 1500, type: 'hold' },
-    { id: 'sitrus_berry', name: 'Sitrus Berry', desc: "Restaura 50% HP quando o HP chegar a 20% ou menos, com o pokémon que estiver segurando esse item. Esse item é consumido após o uso.", icon: 'sitrus_berry.png', price: 1500, type: 'hold' },
-    { id: 'scope_lens', name: 'Scope Lens', desc: "Aumenta a chance de crítico, agora 5 ou 6 no dado é dano crítico, com o pokémon que estiver segurando esse item.", icon: 'scope_lens.png', price: 1500, type: 'hold' },
+    { id: 'sitrus_berry', name: 'Sitrus Berry', desc: "Restaura 50% HP quando o HP chegar a 20% ou menos, com o pokémon que estiver segurando esse item. Esse item é consumido após o uso.", icon: 'sitrus_berry.png', price: 1000, type: 'hold' },
+    { id: 'scope_lens', name: 'Scope Lens', desc: "Sempre garante um acerto crítico (+5 de dano no dado), com o pokémon que estiver segurando esse item.", icon: 'scope_lens.png', price: 1500, type: 'hold' },
     { id: 'choice_band', name: 'Choice Band', desc: "Aumenta o ataque em 10%, com o pokémon que estiver segurando esse item.", icon: 'choice_band.png', price: 1500, type: 'hold' },
     { id: 'choice_scarf', name: 'Choice Scarf', desc: "Aumenta a velocidade em 20%, com o pokémon que estiver segurando esse item.", icon: 'choice_scarf.png', price: 1500, type: 'hold' },
     { id: 'rocky_helmet', name: 'Rocky Helmet', desc: "Causa 15% do dano recebido ao adversário, com o pokémon que estiver segurando esse item.", icon: 'rocky_helmet.png', price: 1500, type: 'hold' }

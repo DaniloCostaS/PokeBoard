@@ -77,14 +77,17 @@ export class BattleCalc {
         const hasScopeLens = (attacker as any).heldItem === 'scope_lens';
         const d6 = Math.floor(Math.random() * 6) + 1;
         let rollModifier = 0;
-        // scope_lens: 5 ou 6 no dado é crítico
-        if (d6 === 6 || (hasScopeLens && d6 === 5)) { rollModifier = +5; logDetails += " 🎲Crit!"; }
+        // scope_lens: sempre garante crítico (+5), independente do dado
+        if (d6 === 6 || hasScopeLens) { 
+            rollModifier = +5; 
+            logDetails += " 🎲Crit!"; 
+        }
         else if (d6 === 5) rollModifier = +3;
         else if (d6 === 4) rollModifier = +2;
         else if (d6 === 2) rollModifier = -1;
         else if (d6 === 1) rollModifier = -2;
         finalDamage += rollModifier;
-        if (hasScopeLens && d6 === 5) { auditLog += ` | Scope Lens Crit!`; }
+        if (hasScopeLens && d6 !== 6) { auditLog += ` | Scope Lens Crit!`; }
         else if (hasScopeLens) { auditLog += ` | Scope Lens`; }
 
         auditLog += ` | 🎲${d6}(${rollModifier > 0 ? '+' : ''}${rollModifier})`;

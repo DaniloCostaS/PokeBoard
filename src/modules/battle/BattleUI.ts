@@ -16,7 +16,37 @@ export class BattleUI {
         BattleCore.plyTeamList.forEach((mon) => {
             const div = document.createElement('div');
             div.className = `mon-select-item ${mon.isFainted() ? 'disabled' : ''}`;
-            div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>(${mon.currentHp}/${mon.maxHp})</small>`;
+            
+            const isShiny = mon.isShiny;
+            div.style.cssText = `
+                display: flex; 
+                align-items: center; 
+                gap: 12px; 
+                text-align: left; 
+                width: 100%; 
+                justify-content: flex-start;
+                border: 1px solid ${isShiny ? '#f1c40f' : '#555'};
+                background: ${isShiny ? 'rgba(241, 196, 15, 0.1)' : 'transparent'};
+                padding: 8px;
+                border-radius: 6px;
+                box-sizing: border-box;
+            `;
+
+            div.innerHTML = `
+                <img src="${mon.getSprite()}" width="50" style="object-fit:contain; filter: drop-shadow(0 0 3px ${isShiny ? '#f1c40f' : 'transparent'});">
+                <div style="display:flex; flex-direction:column; gap:4px; flex:1;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                        <b style="font-size:1.1rem; color:${isShiny ? '#f1c40f' : '#fff'};">${mon.name} ${isShiny ? '✨' : ''}</b>
+                        <span style="font-size:0.9rem; font-weight:bold; color:#f1c40f; background:rgba(0,0,0,0.5); padding:2px 6px; border-radius:4px;">Lv.${mon.level}</span>
+                    </div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap:4px; font-size:0.8rem; color:#ecf0f1; background:rgba(0,0,0,0.3); padding:4px; border-radius:4px; text-align:center;">
+                        <span title="HP Atual / Máx">❤️ ${mon.currentHp}/${mon.maxHp}</span>
+                        <span title="Ataque">⚔️ ${mon.atk}</span>
+                        <span title="Defesa">🛡️ ${mon.def}</span>
+                        <span title="Velocidade">💨 ${mon.speed}</span>
+                    </div>
+                </div>
+            `;
             if (!mon.isFainted()) div.onclick = () => { modal.style.display = 'none'; BattleCore.startRound(mon); };
             list.appendChild(div);
         });
