@@ -420,7 +420,7 @@ export class GameUI {
             m = m.replace(/\n/g, '<br>');
 
             GameState.globalLogs.unshift({ text: m, style: customStyle, type: logType });
-            if (GameState.globalLogs.length > 50) GameState.globalLogs.pop();
+            if (GameState.globalLogs.length > 200) GameState.globalLogs.pop();
 
             const NetworkObj = (window as any).Network || Network;
             if (NetworkObj && NetworkObj.isOnline && typeof NetworkObj.syncLogs === 'function') {

@@ -522,7 +522,12 @@ export class BattleUI {
 
         const logContainer = document.getElementById('battle-log-history');
         if (logContainer) {
-            logContainer.insertAdjacentHTML('afterbegin', `<div style="border-bottom:1px solid #555; padding:2px;">${msg}</div>`);
+            const lines = msg.split('\n');
+            lines.forEach(line => {
+                if (line.trim()) {
+                    logContainer.insertAdjacentHTML('afterbegin', `<div style="border-bottom:1px solid #555; padding:2px;">${line}</div>`);
+                }
+            });
             logContainer.scrollTop = 0;
         }
 
@@ -531,7 +536,11 @@ export class BattleUI {
         if (sync) {
             const NetworkObj = (window as any).Network || Network;
             if (NetworkObj.isOnline && BattleCore.player && BattleCore.player.id === NetworkObj.myPlayerId) {
-                NetworkObj.sendAction('BATTLE_UPDATE', { msg: msg });
+                NetworkObj.sendAction('BATTLE_UPDATE', { 
+                    msg: msg,
+                    plyHp: BattleCore.activeMon?.currentHp,
+                    oppHp: BattleCore.opponent?.currentHp
+                });
             }
         }
     }

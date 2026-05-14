@@ -103,17 +103,21 @@ export class BattleCore {
 
             const battleIds = rosterIds.slice(0, teamSize);
 
-            const holdItems = ['amulet_coin', 'leftovers', 'quick_claw', 'sitrus_berry', 'scope_lens', 'choice_band', 'choice_scarf', 'rocky_helmet'];
+            const holdItems = ['leftovers', 'quick_claw', 'sitrus_berry', 'scope_lens', 'choice_band', 'choice_scarf', 'rocky_helmet'];
 
             this.oppTeamList = battleIds.map((id: number) => {
                 const mon = new Pokemon(id, gymLevel, false, true);
                 const canMega = GameState.settings && GameState.settings.megas !== false;
 
+                // Se o Pokémon pode mega evoluir E a regra de megas está ativa, ele recebe a pedra.
+                // Caso contrário, ele recebe um item de segurar.
                 if (canMega && MAPA_MEGAS[mon.id]) {
                     mon.megaStone = true;
+                    mon.heldItem = null;
                 } else {
+                    mon.megaStone = false;
                     const randomHoldItem = holdItems[Math.floor(Math.random() * holdItems.length)];
-                    (mon as any).heldItem = randomHoldItem;
+                    mon.heldItem = randomHoldItem;
                 }
                 return mon;
             });
@@ -469,6 +473,10 @@ export class BattleCore {
         BattleUI.logBattle(logMsg);
         BattleUI.updateUI();
 
+        // Check Sitrus Berry for both
+        this.checkSitrusBerry(this.activeMon);
+        this.checkSitrusBerry(this.opponent);
+
         if (NetworkObj.isOnline) {
             NetworkObj.sendAction('BATTLE_UPDATE', { plyHp: this.activeMon!.currentHp, oppHp: this.opponent!.currentHp, msg: logMsg });
             if (this.isPvP && this.enemyPlayer) {
@@ -563,18 +571,9 @@ export class BattleCore {
         BattleUI.logBattle(logMsg);
         BattleUI.updateUI();
 
-        // sitrus_berry: restaura 50% do HP máximo quando HP cair a 20% ou menos
-        if (this.activeMon && this.activeMon.currentHp > 0 && (this.activeMon as any).heldItem === 'sitrus_berry') {
-            const hpPercent = this.activeMon.currentHp / this.activeMon.maxHp;
-            if (hpPercent <= 0.20) {
-                const heal = Math.floor(this.activeMon.maxHp * 0.5);
-                this.activeMon.currentHp = Math.min(this.activeMon.maxHp, this.activeMon.currentHp + heal);
-                (this.activeMon as any).heldItem = null; // consumido
-                BattleUI.logBattle(`🍒 Sitrus Berry! ${this.activeMon.name} recuperou ${heal} HP e consumiu a berry!`, true);
-                BattleUI.updateUI();
-                if (NetworkObj.isOnline) NetworkObj.syncPlayerState();
-            }
-        }
+        // Check Sitrus Berry for both
+        this.checkSitrusBerry(this.activeMon);
+        this.checkSitrusBerry(this.opponent);
 
         // sitrus berry também para o inimigo, pois ele tomou dano no final de performPlayerAttack também
         // (Isso é feito logo após calcular o ataque do inimigo, mas poderia checar antes. Como não sabemos quem atacou por último, checamos de ambos.)
@@ -627,6 +626,28 @@ export class BattleCore {
             this.tryTriggerMegaEvolution("reagiu após o ataque");
             this.tryOpponentMegaEvolution("reagiu após o ataque");
             if (callback) callback();
+        }
+    }
+
+    static checkSitrusBerry(mon: Pokemon | null) {
+        if (!mon || mon.currentHp <= 0) return;
+        if ((mon as any).heldItem !== 'sitrus_berry') return;
+
+        const hpPercent = mon.currentHp / mon.maxHp;
+        if (hpPercent <= 0.20) {
+            const heal = Math.floor(mon.maxHp * 0.5);
+            mon.currentHp = Math.min(mon.maxHp, mon.currentHp + heal);
+            (mon as any).heldItem = null; // consumido
+            BattleUI.logBattle(`🍒 Sitrus Berry! ${mon.name} recuperou ${heal} HP e consumiu a berry!`, true);
+            BattleUI.updateUI();
+
+            const NetworkObj = (window as any).Network || Network;
+            if (NetworkObj.isOnline) {
+                NetworkObj.syncPlayerState();
+                if (this.isPvP && this.enemyPlayer) {
+                    NetworkObj.syncSpecificPlayer(this.enemyPlayer.id);
+                }
+            }
         }
     }
 
@@ -1004,7 +1025,15 @@ export class BattleCore {
         document.getElementById('battle-modal')!.style.display = 'none';
 
         if (!isRemote) {
-            if (NetworkObj.isOnline) NetworkObj.sendAction('BATTLE_END', {});
+            if (NetworkObj.isOnline) {
+                // Notifica o fim da batalha via ação (para outros clients limparem a UI)
+                NetworkObj.sendAction('BATTLE_END', {});
+                
+                // --- Correção de Trava de Turno ---
+                // Limpamos o status battleActive diretamente no Firebase para não depender da fila de logs lenta.
+                // Isso permite que o próximo jogador jogue mesmo se os logs ainda estiverem subindo em background.
+                update(ref(db, `rooms/${NetworkObj.currentRoomId}`), { battleActive: false });
+            }
             Game.nextTurn();
         } else {
             if (Game && typeof Game.checkTurnControl === 'function') Game.checkTurnControl();

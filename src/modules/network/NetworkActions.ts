@@ -534,6 +534,26 @@ export class NetworkActions {
 
     static sendAction(type: string, payload: any) {
         if (!NetworkState.isOnline) return;
+
+        // --- Lógica de Agrupamento (Batching) para Logs e Updates ---
+        // Se já houver um item do mesmo tipo no fim da fila, mesclamos para reduzir tráfego e latência.
+        if (type === 'LOG' || type === 'BATTLE_UPDATE') {
+            const last = NetworkState.actionQueue[NetworkState.actionQueue.length - 1];
+            if (last && last.type === type) {
+                if (type === 'LOG') {
+                    last.payload.msg += "\n" + payload.msg;
+                    return;
+                }
+                if (type === 'BATTLE_UPDATE') {
+                    // No caso de Batalha, acumulamos o texto mas sempre mantemos o HP mais recente
+                    last.payload.msg += "\n" + payload.msg;
+                    if (payload.plyHp !== undefined) last.payload.plyHp = payload.plyHp;
+                    if (payload.oppHp !== undefined) last.payload.oppHp = payload.oppHp;
+                    return;
+                }
+            }
+        }
+
         NetworkState.actionQueue.push({ type, payload });
         this.processQueue();
     }
@@ -559,7 +579,7 @@ export class NetworkActions {
                     console.error("Erro ao enviar ação para a fila: ", e);
                 }
 
-                await new Promise(resolve => setTimeout(resolve, 400));
+                await new Promise(resolve => setTimeout(resolve, 100));
             }
         }
 

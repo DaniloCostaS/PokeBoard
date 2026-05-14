@@ -37,6 +37,7 @@ export class BattleCalc {
     static calculateDamage(attacker: Pokemon, defender: Pokemon, isPlayerAttacking: boolean): { damage: number, msg: string, avoided: boolean, reflected: number } {
         const attackerPlayer = isPlayerAttacking ? BattleCore.player! : (BattleCore.enemyPlayer || null);
         const defenderPlayer = !isPlayerAttacking ? BattleCore.player! : (BattleCore.enemyPlayer || null);
+        let logDetails = "";
 
         // Resonance (Aumenta todos os status baseado em capturas repetidas)
         // Nota: Para o Campeão, isso já foi "assado" nos status salvos em NetworkSync
@@ -69,6 +70,7 @@ export class BattleCalc {
         // choice_band: +10% atk quando atacante carrega o item
         const hasChoiceBand = (attacker as any).heldItem === 'choice_band';
         const baseAtk = hasChoiceBand ? baseAtkRaw * 1.10 : baseAtkRaw;
+        if (hasChoiceBand) logDetails += " 🎸Band!";
         let finalDamage = (baseAtk / 5) - (effDef / 20);
 
         let auditLog = `\n[Cálc: Base ${finalDamage.toFixed(1)}`;
@@ -91,7 +93,6 @@ export class BattleCalc {
         if (masteryBonus > 0) auditLog += ` | Maestria +${masteryBonus}%`;
         if (atkReso > 1) auditLog += ` | Ressonância x${atkReso.toFixed(2)}`;
 
-        let logDetails = "";
 
         const spdCritChance = effSpeed / 8;
         if (Math.random() * 100 <= spdCritChance) {
