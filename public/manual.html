@@ -1,25 +1,31 @@
 <!DOCTYPE html>
 <html lang="pt-br">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PokeBoard - Manual do Treinador</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Roboto+Mono&display=swap" rel="stylesheet">
+    <title>PokeBoard - Manual Completo do Treinador</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Roboto+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
     <style>
         :root {
             --primary: #ee1515;
             --secondary: #2a75bb;
             --accent: #ffcb05;
             --dark: #1a1a1a;
+            --panel-bg: #222222;
             --light: #f4f4f4;
             --white: #ffffff;
             --gray: #888;
             --success: #4caf50;
+            --purple: #9b59b6;
+            --orange: #e67e22;
         }
 
         * {
             box-sizing: border-box;
             -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
 
         body {
@@ -32,288 +38,489 @@
         }
 
         .container {
-            max-width: 900px;
+            max-width: 1000px;
             margin: 0 auto;
-            background-color: #222;
-            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+            background-color: var(--panel-bg);
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
         }
 
-        header {
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, #b31010 100%);
+            padding: 50px 20px;
+            text-align: center;
+            border-bottom: 5px solid var(--accent);
             position: relative;
-            text-align: center;
-            padding: 0;
             overflow: hidden;
-            border-bottom: 5px solid var(--primary);
         }
 
-        header img {
-            width: 100%;
-            display: block;
+        .header img.logo-bg {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            opacity: 0.1;
+            width: 80%;
+            pointer-events: none;
         }
 
-        .content {
-            padding: 40px;
-        }
-
-        h1, h2, h3 {
-            color: var(--accent);
+        .header h1 {
+            margin: 0;
+            font-size: 3.5rem;
             text-transform: uppercase;
-            letter-spacing: 2px;
+            letter-spacing: 4px;
+            text-shadow: 3px 3px 0px rgba(0, 0, 0, 0.5);
+            font-weight: 800;
         }
 
-        h1 { font-size: 3rem; margin-bottom: 10px; }
-        h2 { 
-            font-size: 1.8rem; 
-            border-left: 5px solid var(--primary); 
-            padding-left: 15px; 
-            margin-top: 50px;
-            background: linear-gradient(90deg, rgba(238,21,21,0.1), transparent);
+        .header p {
+            margin: 10px 0 0;
+            font-size: 1.3rem;
+            opacity: 0.9;
+            font-weight: 300;
         }
 
-        .intro {
-            font-size: 1.2rem;
-            color: #ccc;
-            margin-bottom: 30px;
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin: 20px 0;
-        }
-
-        .card {
-            background: #333;
-            padding: 20px;
-            border-radius: 12px;
-            border: 1px solid #444;
-            transition: transform 0.3s ease;
-        }
-
-        .card:hover {
-            transform: translateY(-5px);
-            border-color: var(--secondary);
-        }
-
-        .card h3 {
-            margin-top: 0;
-            font-size: 1.2rem;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .badge-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin: 15px 0;
-        }
-
-        .badge-item {
-            background: var(--dark);
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            border: 1px solid var(--accent);
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-            background: #2a2a2a;
-            border-radius: 8px;
-            overflow: hidden;
-        }
-
-        th, td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #444;
-        }
-
-        th {
-            background-color: var(--secondary);
-            color: white;
-        }
-
-        .tile-icon {
-            font-size: 1.5rem;
-            margin-right: 10px;
-        }
-
-        .event-item {
-            margin-bottom: 20px;
-            padding: 15px;
-            background: #2d2d2d;
-            border-radius: 8px;
-            border-left: 4px solid var(--secondary);
-        }
-
-        .event-item b {
-            color: var(--accent);
-        }
-
-        .footer {
-            text-align: center;
-            padding: 40px;
-            font-size: 0.9rem;
-            color: var(--gray);
-            border-top: 1px solid #444;
-        }
-
-        .no-print {
+        .nav-print {
             position: fixed;
             top: 20px;
             right: 20px;
             z-index: 100;
         }
 
-        button {
-            background: var(--primary);
-            color: white;
+        .btn-print {
+            background: var(--accent);
+            color: #000;
             border: none;
             padding: 12px 25px;
             border-radius: 30px;
+            font-weight: 800;
             cursor: pointer;
-            font-weight: bold;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            font-family: inherit;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            transition: transform 0.2s;
         }
 
-        button:hover {
-            background: #ff3333;
+        .btn-print:hover { transform: scale(1.05); }
+
+        .content {
+            padding: 50px;
+        }
+
+        section {
+            margin-bottom: 60px;
+        }
+
+        h2 {
+            color: var(--accent);
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 10px;
+            margin-top: 0;
+            font-size: 2.2rem;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        h3 {
+            color: var(--secondary);
+            margin-top: 30px;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        p, li {
+            color: #ddd;
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+        }
+
+        .highlight {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin: 25px 0;
+        }
+
+        .card {
+            background-color: #2d2d2d;
+            border-radius: 12px;
+            padding: 25px;
+            border-left: 5px solid var(--secondary);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+            height: 100%;
+        }
+
+        .card-title {
+            font-weight: 800;
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            display: block;
+            color: var(--white);
+        }
+
+        .alert-box {
+            background: rgba(238, 21, 21, 0.1);
+            border: 2px dashed var(--primary);
+            padding: 20px;
+            border-radius: 12px;
+            margin: 30px 0;
+        }
+
+        /* Tabelas Customizadas */
+        .table-wrapper {
+            overflow-x: auto;
+            margin: 25px 0;
+            border-radius: 12px;
+            border: 1px solid #444;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        th {
+            background: rgba(0, 0, 0, 0.5);
+            color: var(--accent);
+            font-weight: 800;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+        }
+
+        .formula {
+            font-family: 'Roboto Mono', monospace;
+            background: #000;
+            padding: 3px 8px;
+            border-radius: 4px;
+            color: var(--success);
+            font-size: 0.95rem;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 800;
+            color: white;
+            margin-right: 5px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+            text-transform: uppercase;
+        }
+
+        .b-comum { background-color: #7f8c8d; }
+        .b-incomum { background-color: var(--success); }
+        .b-rara { background-color: var(--secondary); }
+        .b-epica { background-color: var(--purple); }
+        .b-lendaria { background-color: var(--accent); color: #000; text-shadow: none; }
+
+        .icon-tile {
+            width: 30px;
+            height: 30px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #444;
+            border-radius: 6px;
+            margin-right: 10px;
+            font-size: 1.2rem;
+        }
+
+        .footer {
+            padding: 40px;
+            background-color: #111;
+            border-top: 3px solid var(--primary);
+            color: var(--gray);
+            text-align: center;
+            font-size: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .grid { grid-template-columns: 1fr; }
+            .content { padding: 25px; }
+            .header h1 { font-size: 2.2rem; }
         }
 
         @media print {
+            .nav-print { display: none; }
+            .container { box-shadow: none; max-width: 100%; }
             body { background: white; color: black; }
-            .container { max-width: 100%; box-shadow: none; margin: 0; background: white; }
-            .content { padding: 20px; }
-            .no-print { display: none; }
-            .card { background: #f9f9f9; border-color: #ddd; color: black; }
-            .card h3 { color: #333; }
-            .event-item { background: #f0f4f8; color: black; border-left-color: var(--secondary); }
-            h2 { color: var(--primary); background: none; }
-            h1, h3 { color: var(--secondary); }
-            table { background: white; color: black; }
-            th { background-color: #eee; color: black; }
-            .badge-item { background: #eee; color: black; border-color: #ccc; }
+            .content { padding: 0; }
+            .card { border: 1px solid #ddd; background: #fafafa; color: black; }
+            .card-title { color: #000; }
+            p, li { color: #333; }
+            h2 { border-bottom-color: black; }
+            .table-wrapper { border-color: #ccc; }
+            th { background: #eee; color: black; }
+            .formula { background: #eee; color: #d35400; }
         }
     </style>
 </head>
+
 <body>
 
-    <div class="no-print">
-        <button onclick="window.print()">Salvar como PDF</button>
+    <div class="nav-print">
+        <button class="btn-print" onclick="window.print()">📥 SALVAR MANUAL (PDF)</button>
     </div>
 
     <div class="container">
-        <header>
-            <img src="./assets/img/manual_header.png" alt="PokeBoard Manual">
-        </header>
+        <div class="header">
+            <img src="/assets/img/manual_header.png" alt="PokéBoard" style="max-width: 300px; margin-bottom: 20px;">
+            <h1>Manual do Treinador</h1>
+            <p>Guia Completo de Regras, Mecânicas e Estratégias - Versão 93</p>
+        </div>
 
         <div class="content">
-            <p class="intro">Bem-vindo, Treinador! O <b>PokeBoard</b> é um simulador de tabuleiro competitivo onde estratégia, sorte e conhecimento Pokémon se fundem em uma jornada épica para se tornar o Campeão da Liga.</p>
 
-            <h2>1. Primeiros Passos</h2>
-            <div class="grid">
-                <div class="card">
-                    <h3>👤 Setup de Perfil</h3>
-                    <p>Ao iniciar, escolha seu nome e seu avatar de Treinador. Suas estatísticas e progresso serão vinculados a este perfil durante a sessão.</p>
+            <!-- 1. INTRODUÇÃO -->
+            <section id="intro">
+                <h2>1. A Jornada para a Glória</h2>
+                <p>No <b>PokéBoard</b>, você assume o papel de um Treinador Pokémon em um mapa vivo e dinâmico. Seu objetivo é simples, mas desafiador: </p>
+                <div class="grid">
+                    <div class="card">
+                        <span class="card-title">🏆 Objetivo Primário</span>
+                        <p>Colete as <span class="highlight">8 Insígnias de Ginásio</span> espalhadas pelo mapa derrotando os Líderes.</p>
+                    </div>
+                    <div class="card">
+                        <span class="card-title">👑 O Desafio Final</span>
+                        <p>Ao conquistar as 8 insígnias, você poderá desafiar o <span class="highlight">Campeão Global</span> para tomar o trono e vencer a partida.</p>
+                    </div>
                 </div>
-                <div class="card">
-                    <h3>🌐 Modos de Jogo</h3>
-                    <p><b>Offline:</b> Jogue localmente contra amigos ou apenas para testar mecânicas.<br>
-                    <b>Online:</b> Entre em salas via Firebase para competir em tempo real com jogadores de qualquer lugar.</p>
+                <p>O jogo é baseado em turnos. No seu turno, você rola o dado para andar, usa cartas estratégicas e interage com as casas onde cai.</p>
+            </section>
+
+            <!-- 2. TABULEIRO -->
+            <section id="board">
+                <h2>2. O Tabuleiro e Suas Casas</h2>
+                <p>Cada espaço no tabuleiro (Tile) possui uma função específica. Entender onde você pisa é a chave para a sobrevivência.</p>
+                
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Casa</th>
+                                <th>Descrição e Efeitos</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><div class="icon-tile">🌿</div> <b>Selvagem (Grama/Água/Terra)</b></td>
+                                <td>Gera um encontro com Pokémon selvagem. O tipo depende do terreno. 80% do mapa.</td>
+                            </tr>
+                            <tr>
+                                <td><div class="icon-tile">🏙️</div> <b>Cidade</b></td>
+                                <td>Acesso ao <b>Centro Pokémon</b> (Cura), <b>PokéMart</b> (Itens) e <b>Mercado de Cartas</b>.</td>
+                            </tr>
+                            <tr>
+                                <td><div class="icon-tile">🏛️</div> <b>Ginásio</b></td>
+                                <td>Onde estão os Líderes. Se já venceu, você ganha uma carta de presente ao visitá-lo.</td>
+                            </tr>
+                            <tr>
+                                <td><div class="icon-tile">❓</div> <b>Evento</b></td>
+                                <td>Efeitos aleatórios: Teletransporte, presentes grátis (Itens/Cartas) ou bônus de sorte.</td>
+                            </tr>
+                            <tr>
+                                <td><div class="icon-tile">👤</div> <b>NPCs (Rocket/Treinadores)</b></td>
+                                <td>Batalhas contra treinadores automáticos. Ótimos para farmar Ouro (G) e XP.</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
-            </div>
 
-            <h2>2. O Tabuleiro e Movimentação</h2>
-            <p>O jogo é jogado em turnos. No seu turno, você deve rolar o dado para se mover pelo mapa.</p>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Tipo de Casa</th>
-                        <th>O que acontece?</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><span class="tile-icon">🌿</span> <b>Matinho/Água</b></td>
-                        <td>Encontros com Pokémon selvagens. Chance de captura ou treinamento (XP).</td>
-                    </tr>
-                    <tr>
-                        <td><span class="tile-icon">🏙️</span> <b>Cidade</b></td>
-                        <td>Acesso ao Centro Pokémon (Cura), Loja de Itens e Mercado de Cartas.</td>
-                    </tr>
-                    <tr>
-                        <td><span class="tile-icon">🏛️</span> <b>Ginásio</b></td>
-                        <td>Desafie o Líder para ganhar uma Insígnia. Você precisa de 8 para vencer o jogo!</td>
-                    </tr>
-                    <tr>
-                        <td><span class="tile-icon">❓</span> <b>Evento</b></td>
-                        <td>Efeitos aleatórios, presentes misteriosos ou teletransporte.</td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <h2>3. Sistema de Batalha</h2>
-            <p>As batalhas seguem a lógica clássica: turnos, tipos elementares e status. Algumas regras específicas do PokeBoard:</p>
-            <ul>
-                <li><b>XP e Nível:</b> Vencer batalhas garante XP. Ao subir de nível, seu Pokémon ganha status permanentemente.</li>
-                <li><b>Captura:</b> Use Pokébolas em Pokémon selvagens com HP baixo para aumentar a chance de sucesso.</li>
-                <li><b>Derrota Total:</b> Se todo seu time desmaiar, você é levado ao último Centro Pokémon e perde 2 turnos (a menos que tenha bônus ativos).</li>
-            </ul>
-
-            <h2>4. Cartas de Efeito</h2>
-            <p>As Cartas são o diferencial estratégico. Você pode usá-las antes de rolar o dado ou em momentos específicos.</p>
-            <div class="grid">
-                <div class="card">
-                    <h3>⚔️ Ofensivas</h3>
-                    <p>Roubo de ouro, troca de Pokémon do adversário ou causar status negativos (Paralisia, Sono).</p>
+                <div class="alert-box">
+                    <b>🚩 Bônus de Volta:</b> Ao completar uma volta no mapa, você recebe <b>500G</b>, <b>2 Cartas</b> e todo seu time ganha <b>+1 Nível</b> (até o nível 25).
                 </div>
-                <div class="card">
-                    <h3>🛡️ Defensivas</h3>
-                    <p>Proteção contra ataques, cura de status ou evasão de batalhas indesejadas.</p>
+            </section>
+
+            <!-- 3. BATALHA -->
+            <section id="battle">
+                <h2>3. Sistema de Combate 2.1</h2>
+                <p>As batalhas no PokéBoard utilizam um sistema híbrido de atributos e sorte (Dice System). Não basta ter o Pokémon mais forte; a estratégia e a tipagem importam.</p>
+
+                <h3>📊 Atributos e Influência</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Atributo</th>
+                                <th>Impacto Mecânico</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><b>❤️ HP (Vida)</b></td>
+                                <td>20% da sua vida máxima é somada ao seu dano base. Pokémon resistentes batem mais pesado!</td>
+                            </tr>
+                            <tr>
+                                <td><b>⚔️ Ataque</b></td>
+                                <td>Representa 65% do seu poder ofensivo base.</td>
+                            </tr>
+                            <tr>
+                                <td><b>🛡️ Defesa</b></td>
+                                <td>Reduz o dano recebido. Se for 50% maior que o Atk inimigo, tem 15% de chance de <b>Refletir</b> o dano.</td>
+                            </tr>
+                            <tr>
+                                <td><b>💨 Velocidade</b></td>
+                                <td>Garante <b>Esquiva</b>, chance de <b>Ataque Duplo</b> e chance de <b>Crítico Especial (+5)</b>.</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
-                <div class="card">
-                    <h3>✨ Utilitárias</h3>
-                    <p>Dobrar o movimento, atrair Shinies ou ganhar recursos extras.</p>
+
+                <h3>🎲 O Dado da Sorte (D6)</h3>
+                <p>Todo ataque rola um dado invisível que modifica o dano final:</p>
+                <ul>
+                    <li><b>1 ou 2:</b> Falha ou Golpe Ruim (Penalidade de dano).</li>
+                    <li><b>3:</b> Dano Normal.</li>
+                    <li><b>4 ou 5:</b> Golpe Bom (+2 a +3 de bônus).</li>
+                    <li><b>6:</b> <span class="highlight">CRÍTICO!</span> (+5 de dano fixo ignorando defesas parciais).</li>
+                </ul>
+
+                <h3>⚡ Mecânicas Avançadas</h3>
+                <div class="grid">
+                    <div class="card">
+                        <span class="card-title">🛡️ Bloqueio Total</span>
+                        <p>Baseado na diferença entre sua Defesa e o Ataque inimigo. Pode chegar a <span class="highlight">90% de chance</span> de anular o dano completamente.</p>
+                    </div>
+                    <div class="card">
+                        <span class="card-title">⚔️ Ataque Duplo</span>
+                        <p>Se sua velocidade for <span class="highlight">1.5x maior</span> que a do inimigo, você tem 20% de chance de atacar duas vezes no mesmo turno.</p>
+                    </div>
                 </div>
-            </div>
+            </section>
 
-            <h2>5. Eventos Globais</h2>
-            <p>A cada 5 rodadas, o mundo do PokeBoard pode mudar drasticamente. Fique atento aos alertas:</p>
-            <div class="event-item">
-                <b>☀️ Onda de Calor / 🌧️ Chuva:</b> Bônus e penalidades baseadas em tipos elementares.
-            </div>
-            <div class="event-item">
-                <b>💰 Dia de Pagamento:</b> Ouro e recompensas em dobro por tempo limitado.
-            </div>
-            <div class="event-item">
-                <b>🚀 Invasão Rocket:</b> Preços da loja dobram e derrotas resultam em perda de Pokémon.
-            </div>
-            <div class="event-item">
-                <b>📜 Imposto de Renda:</b> Todos os jogadores perdem metade de seus itens e cartas.
-            </div>
+            <!-- 4. PROGRESSÃO -->
+            <section id="progression">
+                <h2>4. Maestria e Ressonância</h2>
+                <p>O jogo recompensa jogadores que caçam e capturam muitos Pokémon, mesmo os repetidos.</p>
 
-            <h2>6. Como Vencer</h2>
-            <p>O objetivo primário é derrotar os <b>8 Líderes de Ginásio</b> ativos no tabuleiro. O primeiro jogador a coletar as 8 Insígnias e retornar à Cidade Inicial (ou atingir o objetivo da sala) é coroado o Grande Mestre.</p>
+                <div class="grid">
+                    <div class="card" style="border-color: var(--primary);">
+                        <span class="card-title">🧬 Ressonância Genética</span>
+                        <p>Ao capturar o <b>mesmo Pokémon várias vezes</b>, a essência deles se funde na sua Pokébox. Cada cópia repetida dá <span class="highlight">+10% em TODOS os status</span> para aquele Pokémon no seu time.</p>
+                    </div>
+                    <div class="card" style="border-color: var(--success);">
+                        <span class="card-title">⚔️ Maestria de Tipo</span>
+                        <p>Sempre que você derrota um Pokémon de um certo tipo (ex: Fogo), você ganha <b>+1% de bônus de dano permanente</b> para ataques desse tipo.</p>
+                    </div>
+                </div>
+            </section>
 
-            <div class="card" style="border-color: var(--primary); background: rgba(238,21,21,0.05);">
-                <h3>💡 Dica de Mestre</h3>
-                <p>Mantenha sempre pelo menos uma Master Ball e uma Carta de Proteção na mão. O "Imposto de Renda" ou uma "Invasão Rocket" podem acontecer a qualquer momento e mudar o rumo da partida!</p>
-            </div>
+            <!-- 5. ITENS -->
+            <section id="items">
+                <h2>5. Itens e Hold Items</h2>
+                <p>O PokéMart vende itens de uso imediato e os poderosos <b>Itens de Segurar (Hold Items)</b>.</p>
+
+                <h3>🎒 Hold Items (Efeitos Passivos)</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Efeito em Batalha</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><b>Amulet Coin</b></td>
+                                <td>Garante +100G sempre que o portador derrotar um inimigo.</td>
+                            </tr>
+                            <tr>
+                                <td><b>Leftovers</b></td>
+                                <td>Restaura 10 HP em cada um dos seus turnos de combate.</td>
+                            </tr>
+                            <tr>
+                                <td><b>Quick Claw</b></td>
+                                <td>Garante 100% de chance de atacar primeiro, ignorando a velocidade.</td>
+                            </tr>
+                            <tr>
+                                <td><b>Sitrus Berry</b></td>
+                                <td>Cura 50% de HP quando a vida cai abaixo de 20% (Consumível).</td>
+                            </tr>
+                            <tr>
+                                <td><b>Scope Lens</b></td>
+                                <td>Sempre garante o bônus de Crítico (+5 no dado).</td>
+                            </tr>
+                            <tr>
+                                <td><b>Rocky Helmet</b></td>
+                                <td>Reflete 15% do dano recebido de volta para o agressor.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- 6. CARTAS -->
+            <section id="cards">
+                <h2>6. Cartas Estratégicas</h2>
+                <p>Existem 4 categorias de cartas. Lembre-se: você só pode usar <b>3 cartas por batalha</b>!</p>
+
+                <div class="grid">
+                    <div class="card">
+                        <span class="card-title">🏃 Move (Movimento)</span>
+                        <p>Usadas no tabuleiro para mudar sua posição, re-rolar dados ou ganhar bônus de exploração.</p>
+                    </div>
+                    <div class="card">
+                        <span class="card-title">⚔️ Battle (Batalha)</span>
+                        <p>Usadas durante a luta para causar dano extra, curar ou atordoar o inimigo.</p>
+                    </div>
+                    <div class="card">
+                        <span class="card-title">🛡️ Auto (Automáticas)</span>
+                        <p>Ficam na sua mão e são ativadas sozinhas para te defender de ataques de outros jogadores.</p>
+                    </div>
+                    <div class="card">
+                        <span class="card-title">🌍 Global (Mundo)</span>
+                        <p>Afetam todos os jogadores simultaneamente, como o <b>Comunismo</b> ou <b>Imposto de Renda</b>.</p>
+                    </div>
+                </div>
+
+                <h3>💎 Raridades e Forja</h3>
+                <p>Cartas possuem raridades: <span class="badge b-comum">Comum</span> <span class="badge b-incomum">Incomum</span> <span class="badge b-rara">Rara</span> <span class="badge b-epica">Épica</span> <span class="badge b-lendaria">Lendária</span></p>
+                <p>No Menu de Cartas, você pode <b>Sacrificar 2 cartas</b> para ganhar 1 aleatória, ou <b>Fundir 4 iguais</b> para subir a raridade!</p>
+            </section>
+
+            <!-- 7. EVENTOS GLOBAIS -->
+            <section id="events">
+                <h2>7. Clima e Eventos Globais</h2>
+                <p>A cada 5 rodadas, o mundo do PokéBoard muda drasticamente por tempo limitado. Os eventos abaixo são apenas alguns exemplos das anomalias que você pode encontrar; existem muitos outros segredos e eventos raros que você precisará jogar para descobrir!</p>
+                <ul>
+                    <li><b>☀️ Onda de Calor / 🌧️ Chuva:</b> Buffs e penalidades baseadas em tipos elementares.</li>
+                    <li><b>🚀 Invasão Rocket:</b> Preços da loja dobram e derrotas resultam em perda de Pokémon.</li>
+                    <li><b>🩸 Lua Sangrenta:</b> Pokémon Fantasmas e Noturnos ficam imparáveis.</li>
+                    <li><b>📈 Chuva de XP / Pokérus:</b> XP em dobro e bônus de status ao evoluir.</li>
+                    <li><b>📜 Imposto de Renda:</b> Todos perdem metade do ouro, itens e cartas não-protegidas.</li>
+                </ul>
+            </section>
+
+            <!-- 8. REGRAS FINAIS -->
+            <section id="final">
+                <h2>8. O Desafio Final</h2>
+                <div class="alert-box" style="border-color: var(--accent); background: rgba(255,203,5,0.05);">
+                    <b>⚠️ Atenção:</b> Na batalha contra o <b>Campeão Global</b>, as Cartas e Itens da Mochila são <span class="highlight">desativados</span>. É um teste de pura força da sua equipe e estratégia de tipagem. Prepare-se bem antes de desafiá-lo!
+                </div>
+            </section>
 
         </div>
 
         <div class="footer">
-            <p>&copy; 2026 PokeBoard Game Studio. Todos os direitos reservados.</p>
-            <p><i>Gere este PDF através do menu de impressão (Ctrl+P) e selecione "Salvar como PDF".</i></p>
+            <p>&copy; 2026 PokéBoard Game Studio. Todos os direitos reservados.</p>
+            <p>Desenvolvido com tecnologia de ponta para os melhores mestres Pokémon.</p>
         </div>
     </div>
 
 </body>
+
 </html>

@@ -8,6 +8,7 @@ import { POKEDEX } from '../../constants/pokedex';
 import { GYM_DATA } from '../../constants/gyms';
 import { MAPA_MEGAS } from '../../constants/mapaMegas';
 import { ref, update } from 'firebase/database';
+import { GameState } from '../game/GameState';
 import type { ItemData } from '../../constants';
 
 export class BattleCore {
@@ -106,7 +107,6 @@ export class BattleCore {
 
             this.oppTeamList = battleIds.map((id: number) => {
                 const mon = new Pokemon(id, gymLevel, false, true);
-                const GameState = (window as any).GameState;
                 const canMega = GameState.settings && GameState.settings.megas !== false;
 
                 if (canMega && MAPA_MEGAS[mon.id]) {
