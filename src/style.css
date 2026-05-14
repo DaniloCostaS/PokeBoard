@@ -1,4 +1,4 @@
-/* ==========================================================================
+﻿/* ==========================================================================
    1. CONFIGURAÇÕES GERAIS
    ========================================================================== */
 :root {
@@ -214,7 +214,7 @@ body {
     display: grid;
 }
 
-/* HUD Players - Botões Lado a Lado */
+/* HUD Players - BotÃµes Lado a Lado */
 .hud-column {
     width: 220px;
     height: 100%;
@@ -308,7 +308,7 @@ body {
     font-size: 0.8rem;
 }
 
-/* --- INSÍGNIAS (ATUALIZADO) --- */
+/* --- INSÃGNIAS (ATUALIZADO) --- */
 .badges-container {
     display: flex;
     gap: 4px;
@@ -552,12 +552,12 @@ body {
     }
 }
 
-/* --- LEGENDA DE EVOLUÇÃO (POSICIONAMENTO NO PAINEL) --- */
+/* --- LEGENDA DE EVOLUÃ‡ÃƒO (POSICIONAMENTO NO PAINEL) --- */
 .evo-legend {
     /* Novo estilo para ficar dentro do painel */
     width: 90%;
     margin: 10px auto;
-    /* Centraliza no painel e dá margem */
+    /* Centraliza no painel e dÃ¡ margem */
     background: rgba(255, 255, 255, 0.95);
     border: 2px solid var(--highlight);
     border-radius: 8px;
@@ -666,7 +666,7 @@ body {
     /* Oculta texto se tiver imagem */
 }
 
-/* --- ÍCONES DE ITENS --- */
+/* --- ÃCONES DE ITENS --- */
 .item-icon-mini {
     width: 24px;
     height: 24px;
@@ -676,7 +676,7 @@ body {
     filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.3));
 }
 
-/* Ajuste para botões da mochila na batalha ficarem alinhados */
+/* Ajuste para botÃµes da mochila na batalha ficarem alinhados */
 #battle-bag-list .btn {
     display: flex;
     align-items: center;
@@ -685,7 +685,7 @@ body {
     padding-left: 15px;
 }
 
-/* Ajuste para lista da loja e inventário */
+/* Ajuste para lista da loja e inventÃ¡rio */
 .shop-item,
 .inventory-item {
     display: flex;
@@ -842,7 +842,7 @@ body {
     align-items: center;
 }
 
-/* Novo: Modal Genérico e Hub de Salas */
+/* Novo: Modal GenÃ©rico e Hub de Salas */
 .modal {
     display: none;
     position: fixed;
@@ -1265,7 +1265,7 @@ body {
     border-radius: 3px;
 }
 
-/* Animação Aura Shiny para Cards no HUD */
+/* AnimaÃ§Ã£o Aura Shiny para Cards no HUD */
 .aura-shiny {
     border: 2px solid gold !important;
     box-shadow: 0 0 8px gold;
@@ -1311,7 +1311,7 @@ body {
         /* Respiro nas laterais da tela */
     }
 
-    /* O TRUQUE MESTRE: Desempacota os painéis para o Flexbox principal reordenar os elementos misturados */
+    /* O TRUQUE MESTRE: Desempacota os painÃ©is para o Flexbox principal reordenar os elementos misturados */
     #left-panel,
     #center-stage,
     #right-panel {
@@ -1337,7 +1337,7 @@ body {
         aspect-ratio: 1 / 1;
     }
 
-    /* 3 - Dado e Botão de Rolar */
+    /* 3 - Dado e BotÃ£o de Rolar */
     .dice-section {
         order: 3;
         margin-bottom: 15px;
@@ -1355,7 +1355,7 @@ body {
         order: 5;
         width: 100%;
         flex-direction: row;
-        /* Coloca os cards lado a lado roláveis */
+        /* Coloca os cards lado a lado rolÃ¡veis */
         overflow-x: auto;
         height: auto;
         padding: 5px 0;
@@ -1363,7 +1363,7 @@ body {
         margin-bottom: 10px;
     }
 
-    /* 6 - Demais Informações (Log da partida, Regras, Debug) */
+    /* 6 - Demais InformaÃ§Ãµes (Log da partida, Regras, Debug) */
     #match-log-header {
         order: 6;
         border-radius: 8px 8px 0 0;
@@ -1389,7 +1389,7 @@ body {
     #card-log-container {
         order: 9;
         max-height: 150px !important;
-        /* Força altura menor no mobile */
+        /* ForÃ§a altura menor no mobile */
         background: rgba(0, 0, 0, 0.3);
         border: 1px solid #444;
         border-top: none;
@@ -1435,14 +1435,14 @@ body {
 
     .battle-scene {
         height: auto;
-        /* Deixa a altura crescer conforme o conteúdo */
+        /* Deixa a altura crescer conforme o conteÃºdo */
         min-height: 220px;
-        /* Garante um tamanho mínimo bonito */
+        /* Garante um tamanho mÃ­nimo bonito */
         gap: 5px;
-        /* Reduz o espaço entre os bonecos para caber melhor */
+        /* Reduz o espaÃ§o entre os bonecos para caber melhor */
         padding: 10px;
         align-items: flex-end;
-        /* Garante que fiquem alinhados ao chão */
+        /* Garante que fiquem alinhados ao chÃ£o */
         overflow: visible;
         /* IMPORTANTE: Permite mostrar as bolinhas mesmo se passarem da borda */
     }
@@ -1476,7 +1476,7 @@ body {
         /* Diminui levemente as bolinhas */
     }
 
-    /* Garante que o container de HP não ocupe espaço demais */
+    /* Garante que o container de HP nÃ£o ocupe espaÃ§o demais */
     .hp-container {
         margin-top: 2px;
     }
@@ -1498,11 +1498,11 @@ body {
         max-width: none !important;
         /* Remove o limite de pixels do desktop */
         padding: 10px !important;
-        /* Diminui o padding interno para ganhar espaço */
+        /* Diminui o padding interno para ganhar espaÃ§o */
         box-sizing: border-box;
     }
 
-    /* 2. Força os conteiners internos a esticarem 100% */
+    /* 2. ForÃ§a os conteiners internos a esticarem 100% */
     .battle-wrapper,
     .battle-main-column,
     .battle-log-column {
@@ -1510,32 +1510,32 @@ body {
         max-width: 100% !important;
         margin: 0 !important;
         flex: none !important;
-        /* Desativa proporções de flex do desktop */
+        /* Desativa proporÃ§Ãµes de flex do desktop */
     }
 
     /* 3. Ajusta o Log para colar no fundo e preencher tudo */
     .battle-log-column {
         margin-top: 10px !important;
-        /* Espacinho entre os botões e o log */
+        /* Espacinho entre os botÃµes e o log */
         height: auto !important;
-        /* Altura automática */
+        /* Altura automÃ¡tica */
     }
 
     #battle-log-history {
         width: 100%;
-        /* Garante que o texto vá até o final */
+        /* Garante que o texto vÃ¡ atÃ© o final */
         box-sizing: border-box;
     }
 
-    /* 4. Garante que os botões de ação (Atacar, Item, etc) usem a largura total */
+    /* 4. Garante que os botÃµes de aÃ§Ã£o (Atacar, Item, etc) usem a largura total */
     .battle-actions {
         width: 100%;
         box-sizing: border-box;
-        /* Mantém o grid de 2 colunas, mas agora esticado */
+        /* MantÃ©m o grid de 2 colunas, mas agora esticado */
     }
 }
 
-/* EFEITOS DE VITÓRIA (Mantidos iguais ao seu código original) */
+/* EFEITOS DE VITÃ“RIA (Mantidos iguais ao seu cÃ³digo original) */
 .victory-box {
     border: 4px solid var(--gold);
     box-shadow: 0 0 50px var(--gold), inset 0 0 20px var(--gold);
@@ -1630,7 +1630,7 @@ body {
     }
 }
 
-/* EFEITOS DE VITÓRIA */
+/* EFEITOS DE VITÃ“RIA */
 .victory-box {
     border: 4px solid var(--gold);
     box-shadow: 0 0 50px var(--gold), inset 0 0 20px var(--gold);
@@ -1725,7 +1725,7 @@ body {
     }
 }
 
-/* Botão de Auto Battle PvE */
+/* BotÃ£o de Auto Battle PvE */
 .btn-auto {
     background: #1abc9c;
     /* Turquesa */
@@ -1761,7 +1761,7 @@ body {
 }
 
 /* ==========================================================================
-   BOTÃO DE SACRIFÍCIO
+   BOTÃƒO DE SACRIFÃCIO
    ========================================================================== */
 .btn-sacrifice {
     background: linear-gradient(135deg, #e67e22 0%, #c0392b 100%);
@@ -1795,7 +1795,7 @@ body {
 }
 
 /* ==========================================================================
-   BOTÃO DE FUNDIR CARTAS
+   BOTÃƒO DE FUNDIR CARTAS
    ========================================================================== */
 .btn-merge {
     background: linear-gradient(135deg, #364c88 0%, #d607e9 100%);
@@ -1829,7 +1829,7 @@ body {
 }
 
 /* ==========================================================================
-   ANIMAÇÃO DE CAPTURA 2.0 (SEQUÊNCIA CORRIGIDA)
+   ANIMAÃ‡ÃƒO DE CAPTURA 2.0 (SEQUÃŠNCIA CORRIGIDA)
    ========================================================================== */
 
 .anim-ball {
@@ -1841,13 +1841,13 @@ body {
     z-index: 100;
     pointer-events: none;
     filter: drop-shadow(0 5px 5px rgba(0, 0, 0, 0.5));
-    /* Ponto de origem: Mão do treinador (aproximado) */
+    /* Ponto de origem: MÃ£o do treinador (aproximado) */
     bottom: 10%;
     left: 20%;
     transform: scale(0);
 }
 
-/* Estado: Pokémon sendo sugado */
+/* Estado: PokÃ©mon sendo sugado */
 .mon-caught-hidden {
     transition: transform 0.2s ease-in, opacity 0.2s ease-in;
     transform: scale(0.1) !important;
@@ -1858,7 +1858,7 @@ body {
     /* Brilho branco antes de sumir */
 }
 
-/* FASE 1: ARREMESSO (Do Jogador até o Inimigo) */
+/* FASE 1: ARREMESSO (Do Jogador atÃ© o Inimigo) */
 @keyframes throwArc {
     0% {
         bottom: 10%;
@@ -1870,7 +1870,7 @@ body {
         bottom: 55%;
         /* Altura do peito do inimigo */
         left: 70%;
-        /* Posição do inimigo */
+        /* PosiÃ§Ã£o do inimigo */
         transform: scale(1) rotate(720deg);
         /* Gira muito enquanto voa */
     }
@@ -1880,7 +1880,7 @@ body {
     animation: throwArc 0.6s ease-out forwards;
 }
 
-/* FASE 2: QUEDA (Do Inimigo até o Chão) */
+/* FASE 2: QUEDA (Do Inimigo atÃ© o ChÃ£o) */
 @keyframes ballDrop {
     0% {
         bottom: 55%;
@@ -1896,7 +1896,7 @@ body {
 
     100% {
         bottom: 25%;
-        /* Chão */
+        /* ChÃ£o */
         left: 70%;
         transform: scale(0.8) rotate(0deg);
     }
@@ -1907,7 +1907,7 @@ body {
     /* Efeito de gravidade */
 }
 
-/* FASE 3: SHAKE (Balançar no chão) */
+/* FASE 3: SHAKE (BalanÃ§ar no chÃ£o) */
 @keyframes ballShake {
     0% {
         transform: scale(0.8) rotate(0deg);
@@ -1931,7 +1931,7 @@ body {
 }
 
 .anim-shaking {
-    /* Fixa no chão para o shake */
+    /* Fixa no chÃ£o para o shake */
     bottom: 25% !important;
     left: 70% !important;
     transform: scale(0.8);
@@ -1961,7 +1961,7 @@ body {
 }
 
 /* ==========================================================================
-   POKÉDEX
+   POKÃ‰DEX
    ========================================================================== */
 .dex-card {
     background: #fff;
@@ -2020,17 +2020,17 @@ body {
 }
 
 
-/* Força as imagens das cartas a acompanharem o redimensionamento */
+/* ForÃ§a as imagens das cartas a acompanharem o redimensionamento */
 .card-item img {
     width: 100% !important;
     height: auto !important;
     aspect-ratio: 2.5 / 3.5;
-    /* Mantém a proporção de carta de baralho */
+    /* MantÃ©m a proporÃ§Ã£o de carta de baralho */
     object-fit: fill;
     /* Garante que a arte da carta preencha o shape */
 }
 
-/* Força as imagens das cartas a esticarem para preencher a coluna do grid */
+/* ForÃ§a as imagens das cartas a esticarem para preencher a coluna do grid */
 #board-cards-list img,
 #battle-cards-list img,
 #library-list img {
@@ -2038,7 +2038,7 @@ body {
     height: auto !important;
     display: block;
 }
-/* --- BOT�O FLUTUANTE DE AJUDA (MANUAL) --- */
+/* --- BOTÃO FLUTUANTE DE AJUDA (MANUAL) --- */
 .help-floating-btn {
     position: fixed;
     bottom: 20px;
