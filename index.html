@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PokéBoard V93</title>
+    <title>PokéBoard V93a</title>
     <link rel="stylesheet" href="style.css">
 
     <script type="importmap">
@@ -20,7 +20,7 @@
 <body>
 
     <div id="setup-screen">
-        <h1 class="title-highlight">PokéBoard V93</h1>
+        <h1 class="title-highlight">PokéBoard V93a</h1>
         <p class="subtitle">Nova funcionalidade de itens para segurar.</p>
 
         <div id="menu-phase-1">
@@ -37,9 +37,11 @@
                 <p style="font-size:0.8rem; color:#777;">Gerenciamento de Save & Ajuda</p>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
                     <button class="btn btn-secondary" onclick="window.Game.exportSave()">💾 Baixar Save</button>
-                    <button class="btn btn-secondary" onclick="document.getElementById('file-input').click()">📂 Carregar Save</button>
+                    <button class="btn btn-secondary" onclick="document.getElementById('file-input').click()">📂
+                        Carregar Save</button>
                 </div>
-                <button class="btn" style="background:#34495e; margin-top:5px; font-size:0.8rem;" onclick="window.open('./manual.html', '_blank')">📖 ABRIR MANUAL DO JOGO</button>
+                <button class="btn" style="background:#34495e; margin-top:5px; font-size:0.8rem;"
+                    onclick="window.open('./manual.html', '_blank')">📖 ABRIR MANUAL DO JOGO</button>
                 <input type="file" id="file-input" style="display:none" onchange="window.Game.importSave(this)">
             </div>
         </div>
@@ -47,10 +49,14 @@
         <div id="online-login" style="display: none; margin-top: 15px;">
             <h3 style="margin-bottom: 15px;">Acesso ao Lobby</h3>
             <label style="font-weight: bold;">Usuário (Nickname):</label>
-            <input type="text" id="login-username" class="input-field" placeholder="Ex: Ash Ketchum" style="margin-bottom: 10px; padding: 10px; width: 90%; font-size: 1.1rem; text-align: center;" maxlength="15">
+            <input type="text" id="login-username" class="input-field" placeholder="Ex: Ash Ketchum"
+                style="margin-bottom: 10px; padding: 10px; width: 90%; font-size: 1.1rem; text-align: center;"
+                maxlength="15">
             <label style="font-weight: bold;">Senha:</label>
-            <input type="password" id="login-password" class="input-field" placeholder="***" style="margin-bottom: 15px; padding: 10px; width: 90%; font-size: 1.1rem; text-align: center;">
-            <button class="btn" onclick="window.Setup.loginOnline()" style="background:#27ae60;">ACESSAR / CADASTRAR</button>
+            <input type="password" id="login-password" class="input-field" placeholder="***"
+                style="margin-bottom: 15px; padding: 10px; width: 90%; font-size: 1.1rem; text-align: center;">
+            <button class="btn" onclick="window.Setup.loginOnline()" style="background:#27ae60;">ACESSAR /
+                CADASTRAR</button>
             <button class="btn btn-secondary" style="margin-top:10px;" onclick="location.reload()">Voltar</button>
         </div>
 
@@ -83,9 +89,12 @@
                         onclick="window.Network.joinRoom(document.getElementById('room-code-input').value)">Entrar</button>
                 </div>
 
-                <div style="display:flex; flex-direction:column; gap:5px; margin-top:15px; border-top:1px solid #eee; padding-top:10px;">
-                    <button class="btn btn-secondary" onclick="window.Setup.openUserRoomsHub()">🎮 Minhas Salas em Andamento</button>
-                    <button class="btn btn-secondary" onclick="window.Setup.openSearchHub()">🔍 Buscar Partidas Abertas</button>
+                <div
+                    style="display:flex; flex-direction:column; gap:5px; margin-top:15px; border-top:1px solid #eee; padding-top:10px;">
+                    <button class="btn btn-secondary" onclick="window.Setup.openUserRoomsHub()">🎮 Minhas Salas em
+                        Andamento</button>
+                    <button class="btn btn-secondary" onclick="window.Setup.openSearchHub()">🔍 Buscar Partidas
+                        Abertas</button>
                 </div>
             </div>
 
@@ -377,7 +386,9 @@
     <div id="champion-team-modal" class="modal-overlay">
         <div class="modal-box" style="text-align: center; width: 95%; max-width: 600px;">
             <h3 style="color: #f1c40f;">🏆 TIME DO CAMPEÃO 🏆</h3>
-            <p style="font-size: 0.9rem; color: #f1c40f; font-weight: bold; text-shadow: 1px 1px 2px black;">Prepare-se bem antes de conseguir a 8ª Insígnia! O Campeão Atual (<b id="champion-name-display" style="color: white;"></b>) usa:</p>
+            <p style="font-size: 0.9rem; color: #f1c40f; font-weight: bold; text-shadow: 1px 1px 2px black;">Prepare-se
+                bem antes de conseguir a 8ª Insígnia! O Campeão Atual (<b id="champion-name-display"
+                    style="color: white;"></b>) usa:</p>
             <div id="champion-team-list"
                 style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 15px; margin-bottom: 15px;">
             </div>
@@ -840,10 +851,12 @@
     <div id="rooms-hub-modal" class="modal">
         <div class="modal-content" style="max-width: 500px; background: #2c3e50;">
             <h2 id="rooms-hub-title" style="margin-bottom: 15px; color: #f1c40f;">Hub de Salas</h2>
-            <div id="rooms-hub-container" style="display: flex; flex-direction: column; gap: 10px; max-height: 400px; overflow-y: auto; padding: 5px;">
+            <div id="rooms-hub-container"
+                style="display: flex; flex-direction: column; gap: 10px; max-height: 400px; overflow-y: auto; padding: 5px;">
                 <!-- Cards will be injected here -->
             </div>
-            <button class="btn" style="background:#e74c3c; margin-top: 15px;" onclick="document.getElementById('rooms-hub-modal').style.display='none'">Fechar</button>
+            <button class="btn" style="background:#e74c3c; margin-top: 15px;"
+                onclick="document.getElementById('rooms-hub-modal').style.display='none'">Fechar</button>
         </div>
     </div>
 

@@ -1245,7 +1245,7 @@ export class BattleCore {
         if (!this.activeMon || !this.activeMon.megaStone || (this.activeMon as any).isTemp) return;
 
         const megaId = MAPA_MEGAS[this.activeMon.id];
-        if (megaId && Math.random() < 1.10) {
+        if (megaId && Math.random() < 0.10) {
             setTimeout(() => {
                 if (!this.activeMon || (this.activeMon as any).isTemp) return;
                 this.performMegaEvolution(megaId);
