@@ -25,7 +25,7 @@
    ========================================================================== */
 body {
     font-family: 'Segoe UI', Tahoma, sans-serif;
-    background-image: url('/assets/img/Background/GameBoy.jpg');
+    background-image: url('/assets/img/Background/PokemonBoardGameImagemConceitual.jpeg');
     background-size: 100% 100%;
     margin: 0;
     display: flex;
@@ -541,8 +541,15 @@ body {
 }
 
 @keyframes slideIn {
-    from { transform: translateX(20px); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
+    from {
+        transform: translateX(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
 }
 
 /* --- LEGENDA DE EVOLUÇÃO (POSICIONAMENTO NO PAINEL) --- */
@@ -1381,7 +1388,8 @@ body {
 
     #card-log-container {
         order: 9;
-        max-height: 150px !important; /* Força altura menor no mobile */
+        max-height: 150px !important;
+        /* Força altura menor no mobile */
         background: rgba(0, 0, 0, 0.3);
         border: 1px solid #444;
         border-top: none;
@@ -2029,4 +2037,46 @@ body {
     width: 100% !important;
     height: auto !important;
     display: block;
+}
+/* --- BOT�O FLUTUANTE DE AJUDA (MANUAL) --- */
+.help-floating-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    background: rgba(44, 62, 80, 0.9);
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    font-size: 1.4rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+}
+
+.help-floating-btn:hover {
+    background: #ee1515;
+    transform: scale(1.15) rotate(10deg);
+    border-color: #ffcb05;
+    box-shadow: 0 8px 20px rgba(238, 21, 21, 0.5);
+}
+
+.help-floating-btn:active {
+    transform: scale(0.9);
+}
+
+@media (max-width: 768px) {
+    .help-floating-btn {
+        bottom: 15px;
+        right: 15px;
+        width: 40px;
+        height: 40px;
+        font-size: 1.2rem;
+    }
 }

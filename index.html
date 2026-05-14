@@ -34,10 +34,12 @@
                     RECONECTAR</button>
             </div>
             <div style="margin-top:15px; border-top:1px solid #eee; padding-top:10px;">
-                <p style="font-size:0.8rem; color:#777;">Gerenciamento de Save</p>
-                <button class="btn btn-secondary" onclick="window.Game.exportSave()">💾 Baixar Save (.txt)</button>
-                <button class="btn btn-secondary" onclick="document.getElementById('file-input').click()">📂 Carregar
-                    Save (.txt)</button>
+                <p style="font-size:0.8rem; color:#777;">Gerenciamento de Save & Ajuda</p>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
+                    <button class="btn btn-secondary" onclick="window.Game.exportSave()">💾 Baixar Save</button>
+                    <button class="btn btn-secondary" onclick="document.getElementById('file-input').click()">📂 Carregar Save</button>
+                </div>
+                <button class="btn" style="background:#34495e; margin-top:5px; font-size:0.8rem;" onclick="window.open('./manual.html', '_blank')">📖 ABRIR MANUAL DO JOGO</button>
                 <input type="file" id="file-input" style="display:none" onchange="window.Game.importSave(this)">
             </div>
         </div>
@@ -846,6 +848,9 @@
     </div>
 
     <script type="module" src="/src/main.ts"></script>
+
+    <!-- Botão Flutuante de Ajuda (Manual) -->
+    <button class="help-floating-btn" onclick="window.open('./manual.html', '_blank')" title="Manual do Jogo">❔</button>
 </body>
 
 </html>

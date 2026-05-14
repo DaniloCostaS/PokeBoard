@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PokeBoard - Manual do Treinador</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Roboto+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #ee1515;
+            --secondary: #2a75bb;
+            --accent: #ffcb05;
+            --dark: #1a1a1a;
+            --light: #f4f4f4;
+            --white: #ffffff;
+            --gray: #888;
+            --success: #4caf50;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--dark);
+            color: var(--white);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: #222;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+        }
+
+        header {
+            position: relative;
+            text-align: center;
+            padding: 0;
+            overflow: hidden;
+            border-bottom: 5px solid var(--primary);
+        }
+
+        header img {
+            width: 100%;
+            display: block;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        h1, h2, h3 {
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        h1 { font-size: 3rem; margin-bottom: 10px; }
+        h2 { 
+            font-size: 1.8rem; 
+            border-left: 5px solid var(--primary); 
+            padding-left: 15px; 
+            margin-top: 50px;
+            background: linear-gradient(90deg, rgba(238,21,21,0.1), transparent);
+        }
+
+        .intro {
+            font-size: 1.2rem;
+            color: #ccc;
+            margin-bottom: 30px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .card {
+            background: #333;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #444;
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: var(--secondary);
+        }
+
+        .card h3 {
+            margin-top: 0;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .badge-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .badge-item {
+            background: var(--dark);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            border: 1px solid var(--accent);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: #2a2a2a;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #444;
+        }
+
+        th {
+            background-color: var(--secondary);
+            color: white;
+        }
+
+        .tile-icon {
+            font-size: 1.5rem;
+            margin-right: 10px;
+        }
+
+        .event-item {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #2d2d2d;
+            border-radius: 8px;
+            border-left: 4px solid var(--secondary);
+        }
+
+        .event-item b {
+            color: var(--accent);
+        }
+
+        .footer {
+            text-align: center;
+            padding: 40px;
+            font-size: 0.9rem;
+            color: var(--gray);
+            border-top: 1px solid #444;
+        }
+
+        .no-print {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+        }
+
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            font-family: inherit;
+        }
+
+        button:hover {
+            background: #ff3333;
+        }
+
+        @media print {
+            body { background: white; color: black; }
+            .container { max-width: 100%; box-shadow: none; margin: 0; background: white; }
+            .content { padding: 20px; }
+            .no-print { display: none; }
+            .card { background: #f9f9f9; border-color: #ddd; color: black; }
+            .card h3 { color: #333; }
+            .event-item { background: #f0f4f8; color: black; border-left-color: var(--secondary); }
+            h2 { color: var(--primary); background: none; }
+            h1, h3 { color: var(--secondary); }
+            table { background: white; color: black; }
+            th { background-color: #eee; color: black; }
+            .badge-item { background: #eee; color: black; border-color: #ccc; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="no-print">
+        <button onclick="window.print()">Salvar como PDF</button>
+    </div>
+
+    <div class="container">
+        <header>
+            <img src="./assets/img/manual_header.png" alt="PokeBoard Manual">
+        </header>
+
+        <div class="content">
+            <p class="intro">Bem-vindo, Treinador! O <b>PokeBoard</b> é um simulador de tabuleiro competitivo onde estratégia, sorte e conhecimento Pokémon se fundem em uma jornada épica para se tornar o Campeão da Liga.</p>
+
+            <h2>1. Primeiros Passos</h2>
+            <div class="grid">
+                <div class="card">
+                    <h3>👤 Setup de Perfil</h3>
+                    <p>Ao iniciar, escolha seu nome e seu avatar de Treinador. Suas estatísticas e progresso serão vinculados a este perfil durante a sessão.</p>
+                </div>
+                <div class="card">
+                    <h3>🌐 Modos de Jogo</h3>
+                    <p><b>Offline:</b> Jogue localmente contra amigos ou apenas para testar mecânicas.<br>
+                    <b>Online:</b> Entre em salas via Firebase para competir em tempo real com jogadores de qualquer lugar.</p>
+                </div>
+            </div>
+
+            <h2>2. O Tabuleiro e Movimentação</h2>
+            <p>O jogo é jogado em turnos. No seu turno, você deve rolar o dado para se mover pelo mapa.</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tipo de Casa</th>
+                        <th>O que acontece?</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="tile-icon">🌿</span> <b>Matinho/Água</b></td>
+                        <td>Encontros com Pokémon selvagens. Chance de captura ou treinamento (XP).</td>
+                    </tr>
+                    <tr>
+                        <td><span class="tile-icon">🏙️</span> <b>Cidade</b></td>
+                        <td>Acesso ao Centro Pokémon (Cura), Loja de Itens e Mercado de Cartas.</td>
+                    </tr>
+                    <tr>
+                        <td><span class="tile-icon">🏛️</span> <b>Ginásio</b></td>
+                        <td>Desafie o Líder para ganhar uma Insígnia. Você precisa de 8 para vencer o jogo!</td>
+                    </tr>
+                    <tr>
+                        <td><span class="tile-icon">❓</span> <b>Evento</b></td>
+                        <td>Efeitos aleatórios, presentes misteriosos ou teletransporte.</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h2>3. Sistema de Batalha</h2>
+            <p>As batalhas seguem a lógica clássica: turnos, tipos elementares e status. Algumas regras específicas do PokeBoard:</p>
+            <ul>
+                <li><b>XP e Nível:</b> Vencer batalhas garante XP. Ao subir de nível, seu Pokémon ganha status permanentemente.</li>
+                <li><b>Captura:</b> Use Pokébolas em Pokémon selvagens com HP baixo para aumentar a chance de sucesso.</li>
+                <li><b>Derrota Total:</b> Se todo seu time desmaiar, você é levado ao último Centro Pokémon e perde 2 turnos (a menos que tenha bônus ativos).</li>
+            </ul>
+
+            <h2>4. Cartas de Efeito</h2>
+            <p>As Cartas são o diferencial estratégico. Você pode usá-las antes de rolar o dado ou em momentos específicos.</p>
+            <div class="grid">
+                <div class="card">
+                    <h3>⚔️ Ofensivas</h3>
+                    <p>Roubo de ouro, troca de Pokémon do adversário ou causar status negativos (Paralisia, Sono).</p>
+                </div>
+                <div class="card">
+                    <h3>🛡️ Defensivas</h3>
+                    <p>Proteção contra ataques, cura de status ou evasão de batalhas indesejadas.</p>
+                </div>
+                <div class="card">
+                    <h3>✨ Utilitárias</h3>
+                    <p>Dobrar o movimento, atrair Shinies ou ganhar recursos extras.</p>
+                </div>
+            </div>
+
+            <h2>5. Eventos Globais</h2>
+            <p>A cada 5 rodadas, o mundo do PokeBoard pode mudar drasticamente. Fique atento aos alertas:</p>
+            <div class="event-item">
+                <b>☀️ Onda de Calor / 🌧️ Chuva:</b> Bônus e penalidades baseadas em tipos elementares.
+            </div>
+            <div class="event-item">
+                <b>💰 Dia de Pagamento:</b> Ouro e recompensas em dobro por tempo limitado.
+            </div>
+            <div class="event-item">
+                <b>🚀 Invasão Rocket:</b> Preços da loja dobram e derrotas resultam em perda de Pokémon.
+            </div>
+            <div class="event-item">
+                <b>📜 Imposto de Renda:</b> Todos os jogadores perdem metade de seus itens e cartas.
+            </div>
+
+            <h2>6. Como Vencer</h2>
+            <p>O objetivo primário é derrotar os <b>8 Líderes de Ginásio</b> ativos no tabuleiro. O primeiro jogador a coletar as 8 Insígnias e retornar à Cidade Inicial (ou atingir o objetivo da sala) é coroado o Grande Mestre.</p>
+
+            <div class="card" style="border-color: var(--primary); background: rgba(238,21,21,0.05);">
+                <h3>💡 Dica de Mestre</h3>
+                <p>Mantenha sempre pelo menos uma Master Ball e uma Carta de Proteção na mão. O "Imposto de Renda" ou uma "Invasão Rocket" podem acontecer a qualquer momento e mudar o rumo da partida!</p>
+            </div>
+
+        </div>
+
+        <div class="footer">
+            <p>&copy; 2026 PokeBoard Game Studio. Todos os direitos reservados.</p>
+            <p><i>Gere este PDF através do menu de impressão (Ctrl+P) e selecione "Salvar como PDF".</i></p>
+        </div>
+    </div>
+
+</body>
+</html>
