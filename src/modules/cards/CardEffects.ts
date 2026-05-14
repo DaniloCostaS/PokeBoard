@@ -142,6 +142,11 @@ export class CardEffects {
         Game.log(effectLog);
         Game.showGlobalAlert(fullMsg, player.name, true, false);
 
+        const GameUIClass = (window as any).GameUI || Game;
+        if (GameUIClass.recordCardLog) {
+            GameUIClass.recordCardLog(player.name, "Troca Forçada", target.name);
+        }
+
         if (Network.isOnline) {
             try {
                 const { ref, update, getDatabase } = await import('firebase/database');
@@ -211,6 +216,11 @@ export class CardEffects {
         Battle.logBattle(effectLog, true);
         Game.showGlobalAlert(fullMsg, player.name, true, false);
 
+        const GameUIClass = (window as any).GameUI || Game;
+        if (GameUIClass.recordCardLog) {
+            GameUIClass.recordCardLog(player.name, "Sequestro Relâmpago", "Inimigo");
+        }
+
         if (Network.isOnline) {
             Network.syncPlayerState();
             Network.sendAction('SHOW_ALERT', { msg: fullMsg, playerName: player.name, endsTurn: false });
@@ -250,6 +260,12 @@ export class CardEffects {
         Game.log(logMsg);
         Game.log(effectLog);
         Game.showGlobalAlert(fullMsg, player.name, true, false);
+
+        const GameUIClass = (window as any).GameUI || Game;
+        if (GameUIClass.recordCardLog) {
+            const targetName = (Battle.opponent ? Battle.opponent.name : "Selvagem");
+            GameUIClass.recordCardLog(player.name, cardData.name, targetName);
+        }
 
         if (Network.isOnline) {
             Network.syncPlayerState();
@@ -388,8 +404,8 @@ export class CardEffects {
             case 'trap': Game.placeTrap(player.x, player.y, player.id); effectLog = `🪤 Uma armadilha foi montada no chão!`; break;
 
             case 'swap':
-                if (targetId !== null) {
-                    const target = Game.players.find((p: any) => p.id === targetId);
+                if (actualTargetId !== null) {
+                    const target = Game.players.find((p: any) => p.id === actualTargetId);
                     if (target) {
                         const oldPlayerX = player.x; const oldPlayerY = player.y;
                         const oldTargetX = target.x; const oldTargetY = target.y;
@@ -398,13 +414,14 @@ export class CardEffects {
                         Game.moveVisuals();
                         effectLog = `🔀 A magia aconteceu! A posição de ${player.name} e ${target.name} foi invertida!`;
                         Game.hasRolled = true; Game.pendingTileEvent = true;
+                        requiresGlobalSync = true;
                     } else { consumed = false; }
                 } else { CardUI.openTargetSelection(cardId); consumed = false; }
                 break;
 
             case 'slow':
-                if (targetId !== null) {
-                    const target = Game.players.find((p: any) => p.id === targetId);
+                if (actualTargetId !== null) {
+                    const target = Game.players.find((p: any) => p.id === actualTargetId);
                     if (target) {
                         if (!target.effects) target.effects = {};
                         target.effects.slow = 3;
@@ -414,8 +431,8 @@ export class CardEffects {
                 break;
 
             case 'rocket':
-                if (targetId !== null) {
-                    const target = Game.players.find((p: any) => p.id === targetId);
+                if (actualTargetId !== null) {
+                    const target = Game.players.find((p: any) => p.id === actualTargetId);
                     if (target) {
                         const nonLegendaryIndices = target.cards.map((c: any, i: number) => c.rarity === 'Lendária' || c.isProtected ? -1 : i).filter((i: number) => i !== -1);
                         if (nonLegendaryIndices.length > 0) {
@@ -437,8 +454,8 @@ export class CardEffects {
                 break;
 
             case 'spy':
-                if (targetId !== null) {
-                    const target = Game.players.find((p: any) => p.id === targetId);
+                if (actualTargetId !== null) {
+                    const target = Game.players.find((p: any) => p.id === actualTargetId);
                     if (target) {
                         if (target.cards.length === 0) {
                             alert("Este jogador não possui cartas!");
@@ -455,8 +472,8 @@ export class CardEffects {
                 break;
 
             case 'curse':
-                if (targetId !== null) {
-                    const target = Game.players.find((p: any) => p.id === targetId);
+                if (actualTargetId !== null) {
+                    const target = Game.players.find((p: any) => p.id === actualTargetId);
                     if (!target) { consumed = false; break; }
                     if (!target.effects) target.effects = {};
                     target.effects.curse = true;
@@ -472,8 +489,8 @@ export class CardEffects {
                 break;
 
             case 'trade_fail':
-                if (targetId !== null) {
-                    const target = Game.players.find((p: any) => p.id === targetId);
+                if (actualTargetId !== null) {
+                    const target = Game.players.find((p: any) => p.id === actualTargetId);
                     if (target) {
                         target.skipTurns += 3;
                         effectLog = `❌ Sabotagem feita com sucesso! A troca falhou terrivelmente e ${target.name} perde as próximas 3 rodadas!`;
@@ -482,8 +499,8 @@ export class CardEffects {
                 break;
 
             case 'troques':
-                if (targetId !== null) {
-                    const target = Game.players.find((p: any) => p.id === targetId);
+                if (actualTargetId !== null) {
+                    const target = Game.players.find((p: any) => p.id === actualTargetId);
                     if (target) { CardUI.startTradeFlow(player, target); consumed = false; }
                 } else { CardUI.openTargetSelection(cardId); consumed = false; }
                 break;
@@ -512,8 +529,8 @@ export class CardEffects {
                     Game.showGlobalAlert("A Liga Pokémon interveio! É proibido usar a carta 'Novo Líder' quando falta apenas 1 Insígnia.", player.name, true, false);
                     consumed = false; break;
                 }
-                if (targetId !== null) {
-                    const target = Game.players.find((p: any) => p.id === targetId);
+                if (actualTargetId !== null) {
+                    const target = Game.players.find((p: any) => p.id === actualTargetId);
                     if (!target) { consumed = false; break; }
 
                     const stealableBadges = [];
@@ -956,8 +973,8 @@ export class CardEffects {
             case 'sniper': Battle.activeEffects.sniper = true; Battle.logBattle("🎯 Sniper Americano! Sua mira está perfeita para este turno."); break;
 
             case 'bag':
-                if (targetId !== null) {
-                    const target = Game.players.find((p: any) => p.id === targetId);
+                if (actualTargetId !== null) {
+                    const target = Game.players.find((p: any) => p.id === actualTargetId);
                     if (!target) { consumed = false; break; }
                     let totalItems = 0; Object.keys(target.items).forEach(k => totalItems += target.items[k]);
                     if (totalItems === 0) { alert("O alvo não tem itens para perder!"); consumed = false; break; }
@@ -976,8 +993,8 @@ export class CardEffects {
                 break;
 
             case 'michael':
-                if (targetId !== null) {
-                    const target = Game.players.find((p: any) => p.id === targetId);
+                if (actualTargetId !== null) {
+                    const target = Game.players.find((p: any) => p.id === actualTargetId);
                     if (target) { target.effects = target.effects || {}; target.effects.moonwalker = 3; effectLog = `Moon Walker! ${target.name} vai andar para TRAS nas proximas 3 jogadas!`; }
                     else { consumed = false; }
                 } else { CardUI.openTargetSelection(cardId); consumed = false; }
