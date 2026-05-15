@@ -899,6 +899,7 @@ export class BattleCore {
             NetworkObj.syncPlayerState();
             if (this.isPvP && this.enemyPlayer) {
                 NetworkObj.sendAction('PVP_SYNC_DAMAGE', { targetId: this.enemyPlayer.id, team: this.enemyPlayer.team, gold: this.enemyPlayer.gold, badges: this.enemyPlayer.badges, resetPos: true, skipTurn: true });
+                Game.handleTotalDefeat(this.enemyPlayer);
             }
         }
 

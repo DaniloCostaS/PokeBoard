@@ -641,6 +641,10 @@ export class GameEvents {
         const isMyTurn = NetworkObj.isOnline ? (GameState.turn === me) : true;
         if (!isMyTurn || GameState.turnStarted) return;
 
+        // Forçar atualização visual para evitar dessincronia
+        GameUI.moveVisuals();
+        GameUI.updateHUD();
+
         // Solicitar permissão de notificação (idempotente, só pede uma vez)
         NotificationSystem.requestPermission();
         // Cancela notificação pendente — jogador já está aqui

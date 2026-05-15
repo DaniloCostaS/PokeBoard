@@ -72,7 +72,7 @@ export const CARDS_DB: CardData[] = [
     { id: 'lure_type', name: "Lure Type", icon: "🆎", desc: "Escolha uma tipagem. Os próximos 2 selvagens que encontrar será da tipagem escolhida.", type: 'move', rarity: 'Incomum' },
 
     // Cartas Lendárias
-    { id: 'supreme_bond', name: "Vínculo Supremo", icon: "🤝", desc: "Pokémon não te abandona jamais. Troca de pokémon, até mesmo outra carta lendária não pode remover o pokémon do jogador.", type: 'move', rarity: 'Lendária' },
+    { id: 'supreme_bond', name: "Vínculo Supremo", icon: "🤝", desc: "Cria um laço eterno: o Pokémon nunca poderá ser removido. Se for um Pokémon comum, ele também se torna SHINY (+20% bônus).", type: 'move', rarity: 'Lendária' },
     { id: 'ash_goodbye', name: "O Adeus de Ash", icon: "👋", desc: "Mande embora 2 pokémon (podem ser de jogadores diferentes), sem defesa, só não pode com Vínculo Supremo.", type: 'move', rarity: 'Lendária' },
     { id: 'tremembe', name: "Tremembé", icon: "⛓️", desc: "Todos os jogadores exceto você ficam 20 rodadas sem jogar.", type: 'global', rarity: 'Lendária' },
     { id: 'grande_assalto', name: "O Grande Assalto", icon: "🔫", desc: "Roube TODO o gold, itens e cartas (exceto lendárias) de todos os outros jogadores.", type: 'global', rarity: 'Lendária' },

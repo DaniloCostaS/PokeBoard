@@ -321,6 +321,7 @@ export class NetworkActions {
             if (turn !== null) {
                 Game.turn = turn;
                 Game.updateHUD();
+                Game.moveVisuals(); // Forçar atualização visual ao mudar o turno
                 if (typeof Game.checkTurnControl === 'function') Game.checkTurnControl();
             }
         });
@@ -330,6 +331,7 @@ export class NetworkActions {
             if (round !== null) {
                 Game.round = round;
                 Game.updateHUD();
+                Game.moveVisuals(); // Forçar atualização visual ao mudar a rodada
                 if (typeof Game.checkTurnControl === 'function') Game.checkTurnControl();
             }
         });
@@ -374,8 +376,12 @@ export class NetworkActions {
                 const localPlayer = Game.players.find((p: any) => p.id == pd.id);
                 if (localPlayer) {
                     const isMeAndMyTurn = (localPlayer.id === NetworkState.myPlayerId && Game.canAct && Game.canAct());
+                    
+                    // Só evita sincronizar x,y se for meu turno E eu já tiver rolado o dado (estiver em movimento)
+                    // Caso contrário, sincroniza para corrigir eventuais atrasos ou erros visuais do início do turno
+                    const isMoving = isMeAndMyTurn && GameState.hasRolled;
 
-                    if (!isMeAndMyTurn) {
+                    if (!isMoving) {
                         localPlayer.x = pd.x;
                         localPlayer.y = pd.y;
                     }
@@ -523,9 +529,12 @@ export class NetworkActions {
 
                     Game.updateHUD();
 
+                    if (action.payload.resetPos) {
+                        Game.handleTotalDefeat(targetP);
+                    }
+
                     if (targetP.id === NetworkState.myPlayerId) {
-                        if (action.payload.resetPos) Game.handleTotalDefeat(targetP);
-                        else NetworkSync.syncPlayerState();
+                        if (!action.payload.resetPos) NetworkSync.syncPlayerState();
                     }
                 }
                 break;

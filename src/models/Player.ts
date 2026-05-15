@@ -95,9 +95,9 @@ export class Player {
 
     assignStarter(settings: any) {
         this.team = [];
-        
+
         let validStarters = [1, 4, 7, 152, 155, 158, 252, 255, 258, 387, 390, 393, 495, 498, 501, 650, 653, 656, 722, 725, 728, 810, 813, 816, 906, 909, 912];
-        
+
         if (settings.legendaries === 'only') {
             validStarters = POKEDEX.filter((p: any) => p.isLegendary && settings.generations.includes(this.getGenById(p.id))).map((p: any) => p.id);
         } else {
@@ -107,9 +107,9 @@ export class Player {
                 return settings.generations.includes(this.getGenById(id));
             });
         }
-        
+
         if (validStarters.length === 0) validStarters = [133]; // Eevee fallback
-        
+
         const randomStarterId = validStarters[Math.floor(Math.random() * validStarters.length)];
         let isStarterShiny = Math.random() < 0.02;
 

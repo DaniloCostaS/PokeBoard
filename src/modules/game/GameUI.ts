@@ -968,7 +968,10 @@ export class GameUI {
             const borderColor = rData ? rData.color : '#8d99ae';
 
             const d = document.createElement('div');
-            d.style.cssText = "display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); width: 100%; box-sizing: border-box; position: relative;";
+            d.style.cssText = "display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); width: 100%; box-sizing: border-box; position: relative; cursor: zoom-in; transition: transform 0.2s;";
+            
+            d.onmouseover = () => { d.style.transform = "scale(1.05)"; d.style.zIndex = "5"; };
+            d.onmouseout = () => { d.style.transform = "scale(1)"; d.style.zIndex = "1"; };
 
             d.innerHTML = `
                 <div style="position: absolute; top: -5px; right: -5px; background: ${borderColor}; color: #fff; padding: 2px 6px; font-size: 0.7rem; border-radius: 10px; font-weight: bold; border: 1px solid #222; text-shadow: 1px 1px 0 #000; box-shadow: 0 2px 4px rgba(0,0,0,0.5); z-index: 10;">
@@ -978,9 +981,28 @@ export class GameUI {
                 <div style="margin-top: 8px; font-size: 0.8rem; text-align: center; color: #edf2f4;"><b>${c.name}</b></div>
                 <div style="font-size: 0.7rem; color: #bdc3c7;">[${c.type.toUpperCase()}]</div>
             `;
+            d.onclick = () => GameUI.showCardZoom(c.id);
             list.appendChild(d);
         });
         document.getElementById('library-modal')!.style.display = 'flex';
+    }
+
+    static showCardZoom(cardId: string) {
+        let modal = document.getElementById('card-zoom-modal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'card-zoom-modal';
+            modal.style.cssText = "position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.9); display:flex; justify-content:center; align-items:center; z-index:20000; cursor: zoom-out;";
+            modal.onclick = () => modal!.style.display = 'none';
+            document.body.appendChild(modal);
+        }
+        modal.innerHTML = `
+            <div style="position: relative; max-width: 90vw; max-height: 90vh; animation: zoomIn 0.3s ease-out;">
+                <img src="/assets/img/Cartas/${cardId}.jpg" style="max-width: 100%; max-height: 90vh; border-radius: 15px; border: 5px solid #fff; box-shadow: 0 0 50px rgba(0,0,0,1);">
+                <div style="position: absolute; top: -15px; right: -15px; background: #e74c3c; color: #fff; width: 35px; height: 35px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 18px; border: 2px solid #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.5);">✕</div>
+            </div>
+        `;
+        modal.style.display = 'flex';
     }
 
     static openItemLibrary() {

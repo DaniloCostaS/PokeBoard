@@ -651,9 +651,16 @@ export class CardEffects {
                 if (targetId !== null) {
                     const targetMon = player.team[targetId];
                     if (!targetMon) { consumed = false; break; }
-                    if (targetMon.vinculoSupremo) { alert("Este Pokémon já possui Vínculo Supremo!"); consumed = false; break; }
+                    
+                    let shinyMsg = "";
+                    if (!targetMon.isLegendary && !targetMon.isShiny) {
+                        targetMon.isShiny = true;
+                        targetMon.recalculateStats(true);
+                        shinyMsg = " e agora brilha intensamente como um SHINY (+20% Status)!";
+                    }
+
                     targetMon.vinculoSupremo = true;
-                    effectLog = `🤝 VÍNCULO SUPREMO! ${targetMon.name} prometeu nunca abandonar ${player.name}!`;
+                    effectLog = `🤝 VÍNCULO SUPREMO! ${targetMon.name} prometeu nunca abandonar ${player.name}${shinyMsg}!`;
                 } else { CardUI.openPokemonSelectionForCard(cardId, "Escolha um Pokémon para criar um Vínculo Supremo:"); consumed = false; }
                 break;
 
