@@ -544,4 +544,35 @@ export class BattleUI {
             }
         }
     }
+
+    static showBattleConfirm(msg: string, onConfirm: () => void) {
+        let modal = document.getElementById('battle-confirm-modal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'battle-confirm-modal';
+            modal.className = 'modal-overlay';
+            modal.style.zIndex = '3000';
+            document.body.appendChild(modal);
+        }
+
+        modal.innerHTML = `
+            <div class="modal-box" style="background: #2c3e50; border: 2px solid #e74c3c; text-align: center; max-width: 400px;">
+                <h3 style="color: #e74c3c; margin-top: 0; font-size: 1.5rem; text-shadow: 0 0 10px rgba(231,76,60,0.3);">⚠️ Confirmação</h3>
+                <p style="color: #edf2f4; margin: 25px 0; font-size: 1.1rem; line-height: 1.4;">${msg}</p>
+                <div style="display: flex; gap: 15px; justify-content: center; width: 100%;">
+                    <button id="btn-confirm-yes" class="btn" style="background: #ef233c; flex: 1; padding: 12px; font-weight: bold; margin: 0;">SIM, DESISTIR</button>
+                    <button id="btn-confirm-no" class="btn btn-secondary" style="flex: 1; padding: 12px; font-weight: bold; margin: 0; background: #8d99ae; color: #2b2d42;">NÃO, VOLTAR</button>
+                </div>
+            </div>
+        `;
+        modal.style.display = 'flex';
+
+        document.getElementById('btn-confirm-yes')!.onclick = () => {
+            modal!.style.display = 'none';
+            onConfirm();
+        };
+        document.getElementById('btn-confirm-no')!.onclick = () => {
+            modal!.style.display = 'none';
+        };
+    }
 }

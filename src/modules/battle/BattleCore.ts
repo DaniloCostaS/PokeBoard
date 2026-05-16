@@ -1090,39 +1090,45 @@ export class BattleCore {
 
     static surrender() {
         if (this.isPvP) return;
-        this.processingAction = true;
-        BattleUI.updateButtons();
 
-        BattleUI.logBattle("🏳️ Você desistiu da batalha! Fugindo para o Centro Pokémon...", true);
+        BattleUI.showBattleConfirm(
+            "Você tem certeza que deseja <b>DESISTIR</b> da batalha?<br><br>Você perderá ouro e será teleportado para o último Centro Pokémon.",
+            () => {
+                this.processingAction = true;
+                BattleUI.updateButtons();
 
-        setTimeout(() => {
-            const Game = (window as any).Game;
-            const NetworkObj = (window as any).Network || Network;
-            this.active = false;
-            document.getElementById('battle-modal')!.style.display = 'none';
+                BattleUI.logBattle("🏳️ Você desistiu da batalha! Fugindo para o Centro Pokémon...", true);
 
-            if (NetworkObj.isOnline && this.player && this.player.id === NetworkObj.myPlayerId) {
-                NetworkObj.sendAction('BATTLE_END', { log: `🏳️ ${this.player.name} desistiu da batalha.` });
+                setTimeout(() => {
+                    const Game = (window as any).Game;
+                    const NetworkObj = (window as any).Network || Network;
+                    this.active = false;
+                    document.getElementById('battle-modal')!.style.display = 'none';
+
+                    if (NetworkObj.isOnline && this.player && this.player.id === NetworkObj.myPlayerId) {
+                        NetworkObj.sendAction('BATTLE_END', { log: `🏳️ ${this.player.name} desistiu da batalha.` });
+                    }
+
+                    if (this.player) {
+                        if (this.isGym || this.isChampion) this.player.effects.curse = false;
+                        const lostGold = this.player.gold >= 100 ? 100 : this.player.gold;
+                        this.player.gold = Math.max(0, this.player.gold - 100);
+                        if (lostGold > 0) {
+                            Game.sendGlobalLog(`💰 [Extrato] ${this.player.name} deixou cair -${lostGold}G ao desistir da batalha.`);
+                            Game.sendGlobalLog(`💰 [Extrato] Novo Saldo: ${this.player.gold}G.`);
+                        }
+
+                        if (this.opponent && (this.opponent.isLegendary || this.opponent.isShiny)) {
+                            Game.lixeira.push(this.opponent);
+                            if (NetworkObj.isOnline) NetworkObj.syncLixeira();
+                        }
+
+                        Game.handleTotalDefeat(this.player);
+                    }
+                    Game.nextTurn();
+                }, 1500);
             }
-
-            if (this.player) {
-                if (this.isGym || this.isChampion) this.player.effects.curse = false;
-                const lostGold = this.player.gold >= 100 ? 100 : this.player.gold;
-                this.player.gold = Math.max(0, this.player.gold - 100);
-                if (lostGold > 0) {
-                    Game.sendGlobalLog(`💰 [Extrato] ${this.player.name} deixou cair -${lostGold}G ao desistir da batalha.`);
-                    Game.sendGlobalLog(`💰 [Extrato] Novo Saldo: ${this.player.gold}G.`);
-                }
-
-                if (this.opponent && (this.opponent.isLegendary || this.opponent.isShiny)) {
-                    Game.lixeira.push(this.opponent);
-                    if (NetworkObj.isOnline) NetworkObj.syncLixeira();
-                }
-
-                Game.handleTotalDefeat(this.player);
-            }
-            Game.nextTurn();
-        }, 1500);
+        );
     }
 
     static useItem(key: string, data: ItemData) {

@@ -828,6 +828,23 @@ body {
     background: #95a5a6;
 }
 
+.btn-surrender {
+    background: #c0392b;
+    border-bottom: 3px solid #922b21;
+    transition: all 0.2s ease;
+}
+
+.btn-surrender:hover {
+    background: #e74c3c;
+    box-shadow: 0 0 15px rgba(231, 76, 60, 0.4);
+    transform: translateY(-2px);
+}
+
+.btn-surrender:active {
+    transform: translateY(1px);
+    border-bottom: none;
+}
+
 /* Modais */
 .modal-overlay {
     position: fixed;

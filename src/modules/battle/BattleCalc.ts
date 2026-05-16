@@ -203,12 +203,12 @@ export class BattleCalc {
             }
         }
 
-        // rocky_helmet: reflete 15% do dano ao atacante quando defensor carrega o item
+        // rocky_helmet: reflete 25% do dano ao atacante quando defensor carrega o item
         const defenderHasHelmet = (defender as any).heldItem === 'rocky_helmet';
         if (defenderHasHelmet && finalDamage > 0) {
-            reflectedAmount += Math.floor(finalDamage * 0.15);
+            reflectedAmount += Math.floor(finalDamage * 0.25);
             logDetails += " [⛑️Helmet!]";
-            auditLog += ` | Rocky Helmet 15%`;
+            auditLog += ` | Rocky Helmet 25%`;
         }
 
         auditLog += ` => Final: ${finalDamage}]`;

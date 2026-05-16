@@ -32,5 +32,5 @@ export const SHOP_ITEMS: ItemData[] = [
     { id: 'scope_lens', name: 'Scope Lens', desc: "Sempre garante um acerto crítico (+5 de dano no dado), com o pokémon que estiver segurando esse item.", icon: 'scope_lens.png', price: 1500, type: 'hold' },
     { id: 'choice_band', name: 'Choice Band', desc: "Aumenta o ataque em 10%, com o pokémon que estiver segurando esse item.", icon: 'choice_band.png', price: 1500, type: 'hold' },
     { id: 'choice_scarf', name: 'Choice Scarf', desc: "Aumenta a velocidade em 20%, com o pokémon que estiver segurando esse item.", icon: 'choice_scarf.png', price: 1500, type: 'hold' },
-    { id: 'rocky_helmet', name: 'Rocky Helmet', desc: "Causa 15% do dano recebido ao adversário, com o pokémon que estiver segurando esse item.", icon: 'rocky_helmet.png', price: 1500, type: 'hold' }
+    { id: 'rocky_helmet', name: 'Rocky Helmet', desc: "Causa 25% do dano recebido ao adversário, com o pokémon que estiver segurando esse item.", icon: 'rocky_helmet.png', price: 1500, type: 'hold' }
 ];
