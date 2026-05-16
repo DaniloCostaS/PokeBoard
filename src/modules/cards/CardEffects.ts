@@ -287,7 +287,11 @@ export class CardEffects {
 
         player.cards[index].isProtected = false;
 
-        Game.log(`🔓 ${player.name} removeu a proteção da carta [${player.cards[index].name}].`);
+        Game.log(`🔓 ${player.name} removeu a proteção de uma carta.`);
+        
+        const privateMsg = `🔓 Você removeu a proteção da carta [${player.cards[index].name}].||PRIVATE:${player.id}`;
+        Game.log(privateMsg);
+        if (Network.isOnline) Network.sendAction('LOG', { msg: privateMsg });
 
         if (Network.isOnline) {
             Network.syncPlayerState();
@@ -612,7 +616,11 @@ export class CardEffects {
                     if (targetCard.id === 'card_protector') { alert("Você não pode proteger o Cadeado!"); consumed = false; break; }
 
                     targetCard.isProtected = true;
-                    effectLog = `🔒 CADEADO ATIVADO! ${player.name} protegeu sua carta [${targetCard.name}] contra roubos!`;
+                    effectLog = `🔒 CADEADO ATIVADO! ${player.name} protegeu uma de suas cartas contra roubos!`;
+                    
+                    const privateMsg = `🔒 Você protegeu a carta [${targetCard.name}]!||PRIVATE:${player.id}`;
+                    Game.log(privateMsg);
+                    if (Network.isOnline) Network.sendAction('LOG', { msg: privateMsg });
                 } else {
                     const protectedCount = player.cards.filter((c: any) => c.isProtected).length;
                     if (protectedCount >= 3) { alert("Você já atingiu o limite de 3 cartas protegidas!"); consumed = false; break; }

@@ -403,6 +403,8 @@ export class GameUI {
             logType = "items";
         } else if (m.includes("🛑 Fim do turno")) {
             logType = "turn";
+        } else if (m.includes("▶️") && m.includes("iniciou o turno")) {
+            logType = "start_turn";
         }
 
         const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -413,6 +415,7 @@ export class GameUI {
         else if (logType === "gold") icon = "💰";
         else if (logType === "items") icon = "🎒";
         else if (logType === "turn") icon = "🛑";
+        else if (logType === "start_turn") icon = "▶️";
 
         if (m.includes("rolou o dado")) icon = "🎲";
         if (mLower.includes("poção") || mLower.includes("curou")) icon = "🧪";
@@ -422,6 +425,8 @@ export class GameUI {
         let customStyle = "";
         if (logType === "turn") {
             customStyle = "background: rgba(255, 152, 0, 0.1); border-left: 4px solid #ff9800; font-weight: bold;";
+        } else if (logType === "start_turn") {
+            customStyle = "background: rgba(46, 204, 113, 0.1); border-left: 4px solid #2ecc71; font-weight: bold; color: #2ecc71;";
         }
 
         const container = document.getElementById('log-container');

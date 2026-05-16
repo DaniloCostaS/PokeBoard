@@ -654,6 +654,7 @@ export class GameEvents {
         if (iniciarBtn) { iniciarBtn.disabled = true; iniciarBtn.innerText = '⏳ Iniciando...'; }
 
         const currP = GameState.players[NetworkObj.isOnline ? me : GameState.turn];
+        GameUI.sendGlobalLog(`▶️ ${currP.name} iniciou o turno.`);
 
         // Bônus de década
         if (GameState.round > 1 && GameState.round % 10 === 0) {

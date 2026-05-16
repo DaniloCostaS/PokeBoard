@@ -167,11 +167,11 @@ export class Battle {
         BattleUI.renderBattleScreen();
     }
 
-    static updateFromNetwork(payload: any, actionPlayerId?: number) {
+    static updateFromNetwork(payload: any) {
         if (!BattleCore.activeMon || !BattleCore.opponent) return;
         if (payload.plyHp !== undefined) BattleCore.activeMon.currentHp = payload.plyHp;
         if (payload.oppHp !== undefined) BattleCore.opponent.currentHp = payload.oppHp;
-        if (payload.msg) BattleUI.logBattle(payload.msg, false, actionPlayerId);
+        if (payload.msg) BattleUI.logBattle(payload.msg, false);
         BattleUI.updateUI();
     }
 
@@ -184,7 +184,7 @@ export class Battle {
     static openBag() { BattleUI.openBag(); }
     static openCardSelection() { BattleUI.openCardSelection(); }
     static getHpColor(current: number, max: number) { return BattleUI.getHpColor(current, max); }
-    static logBattle(msg: string, sync: boolean = false, actionPlayerId?: number) { BattleUI.logBattle(msg, sync, actionPlayerId); }
+    static logBattle(msg: string, sync: boolean = false) { BattleUI.logBattle(msg, sync); }
     static async animateCaptureSequence(ballIcon: string, isSuccess: boolean) { await BattleUI.animateCaptureSequence(ballIcon, isSuccess); }
 
     static useCard(cardId: string) {

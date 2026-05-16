@@ -526,8 +526,7 @@ export class BattleUI {
         GameState.battleLogs[this.currentBattleId] = this.currentBattleLogs;
     }
 
-    static logBattle(msg: string, sync: boolean = false, actionPlayerId?: number) {
-        const Game = (window as any).Game;
+    static logBattle(msg: string, sync: boolean = false) {
         const el = document.getElementById('battle-msg');
         if (el) el.innerText = msg;
 
