@@ -88,6 +88,9 @@ export class GameMovement {
     }
 
     static async animateDice(result: number, playerId: number) {
+        // Nova animação visual no centro do tabuleiro
+        await this.showDiceAnimation(result);
+
         const die = document.getElementById('d20-display')!;
         for (let i = 0; i < 5; i++) {
             die.innerText = `🎲 ${Math.floor(Math.random() * 6) + 1}`;
@@ -138,6 +141,70 @@ export class GameMovement {
         }
 
         this.movePlayerLogic(result, playerId);
+    }
+
+    static async showDiceAnimation(result: number) {
+        const board = document.getElementById('board-wrapper');
+        if (!board) return;
+
+        const container = document.createElement('div');
+        container.className = 'dice-container dice-throwing';
+
+        const shadow = document.createElement('div');
+        shadow.className = 'dice-shadow';
+
+        const dice3d = document.createElement('div');
+        dice3d.className = 'dice-3d';
+
+        const pipPatterns: Record<number, number[]> = {
+            1: [5],
+            2: [1, 9],
+            3: [1, 5, 9],
+            4: [1, 3, 7, 9],
+            5: [1, 3, 5, 7, 9],
+            6: [1, 3, 4, 6, 7, 9]
+        };
+
+        const createFace = (role: string, value: number) => {
+            const pattern = pipPatterns[value];
+            const activePips = new Set(pattern);
+            const pips = pattern ? Array.from({ length: 9 }, (_, index) => {
+                const position = index + 1;
+                return `<span class="dice-pip${activePips.has(position) ? ' is-active' : ''}"></span>`;
+            }).join('') : `<span class="dice-number">${value}</span>`;
+
+            return `<div class="dice-face face-${role}" aria-label="Dado ${value}"><div class="dice-pips">${pips}</div></div>`;
+        };
+
+        const visibleValues = [1, 2, 3, 4, 5, 6].filter(value => value !== result);
+        const faces = [
+            { role: 'top', value: result },
+            { role: 'front', value: visibleValues[0] },
+            { role: 'right', value: visibleValues[1] },
+            { role: 'back', value: visibleValues[2] },
+            { role: 'left', value: visibleValues[3] },
+            { role: 'bottom', value: visibleValues[4] }
+        ];
+
+        const finalX = -58 + ((Math.random() * 4) - 2);
+        const finalY = -26 + ((Math.random() * 6) - 3);
+        const finalZ = -10 + ((Math.random() * 8) - 4);
+        const finalTransform = `rotateX(${finalX}deg) rotateY(${finalY}deg) rotateZ(${finalZ}deg)`;
+
+        dice3d.innerHTML = `<div class="dice-mass"></div>${faces.map(face => createFace(face.role, face.value)).join('')}`;
+
+        container.appendChild(dice3d);
+        board.appendChild(shadow);
+        board.appendChild(container);
+
+        setTimeout(() => {
+            dice3d.style.transform = finalTransform;
+        }, 100);
+
+        await new Promise(r => setTimeout(r, 1900));
+
+        container.remove();
+        shadow.remove();
     }
 
     static async movePlayerLogic(steps: number, pId: number) {
