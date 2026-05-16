@@ -193,4 +193,11 @@ export class NetworkSync {
         const Game = (window as any).Game;
         update(ref(db, `rooms/${NetworkState.currentRoomId}`), { lixeira: this.getSanitizedTeam(Game.lixeira) });
     }
+
+    static syncBattleLogs(battleId: string, logs: string[]) {
+        if (!NetworkState.isOnline) return;
+        const updates: any = {};
+        updates[`rooms/${NetworkState.currentRoomId}/battleLogs/${battleId}`] = logs;
+        update(ref(db), updates);
+    }
 }

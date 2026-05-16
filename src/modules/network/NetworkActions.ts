@@ -46,6 +46,7 @@ export class NetworkActions {
         }
     }
 
+
     static async createRoom() {
         if (!this.checkInput()) return;
         await NetworkSync.loadGlobalChampion();
@@ -243,13 +244,15 @@ export class NetworkActions {
             const container = document.getElementById('log-container');
             if (container) {
                 container.innerHTML = '';
-                Game.globalLogs.forEach((l: any) => {
-                    const lType = l.type || 'system';
-                    const currentFilter = (Game as any).currentLogFilter || 'all';
-                    const displayStyle = (currentFilter === 'all' || currentFilter === lType) ? "block" : "none";
-                    container.insertAdjacentHTML('beforeend', `<div class="log-entry" style="${l.style}; display:${displayStyle}" data-type="${lType}">${l.text}</div>`);
+                // Renderizar usando o novo formato de card
+                Game.globalLogs.slice().reverse().forEach((l: any) => {
+                    GameUI.log(l.text, undefined, l.battleId, true); // true = skip sync
                 });
             }
+        }
+
+        if (data.battleLogs) {
+            GameState.battleLogs = data.battleLogs;
         }
 
         if (data.lixeira) {
@@ -304,6 +307,7 @@ export class NetworkActions {
         Game.init(playerArray, MapSystem.size, data.settings);
         this.setupGameLoopListener();
     }
+
 
     static setupGameLoopListener() {
         const Game = (window as any).Game;
@@ -446,6 +450,13 @@ export class NetworkActions {
             });
             Game.updateHUD();
             Game.moveVisuals();
+        });
+
+        onValue(ref(db, `rooms/${NetworkState.currentRoomId}/battleLogs`), (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                GameState.battleLogs = data;
+            }
         });
     }
 
@@ -593,5 +604,35 @@ export class NetworkActions {
         }
 
         NetworkState.isProcessingQueue = false;
+    }
+
+    static async syncTurnState() {
+        const Game = (window as any).Game;
+        if (!NetworkState.isOnline) {
+            if (Game && Game.checkTurnControl) Game.checkTurnControl();
+            return;
+        }
+        try {
+            const turnSnap = await get(ref(db, `rooms/${NetworkState.currentRoomId}/turn`));
+            const turn = turnSnap.val();
+            if (turn !== null) {
+                Game.turn = turn;
+            }
+            
+            const roundSnap = await get(ref(db, `rooms/${NetworkState.currentRoomId}/round`));
+            const round = roundSnap.val();
+            if (round !== null) {
+                Game.round = round;
+            }
+
+            Game.updateHUD();
+            Game.moveVisuals();
+            if (Game.checkTurnControl) Game.checkTurnControl();
+            
+            const GameUIObj = (window as any).GameUI || GameUI;
+            if (GameUIObj && GameUIObj.log) GameUIObj.log("🔄 Sincronização manual do turno realizada.");
+        } catch (e) {
+            console.error("Erro ao sincronizar turno manualmente", e);
+        }
     }
 }

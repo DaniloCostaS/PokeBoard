@@ -81,7 +81,7 @@ export class Game {
     static moveVisuals() { GameUI.moveVisuals(); }
     static renderChampionBanner() { (GameUI as any).renderChampionBanner(); }
 
-    static log(m: string, actionPlayerId?: number) { GameUI.log(m, actionPlayerId); }
+    static log(m: string, actionPlayerId?: number, battleId?: string, skipSync: boolean = false) { GameUI.log(m, actionPlayerId, battleId, skipSync); }
     static sendGlobalLog(msg: string) { GameUI.sendGlobalLog(msg); }
     static recordCardLog(attacker: string, card: string, target: string) { GameUI.recordCardLog(attacker, card, target); }
     static renderCardLogs() { GameUI.renderCardLogs(); }
@@ -108,6 +108,7 @@ export class Game {
 
     static removeHeldItem(pId: number, slotIdx: number) { GameEvents.removeHeldItem(pId, slotIdx); }
     static openXpRules() { (GameUI as any).openXpRules(); }
+    static viewBattleLog(id: string) { GameUI.viewBattleLog(id); }
     static openCaptureRules() { (GameUI as any).openCaptureRules(); }
     static openCombatRules() { (GameUI as any).openCombatRules(); }
 
@@ -137,6 +138,7 @@ export class Game {
     // MÉTODOS DE EVENTOS E TURNOS
     // ==========================================
     static nextTurn() { GameEvents.nextTurn(); }
+    static syncTurnState() { (window as any).Network.syncTurnState(); }
     static handleTile(p: Player) { GameEvents.handleTile(p); }
     static handleCityChoice(c: string) { GameEvents.handleCityChoice(c); }
     static triggerVictory(winnerId: number) { GameEvents.triggerVictory(winnerId); }

@@ -44,7 +44,8 @@ export class GameState {
     static lastBonusRoundClaimed: number = 0;
 
     static activeGyms: number[] = [];
-    static globalLogs: { text: string, style: string, type?: string }[] = [];
+    static globalLogs: { text: string, style: string, type?: string, battleId?: string, timestamp?: string }[] = [];
+    static battleLogs: { [id: string]: string[] } = {}; // Store detailed logs indexed by ID
     static cardLogs: { round: number, attacker: string, card: string, target: string, timestamp: number }[] = [];
     static lixeira: Pokemon[] = [];
     static globalChampion: any = null;
@@ -148,6 +149,7 @@ export class GameState {
             grid: MapSystem.grid, 
             gymLoc: MapSystem.gymLocations, 
             lastBonusRoundClaimed: this.lastBonusRoundClaimed,
+            battleLogs: this.battleLogs,
             settings: this.settings 
         };
     }
@@ -168,6 +170,9 @@ export class GameState {
         this.lastBonusRoundClaimed = d.lastBonusRoundClaimed || 0;
         if (d.settings) {
             this.settings = d.settings;
+        }
+        if (d.battleLogs) {
+            this.battleLogs = d.battleLogs;
         }
         this.players = d.players.map((pd: any) => {
             const file = pd.avatar.split('/').pop();

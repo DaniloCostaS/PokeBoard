@@ -64,6 +64,8 @@ export class Network {
     static syncCardLogs(logs: any[]) { NetworkSync.syncCardLogs(logs); }
     static syncTurn(newTurn: number, newRound: number = 1) { NetworkSync.syncTurn(newTurn, newRound); }
     static syncLixeira() { NetworkSync.syncLixeira(); }
+    static syncBattleLogs(battleId: string, logs: string[]) { NetworkSync.syncBattleLogs(battleId, logs); }
+    static async syncTurnState() { await NetworkActions.syncTurnState(); }
 }
 
 // Vincula o Network ao window para permitir chamadas no DOM

@@ -317,7 +317,7 @@ export class GameUI {
             const matchesType = (type === 'all' || entryType === type);
             const matchesSearch = searchText === "" || entryText.includes(searchText);
 
-            el.style.display = (matchesType && matchesSearch) ? "block" : "none";
+            el.style.display = (matchesType && matchesSearch) ? "flex" : "none";
         });
     }
 
@@ -350,7 +350,7 @@ export class GameUI {
         modal.style.display = 'flex';
     }
 
-    static log(m: string, actionPlayerId?: number) {
+    static log(m: string, actionPlayerId?: number, battleId?: string, skipSync: boolean = false) {
         if (m.includes('||ROUND:')) {
             const r = parseInt(m.split('||ROUND:')[1]);
             if (r > GameState.round) {
@@ -401,29 +401,46 @@ export class GameUI {
             logType = "gold";
         } else if (mLower.includes("usou") && !mLower.includes("atacou") || m.includes("🎒") || mLower.includes("curou") || mLower.includes("poção") || mLower.includes("reviveu")) {
             logType = "items";
+        } else if (m.includes("🛑 Fim do turno")) {
+            logType = "turn";
         }
+
+        const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        
+        let icon = "📟";
+        if (logType === "battle") icon = "⚔️";
+        else if (logType === "cards") icon = "🃏";
+        else if (logType === "gold") icon = "💰";
+        else if (logType === "items") icon = "🎒";
+        else if (logType === "turn") icon = "🛑";
+
+        if (m.includes("rolou o dado")) icon = "🎲";
+        if (mLower.includes("poção") || mLower.includes("curou")) icon = "🧪";
+        if (mLower.includes("capturou")) icon = "⚽";
+        if (mLower.includes("encontrou um item")) icon = "🎁";
 
         let customStyle = "";
-
-        if (m.includes("Fim do turno de")) {
-            customStyle = "text-align: center; color: #f39c12; font-weight: bold; margin: 15px 0 5px 0; border-bottom: 2px dashed #7f8c8d; padding-bottom: 5px;";
-        }
-        if (m.includes("🕵️ ALERTA:")) {
-            customStyle += "color: #e74c3c; font-weight: bold; background: rgba(231, 76, 60, 0.1); border-left: 3px solid #e74c3c; padding-left: 5px;";
-        }
-        if (m.includes("🌍 ALERTA GLOBAL!")) {
-            customStyle += "color: #f1c40f; font-weight: bold; background: rgba(241, 196, 15, 0.1); border-left: 3px solid #f1c40f; padding-left: 5px;";
+        if (logType === "turn") {
+            customStyle = "background: rgba(255, 152, 0, 0.1); border-left: 4px solid #ff9800; font-weight: bold;";
         }
 
         const container = document.getElementById('log-container');
         if (container) {
             m = m.replace(/\n/g, '<br>');
 
-            GameState.globalLogs.unshift({ text: m, style: customStyle, type: logType });
+            const newLogEntry: any = { 
+                text: m, 
+                style: customStyle, 
+                type: logType, 
+                timestamp 
+            };
+            if (battleId) newLogEntry.battleId = battleId;
+
+            GameState.globalLogs.unshift(newLogEntry);
             if (GameState.globalLogs.length > 200) GameState.globalLogs.pop();
 
             const NetworkObj = (window as any).Network || Network;
-            if (NetworkObj && NetworkObj.isOnline && typeof NetworkObj.syncLogs === 'function') {
+            if (!skipSync && NetworkObj && NetworkObj.isOnline && typeof NetworkObj.syncLogs === 'function') {
                 NetworkObj.syncLogs(GameState.globalLogs);
             }
 
@@ -432,11 +449,62 @@ export class GameUI {
             const searchText = searchInput ? searchInput.value.toLowerCase().trim() : "";
             const matchesSearch = searchText === "" || m.toLowerCase().includes(searchText);
 
-            const displayStyle = (currentFilter === 'all' || currentFilter === logType) && matchesSearch ? "block" : "none";
+            const displayStyle = (currentFilter === 'all' || currentFilter === logType) && matchesSearch ? "flex" : "none";
 
-            container.insertAdjacentHTML('afterbegin', `<div class="log-entry" style="${customStyle}; display:${displayStyle}" data-type="${logType}">${m}</div>`);
+            let battleBtn = "";
+            if (battleId) {
+                battleBtn = `<button class="btn-view-log" onclick="window.Game.viewBattleLog('${battleId}')">🔍 Ver Log de Combate</button>`;
+            }
+
+            const logHtml = `
+                <div class="log-entry" style="${customStyle}; display:${displayStyle}" data-type="${logType}">
+                    <div class="log-header">
+                        <span class="log-time">${timestamp}</span>
+                    </div>
+                    <div class="log-body">
+                        <div class="log-icon-wrapper">${icon}</div>
+                        <div class="log-text">
+                            ${m}
+                            ${battleBtn}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            container.insertAdjacentHTML('afterbegin', logHtml);
             container.scrollTop = 0;
         }
+    }
+
+    static viewBattleLog(battleId: string) {
+        const logs = GameState.battleLogs[battleId];
+        if (!logs) return alert("Log de batalha não encontrado ou expirado.");
+
+        let modal = document.getElementById('battle-history-modal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'battle-history-modal';
+            modal.className = 'modal-overlay';
+            document.body.appendChild(modal);
+        }
+
+        modal.innerHTML = `
+            <div class="modal-box" style="max-width: 500px; max-height: 80vh; display: flex; flex-direction: column; background: #111827; border: 1px solid #374151;">
+                <h3 style="margin-top: 0; color: #fff; border-bottom: 1px solid #374151; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                    <span>⚔️ Histórico de Combate</span>
+                    <button onclick="document.getElementById('battle-history-modal').style.display='none'" style="background:none; border:none; color:#9ca3af; font-size:1.5rem; cursor:pointer;">&times;</button>
+                </h3>
+                <div style="flex: 1; overflow-y: auto; padding: 10px; font-size: 0.9rem; color: #d1d5db; display: flex; flex-direction: column; gap: 8px;">
+                    ${logs.map(line => `
+                        <div style="padding: 8px; background: rgba(255,255,255,0.05); border-radius: 6px; border-left: 3px solid #3b82f6;">
+                            ${line.replace(/\n/g, '<br>')}
+                        </div>
+                    `).join('')}
+                </div>
+                <button class="btn" style="margin-top: 15px; background: #374151;" onclick="document.getElementById('battle-history-modal').style.display='none'">Fechar</button>
+            </div>
+        `;
+        modal.style.display = 'flex';
     }
 
     static sendGlobalLog(msg: string) {

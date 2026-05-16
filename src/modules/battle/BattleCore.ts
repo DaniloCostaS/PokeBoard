@@ -205,6 +205,16 @@ export class BattleCore {
             }
             BattleUI.openSelectionModal(contextTitle);
         }
+        
+        // Iniciar o log de batalha isolado
+        let summary = `⚔️ ${player.name} iniciou combate com `;
+        if (this.isPvP && enemyPlayer) summary += `o jogador ${enemyPlayer.name}!`;
+        else if (this.isGym) summary += `um Líder de Ginásio!`;
+        else if (this.isNPC) summary += `o Treinador ${_label}!`;
+        else summary += `um Pokémon Selvagem!`;
+        
+        BattleUI.startBattleLog(summary);
+        
         this.isAutoPvE = false;
     }
 
@@ -234,6 +244,9 @@ export class BattleCore {
 
         const contextTitle = `🏆 <b>DESAFIO AO CAMPEÃO ${championData.name.toUpperCase()}!</b><br><small style="color:#f1c40f; font-size:0.9rem;">Escolha seu Pokémon para a Batalha Final!</small>`;
         BattleUI.openSelectionModal(contextTitle);
+
+        // Iniciar o log de batalha isolado
+        BattleUI.startBattleLog(`🏆 ${player.name} desafiou o Campeão ${championData.name.toUpperCase()} para o combate final!`);
 
         const Game = (window as any).Game;
         Game.sendGlobalLog(`⚔️ O DESAFIO FINAL! ${player.name} está enfrentando o Campeão ${championData.name}!`);
@@ -1008,6 +1021,7 @@ export class BattleCore {
         const Game = (window as any).Game;
         const NetworkObj = (window as any).Network || Network;
         this.active = false;
+        BattleUI.currentBattleId = null; // Finaliza a captura de logs isolados
         this.opponent = null;
         this.oppTeamList = [];
         this.isChampion = false;

@@ -3,8 +3,11 @@ import { Pokemon } from '../../models/Pokemon';
 import { Network } from '../../systems/Network';
 import { GYM_DATA } from '../../constants/gyms';
 import { SHOP_ITEMS, CARD_RARITIES } from '../../constants';
+import { GameState } from '../game/GameState';
 
 export class BattleUI {
+    static currentBattleId: string | null = null;
+    static currentBattleLogs: string[] = [];
 
     static openSelectionModal(title: string) {
         const modal = document.getElementById('pkmn-select-modal')!;
@@ -515,6 +518,14 @@ export class BattleUI {
 
     static wait(ms: number) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
+    static startBattleLog(summary: string) {
+        this.currentBattleId = Date.now().toString();
+        this.currentBattleLogs = [summary];
+        const Game = (window as any).Game;
+        Game.log(summary, undefined, this.currentBattleId);
+        GameState.battleLogs[this.currentBattleId] = this.currentBattleLogs;
+    }
+
     static logBattle(msg: string, sync: boolean = false, actionPlayerId?: number) {
         const Game = (window as any).Game;
         const el = document.getElementById('battle-msg');
@@ -526,13 +537,23 @@ export class BattleUI {
             lines.forEach(line => {
                 if (line.trim()) {
                     logContainer.insertAdjacentHTML('afterbegin', `<div style="border-bottom:1px solid #555; padding:2px;">${line}</div>`);
+                    // Salva no log isolado se houver uma batalha ativa
+                    if (this.currentBattleId) {
+                        this.currentBattleLogs.push(line);
+                        GameState.battleLogs[this.currentBattleId] = this.currentBattleLogs;
+
+                        const NetworkObj = (window as any).Network || Network;
+                        if (NetworkObj.isOnline && BattleCore.player && BattleCore.player.id === NetworkObj.myPlayerId) {
+                            NetworkObj.syncBattleLogs(this.currentBattleId, this.currentBattleLogs);
+                        }
+                    }
                 }
             });
             logContainer.scrollTop = 0;
         }
 
-        Game.log(`[Batalha] ${msg}`, actionPlayerId);
-
+        // Não enviamos mais para o log principal a cada linha, 
+        // apenas mantemos o log interno da batalha e sincronizamos se necessário via rede
         if (sync) {
             const NetworkObj = (window as any).Network || Network;
             if (NetworkObj.isOnline && BattleCore.player && BattleCore.player.id === NetworkObj.myPlayerId) {

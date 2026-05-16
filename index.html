@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PokéBoard V93c</title>
+    <title>PokéBoard V94</title>
     <link rel="stylesheet" href="style.css">
 
     <script type="importmap">
@@ -20,8 +20,8 @@
 <body>
 
     <div id="setup-screen">
-        <h1 class="title-highlight">PokéBoard V93c</h1>
-        <p class="subtitle">Nova funcionalidade de itens para segurar.</p>
+        <h1 class="title-highlight">PokéBoard V94</h1>
+        <p class="subtitle">Melhoria de UX mapa e logs.</p>
 
         <div id="menu-phase-1">
             <button class="btn" onclick="window.Setup.showOfflineSetup()">🏠 JOGAR OFFLINE</button>
@@ -244,6 +244,8 @@
                     style="display:none; background: linear-gradient(135deg, #27ae60, #2ecc71); font-size:1rem; font-weight:bold; letter-spacing:0.5px;"
                     onclick="window.Game.iniciarTurno()">🎮 Iniciar Turno</button>
                 <button id="roll-btn" class="btn btn-roll" onclick="window.Game.rollDice()">ROLAR</button>
+                <button id="sync-turn-btn" class="btn-sync-turn" onclick="window.Game.syncTurnState()"
+                    title="Corrigir trava de turno">🔄 Checar Vez</button>
             </div>
 
             <div class="panel-box extra-space">
@@ -716,8 +718,8 @@
                         <button class="btn btn-cards" onclick="window.Battle.openCardSelection()">🃏 Cartas</button>
                         <button class="btn btn-secondary" onclick="window.Battle.viewTeam()">👀 Ver Meu Time</button>
                         <button id="btn-run" class="btn btn-run" onclick="window.Battle.run()">🏃 Fugir</button>
-                        <button id="btn-surrender" class="btn btn-surrender"
-                            onclick="window.Battle.surrender()">🏳️ Desistir</button>
+                        <button id="btn-surrender" class="btn btn-surrender" onclick="window.Battle.surrender()">🏳️
+                            Desistir</button>
                         <button id="btn-auto-pve" class="btn btn-auto" style="grid-column: span 3;"
                             onclick="window.Battle.toggleAutoPvE()">⚡ Auto Atacar</button>
                     </div>
