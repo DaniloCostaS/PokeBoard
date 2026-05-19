@@ -241,13 +241,9 @@ export class NetworkActions {
 
         if (data.logs) {
             Game.globalLogs = data.logs;
-            const container = document.getElementById('log-container');
-            if (container) {
-                container.innerHTML = '';
-                // Renderizar usando o novo formato de card
-                Game.globalLogs.slice().reverse().forEach((l: any) => {
-                    GameUI.log(l.text, undefined, l.battleId, true); // true = skip sync
-                });
+            const GameUIObj = (window as any).GameUI || GameUI;
+            if (GameUIObj.renderAllLogs) {
+                GameUIObj.renderAllLogs();
             }
         }
 
@@ -443,6 +439,8 @@ export class NetworkActions {
                                         localPlayer.team.push(tData);
                                     }
                                 }
+                            } else if (remoteTeam.length < localPlayer.team.length) {
+                                localPlayer.team.splice(remoteTeam.length);
                             }
                         }
                     }
@@ -617,6 +615,9 @@ export class NetworkActions {
             const turn = turnSnap.val();
             if (turn !== null) {
                 Game.turn = turn;
+                if (turn === NetworkState.myPlayerId) {
+                    Game.turnStarted = false;
+                }
             }
             
             const roundSnap = await get(ref(db, `rooms/${NetworkState.currentRoomId}/round`));
@@ -624,6 +625,9 @@ export class NetworkActions {
             if (round !== null) {
                 Game.round = round;
             }
+
+            const BattleObj = (window as any).Battle;
+            if (BattleObj) BattleObj.active = false;
 
             Game.updateHUD();
             Game.moveVisuals();
@@ -633,6 +637,23 @@ export class NetworkActions {
             if (GameUIObj && GameUIObj.log) GameUIObj.log("🔄 Sincronização manual do turno realizada.");
         } catch (e) {
             console.error("Erro ao sincronizar turno manualmente", e);
+        }
+    }
+
+    static async syncLogsManually() {
+        if (!NetworkState.isOnline) return;
+        try {
+            const snap = await get(ref(db, `rooms/${NetworkState.currentRoomId}/logs`));
+            const logs = snap.val();
+            if (logs) {
+                GameState.globalLogs = logs;
+                const GameUIObj = (window as any).GameUI || GameUI;
+                if (GameUIObj.renderAllLogs) {
+                    GameUIObj.renderAllLogs();
+                }
+            }
+        } catch (e) {
+            console.error("Erro ao sincronizar logs", e);
         }
     }
 }

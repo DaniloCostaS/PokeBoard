@@ -15,6 +15,7 @@ import { TYPE_CHART } from '../../constants/typeChart';
 import { PLAYER_COLORS } from '../../constants/playerColors';
 import { GYM_DATA } from '../../constants/gyms';
 import { GLOBAL_EVENTS } from '../../constants/globalEvents';
+import { MAPA_MEGAS } from '../../constants/mapaMegas';
 
 export class GameUI {
 
@@ -248,7 +249,11 @@ export class GameUI {
                             d.style.backgroundImage = `url('/assets/img/Ginasios/${gData.gymImg}')`;
                             d.style.backgroundSize = '100% 100%';
                             d.style.backgroundRepeat = 'no-repeat';
-                            d.title = `Ginásio ${gData.type} - Líder ${gData.leaderName}`;
+                            d.title = `Ginásio ${gData.type.join(' / ')} - Líder ${gData.leaderName} - Insígnia ${gid} (Clique para ver detalhes)`;
+                            d.style.cursor = 'pointer';
+                            d.onclick = () => {
+                                (GameUI as any).openGymDetail(actualGymId, gid);
+                            };
                         }
                         d.innerText = "";
                     }
@@ -319,6 +324,59 @@ export class GameUI {
 
             el.style.display = (matchesType && matchesSearch) ? "flex" : "none";
         });
+    }
+
+    static renderAllLogs() {
+        const container = document.getElementById('log-container');
+        if (!container) return;
+        container.innerHTML = '';
+        
+        const logsToRender = GameState.globalLogs.slice().reverse();
+        
+        const currentFilter = (this as any).currentLogFilter || 'all';
+        const searchInput = document.getElementById('log-search-input') as HTMLInputElement;
+        const searchText = searchInput ? searchInput.value.toLowerCase().trim() : "";
+
+        logsToRender.forEach((l: any) => {
+            let icon = "📟";
+            if (l.type === "battle") icon = "⚔️";
+            else if (l.type === "cards") icon = "🃏";
+            else if (l.type === "gold") icon = "💰";
+            else if (l.type === "items") icon = "🎒";
+            else if (l.type === "turn") icon = "🛑";
+            else if (l.type === "start_turn") icon = "▶️";
+
+            const mLower = l.text.toLowerCase();
+            if (mLower.includes("rolou o dado")) icon = "🎲";
+            if (mLower.includes("poção") || mLower.includes("curou")) icon = "🧪";
+            if (mLower.includes("capturou")) icon = "⚽";
+            if (mLower.includes("encontrou um item")) icon = "🎁";
+
+            const matchesSearch = searchText === "" || mLower.includes(searchText);
+            const displayStyle = (currentFilter === 'all' || currentFilter === l.type) && matchesSearch ? "flex" : "none";
+
+            let battleBtn = "";
+            if (l.battleId) {
+                battleBtn = `<button class="btn-view-log" onclick="window.Game.viewBattleLog('${l.battleId}')">🔍 Ver Log de Combate</button>`;
+            }
+
+            const logHtml = `
+                <div class="log-entry" style="${l.style || ''}; display:${displayStyle}" data-type="${l.type}">
+                    <div class="log-header">
+                        <span class="log-time">${l.timestamp}</span>
+                    </div>
+                    <div class="log-body">
+                        <div class="log-icon-wrapper">${icon}</div>
+                        <div class="log-text">
+                            ${l.text}
+                            ${battleBtn}
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML('afterbegin', logHtml);
+        });
+        container.scrollTop = 0;
     }
 
     static openAdminPanel() {
@@ -1450,7 +1508,7 @@ export class GameUI {
                 </div>
 
                 <div style="font-size: 0.75rem; color: #8e44ad; margin-top: 6px; text-align: center; min-height: 15px;">
-                    ${mon.nextForm ? `Evolui: <b>${mon.nextForm}</b> (Lv.${mon.evoTrigger})` : '<b>Estágio Final</b>'}
+                    ${mon.nextForm ? `Evolui: <b>${mon.nextForm}</b> (Lv.${mon.evoTrigger})` : (MAPA_MEGAS[mon.id] ? '<b>Estágio Final <span style="color:#e67e22;">- Mega Evolui</span></b>' : '<b>Estágio Final</b>')}
                 </div>
 
                 <div class="dex-track-row">
@@ -1884,5 +1942,77 @@ export class GameUI {
         `;
 
         banner.style.display = 'flex';
+    }
+
+    static openGymDetail(actualGymId: number, gid: number) {
+        const gymData = GYM_DATA.find(g => g.id === actualGymId);
+        if (!gymData) return;
+
+        const dynamicTeams = GameState.gymTeams || {};
+        const rosterIds = dynamicTeams[actualGymId] || gymData.teamIds || [130];
+
+        const globalAvg = GameState.getGlobalAverageLevel();
+        const gymLevel = globalAvg + 1;
+        const teamSize = Math.min(6, Math.max(2, GameState.getGlobalAverageTeamSize() + 1));
+
+        const nameEl = document.getElementById('gym-detail-name')!;
+        const typeEl = document.getElementById('gym-detail-type')!;
+        const badgeEl = document.getElementById('gym-detail-badge') as HTMLImageElement;
+        const leaderImgEl = document.getElementById('gym-detail-leader-img') as HTMLImageElement;
+        const leaderNameEl = document.getElementById('gym-detail-leader-name')!;
+        const infoEl = document.getElementById('gym-detail-info')!;
+        const teamListEl = document.getElementById('gym-detail-team-list')!;
+
+        nameEl.innerText = `Ginásio de ${gymData.leaderName}`;
+        typeEl.innerText = `Tipo do Ginásio: ${gymData.type.join(' / ')}`;
+        badgeEl.src = `/assets/img/Insignias/${gymData.badgeImg}`;
+        leaderImgEl.src = `/assets/img/LideresGym/${gymData.leaderImg}`;
+        leaderNameEl.innerText = gymData.leaderName;
+
+        infoEl.innerHTML = `
+            Este líder desafia os jogadores com Pokémons do tipo <b>${gymData.type.join(', ')}</b>.<br>
+            🏅 <b>Recompensa:</b> Libera a <b>Insígnia ${gid}</b> no painel de insígnias ao ser derrotado.<br>
+            ⚔️ <b>Dificuldade Atual:</b> Você enfrentará <b>${teamSize} Pokémons</b> aleatórios deste time, no nível <b>Lv.${gymLevel}</b>!
+        `;
+
+        teamListEl.innerHTML = '';
+
+        const typeColors: any = { "Normal": "#A8A77A", "Fogo": "#EE8130", "Água": "#6390F0", "Elétrico": "#F7D02C", "Grama": "#7AC74C", "Gelo": "#96D9D6", "Lutador": "#C22E28", "Veneno": "#A33EA1", "Terra": "#E2BF65", "Voador": "#A98FF3", "Psíquico": "#F95587", "Inseto": "#A6B91A", "Pedra": "#B6A136", "Fantasma": "#735797", "Dragão": "#6F35FC", "Noturno": "#705746", "Aço": "#B7B7CE", "Fada": "#D685AD" };
+
+        const PkmClass = (window as any).Pokemon || Pokemon;
+
+        rosterIds.forEach((id: number) => {
+            const mon = new PkmClass(id, gymLevel, false);
+            const bgColor = typeColors[mon.type] || '#555';
+
+            const card = document.createElement('div');
+            card.style.cssText = `
+                background: linear-gradient(180deg, ${bgColor}33 0%, rgba(0,0,0,0.6) 100%);
+                border: 1px solid ${bgColor};
+                border-radius: 10px;
+                padding: 10px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 5px;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+                position: relative;
+            `;
+
+            const typeBadges = mon.getTypeBadgesHTML ? mon.getTypeBadgesHTML() : `<span style="background:${bgColor}; color:#fff; padding:2px 6px; border-radius:4px; font-size:0.75rem;">${mon.type}</span>`;
+
+            card.innerHTML = `
+                <img src="${mon.getSprite()}" style="width: 65px; height: 65px; object-fit: contain; filter: drop-shadow(0 0 4px rgba(255,255,255,0.15));">
+                <div style="font-weight: bold; color: #fff; font-size: 0.9rem; text-shadow: 1px 1px 2px #000; text-align:center;">${mon.name}</div>
+                <div style="display:flex; justify-content:center; gap:4px; margin-top:2px;">${typeBadges}</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; width: 100%; margin-top: 6px; font-size: 0.75rem; color: #cbd5e0; background: rgba(0,0,0,0.3); padding: 4px; border-radius: 4px; text-align:center;">
+                    <div title="Ataque">⚔️ ${mon.atk}</div>
+                    <div title="Defesa">🛡️ ${mon.def}</div>
+                </div>
+            `;
+            teamListEl.appendChild(card);
+        });
+
+        document.getElementById('gym-detail-modal')!.style.display = 'flex';
     }
 }

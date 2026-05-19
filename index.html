@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PokéBoard V94</title>
+    <title>PokéBoard V94a</title>
     <link rel="stylesheet" href="style.css">
 
     <script type="importmap">
@@ -20,7 +20,7 @@
 <body>
 
     <div id="setup-screen">
-        <h1 class="title-highlight">PokéBoard V94</h1>
+        <h1 class="title-highlight">PokéBoard V94a</h1>
         <p class="subtitle">Melhoria de UX mapa e logs.</p>
 
         <div id="menu-phase-1">
@@ -277,7 +277,12 @@
         <div id="right-panel">
             <div id="match-log-header" class="panel-header"
                 style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:5px;">
-                <span>📟 Log da partida</span>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span>📟 Log da partida</span>
+                    <button onclick="window.Game.syncLogsManually()"
+                        style="margin:0; padding:2px 4px; font-size:0.75rem; background:#334; color:#fff; border:1px solid #556; border-radius:4px; cursor:pointer; width:auto; min-width:unset; height:auto; display:inline-flex; align-items:center; justify-content:center; line-height:1;"
+                        title="Sincronizar Logs">🔄</button>
+                </div>
                 <div style="display:flex; gap:5px; align-items:center;">
                     <input type="text" id="log-search-input" placeholder="🔍 Buscar..."
                         oninput="window.Game.filterLogs(document.getElementById('log-filter-select').value)"
@@ -461,6 +466,51 @@
             <h3>🎒 Mochila</h3>
             <div id="board-inventory-list" class="scroll-list"></div><button class="btn btn-secondary mt-15"
                 onclick="document.getElementById('board-inventory-modal').style.display='none'">Fechar</button>
+        </div>
+    </div>
+
+    <div id="gym-detail-modal" class="modal-overlay" style="z-index: 2500;">
+        <div class="modal-box"
+            style="width: 95%; max-width: 600px; background: linear-gradient(135deg, #1e1e2f 0%, #11111b 100%); color: #edf2f4; border: 3px solid #f1c40f; border-radius: 16px; box-shadow: 0 0 30px rgba(241,196,15,0.4); text-align: center; padding: 25px; height: auto; max-height: 90vh;">
+
+            <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 20px;">
+                <img id="gym-detail-badge" src=""
+                    style="width: 60px; height: 60px; object-fit: contain; filter: drop-shadow(0 0 8px rgba(241,196,15,0.6));">
+                <div style="text-align: left;">
+                    <h2 id="gym-detail-name"
+                        style="margin: 0; color: #f1c40f; font-size: 1.8rem; text-shadow: 0 0 10px rgba(241,196,15,0.3); font-family: 'Outfit', sans-serif;">
+                    </h2>
+                    <div id="gym-detail-type"
+                        style="font-size: 0.9rem; color: #a0aec0; font-weight: bold; margin-top: 3px;"></div>
+                </div>
+            </div>
+
+            <div
+                style="display: flex; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; align-items: center; gap: 15px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1);">
+                <img id="gym-detail-leader-img" src=""
+                    style="width: 80px; height: 80px; border-radius: 50%; border: 2px solid #f1c40f; object-fit: cover; background: rgba(0,0,0,0.3);">
+                <div style="text-align: left; flex: 1;">
+                    <div
+                        style="font-size: 0.8rem; color: #a0aec0; text-transform: uppercase; font-weight: bold; letter-spacing: 1px;">
+                        Líder de Ginásio</div>
+                    <div id="gym-detail-leader-name"
+                        style="font-size: 1.4rem; font-weight: bold; color: #fff; margin-top: 2px;"></div>
+                    <div id="gym-detail-info"
+                        style="font-size: 0.85rem; color: #cbd5e0; margin-top: 5px; line-height: 1.4;"></div>
+                </div>
+            </div>
+
+            <h3
+                style="color: #fff; text-align: left; margin-top: 20px; margin-bottom: 12px; font-size: 1.1rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 6px;">
+                ⚔️ Time do Líder</h3>
+            <div id="gym-detail-team-list"
+                style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 25px; max-height: 32vh; overflow-y: auto; padding: 5px;">
+                <!-- Dynamically filled with Pokemon cards -->
+            </div>
+
+            <button class="btn btn-secondary"
+                style="background: #e2e8f0; color: #1a1a2e; font-weight: bold; padding: 10px 20px; border-radius: 8px; width: auto; display: inline-block; margin: 0 auto;"
+                onclick="document.getElementById('gym-detail-modal').style.display='none'">Fechar</button>
         </div>
     </div>
     <div id="pokedex-modal" class="modal-overlay" style="z-index: 1500;">

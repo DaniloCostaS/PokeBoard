@@ -49,7 +49,7 @@ export class BattleCore {
             this.activeEffects.stealBadgeFrom = pendingSteal;
         }
 
-        this.battleTitle = isPvP ? "Batalha PvP!" : `Batalha contra ${_label}!`;
+        this.battleTitle = `[R: ${GameState.round}] ` + (isPvP ? "Batalha PvP!" : `Batalha contra ${_label}!`);
         this.isAutoPvE = false;
         this.currentTerrain = terrainTile;
 
@@ -240,7 +240,7 @@ export class BattleCore {
         this.oppTeamList.sort(() => Math.random() - 0.5);
         this.opponent = this.oppTeamList[0];
 
-        this.battleTitle = `🏆 CAMPEÃO ATUAL: ${championData.name.toUpperCase()} 🏆`;
+        this.battleTitle = `[R: ${GameState.round}] 🏆 CAMPEÃO ATUAL: ${championData.name.toUpperCase()} 🏆`;
 
         const contextTitle = `🏆 <b>DESAFIO AO CAMPEÃO ${championData.name.toUpperCase()}!</b><br><small style="color:#f1c40f; font-size:0.9rem;">Escolha seu Pokémon para a Batalha Final!</small>`;
         BattleUI.openSelectionModal(contextTitle);
@@ -491,7 +491,13 @@ export class BattleCore {
         this.checkSitrusBerry(this.opponent);
 
         if (NetworkObj.isOnline) {
-            NetworkObj.sendAction('BATTLE_UPDATE', { plyHp: this.activeMon!.currentHp, oppHp: this.opponent!.currentHp, msg: logMsg });
+            NetworkObj.sendAction('BATTLE_UPDATE', { 
+                plyHp: this.activeMon!.currentHp, 
+                oppHp: this.opponent!.currentHp, 
+                plyItem: this.activeMon!.heldItem,
+                oppItem: this.opponent!.heldItem,
+                msg: logMsg 
+            });
             if (this.isPvP && this.enemyPlayer) {
                 NetworkObj.sendAction('PVP_SYNC_DAMAGE', { targetId: this.enemyPlayer.id, team: this.enemyPlayer.team, gold: this.enemyPlayer.gold });
                 NetworkObj.syncSpecificPlayer(this.enemyPlayer.id);
@@ -605,7 +611,13 @@ export class BattleCore {
         }
 
         if (NetworkObj.isOnline) {
-            NetworkObj.sendAction('BATTLE_UPDATE', { plyHp: this.activeMon.currentHp, oppHp: this.opponent.currentHp, msg: logMsg });
+            NetworkObj.sendAction('BATTLE_UPDATE', { 
+                plyHp: this.activeMon.currentHp, 
+                oppHp: this.opponent.currentHp, 
+                plyItem: this.activeMon.heldItem,
+                oppItem: this.opponent.heldItem,
+                msg: logMsg 
+            });
             NetworkObj.syncPlayerState();
         }
 
@@ -647,7 +659,7 @@ export class BattleCore {
         if ((mon as any).heldItem !== 'sitrus_berry') return;
 
         const hpPercent = mon.currentHp / mon.maxHp;
-        if (hpPercent <= 0.20) {
+        if (hpPercent <= 0.50) {
             const heal = Math.floor(mon.maxHp * 0.5);
             mon.currentHp = Math.min(mon.maxHp, mon.currentHp + heal);
             (mon as any).heldItem = null; // consumido
@@ -911,6 +923,7 @@ export class BattleCore {
         if (NetworkObj.isOnline) {
             NetworkObj.syncPlayerState();
             if (this.isPvP && this.enemyPlayer) {
+                NetworkObj.syncSpecificPlayer(this.enemyPlayer.id);
                 NetworkObj.sendAction('PVP_SYNC_DAMAGE', { targetId: this.enemyPlayer.id, team: this.enemyPlayer.team, gold: this.enemyPlayer.gold, badges: this.enemyPlayer.badges, resetPos: true, skipTurn: true });
                 Game.handleTotalDefeat(this.enemyPlayer);
             }
@@ -1184,7 +1197,13 @@ export class BattleCore {
             BattleUI.updateUI();
 
             if (NetworkObj.isOnline) {
-                NetworkObj.sendAction('BATTLE_UPDATE', { plyHp: this.activeMon!.currentHp, oppHp: this.opponent!.currentHp, msg: `Usou ${data.name}!` });
+                NetworkObj.sendAction('BATTLE_UPDATE', { 
+                    plyHp: this.activeMon!.currentHp, 
+                    oppHp: this.opponent!.currentHp, 
+                    plyItem: this.activeMon!.heldItem,
+                    oppItem: this.opponent!.heldItem,
+                    msg: `Usou ${data.name}!` 
+                });
             }
 
             setTimeout(() => {

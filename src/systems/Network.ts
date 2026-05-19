@@ -66,6 +66,7 @@ export class Network {
     static syncLixeira() { NetworkSync.syncLixeira(); }
     static syncBattleLogs(battleId: string, logs: string[]) { NetworkSync.syncBattleLogs(battleId, logs); }
     static async syncTurnState() { await NetworkActions.syncTurnState(); }
+    static async syncLogsManually() { await NetworkActions.syncLogsManually(); }
 }
 
 // Vincula o Network ao window para permitir chamadas no DOM

@@ -105,6 +105,7 @@ export class Game {
     static openPokedex(pId: number, filterId: number | null = null) { (GameUI as any).openPokedex(pId, filterId); }
     static openPokedexEntry(targetId: number) { (GameUI as any).openPokedexEntry(targetId); }
     static filterPokedex() { (GameUI as any).filterPokedex(); }
+    static openGymDetail(actualGymId: number, gid: number) { (GameUI as any).openGymDetail(actualGymId, gid); }
 
     static removeHeldItem(pId: number, slotIdx: number) { GameEvents.removeHeldItem(pId, slotIdx); }
     static openXpRules() { (GameUI as any).openXpRules(); }
@@ -139,6 +140,7 @@ export class Game {
     // ==========================================
     static nextTurn() { GameEvents.nextTurn(); }
     static syncTurnState() { (window as any).Network.syncTurnState(); }
+    static syncLogsManually() { (window as any).Network.syncLogsManually(); }
     static handleTile(p: Player) { GameEvents.handleTile(p); }
     static handleCityChoice(c: string) { GameEvents.handleCityChoice(c); }
     static triggerVictory(winnerId: number) { GameEvents.triggerVictory(winnerId); }

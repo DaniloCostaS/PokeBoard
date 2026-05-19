@@ -559,7 +559,9 @@ export class BattleUI {
                 NetworkObj.sendAction('BATTLE_UPDATE', { 
                     msg: msg,
                     plyHp: BattleCore.activeMon?.currentHp,
-                    oppHp: BattleCore.opponent?.currentHp
+                    oppHp: BattleCore.opponent?.currentHp,
+                    plyItem: BattleCore.activeMon?.heldItem,
+                    oppItem: BattleCore.opponent?.heldItem
                 });
             }
         }

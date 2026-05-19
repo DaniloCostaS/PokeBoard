@@ -169,8 +169,24 @@ export class Battle {
 
     static updateFromNetwork(payload: any) {
         if (!BattleCore.activeMon || !BattleCore.opponent) return;
-        if (payload.plyHp !== undefined) BattleCore.activeMon.currentHp = payload.plyHp;
-        if (payload.oppHp !== undefined) BattleCore.opponent.currentHp = payload.oppHp;
+        
+        if (BattleCore.isPvP) {
+            // Se for PvP, do ponto de vista do receptor:
+            // O 'plyHp' do remetente é o HP do oponente.
+            // O 'oppHp' do remetente é o nosso HP (activeMon).
+            if (payload.oppHp !== undefined) BattleCore.activeMon.currentHp = payload.oppHp;
+            if (payload.plyHp !== undefined) BattleCore.opponent.currentHp = payload.plyHp;
+            
+            if (payload.oppItem !== undefined) BattleCore.activeMon.heldItem = payload.oppItem;
+            if (payload.plyItem !== undefined) BattleCore.opponent.heldItem = payload.plyItem;
+        } else {
+            if (payload.plyHp !== undefined) BattleCore.activeMon.currentHp = payload.plyHp;
+            if (payload.oppHp !== undefined) BattleCore.opponent.currentHp = payload.oppHp;
+            
+            if (payload.plyItem !== undefined) BattleCore.activeMon.heldItem = payload.plyItem;
+            if (payload.oppItem !== undefined) BattleCore.opponent.heldItem = payload.oppItem;
+        }
+
         if (payload.msg) BattleUI.logBattle(payload.msg, false);
         BattleUI.updateUI();
     }
