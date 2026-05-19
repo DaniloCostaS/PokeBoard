@@ -1,6 +1,7 @@
 import { db, NetworkState } from './FirebaseInit';
 import { ref, update, set, get } from 'firebase/database';
 import { Player } from '../../models/Player';
+import { BattleCalc } from '../battle/BattleCalc';
 
 export class NetworkSync {
 
@@ -51,7 +52,6 @@ export class NetworkSync {
                 }
 
                 // Mastery: Saved to be applied in battles
-                const BattleCalc = (window as any).BattleCalc;
                 if (BattleCalc && BattleCalc.getTypeMasteryBonus) {
                     const m1 = BattleCalc.getTypeMasteryBonus(player, mon.type);
                     const m2 = mon.secondType ? BattleCalc.getTypeMasteryBonus(player, mon.secondType) : 0;
