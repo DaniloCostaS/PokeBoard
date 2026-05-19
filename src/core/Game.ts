@@ -104,6 +104,7 @@ export class Game {
     static openBoardCards(pId: number) { (GameUI as any).openBoardCards(pId); }
     static openPokedex(pId: number, filterId: number | null = null) { (GameUI as any).openPokedex(pId, filterId); }
     static openPokedexEntry(targetId: number) { (GameUI as any).openPokedexEntry(targetId); }
+    static openPlayerMastery(pId: number) { (GameUI as any).openPlayerMastery(pId); }
     static filterPokedex() { (GameUI as any).filterPokedex(); }
     static openGymDetail(actualGymId: number, gid: number) { (GameUI as any).openGymDetail(actualGymId, gid); }
 

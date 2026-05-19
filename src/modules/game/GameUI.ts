@@ -128,7 +128,7 @@ export class GameUI {
             d.innerHTML = ` 
             <div class="hud-header" style="flex-direction:column; align-items:flex-start; gap:0;">
                 <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
-                    <div class="hud-name-group"><img src="${p.avatar}" class="hud-avatar-img"><span>${p.name}</span></div>
+                    <div class="hud-name-group" onclick="window.Game.openPlayerMastery(${i})" style="cursor:pointer;" title="Ver Maestria do Treinador"><img src="${p.avatar}" class="hud-avatar-img"><span>${p.name}</span></div>
                     <div style="font-weight:bold; color:#f1c40f; text-shadow:1px 1px 0 #000;">💰${p.gold}</div>
                 </div>
                 ${effectsHTML}
@@ -1410,8 +1410,18 @@ export class GameUI {
 
         if (filterId === null) {
             const searchContainer = document.createElement('div');
-            searchContainer.style.cssText = "width: 100%; grid-column: 1 / -1; margin-bottom: 20px;";
-            searchContainer.innerHTML = `<input type="text" id="pokedex-search" placeholder="🔍 Buscar Pokémon por nome..." style="width: 100%; padding: 12px 15px; border-radius: 4px; border: 2px solid #8d99ae; font-size: 1rem; box-sizing: border-box; background: #fff; color: #2c3e50; outline: none; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);" onkeyup="window.Game.filterPokedex()">`;
+            searchContainer.style.cssText = "width: 100%; grid-column: 1 / -1; margin-bottom: 20px; display: flex; gap: 10px;";
+            searchContainer.innerHTML = `
+                <input type="text" id="pokedex-search" placeholder="🔍 Buscar Pokémon por nome..." style="flex: 1; padding: 12px 15px; border-radius: 4px; border: 2px solid #8d99ae; font-size: 1rem; box-sizing: border-box; background: #fff; color: #2c3e50; outline: none; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);" onkeyup="window.Game.filterPokedex()">
+                <select id="pokedex-category-filter" style="padding: 12px; border-radius: 4px; border: 2px solid #8d99ae; font-size: 1rem; background: #fff; color: #2c3e50; outline: none; cursor: pointer;" onchange="window.Game.filterPokedex()">
+                    <option value="all">Todos</option>
+                    <option value="seen">Vistos</option>
+                    <option value="caught">Capturados</option>
+                    <option value="defeated">Derrotados</option>
+                    <option value="unseen">Não Vistos</option>
+                    <option value="uncaught">Não Capturados</option>
+                </select>
+            `;
             list.appendChild(searchContainer);
         }
 
@@ -1484,6 +1494,9 @@ export class GameUI {
             const d = document.createElement('div');
             d.className = 'dex-card';
             d.setAttribute('data-name', mon.name);
+            d.setAttribute('data-seen', (dexEntry.seen > 0).toString());
+            d.setAttribute('data-caught', (dexEntry.caught > 0).toString());
+            d.setAttribute('data-defeated', (dexEntry.defeated > 0).toString());
 
             const isDiscovered = dexEntry.seen > 0 || dexEntry.caught > 0;
             const imgFilter = isDiscovered ? '' : 'filter: brightness(0) opacity(0.4);';
@@ -1525,16 +1538,28 @@ export class GameUI {
 
     static filterPokedex() {
         const input = document.getElementById('pokedex-search') as HTMLInputElement;
+        const categorySelect = document.getElementById('pokedex-category-filter') as HTMLSelectElement;
         if (!input) return;
 
         const filter = input.value.toUpperCase();
+        const category = categorySelect ? categorySelect.value : 'all';
         const cards = document.getElementsByClassName('dex-card');
 
         for (let i = 0; i < cards.length; i++) {
             const card = cards[i] as HTMLElement;
             const name = card.getAttribute('data-name');
+            const seen = card.getAttribute('data-seen') === 'true';
+            const caught = card.getAttribute('data-caught') === 'true';
+            const defeated = card.getAttribute('data-defeated') === 'true';
 
-            if (name && name.toUpperCase().indexOf(filter) > -1) {
+            let showByCategory = true;
+            if (category === 'seen' && !seen) showByCategory = false;
+            if (category === 'caught' && !caught) showByCategory = false;
+            if (category === 'defeated' && !defeated) showByCategory = false;
+            if (category === 'unseen' && seen) showByCategory = false;
+            if (category === 'uncaught' && caught) showByCategory = false;
+
+            if (showByCategory && name && name.toUpperCase().indexOf(filter) > -1) {
                 card.style.display = "";
             } else {
                 card.style.display = "none";
@@ -1715,6 +1740,83 @@ export class GameUI {
         }
 
         document.getElementById('lixeira-modal')!.style.display = 'flex';
+    }
+
+    static openPlayerMastery(pId: number) {
+        const p = GameState.players[pId];
+        let modal = document.getElementById('player-mastery-modal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'player-mastery-modal';
+            modal.style.cssText = "position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.85); display:flex; justify-content:center; align-items:center; z-index:15000;";
+            modal.onclick = (e) => { if (e.target === modal) modal!.style.display = 'none'; };
+            
+            const content = document.createElement('div');
+            content.style.cssText = "background: #1a1a1d; width: 90%; max-width: 600px; max-height: 90vh; border-radius: 15px; border: 3px solid #3498db; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 0 30px rgba(52, 152, 219, 0.5);";
+            
+            content.innerHTML = `
+                <div style="background: linear-gradient(135deg, #2c3e50, #3498db); padding: 15px; text-align: center; color: white; border-bottom: 2px solid #2980b9; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display:flex; align-items:center; gap: 15px;">
+                        <img id="mastery-avatar" src="" style="width: 50px; height: 50px; border-radius: 50%; border: 2px solid #fff; object-fit: cover;">
+                        <h2 style="margin: 0; font-size: 1.5rem; text-shadow: 1px 1px 2px #000;">Maestria de Tipagem</h2>
+                    </div>
+                    <button onclick="document.getElementById('player-mastery-modal').style.display='none'" style="background: #e74c3c; border: none; color: white; width: 35px; height: 35px; border-radius: 50%; font-weight: bold; cursor: pointer; font-size: 1.1rem; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">✕</button>
+                </div>
+                <div style="padding: 10px; background: #2c3e50; color: #bdc3c7; font-size: 0.9rem; text-align: center; border-bottom: 1px solid #34495e;">
+                    Derrote Pokémon selvagens ou de inimigos para subir sua maestria! Cada nível aumenta seu dano em +1% com habilidades daquele tipo.
+                </div>
+                <div id="mastery-list" style="padding: 20px; overflow-y: auto; flex-grow: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px;">
+                </div>
+            `;
+            modal.appendChild(content);
+            document.body.appendChild(modal);
+        }
+
+        const avatarImg = document.getElementById('mastery-avatar') as HTMLImageElement;
+        avatarImg.src = p.avatar;
+
+        const list = document.getElementById('mastery-list')!;
+        list.innerHTML = '';
+
+        const typeColors: any = { "Normal": "#A8A77A", "Fogo": "#EE8130", "Água": "#6390F0", "Elétrico": "#F7D02C", "Grama": "#7AC74C", "Gelo": "#96D9D6", "Lutador": "#C22E28", "Veneno": "#A33EA1", "Terra": "#E2BF65", "Voador": "#A98FF3", "Psíquico": "#F95587", "Inseto": "#A6B91A", "Pedra": "#B6A136", "Fantasma": "#735797", "Dragão": "#6F35FC", "Noturno": "#705746", "Aço": "#B7B7CE", "Fada": "#D685AD" };
+
+        let typeMastery: Record<string, number> = {};
+        for (const type of Object.keys(typeColors)) {
+            typeMastery[type] = 0;
+        }
+
+        if (p.pokedexData) {
+            for (const dexEntry of POKEDEX) {
+                const entry = p.pokedexData[dexEntry.id];
+                if (entry && entry.defeated) {
+                    if (dexEntry.type) typeMastery[dexEntry.type] = (typeMastery[dexEntry.type] || 0) + entry.defeated;
+                    if (dexEntry.secondType) typeMastery[dexEntry.secondType] = (typeMastery[dexEntry.secondType] || 0) + entry.defeated;
+                }
+            }
+        }
+
+        for (const type of Object.keys(typeColors)) {
+            const mastery = typeMastery[type];
+            const color = typeColors[type];
+            const d = document.createElement('div');
+            
+            const isUnlocked = mastery > 0;
+            const filterStyle = isUnlocked ? '' : 'filter: grayscale(100%) opacity(0.5);';
+
+            d.style.cssText = `display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.3); border: 2px solid ${isUnlocked ? color : '#555'}; padding: 10px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); ${filterStyle}`;
+            d.innerHTML = `
+                <div style="background-color:${color}; color:white; padding:4px 10px; border-radius:4px; font-size:0.85rem; text-shadow:1px 1px 1px rgba(0,0,0,0.5); font-weight: bold; width: 100%; text-align: center; box-sizing: border-box; margin-bottom: 8px;">${type}</div>
+                <div style="font-size: 1.2rem; font-weight: bold; color: ${isUnlocked ? '#fff' : '#777'}; display: flex; align-items: baseline; gap: 4px;">
+                    Lv.${mastery}
+                </div>
+                <div style="font-size: 0.75rem; color: ${isUnlocked ? '#2ecc71' : '#777'}; margin-top: 4px;">
+                    ${mastery > 0 ? `+${mastery}% Dano` : 'Sem Bônus'}
+                </div>
+            `;
+            list.appendChild(d);
+        }
+
+        modal.style.display = 'flex';
     }
 
     static openPlayerStats() {
