@@ -1399,7 +1399,7 @@ body {
 }
 
 .z-high {
-    z-index: 1100;
+    z-index: 3000;
 }
 
 .modal-box {
