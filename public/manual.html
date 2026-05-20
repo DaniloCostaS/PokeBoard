@@ -4,523 +4,2558 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PokeBoard - Manual Completo do Treinador</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Roboto+Mono:wght@400;700&display=swap"
+    <title>PokéBoard - Guia Oficial do Treinador</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Press+Start+2P&family=Roboto+Mono:wght@400;700&display=swap"
         rel="stylesheet">
     <style>
         :root {
             --primary: #ee1515;
+            --primary-dark: #b31010;
             --secondary: #2a75bb;
             --accent: #ffcb05;
-            --dark: #1a1a1a;
-            --panel-bg: #222222;
-            --light: #f4f4f4;
-            --white: #ffffff;
-            --gray: #888;
-            --success: #4caf50;
-            --purple: #9b59b6;
-            --orange: #e67e22;
+            --accent-glow: rgba(255, 203, 5, 0.4);
+            --dark-deep: #0a0f12;
+            --dark-panel: rgba(18, 28, 36, 0.85);
+            --dark-card: rgba(255, 255, 255, 0.05);
+            --dark-card-hover: rgba(255, 255, 255, 0.1);
+            --text-light: #f4f6f7;
+            --text-muted: #8fa0ab;
+            --border-glow: rgba(42, 117, 187, 0.3);
+
+            /* Rarity colors */
+            --comum: #7f8c8d;
+            --incomum: #2ecc71;
+            --rara: #3498db;
+            --epica: #9b59b6;
+            --lendaria: #f1c40f;
         }
 
         * {
             box-sizing: border-box;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
+            transition: background-color 0.2s, border-color 0.2s;
+            scrollbar-width: thin;
+            scrollbar-color: var(--secondary) var(--dark-deep);
+        }
+
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--dark-deep);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--secondary);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent);
         }
 
         body {
             font-family: 'Outfit', sans-serif;
-            background-color: var(--dark);
-            color: var(--white);
-            line-height: 1.6;
+            background-color: var(--dark-deep);
+            background-image: radial-gradient(circle at top left, rgba(42, 117, 187, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at bottom right, rgba(238, 21, 21, 0.1) 0%, transparent 50%),
+                url('/assets/img/manual_header.png');
+            background-repeat: no-repeat;
+            background-size: cover, cover, auto 100vh;
+            background-position: center;
+            background-attachment: fixed;
+            color: var(--text-light);
             margin: 0;
             padding: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            line-height: 1.6;
         }
 
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            background-color: var(--panel-bg);
-            box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
+        /* Top Action Buttons (Print & Sound) */
+        .top-bar {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            z-index: 1000;
+            display: flex;
+            gap: 10px;
         }
 
+        .btn-action {
+            background: rgba(18, 28, 36, 0.85);
+            color: var(--text-light);
+            border: 1px solid var(--secondary);
+            padding: 10px 18px;
+            border-radius: 30px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            backdrop-filter: blur(10px);
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .btn-action:hover {
+            transform: scale(1.05);
+            border-color: var(--accent);
+            box-shadow: 0 0 12px var(--accent-glow);
+            color: var(--accent);
+        }
+
+        .btn-action.active {
+            border-color: var(--incomum);
+            color: var(--incomum);
+        }
+
+        /* Layout Container */
+        .wrapper {
+            width: 100%;
+            max-width: 1300px;
+            margin: 40px auto;
+            padding: 0 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        /* Header */
         .header {
-            background: linear-gradient(135deg, var(--primary) 0%, #b31010 100%);
-            padding: 50px 20px;
+            background: linear-gradient(135deg, rgba(238, 21, 21, 0.25) 0%, rgba(179, 16, 16, 0.35) 100%);
+            border: 2px solid rgba(241, 196, 15, 0.4);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 35px 40px;
             text-align: center;
-            border-bottom: 5px solid var(--accent);
             position: relative;
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
 
-        .header img.logo-bg {
+        .header::after {
+            content: '';
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            opacity: 0.1;
-            width: 80%;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.05) 0%, transparent 70%);
             pointer-events: none;
+            animation: rotateBg 40s linear infinite;
+        }
+
+        @keyframes rotateBg {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .header-logo {
+            max-height: 90px;
+            margin-bottom: 15px;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
+            z-index: 1;
         }
 
         .header h1 {
             margin: 0;
-            font-size: 3.5rem;
-            text-transform: uppercase;
-            letter-spacing: 4px;
-            text-shadow: 3px 3px 0px rgba(0, 0, 0, 0.5);
+            font-family: 'Outfit', sans-serif;
+            font-size: 2.8rem;
             font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-light);
+            text-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
+            z-index: 1;
         }
 
         .header p {
-            margin: 10px 0 0;
-            font-size: 1.3rem;
-            opacity: 0.9;
-            font-weight: 300;
-        }
-
-        .nav-print {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 100;
-        }
-
-        .btn-print {
-            background: var(--accent);
-            color: #000;
-            border: none;
-            padding: 12px 25px;
-            border-radius: 30px;
-            font-weight: 800;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-            transition: transform 0.2s;
-        }
-
-        .btn-print:hover { transform: scale(1.05); }
-
-        .content {
-            padding: 50px;
-        }
-
-        section {
-            margin-bottom: 60px;
-        }
-
-        h2 {
+            margin: 8px 0 0;
+            font-size: 1.15rem;
             color: var(--accent);
-            border-bottom: 2px solid var(--primary);
-            padding-bottom: 10px;
-            margin-top: 0;
-            font-size: 2.2rem;
-            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 4px;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 0.65rem;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+            z-index: 1;
+        }
+
+        /* Dashboard Grid */
+        .dashboard {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 25px;
+            align-items: start;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            background: var(--dark-panel);
+            border: 1px solid var(--border-glow);
+            border-radius: 20px;
+            padding: 20px;
+            backdrop-filter: blur(16px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .sidebar-title {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            padding: 5px 10px 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+
+        .tab-btn {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid transparent;
+            border-radius: 12px;
+            padding: 14px 18px;
+            text-align: left;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-light);
+            background: rgba(255, 255, 255, 0.05);
+            transform: translateX(5px);
+        }
+
+        .tab-btn.active {
+            color: #000;
+            background: var(--accent);
+            font-weight: 800;
+            box-shadow: 0 0 15px var(--accent-glow);
+            border-color: var(--accent);
+        }
+
+        /* Content Panel */
+        .content-panel {
+            background: var(--dark-panel);
+            border: 1px solid var(--border-glow);
+            border-radius: 20px;
+            padding: 40px;
+            backdrop-filter: blur(16px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            min-height: 600px;
+        }
+
+        /* Tab Content Animation */
+        .tab-content {
+            display: none;
+            animation: fadeSlideIn 0.35s cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Typography & Layout Elements inside Content */
+        h2 {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--accent);
+            margin-top: 0;
+            margin-bottom: 25px;
+            border-left: 5px solid var(--primary);
+            padding-left: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h2 span.section-badge {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 0.55rem;
+            background: var(--primary);
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 4px;
+            letter-spacing: 0;
         }
 
         h3 {
+            font-size: 1.35rem;
+            font-weight: 600;
             color: var(--secondary);
-            margin-top: 30px;
-            font-size: 1.5rem;
+            margin-top: 35px;
+            margin-bottom: 15px;
             display: flex;
             align-items: center;
             gap: 10px;
         }
 
-        p, li {
-            color: #ddd;
-            font-size: 1.1rem;
-            margin-bottom: 15px;
+        p {
+            color: var(--text-light);
+            opacity: 0.9;
+            font-size: 1.05rem;
+            margin-bottom: 20px;
+            text-align: justify;
         }
 
-        .highlight {
-            color: var(--accent);
-            font-weight: 600;
-        }
-
-        .grid {
+        /* Cards & Info Boxes */
+        .grid-2 {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 25px;
+            gap: 20px;
             margin: 25px 0;
         }
 
-        .card {
-            background-color: #2d2d2d;
-            border-radius: 12px;
-            padding: 25px;
-            border-left: 5px solid var(--secondary);
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
-            height: 100%;
+        .grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            margin: 25px 0;
         }
 
-        .card-title {
-            font-weight: 800;
-            font-size: 1.2rem;
-            margin-bottom: 10px;
-            display: block;
-            color: var(--white);
-        }
-
-        .alert-box {
-            background: rgba(238, 21, 21, 0.1);
-            border: 2px dashed var(--primary);
+        .info-card {
+            background: var(--dark-card);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
             padding: 20px;
-            border-radius: 12px;
-            margin: 30px 0;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
 
-        /* Tabelas Customizadas */
-        .table-wrapper {
+        .info-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--secondary);
+        }
+
+        .info-card.primary::before {
+            background: var(--primary);
+        }
+
+        .info-card.accent::before {
+            background: var(--accent);
+        }
+
+        .info-card.success::before {
+            background: var(--incomum);
+        }
+
+        .info-card-title {
+            font-weight: 800;
+            font-size: 1.15rem;
+            margin-bottom: 10px;
+            color: var(--text-light);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .info-card p {
+            font-size: 0.95rem;
+            margin: 0;
+            color: var(--text-muted);
+            text-align: left;
+        }
+
+        /* Highlight Boxes (Onboarding) */
+        .onboarding-box {
+            background: rgba(42, 117, 187, 0.08);
+            border: 1px solid var(--secondary);
+            padding: 24px;
+            border-radius: 16px;
+            margin: 30px 0;
+            position: relative;
+        }
+
+        .onboarding-box.warning {
+            background: rgba(238, 21, 21, 0.06);
+            border-color: var(--primary);
+        }
+
+        .onboarding-tag {
+            position: absolute;
+            top: -12px;
+            left: 20px;
+            background: var(--secondary);
+            color: #000;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 0.55rem;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+
+        .onboarding-box.warning .onboarding-tag {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        .onboarding-box h4 {
+            margin: 5px 0 10px;
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: var(--text-light);
+        }
+
+        .onboarding-box ul,
+        .onboarding-box ol {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        .onboarding-box li {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .onboarding-box li strong {
+            color: var(--text-light);
+        }
+
+        .onboarding-box li:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Formulas Styling */
+        .formula-container {
+            background: #04080a;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin: 20px 0;
+            font-family: 'Roboto Mono', monospace;
+            text-align: center;
+        }
+
+        .formula {
+            font-size: 1.1rem;
+            color: var(--incomum);
+            font-weight: bold;
+            display: block;
+        }
+
+        .formula-legend {
+            display: block;
+            margin-top: 8px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* Tables Customization */
+        .table-container {
             overflow-x: auto;
             margin: 25px 0;
-            border-radius: 12px;
-            border: 1px solid #444;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            background: rgba(0, 0, 0, 0.2);
+            background: rgba(4, 8, 10, 0.4);
+            font-size: 0.95rem;
         }
 
-        th, td {
-            padding: 15px;
+        th,
+        td {
+            padding: 14px 16px;
             text-align: left;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         th {
-            background: rgba(0, 0, 0, 0.5);
+            background: rgba(0, 0, 0, 0.4);
             color: var(--accent);
             font-weight: 800;
             text-transform: uppercase;
-            font-size: 0.9rem;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
         }
 
-        .formula {
-            font-family: 'Roboto Mono', monospace;
-            background: #000;
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        /* Rarity Badges */
+        .rarity-badge {
+            display: inline-block;
             padding: 3px 8px;
             border-radius: 4px;
-            color: var(--success);
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: #fff;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+            letter-spacing: 0.5px;
+        }
+
+        .rarity-badge.comum {
+            background-color: var(--comum);
+        }
+
+        .rarity-badge.incomum {
+            background-color: var(--incomum);
+        }
+
+        .rarity-badge.rara {
+            background-color: var(--rara);
+        }
+
+        .rarity-badge.epica {
+            background-color: var(--epica);
+        }
+
+        .rarity-badge.lendaria {
+            background-color: var(--accent);
+            color: #000;
+            text-shadow: none;
+            font-weight: bold;
+        }
+
+        /* Element Type Badges */
+        .type-badge {
+            display: inline-block;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 800;
+            color: #fff;
+            text-transform: uppercase;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        /* ==========================================================================
+           MOCKUPS INTERATIVOS (HTML/CSS)
+           ========================================================================== */
+
+        /* 1. HUD Mockup */
+        .mock-hud-container {
+            background: radial-gradient(circle at center, #1b2a36 0%, #0d161d 100%);
+            border: 2px solid var(--border-glow);
+            border-radius: 16px;
+            padding: 15px;
+            margin: 25px 0;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .mock-hud-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 10px;
+        }
+
+        .mock-hud-profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .mock-hud-avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            object-fit: cover;
+            background: #555;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+        }
+
+        .mock-hud-playerinfo {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .mock-hud-name {
+            font-weight: 800;
+            color: #fff;
             font-size: 0.95rem;
         }
 
-        .badge {
-            display: inline-block;
-            padding: 5px 12px;
-            border-radius: 6px;
-            font-size: 0.85rem;
+        .mock-hud-subtitle {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        .mock-hud-gold {
             font-weight: 800;
-            color: white;
-            margin-right: 5px;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+            color: var(--accent);
+            font-size: 1.1rem;
+            text-shadow: 0 0 5px rgba(255, 203, 5, 0.3);
+        }
+
+        .mock-hud-badges {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 6px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .mock-hud-badge-slot {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            filter: grayscale(1) opacity(0.2);
+            transition: all 0.3s;
+        }
+
+        .mock-hud-badge-slot.active {
+            filter: grayscale(0) opacity(1);
+            background-color: rgba(255, 255, 255, 0.15);
+            border-color: var(--accent);
+            box-shadow: 0 0 8px var(--accent-glow);
+            transform: scale(1.1);
+        }
+
+        .mock-hud-team {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .mock-hud-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .mock-hud-mon-img {
+            width: 44px;
+            height: 44px;
+            image-rendering: pixelated;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .mock-hud-mon-info {
+            flex: 1;
+        }
+
+        .mock-hud-mon-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: #fff;
+            margin-bottom: 4px;
+        }
+
+        .mock-hud-mon-level {
+            color: var(--secondary);
+            font-size: 0.7rem;
+        }
+
+        .mock-hud-bar-container {
+            width: 100%;
+            height: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+            margin-bottom: 2px;
+        }
+
+        .mock-hud-hp-bar {
+            height: 100%;
+            background: var(--incomum);
+            border-radius: 4px;
+        }
+
+        .mock-hud-hp-bar.red {
+            background: var(--primary);
+        }
+
+        .mock-hud-xp-bar {
+            height: 4px;
+            background: var(--epica);
+            border-radius: 2px;
+        }
+
+        .mock-hud-mon-held {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 2px;
+        }
+
+        /* 2. Interactive Map Tiles */
+        .mock-board-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin: 25px 0;
+        }
+
+        .mock-tile {
+            height: 110px;
+            border-radius: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 12px;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .mock-tile::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, transparent 40%, rgba(0, 0, 0, 0.85) 90%);
+            z-index: 1;
+        }
+
+        .mock-tile:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent);
+            box-shadow: 0 8px 20px rgba(255, 203, 5, 0.2);
+        }
+
+        .mock-tile-bg {
+            position: absolute;
+            inset: 0;
+            background-size: cover;
+            background-position: center;
+            filter: brightness(0.65) saturate(1.1);
+            transition: transform 0.5s;
+        }
+
+        .mock-tile:hover .mock-tile-bg {
+            transform: scale(1.1);
+        }
+
+        .mock-tile-icon {
+            font-size: 1.5rem;
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 2;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+            filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.2));
+        }
+
+        .mock-tile-name {
+            font-weight: 800;
+            color: #fff;
+            font-size: 0.85rem;
+            z-index: 2;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .mock-tile-desc {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            z-index: 2;
+            margin-top: 2px;
+        }
+
+        /* 3. Combat Flowchart */
+        .flowchart {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin: 30px 0;
+        }
+
+        .flow-node {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            position: relative;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .flow-node::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 5px;
+            height: 100%;
+            background: var(--secondary);
+            border-radius: 12px 0 0 12px;
+        }
+
+        .flow-step {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 0.55rem;
+            background: var(--secondary);
+            color: #000;
+            padding: 4px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .flow-node.primary::before {
+            background: var(--primary);
+        }
+
+        .flow-node.primary .flow-step {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        .flow-node.accent::before {
+            background: var(--accent);
+        }
+
+        .flow-node.accent .flow-step {
+            background: var(--accent);
+            color: #000;
+        }
+
+        .flow-info {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        .flow-title {
+            font-weight: 800;
+            font-size: 1rem;
+            color: #fff;
+            margin-bottom: 2px;
+        }
+
+        .flow-desc {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .flow-arrow {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--text-muted);
+            font-size: 1.2rem;
+            animation: arrowPulse 1.5s infinite;
+        }
+
+        @keyframes arrowPulse {
+
+            0%,
+            100% {
+                transform: translateY(0);
+                opacity: 0.5;
+            }
+
+            50% {
+                transform: translateY(4px);
+                opacity: 1;
+            }
+        }
+
+        /* 4. Interactive Card Fusion Simulator */
+        .fusion-simulator {
+            background: radial-gradient(circle at center, #261730 0%, #0d0612 100%);
+            border: 2px dashed var(--epica);
+            border-radius: 18px;
+            padding: 25px;
+            text-align: center;
+            position: relative;
+            margin: 30px 0;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        .fusion-deck {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            min-height: 140px;
+            align-items: center;
+        }
+
+        .fusion-card {
+            width: 90px;
+            height: 130px;
+            background: linear-gradient(135deg, #2c3e50 0%, #1a252f 100%);
+            border: 2px solid var(--comum);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+        }
+
+        .fusion-card.merged {
+            transform: scale(0) rotate(180deg);
+            opacity: 0;
+        }
+
+        .fusion-card-icon {
+            font-size: 1.8rem;
+            margin-bottom: 6px;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+        }
+
+        .fusion-card-name {
+            font-size: 0.65rem;
+            font-weight: 800;
+            color: #fff;
+            text-transform: uppercase;
+            text-align: center;
+            padding: 0 5px;
+        }
+
+        .fusion-card-rarity {
+            font-size: 0.5rem;
+            color: var(--text-muted);
+            margin-top: 3px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .fusion-result-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            z-index: 5;
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .fusion-result-container.active {
+            transform: translate(-50%, -50%) scale(1.4);
+        }
+
+        .fusion-result-card {
+            width: 100px;
+            height: 145px;
+            background: radial-gradient(circle at center, #3d1c5a 0%, #1f0b30 100%);
+            border: 3px solid var(--epica);
+            box-shadow: 0 0 25px var(--epica), 0 10px 30px rgba(0, 0, 0, 0.7);
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            animation: cardGlowPulse 2s infinite alternate;
+        }
+
+        @keyframes cardGlowPulse {
+            from {
+                box-shadow: 0 0 15px rgba(155, 89, 182, 0.5);
+            }
+
+            to {
+                box-shadow: 0 0 30px rgba(155, 89, 182, 0.9);
+            }
+        }
+
+        .fusion-result-badge {
+            position: absolute;
+            top: -8px;
+            background: var(--epica);
+            color: #fff;
+            font-size: 0.5rem;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+        }
+
+        .btn-fuse {
+            background: var(--secondary);
+            color: #fff;
+            border: none;
+            border-radius: 30px;
+            padding: 12px 30px;
+            font-size: 0.95rem;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.2s;
+            margin-top: 10px;
+        }
+
+        .btn-fuse:hover:not(:disabled) {
+            background: var(--accent);
+            color: #000;
+            box-shadow: 0 0 15px var(--accent-glow);
+            transform: scale(1.05);
+        }
+
+        .btn-fuse:disabled {
+            background: #555;
+            color: #888;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* 5. Combat Preview Box */
+        .mock-battle-panel {
+            background: linear-gradient(180deg, #111e25 0%, #060b0e 100%);
+            border: 2px solid var(--border-glow);
+            border-radius: 16px;
+            padding: 20px;
+            margin: 25px 0;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+        }
+
+        .mock-battle-field {
+            background-image: url('/assets/img/Background/BatalhaTerrenoGrama.png');
+            background-size: cover;
+            background-position: center;
+            border-radius: 10px;
+            height: 160px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 30px;
+            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .mock-battle-fighter {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100px;
+        }
+
+        .mock-battle-sprite {
+            width: 70px;
+            height: 70px;
+            object-fit: contain;
+            image-rendering: pixelated;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4));
+        }
+
+        .mock-battle-status {
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 6px;
+            padding: 4px 8px;
+            width: 105px;
+            font-size: 0.65rem;
+            color: #fff;
+            text-align: center;
+        }
+
+        .mock-battle-hp {
+            height: 6px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 3px;
+        }
+
+        .mock-battle-hp-fill {
+            height: 100%;
+            background: var(--incomum);
+        }
+
+        .mock-battle-hp-fill.yellow {
+            background: var(--accent);
+        }
+
+        .mock-battle-vs {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 0.8rem;
+            color: var(--accent);
+            text-shadow: 0 0 10px var(--accent-glow), 2px 2px 0 #000;
+        }
+
+        .mock-battle-log {
+            background: #04080a;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 10px 15px;
+            margin-top: 12px;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            max-height: 80px;
+            overflow-y: auto;
+            text-align: left;
+        }
+
+        .mock-battle-log-line {
+            margin-bottom: 4px;
+        }
+
+        .mock-battle-log-line span.dmg {
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        .mock-battle-log-line span.system {
+            color: var(--accent);
+        }
+
+        /* 6. Card Strategic Display */
+        .card-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px;
+            margin: 25px 0;
+        }
+
+        .card-item {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%);
+            border: 2px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s;
+        }
+
+        .card-item:hover {
+            transform: scale(1.03);
+            border-color: var(--border-glow);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .card-item.comum {
+            border-color: rgba(127, 140, 141, 0.3);
+        }
+
+        .card-item.incomum {
+            border-color: rgba(46, 204, 113, 0.3);
+        }
+
+        .card-item.rara {
+            border-color: rgba(52, 152, 219, 0.3);
+        }
+
+        .card-item.epica {
+            border-color: rgba(155, 89, 182, 0.3);
+        }
+
+        .card-item.lendaria {
+            border-color: rgba(241, 196, 15, 0.4);
+        }
+
+        .card-item-icon {
+            font-size: 2.2rem;
+            margin-bottom: 8px;
+            filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.4));
+        }
+
+        .card-item-name {
+            font-weight: 800;
+            color: #fff;
+            font-size: 0.95rem;
+            margin-bottom: 4px;
             text-transform: uppercase;
         }
 
-        .b-comum { background-color: #7f8c8d; }
-        .b-incomum { background-color: var(--success); }
-        .b-rara { background-color: var(--secondary); }
-        .b-epica { background-color: var(--purple); }
-        .b-lendaria { background-color: var(--accent); color: #000; text-shadow: none; }
-
-        .icon-tile {
-            width: 30px;
-            height: 30px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            background: #444;
-            border-radius: 6px;
-            margin-right: 10px;
-            font-size: 1.2rem;
+        .card-item-type {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
         }
 
-        .footer {
-            padding: 40px;
-            background-color: #111;
-            border-top: 3px solid var(--primary);
-            color: var(--gray);
-            text-align: center;
+        .card-item-desc {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+            flex: 1;
+        }
+
+        /* Interactive Glossary Search */
+        .glossary-search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .glossary-search-input {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-glow);
+            color: #fff;
+            border-radius: 10px;
+            padding: 12px 16px;
             font-size: 1rem;
+            outline: none;
+            transition: all 0.2s;
         }
 
-        @media (max-width: 768px) {
-            .grid { grid-template-columns: 1fr; }
-            .content { padding: 25px; }
-            .header h1 { font-size: 2.2rem; }
+        .glossary-search-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 8px var(--accent-glow);
         }
 
+        .glossary-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .glossary-item {
+            background: var(--dark-card);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 15px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            transition: all 0.2s;
+        }
+
+        .glossary-item:hover {
+            background: rgba(255, 255, 255, 0.03);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .glossary-term {
+            font-weight: 800;
+            color: var(--accent);
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .glossary-definition {
+            font-size: 0.95rem;
+            color: var(--text-light);
+            opacity: 0.9;
+        }
+
+        /* Footer */
+        .footer {
+            padding: 35px 20px;
+            text-align: center;
+            background-color: var(--dark-deep);
+            border-top: 2px solid var(--primary);
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-top: auto;
+        }
+
+        .footer p {
+            margin: 5px 0;
+            text-align: center;
+            font-size: 0.85rem;
+        }
+
+        .footer a {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        /* Responsive */
+        @media (max-width: 1000px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                flex-direction: row;
+                overflow-x: auto;
+                white-space: nowrap;
+                padding: 12px;
+                border-radius: 12px;
+            }
+
+            .sidebar-title {
+                display: none;
+            }
+
+            .tab-btn {
+                padding: 10px 14px;
+                font-size: 0.85rem;
+            }
+
+            .content-panel {
+                padding: 25px;
+            }
+
+            .grid-2,
+            .grid-3 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .header h1 {
+                font-size: 1.8rem;
+            }
+
+            .header p {
+                font-size: 0.55rem;
+                letter-spacing: 2px;
+            }
+
+            .mock-board-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* Print Media Styles */
         @media print {
-            .nav-print { display: none; }
-            .container { box-shadow: none; max-width: 100%; }
-            body { background: white; color: black; }
-            .content { padding: 0; }
-            .card { border: 1px solid #ddd; background: #fafafa; color: black; }
-            .card-title { color: #000; }
-            p, li { color: #333; }
-            h2 { border-bottom-color: black; }
-            .table-wrapper { border-color: #ccc; }
-            th { background: #eee; color: black; }
-            .formula { background: #eee; color: #d35400; }
+
+            .top-bar,
+            .sidebar,
+            .btn-fuse,
+            .fusion-simulator,
+            .glossary-search-box {
+                display: none !important;
+            }
+
+            body {
+                background: #fff !important;
+                color: #000 !important;
+            }
+
+            .wrapper {
+                margin: 0;
+                padding: 0;
+                max-width: 100%;
+            }
+
+            .header {
+                background: none !important;
+                border: 2px solid #000 !important;
+                color: #000 !important;
+                border-radius: 0;
+                box-shadow: none !important;
+            }
+
+            .header h1 {
+                color: #000 !important;
+                text-shadow: none !important;
+            }
+
+            .header p {
+                color: #555 !important;
+                text-shadow: none !important;
+            }
+
+            .dashboard {
+                grid-template-columns: 1fr !important;
+            }
+
+            .content-panel {
+                background: none !important;
+                border: none !important;
+                padding: 0 !important;
+                box-shadow: none !important;
+            }
+
+            .tab-content {
+                display: block !important;
+                page-break-after: always;
+            }
+
+            h2 {
+                color: #000 !important;
+                border-left-color: #000 !important;
+            }
+
+            h3 {
+                color: #333 !important;
+            }
+
+            p,
+            li {
+                color: #222 !important;
+            }
+
+            .info-card,
+            .onboarding-box,
+            .formula-container,
+            .mock-hud-container,
+            .mock-battle-panel {
+                background: #fafafa !important;
+                border: 1px solid #ccc !important;
+                color: #000 !important;
+                box-shadow: none !important;
+            }
+
+            .info-card::before,
+            .onboarding-tag {
+                background: #555 !important;
+                color: #fff !important;
+            }
+
+            table {
+                background: #fff !important;
+                color: #000 !important;
+                border: 1px solid #ccc !important;
+            }
+
+            th {
+                background: #eee !important;
+                color: #000 !important;
+            }
+
+            td,
+            th {
+                border-bottom: 1px solid #ccc !important;
+            }
+
+            .formula {
+                color: #c0392b !important;
+            }
         }
     </style>
 </head>
 
 <body>
 
-    <div class="nav-print">
-        <button class="btn-print" onclick="window.print()">📥 SALVAR MANUAL (PDF)</button>
+    <!-- TOP CONTROL ACTIONS -->
+    <div class="top-bar">
+        <button id="sound-btn" class="btn-action" onclick="toggleSound()">🔊 Sons: Ativados</button>
+        <button class="btn-action" onclick="window.print()">📥 Salvar Manual (PDF)</button>
     </div>
 
-    <div class="container">
+    <div class="wrapper">
+        <!-- HEADER -->
         <div class="header">
-            <img src="/assets/img/manual_header.png" alt="PokéBoard" style="max-width: 300px; margin-bottom: 20px;">
-            <h1>Manual do Treinador</h1>
-            <p>Guia Completo de Regras, Mecânicas e Estratégias - Versão 93</p>
+            <h1>PokéBoard</h1>
+            <p>Guia Oficial do Treinador • Versão V94b</p>
         </div>
 
-        <div class="content">
+        <!-- DASHBOARD GRID -->
+        <div class="dashboard">
 
-            <!-- 1. INTRODUÇÃO -->
-            <section id="intro">
-                <h2>1. A Jornada para a Glória</h2>
-                <p>No <b>PokéBoard</b>, você assume o papel de um Treinador Pokémon em um mapa vivo e dinâmico. Seu objetivo é simples, mas desafiador: </p>
-                <div class="grid">
-                    <div class="card">
-                        <span class="card-title">🏆 Objetivo Primário</span>
-                        <p>Colete as <span class="highlight">8 Insígnias de Ginásio</span> espalhadas pelo mapa derrotando os Líderes.</p>
+            <!-- SIDEBAR -->
+            <div class="sidebar">
+                <div class="sidebar-title">Navegação</div>
+                <button class="tab-btn active" onclick="switchTab(event, 'comece-aqui')">🎮 Comece Aqui</button>
+                <button class="tab-btn" onclick="switchTab(event, 'tabuleiro')">🗺️ O Tabuleiro</button>
+                <button class="tab-btn" onclick="switchTab(event, 'combate')">⚔️ Combate 2.1</button>
+                <button class="tab-btn" onclick="switchTab(event, 'cartas-progresso')">🃏 Cartas & Progressão</button>
+                <button class="tab-btn" onclick="switchTab(event, 'eventos')">⛈️ Eventos & Climas</button>
+                <button class="tab-btn" onclick="switchTab(event, 'estrategias')">💡 Dicas & Estratégias</button>
+                <button class="tab-btn" onclick="switchTab(event, 'glossario')">📖 Glossário</button>
+            </div>
+
+            <!-- CONTENT PANEL -->
+            <div class="content-panel">
+
+                <!-- 1. COMECE AQUI -->
+                <div id="comece-aqui" class="tab-content active">
+                    <h2>Comece Aqui <span class="section-badge">Introdução</span></h2>
+                    <p>
+                        Seja bem-vindo ao <strong>PokéBoard</strong>! Você está prestes a ingressar em uma jornada
+                        emocionante e altamente estratégica.
+                        Este jogo de tabuleiro digital combina a essência clássica das batalhas Pokémon com táticas
+                        intensas de posicionamento, gerenciamento de economia,
+                        e uso de cartas especiais em um mundo dinâmico e vivo.
+                    </p>
+
+                    <div class="onboarding-box">
+                        <div class="onboarding-tag">COMECE POR AQUI</div>
+                        <h4>Sua Jornada de 10 Minutos para a Glória:</h4>
+                        <ol>
+                            <li><strong>Configure e Inicie:</strong> Escolha seu Avatar de Treinador (Ethan, Barry, May,
+                                Dawn ou Red), determine a quantidade de jogadores (2 a 8) e selecione o tamanho do mapa.
+                                Se preferir, crie ou entre em uma sala para jogar online em tempo real.</li>
+                            <li><strong>Ressuscite a Economia:</strong> Cada treinador começa a jornada com ouro no
+                                bolso. Use as Cidades para equipar e expandir seu poder inicial.</li>
+                            <li><strong>Role o Dado e explore:</strong> Em seu turno, rolar o dado d6 move seu treinador
+                                pelo anel de exploração. A casa em que pousar ativará encontros imediatos ou ações.</li>
+                            <li><strong>Monte sua equipe:</strong> Capture Pokémon selvagens, evolua seus níveis em
+                                combates e monte um time sinérgico de até 6 Pokémon ativos.</li>
+                            <li><strong>Colecione Insígnias:</strong> Caia nos Ginásios elementares espalhados pelo mapa
+                                e desafie os Líderes para provar o seu valor e conquistar a insígnia.</li>
+                            <li><strong>Derrube o Campeão:</strong> Conquiste as 8 insígnias exclusivas e desafie o
+                                Campeão da Liga para conquistar o título absoluto e vencer a partida!</li>
+                        </ol>
                     </div>
-                    <div class="card">
-                        <span class="card-title">👑 O Desafio Final</span>
-                        <p>Ao conquistar as 8 insígnias, você poderá desafiar o <span class="highlight">Campeão Global</span> para tomar o trono e vencer a partida.</p>
+
+                    <h3>Objetivo Primário do Jogo</h3>
+                    <div class="grid-2">
+                        <div class="info-card primary">
+                            <span class="info-card-title">🏆 Obter 8 Insígnias</span>
+                            <p>Derrote os Líderes de Ginásio elementares espalhados pelo tabuleiro. Cada líder possui um
+                                time temático de alto nível esperando seu desafio.</p>
+                        </div>
+                        <div class="info-card accent">
+                            <span class="info-card-title">👑 Tomar o Trono</span>
+                            <p>Ao coletar as 8 Insígnias, a Liga se abre. O primeiro treinador a derrotar o Campeão
+                                Global vence o jogo imediatamente.</p>
+                        </div>
                     </div>
-                </div>
-                <p>O jogo é baseado em turnos. No seu turno, você rola o dado para andar, usa cartas estratégicas e interage com as casas onde cai.</p>
-            </section>
 
-            <!-- 2. TABULEIRO -->
-            <section id="board">
-                <h2>2. O Tabuleiro e Suas Casas</h2>
-                <p>Cada espaço no tabuleiro (Tile) possui uma função específica. Entender onde você pisa é a chave para a sobrevivência.</p>
-                
-                <div class="table-wrapper">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Casa</th>
-                                <th>Descrição e Efeitos</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td><div class="icon-tile">🌿</div> <b>Selvagem (Grama/Água/Terra)</b></td>
-                                <td>Gera um encontro com Pokémon selvagem. O tipo depende do terreno. 80% do mapa.</td>
-                            </tr>
-                            <tr>
-                                <td><div class="icon-tile">🏙️</div> <b>Cidade</b></td>
-                                <td>Acesso ao <b>Centro Pokémon</b> (Cura), <b>PokéMart</b> (Itens) e <b>Mercado de Cartas</b>.</td>
-                            </tr>
-                            <tr>
-                                <td><div class="icon-tile">🏛️</div> <b>Ginásio</b></td>
-                                <td>Onde estão os Líderes. Se já venceu, você ganha uma carta ou tem uma chance de ser <span class="highlight">teletransportado</span> para um desafio em outro Ginásio invicto!</td>
-                            </tr>
-                            <tr>
-                                <td><div class="icon-tile">❓</div> <b>Evento</b></td>
-                                <td>Efeitos aleatórios: Teletransporte, presentes grátis (Itens/Cartas) ou bônus de sorte.</td>
-                            </tr>
-                            <tr>
-                                <td><div class="icon-tile">👤</div> <b>NPCs (Rocket/Treinadores)</b></td>
-                                <td>Batalhas contra treinadores automáticos. Ótimos para farmar Ouro (G) e XP.</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+                    <!-- HUD SECTION EXPLAINED -->
+                    <h3>Entenda o seu HUD (Painel do Treinador)</h3>
+                    <p>
+                        O HUD no PokéBoard foi desenvolvido para ser moderno e limpo, dando a você controle absoluto de
+                        sua equipe e recursos.
+                        Abaixo, veja um exemplo simulado de como o HUD representa suas informações:
+                    </p>
 
-                <div class="alert-box">
-                    <b>🚩 Bônus de Volta:</b> Ao completar uma volta no mapa, você recebe <b>500G</b>, <b>2 Cartas</b> e todo seu time ganha <b>+1 Nível</b> (até o nível 25).
-                </div>
-            </section>
+                    <!-- HUD Mockup -->
+                    <div class="mock-hud-container">
+                        <div class="mock-hud-header">
+                            <div class="mock-hud-profile">
+                                <img src="/assets/img/Treinadores/Red.png" class="mock-hud-avatar" alt="Avatar">
+                                <div class="mock-hud-playerinfo">
+                                    <span class="mock-hud-name">Treinador Ash</span>
+                                    <span class="mock-hud-subtitle">Status: Explorando</span>
+                                </div>
+                            </div>
+                            <div class="mock-hud-gold">💰 1.450G</div>
+                        </div>
 
-            <!-- 3. BATALHA -->
-            <section id="battle">
-                <h2>3. Sistema de Combate 2.1</h2>
-                <p>As batalhas no PokéBoard utilizam um sistema híbrido de atributos e sorte (Dice System). Não basta ter o Pokémon mais forte; a estratégia e a tipagem importam.</p>
+                        <!-- Badge slot collection -->
+                        <div class="mock-hud-badges">
+                            <div class="mock-hud-badge-slot active"
+                                style="background-image: url('/assets/img/Insignias/Fogo.png'); background-size: cover;"
+                                title="Insígnia de Fogo"></div>
+                            <div class="mock-hud-badge-slot active"
+                                style="background-image: url('/assets/img/Insignias/Agua.png'); background-size: cover;"
+                                title="Insígnia de Água"></div>
+                            <div class="mock-hud-badge-slot active"
+                                style="background-image: url('/assets/img/Insignias/Eletrico.png'); background-size: cover;"
+                                title="Insígnia Elétrica"></div>
+                            <div class="mock-hud-badge-slot" title="Não conquistada"></div>
+                            <div class="mock-hud-badge-slot" title="Não conquistada"></div>
+                            <div class="mock-hud-badge-slot" title="Não conquistada"></div>
+                            <div class="mock-hud-badge-slot" title="Não conquistada"></div>
+                            <div class="mock-hud-badge-slot" title="Não conquistada"></div>
+                        </div>
 
-                <h3>📊 Atributos e Influência</h3>
-                <div class="table-wrapper">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Atributo</th>
-                                <th>Impacto Mecânico</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td><b>❤️ HP (Vida)</b></td>
-                                <td>20% da sua vida máxima é somada ao seu dano base. Pokémon resistentes batem mais pesado!</td>
-                            </tr>
-                            <tr>
-                                <td><b>⚔️ Ataque</b></td>
-                                <td>Representa 65% do seu poder ofensivo base.</td>
-                            </tr>
-                            <tr>
-                                <td><b>🛡️ Defesa</b></td>
-                                <td>Reduz o dano recebido. Se for 50% maior que o Atk inimigo, tem 15% de chance de <b>Refletir</b> o dano.</td>
-                            </tr>
-                            <tr>
-                                <td><b>💨 Velocidade</b></td>
-                                <td>Garante <b>Esquiva</b>, chance de <b>Ataque Duplo</b> e chance de <b>Crítico Especial (+5)</b>.</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <h3>🎲 O Dado da Sorte (D6)</h3>
-                <p>Todo ataque rola um dado invisível que modifica o dano final:</p>
-                <ul>
-                    <li><b>1 ou 2:</b> Falha ou Golpe Ruim (Penalidade de dano).</li>
-                    <li><b>3:</b> Dano Normal.</li>
-                    <li><b>4 ou 5:</b> Golpe Bom (+2 a +3 de bônus).</li>
-                    <li><b>6:</b> <span class="highlight">CRÍTICO!</span> (+5 de dano fixo ignorando defesas parciais).</li>
-                </ul>
-
-                <h3>⚡ Mecânicas Avançadas</h3>
-                <div class="grid">
-                    <div class="card">
-                        <span class="card-title">🛡️ Bloqueio Total</span>
-                        <p>Baseado na diferença entre sua Defesa e o Ataque inimigo. Pode chegar a <span class="highlight">90% de chance</span> de anular o dano completamente.</p>
-                    </div>
-                    <div class="card">
-                        <span class="card-title">⚔️ Ataque Duplo</span>
-                        <p>Se sua velocidade for <span class="highlight">1.5x maior</span> que a do inimigo, você tem 20% de chance de atacar duas vezes no mesmo turno.</p>
-                    </div>
-                </div>
-            </section>
-
-            <!-- 4. PROGRESSÃO -->
-            <section id="progression">
-                <h2>4. Maestria e Ressonância</h2>
-                <p>O jogo recompensa jogadores que caçam e capturam muitos Pokémon, mesmo os repetidos.</p>
-
-                <div class="grid">
-                    <div class="card" style="border-color: var(--primary);">
-                        <span class="card-title">🧬 Ressonância Genética</span>
-                        <p>Ao capturar o <b>mesmo Pokémon várias vezes</b>, a essência deles se funde na sua Pokébox. Cada cópia repetida dá <span class="highlight">+10% em TODOS os status</span> para aquele Pokémon no seu time.</p>
-                    </div>
-                    <div class="card" style="border-color: var(--success);">
-                        <span class="card-title">⚔️ Maestria de Tipo</span>
-                        <p>Sempre que você derrota um Pokémon de um certo tipo (ex: Fogo), você ganha <b>+1% de bônus de dano permanente</b> para ataques desse tipo.</p>
-                    </div>
-                </div>
-            </section>
-
-            <!-- 5. ITENS -->
-            <section id="items">
-                <h2>5. Itens e Hold Items</h2>
-                <p>O PokéMart vende itens de uso imediato e os poderosos <b>Itens de Segurar (Hold Items)</b>.</p>
-
-                <h3>🎒 Hold Items (Efeitos Passivos)</h3>
-                <div class="table-wrapper">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Item</th>
-                                <th>Efeito em Batalha</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td><b>Amulet Coin</b></td>
-                                <td>Garante +100G sempre que o portador derrotar um inimigo.</td>
-                            </tr>
-                            <tr>
-                                <td><b>Leftovers</b></td>
-                                <td>Restaura 10 HP em cada um dos seus turnos de combate.</td>
-                            </tr>
-                            <tr>
-                                <td><b>Quick Claw</b></td>
-                                <td>Garante 100% de chance de atacar primeiro, ignorando a velocidade.</td>
-                            </tr>
-                            <tr>
-                                <td><b>Sitrus Berry</b></td>
-                                <td>Cura 50% de HP quando a vida cai abaixo de 20% (Consumível).</td>
-                            </tr>
-                            <tr>
-                                <td><b>Scope Lens</b></td>
-                                <td>Sempre garante o bônus de Crítico (+5 no dado).</td>
-                            </tr>
-                            <tr>
-                                <td><b>Rocky Helmet</b></td>
-                                <td>Reflete 15% do dano recebido de volta para o agressor.</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-
-            <!-- 6. CARTAS -->
-            <section id="cards">
-                <h2>6. Cartas Estratégicas</h2>
-                <p>Existem 4 categorias de cartas. Lembre-se: você só pode usar <b>3 cartas por batalha</b>!</p>
-
-                <div class="grid">
-                    <div class="card">
-                        <span class="card-title">🏃 Move (Movimento)</span>
-                        <p>Usadas no tabuleiro para mudar sua posição, re-rolar dados ou ganhar bônus de exploração.</p>
-                    </div>
-                    <div class="card">
-                        <span class="card-title">⚔️ Battle (Batalha)</span>
-                        <p>Usadas durante a luta para causar dano extra, curar ou atordoar o inimigo.</p>
-                    </div>
-                    <div class="card">
-                        <span class="card-title">🛡️ Auto (Automáticas)</span>
-                        <p>Ficam na sua mão e são ativadas sozinhas para te defender de ataques de outros jogadores.</p>
-                    </div>
-                    <div class="card">
-                        <span class="card-title">🌍 Global (Mundo)</span>
-                        <p>Afetam todos os jogadores simultaneamente, como o <b>Comunismo</b> ou <b>Imposto de Renda</b>.</p>
+                        <div class="mock-hud-team">
+                            <div class="mock-hud-card">
+                                <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/6.png"
+                                    class="mock-hud-mon-img" alt="Charizard">
+                                <div class="mock-hud-mon-info">
+                                    <div class="mock-hud-mon-header">
+                                        <span>Charizard 🔥</span>
+                                        <span class="mock-hud-mon-level">Lv. 24</span>
+                                    </div>
+                                    <div class="mock-hud-bar-container">
+                                        <div class="mock-hud-hp-bar" style="width: 90%;"></div>
+                                    </div>
+                                    <div class="mock-hud-bar-container" style="height: 4px;">
+                                        <div class="mock-hud-xp-bar" style="width: 75%;"></div>
+                                    </div>
+                                    <div class="mock-hud-mon-held">
+                                        <span>🎸 Choice Band (Dano +10%)</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mock-hud-card">
+                                <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png"
+                                    class="mock-hud-mon-img" alt="Pikachu">
+                                <div class="mock-hud-mon-info">
+                                    <div class="mock-hud-mon-header">
+                                        <span>Pikachu ⚡</span>
+                                        <span class="mock-hud-mon-level">Lv. 19</span>
+                                    </div>
+                                    <div class="mock-hud-bar-container">
+                                        <div class="mock-hud-hp-bar red" style="width: 15%;"></div>
+                                    </div>
+                                    <div class="mock-hud-bar-container" style="height: 4px;">
+                                        <div class="mock-hud-xp-bar" style="width: 40%;"></div>
+                                    </div>
+                                    <div class="mock-hud-mon-held">
+                                        <span>⚡ Garra Rápida (Prioridade 100%)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <h3>💎 Raridades e Forja</h3>
-                <p>Cartas possuem raridades: <span class="badge b-comum">Comum</span> <span class="badge b-incomum">Incomum</span> <span class="badge b-rara">Rara</span> <span class="badge b-epica">Épica</span> <span class="badge b-lendaria">Lendária</span></p>
-                <p>No Menu de Cartas, você pode <b>Sacrificar 2 cartas</b> para ganhar 1 aleatória, ou <b>Fundir 4 iguais</b> para subir a raridade!</p>
-            </section>
+                <!-- 2. O TABULEIRO -->
+                <div id="tabuleiro" class="tab-content">
+                    <h2>Entendendo o Tabuleiro <span class="section-badge">Exploração</span></h2>
+                    <p>
+                        O tabuleiro do PokéBoard é composto por uma trilha fechada de Tiles (casas). Cada casa
+                        desencadeia uma ação imediata quando
+                        um treinador pousa nela após a rolagem do dado. Conhecer a fundo cada casa é a diferença entre
+                        um iniciante e um Mestre Pokémon.
+                    </p>
 
-            <!-- 7. EVENTOS GLOBAIS -->
-            <section id="events">
-                <h2>7. Clima e Eventos Globais</h2>
-                <p>A cada 5 rodadas, o mundo do PokéBoard muda drasticamente por tempo limitado. Os eventos abaixo são apenas alguns exemplos das anomalias que você pode encontrar; existem muitos outros segredos e eventos raros que você precisará jogar para descobrir!</p>
-                <ul>
-                    <li><b>☀️ Onda de Calor / 🌧️ Chuva:</b> Buffs e penalidades baseadas em tipos elementares.</li>
-                    <li><b>🚀 Invasão Rocket:</b> Preços da loja dobram e derrotas resultam em perda de Pokémon.</li>
-                    <li><b>🩸 Lua Sangrenta:</b> Pokémon Fantasmas e Noturnos ficam imparáveis.</li>
-                    <li><b>📈 Chuva de XP / Pokérus:</b> XP em dobro e bônus de status ao evoluir.</li>
-                    <li><b>📜 Imposto de Renda:</b> Todos perdem metade do ouro, itens e cartas não-protegidas.</li>
-                </ul>
-            </section>
+                    <!-- Interactive Tile Selector -->
+                    <h3>Casas e Terrenos Explicados</h3>
+                    <p>Passe o mouse sobre os tiles abaixo para entender seus efeitos estratégicos:</p>
 
-            <!-- 8. REGRAS FINAIS -->
-            <section id="final">
-                <h2>8. O Desafio Final</h2>
-                <div class="alert-box" style="border-color: var(--accent); background: rgba(255,203,5,0.05);">
-                    <b>⚠️ Atenção:</b> Na batalha contra o <b>Campeão Global</b>, as Cartas e Itens da Mochila são <span class="highlight">desativados</span>. É um teste de pura força da sua equipe e estratégia de tipagem. Prepare-se bem antes de desafiá-lo!
+                    <div class="mock-board-grid">
+                        <div class="mock-tile" onclick="playSound('click')">
+                            <div class="mock-tile-bg" style="background-image: url('/assets/img/Terrenos/Grama.jpg');">
+                            </div>
+                            <div class="mock-tile-icon">🌿</div>
+                            <span class="mock-tile-name">Selvagem (Grama)</span>
+                            <span class="mock-tile-desc">Gera batalhas contra Pokémon selvagens terrestres da geração
+                                selecionada.</span>
+                        </div>
+                        <div class="mock-tile" onclick="playSound('click')">
+                            <div class="mock-tile-bg" style="background-image: url('/assets/img/Terrenos/Agua.jpg');">
+                            </div>
+                            <div class="mock-tile-icon">🌊</div>
+                            <span class="mock-tile-name">Selvagem (Água)</span>
+                            <span class="mock-tile-desc">Gera encontros com Pokémon aquáticos. Ótimo local para recrutar
+                                tipos Água/Gelo.</span>
+                        </div>
+                        <div class="mock-tile" onclick="playSound('click')">
+                            <div class="mock-tile-bg" style="background-image: url('/assets/img/Terrenos/Areia.jpg');">
+                            </div>
+                            <div class="mock-tile-icon">🏜️</div>
+                            <span class="mock-tile-name">Selvagem (Areia)</span>
+                            <span class="mock-tile-desc">Gera batalhas com Pokémon do tipo Terra, Pedra, Fogo ou
+                                Aço.</span>
+                        </div>
+                        <div class="mock-tile" onclick="playSound('click')">
+                            <div class="mock-tile-bg"
+                                style="background-image: url('/assets/img/Background/BatalhaTerrenoGym.png');"></div>
+                            <div class="mock-tile-icon">🏛️</div>
+                            <span class="mock-tile-name">Ginásio</span>
+                            <span class="mock-tile-desc">Desafie os líderes pela Insígnia. Se já conquistou, ganhe 1
+                                carta ou chance de teleporte!</span>
+                        </div>
+                        <div class="mock-tile" onclick="playSound('click')">
+                            <div class="mock-tile-bg" style="background-image: url('/assets/img/img/PCMart.jpg');">
+                            </div>
+                            <div class="mock-tile-icon">🏙️</div>
+                            <span class="mock-tile-name">Cidade</span>
+                            <span class="mock-tile-desc">Cure seu time de graça, compre itens no Mart ou adquira Cartas
+                                aleatórias por 500G.</span>
+                        </div>
+                        <div class="mock-tile" onclick="playSound('click')">
+                            <div class="mock-tile-bg" style="background-color: #2c3e50;"></div>
+                            <div class="mock-tile-icon">👤</div>
+                            <span class="mock-tile-name">NPC Treinador</span>
+                            <span class="mock-tile-desc">Batalhas contra a IA (ex: Jovem, Montanhista). Rende muito Ouro
+                                e Experiência.</span>
+                        </div>
+                        <div class="mock-tile" onclick="playSound('click')">
+                            <div class="mock-tile-bg" style="background-color: #7f8c8d;"></div>
+                            <div class="mock-tile-icon">❓</div>
+                            <span class="mock-tile-name">Casa de Evento</span>
+                            <span class="mock-tile-desc">Sorteia um evento aleatório com recompensas, teletransporte ou
+                                bônus inesperados.</span>
+                        </div>
+                        <div class="mock-tile" onclick="playSound('click')">
+                            <div class="mock-tile-bg" style="background-color: #27ae60;"></div>
+                            <div class="mock-tile-icon">🏁</div>
+                            <span class="mock-tile-name">Ponto de Partida</span>
+                            <span class="mock-tile-desc">Ao completar uma volta, você recebe 500G, 2 Cartas e +1 Level
+                                para todo o time!</span>
+                        </div>
+                    </div>
+
+                    <div class="onboarding-box warning">
+                        <div class="onboarding-tag">🚩 MECÂNICA DE VOLTAS</div>
+                        <h4>Salário do Treinador:</h4>
+                        <p>
+                            Sempre que você passar pela casa inicial do tabuleiro e completar uma volta completa no
+                            circuito,
+                            uma premiação automática é concedida para impulsionar sua equipe:
+                        </p>
+                        <ul>
+                            <li><strong>+500G (Ouro)</strong> adicionados à sua carteira.</li>
+                            <li><strong>+2 Cartas Estratégicas</strong> adicionadas à sua mão de jogo.</li>
+                            <li><strong>+1 Nível de Experiência (Level-Up)</strong> automático e integral para todos os
+                                Pokémon de sua equipe (mesmo aqueles nocauteados!), respeitando o limite máximo de Nível
+                                25.</li>
+                        </ul>
+                    </div>
                 </div>
-            </section>
 
+                <!-- 3. COMBATE 2.1 -->
+                <div id="combate" class="tab-content">
+                    <h2>Sistema de Combate 2.1 <span class="section-badge">Mecânicas</span></h2>
+                    <p>
+                        O sistema de combates do PokéBoard foi refinado na versão 2.1 para se tornar um sistema dinâmico
+                        de
+                        atributos matemáticos misturado com a sorte do dado D6 (Dice System).
+                        Aqui, atributos como HP máximo afetam seu dano final, e a velocidade do Pokémon dita quem ataca
+                        primeiro e as chances de golpes múltiplos.
+                    </p>
+
+                    <h3>1. Atributos em Ação</h3>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Atributo</th>
+                                    <th>Impacto Mecânico e Fórmulas</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>❤️ HP (Vida)</strong></td>
+                                    <td>Determina o fôlego em batalha. Além disso, <strong>20% da sua vida
+                                            máxima</strong> é incorporada diretamente no poder de ataque base do
+                                        Pokémon! Pokémon parrudos batem pesado.</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>⚔️ Ataque</strong></td>
+                                    <td>Compõe a principal força ofensiva do monstro, representando <strong>65% do poder
+                                            de dano base</strong> do ataque.</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>🛡️ Defesa</strong></td>
+                                    <td>Aumenta a absorção física. Reduz o dano sofrido percentualmente. Se a sua Defesa
+                                        for <strong>50% maior</strong> do que o Ataque do rival, você ganha <strong>15%
+                                            de chance de refletir 100% do dano</strong> de volta!</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>💨 Velocidade</strong></td>
+                                    <td>Comanda a prioridade do turno. Representa 15% do dano base. Além disso, concede
+                                        chance de <strong>Ataque Duplo</strong>, <strong>Esquiva</strong> e
+                                        <strong>Crítico Veloz</strong>.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h3>Fórmula do Poder Base de Ataque</h3>
+                    <div class="formula-container">
+                        <span class="formula">Poder Base = (Ataque × 0.65) + (Velocidade × 0.15) + (HP Máx ×
+                            0.20)</span>
+                        <span class="formula-legend">O resultado é reduzido pela defesa do inimigo para gerar o Dano
+                            Base do golpe.</span>
+                    </div>
+
+                    <h3>2. Modificadores em Combate</h3>
+                    <div class="grid-2">
+                        <div class="info-card">
+                            <span class="info-card-title">🛡️ Esquiva natural</span>
+                            <p>Calculada com base na diferença de velocidade: <code class="formula"
+                                    style="font-size: 0.85rem; display: inline;">(VelDefensor - VelAtacante) / 5</code>%
+                                de chance de desviar 100% do dano. Mínimo de 10% de chance garantida.</p>
+                        </div>
+                        <div class="info-card">
+                            <span class="info-card-title">🛡️ Bloqueio Total</span>
+                            <p>Baseado no valor bruto de defesa contra o ataque: <code class="formula"
+                                    style="font-size: 0.85rem; display: inline;">(DefDefensor - AtkAtacante) / 5</code>%
+                                de chance de absorção completa do golpe (bloqueio limitado a no máximo 90% de chance).
+                            </p>
+                        </div>
+                        <div class="info-card">
+                            <span class="info-card-title">⚡ Crítico Veloz</span>
+                            <p>Pokémon velozes conseguem atingir pontos fracos. Há uma chance de <code class="formula"
+                                    style="font-size: 0.85rem; display: inline;">Velocidade / 8</code>% de causar +5 de
+                                dano fixo em cada golpe, ignorando defesas parciais.</p>
+                        </div>
+                        <div class="info-card">
+                            <span class="info-card-title">⚔️ Ataque Duplo</span>
+                            <p>Se a velocidade do atacante for <strong>50% maior (1.5x)</strong> que a velocidade do
+                                defensor, há <strong>20% de chance</strong> do Pokémon atacar duas vezes no mesmo turno.
+                            </p>
+                        </div>
+                    </div>
+
+                    <h3>3. O Dado Modificador (D6)</h3>
+                    <p>Ao realizar qualquer golpe, um dado D6 invisível é rolado para modificar o valor de dano final:
+                    </p>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Resultado D6</th>
+                                    <th>Efeito no Dano</th>
+                                    <th>Descrição em Combate</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>🎲 1</td>
+                                    <td><span style="color:var(--primary); font-weight:bold;">-2 Dano</span></td>
+                                    <td>Falha Crítica (Golpe de raspão ou fraco).</td>
+                                </tr>
+                                <tr>
+                                    <td>🎲 2</td>
+                                    <td><span style="color:var(--primary);">-1 Dano</span></td>
+                                    <td>Golpe Ruim (Ataque impreciso).</td>
+                                </tr>
+                                <tr>
+                                    <td>🎲 3</td>
+                                    <td><span>Normal (+0)</span></td>
+                                    <td>Golpe Padrão (Sem modificadores).</td>
+                                </tr>
+                                <tr>
+                                    <td>🎲 4</td>
+                                    <td><span style="color:var(--incomum);">+2 Dano</span></td>
+                                    <td>Golpe Bom (Bem executado).</td>
+                                </tr>
+                                <tr>
+                                    <td>🎲 5</td>
+                                    <td><span style="color:var(--incomum); font-weight:bold;">+3 Dano</span></td>
+                                    <td>Golpe Forte (Excelente pontaria).</td>
+                                </tr>
+                                <tr>
+                                    <td>🎲 6</td>
+                                    <td><span style="color:var(--accent); font-weight:bold;">💥 +5 Dano
+                                            (CRÍTICO!)</span></td>
+                                    <td>Acerto Crítico! Dano extra pesado ignorando resistências parciais.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h3>Fases e Fluxograma de uma Rodada de Combate</h3>
+                    <p>O fluxo de combate segue uma ordem estrita baseada em triggers e velocidade. Analise o fluxo
+                        abaixo:</p>
+
+                    <!-- Flowchart in CSS -->
+                    <div class="flowchart">
+                        <div class="flow-node">
+                            <div class="flow-step">FASE 1</div>
+                            <div class="flow-info">
+                                <span class="flow-title">Verificação de Iniciativa (Velocidade)</span>
+                                <span class="flow-desc">O Pokémon com maior velocidade age primeiro, a não ser que um
+                                    dos lutadores carregue o item <strong>Garra Rápida</strong> (iniciativa
+                                    100%).</span>
+                            </div>
+                        </div>
+                        <div class="flow-arrow">▼</div>
+                        <div class="flow-node primary">
+                            <div class="flow-step">FASE 2</div>
+                            <div class="flow-info">
+                                <span class="flow-title">Checagem de Evasão (Esquiva & Bloqueio)</span>
+                                <span class="flow-desc">O defensor rola sua chance de esquivar (baseado em velocidade) e
+                                    de bloquear (baseado em defesa). Se passar, o dano é zerado!</span>
+                            </div>
+                        </div>
+                        <div class="flow-arrow">▼</div>
+                        <div class="flow-node accent">
+                            <div class="flow-step">FASE 3</div>
+                            <div class="flow-info">
+                                <span class="flow-title">Cálculo de Dano & Dado D6</span>
+                                <span class="flow-desc">O dano básico é calculado, somado ao modificador da rolagem do
+                                    D6, bônus de Crítico Veloz e multiplicadores de tipo elemental (vantagem de tipo dá
+                                    <strong>1.75x</strong> de dano).</span>
+                            </div>
+                        </div>
+                        <div class="flow-arrow">▼</div>
+                        <div class="flow-node">
+                            <div class="flow-step">FASE 4</div>
+                            <div class="flow-info">
+                                <span class="flow-title">Reflexão, Recoil e Pós-Turno</span>
+                                <span class="flow-desc">Verifica-se se há dano refletido de volta ao atacante (por
+                                    diferença de defesa ou itens de segurar como <strong>Rocky Helmet</strong>) e
+                                    aplica-se cura de passivas como <strong>Restos</strong>.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Combat Screen Mockup -->
+                    <h3>Simulação Visual de Combate</h3>
+                    <p>Abaixo veja uma batalha ativa exemplificando os multiplicadores de tipo (Charizard vs Blastoise)
+                        em campo de Grama:</p>
+
+                    <div class="mock-battle-panel">
+                        <div class="mock-battle-field">
+                            <div class="mock-battle-fighter">
+                                <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/6.png"
+                                    class="mock-battle-sprite" alt="Charizard">
+                                <div class="mock-battle-status">
+                                    <strong>Charizard</strong>
+                                    <div class="mock-battle-hp">
+                                        <div class="mock-battle-hp-fill" style="width: 100%;"></div>
+                                    </div>
+                                    <span>HP: 154/154</span>
+                                </div>
+                            </div>
+                            <div class="mock-battle-vs">VS</div>
+                            <div class="mock-battle-fighter">
+                                <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/9.png"
+                                    class="mock-battle-sprite" alt="Blastoise">
+                                <div class="mock-battle-status">
+                                    <strong>Blastoise</strong>
+                                    <div class="mock-battle-hp">
+                                        <div class="mock-battle-hp-fill yellow" style="width: 45%;"></div>
+                                    </div>
+                                    <span>HP: 72/160</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mock-battle-log">
+                            <div class="mock-battle-log-line">🌿 <span class="system">[Terreno]</span> O campo de Grama
+                                aumenta as chances de esbarrar com selvagens tipo Planta.</div>
+                            <div class="mock-battle-log-line">💥 Charizard atacou Blastoise! <span class="dmg">Causou 12
+                                    de dano.</span> (🎲3 Dano Normal, Vantagem Desfavorável x0.75)</div>
+                            <div class="mock-battle-log-line">💨 Blastoise atacou Charizard! <span class="dmg">Causou 26
+                                    de dano.</span> (🎲4 Golpe Bom +2, Vantagem Favorável x1.75!)</div>
+                        </div>
+                    </div>
+
+                    <div class="onboarding-box">
+                        <div class="onboarding-tag">DICA DE SOBREVIVÊNCIA</div>
+                        <h4>Derrota e Consequências:</h4>
+                        <p>Se todos os Pokémon ativos do seu time forem derrotados (HP zerado):</p>
+                        <ul>
+                            <li>Você é teletransportado de volta para o último <strong>Centro Pokémon</strong> visitado.
+                            </li>
+                            <li>Sua carteira de Ouro sofre uma penalidade de <strong>100G</strong> (ouro perdido na
+                                fuga).</li>
+                            <li>Seu personagem fica atordoado e você <strong>perde o próximo turno</strong> inteiro.
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- 4. CARTAS & PROGRESSÃO -->
+                <div id="cartas-progresso" class="tab-content">
+                    <h2>Cartas & Progressão <span class="section-badge">Táticas</span></h2>
+                    <p>
+                        PokéBoard não é decidido apenas rolando dados. O uso estratégico das Cartas na sua mão e o
+                        desenvolvimento a longo prazo
+                        do seu time são os pilares que levam à vitória. Aqui você aprenderá sobre builds de cartas,
+                        maestrias elementares e ressonância genética.
+                    </p>
+
+                    <h3>1. As Quatro Categorias de Cartas</h3>
+                    <div class="card-gallery">
+                        <div class="card-item comum">
+                            <div class="card-item-icon">🏃</div>
+                            <span class="card-item-name">Move (Movimento)</span>
+                            <span class="card-item-type">Uso no Tabuleiro</span>
+                            <span class="card-item-desc">Utilizadas fora do combate. Modificam sua posição, manipulam
+                                dados ou curam pokémon.</span>
+                        </div>
+                        <div class="card-item rara">
+                            <div class="card-item-icon">⚔️</div>
+                            <span class="card-item-name">Battle (Batalha)</span>
+                            <span class="card-item-type">Uso em Luta</span>
+                            <span class="card-item-desc">Usadas ativamente em combate. Concedem bônus de dano,
+                                atordoamento (stun) ou cura total.</span>
+                        </div>
+                        <div class="card-item epica">
+                            <div class="card-item-icon">🛡️</div>
+                            <span class="card-item-name">Auto (Defensiva)</span>
+                            <span class="card-item-type">Ativação Passiva</span>
+                            <span class="card-item-desc">Ficam em sua mão. Protegem você de forma automática caso algum
+                                rival use feitiços contra você.</span>
+                        </div>
+                        <div class="card-item lendaria">
+                            <div class="card-item-icon">🌍</div>
+                            <span class="card-item-name">Global (Mundo)</span>
+                            <span class="card-item-type">Efeito em Todos</span>
+                            <span class="card-item-desc">Modificadores mundiais que afetam as regras e perturbam a
+                                economia de todos os jogadores ativos.</span>
+                        </div>
+                    </div>
+
+                    <h3>Raridades de Cartas</h3>
+                    <p>As cartas do PokéBoard possuem cinco níveis de raridade. O poder das ações cresce drasticamente
+                        em raridades maiores:</p>
+                    <div class="grid-3" style="grid-template-columns: repeat(5, 1fr);">
+                        <div style="text-align:center;"><span class="rarity-badge comum">Comum</span></div>
+                        <div style="text-align:center;"><span class="rarity-badge incomum">Incomum</span></div>
+                        <div style="text-align:center;"><span class="rarity-badge rara">Rara</span></div>
+                        <div style="text-align:center;"><span class="rarity-badge epica">Épica</span></div>
+                        <div style="text-align:center;"><span class="rarity-badge lendaria">Lendária</span></div>
+                    </div>
+
+                    <!-- Interactive Crafting Simulator -->
+                    <h3>Simulador Interativo de Fusão de Cartas</h3>
+                    <p>
+                        No menu de cartas do jogo, você pode fundir recursos. Combine <strong>4 cartas comuns
+                            idênticas</strong>
+                        para criar 1 carta de raridade superior! Ou sacrifique 2 cartas quaisquer para rolar 1 carta
+                        aleatória. Teste a fusão abaixo:
+                    </p>
+
+                    <div class="fusion-simulator">
+                        <div class="fusion-deck" id="fusion-deck">
+                            <div class="fusion-card" id="card-1">
+                                <span class="fusion-card-icon">👟</span>
+                                <span class="fusion-card-name">Tênis</span>
+                                <span class="fusion-card-rarity">Comum</span>
+                            </div>
+                            <div class="fusion-card" id="card-2">
+                                <span class="fusion-card-icon">👟</span>
+                                <span class="fusion-card-name">Tênis</span>
+                                <span class="fusion-card-rarity">Comum</span>
+                            </div>
+                            <div class="fusion-card" id="card-3">
+                                <span class="fusion-card-icon">👟</span>
+                                <span class="fusion-card-name">Tênis</span>
+                                <span class="fusion-card-rarity">Comum</span>
+                            </div>
+                            <div class="fusion-card" id="card-4">
+                                <span class="fusion-card-icon">👟</span>
+                                <span class="fusion-card-name">Tênis</span>
+                                <span class="fusion-card-rarity">Comum</span>
+                            </div>
+                        </div>
+
+                        <!-- Result Card Hidden -->
+                        <div class="fusion-result-container" id="fusion-result">
+                            <div class="fusion-result-card">
+                                <span class="fusion-result-badge">Fusão</span>
+                                <span class="fusion-card-icon" style="font-size: 2.5rem;">🎲</span>
+                                <span class="fusion-card-name" style="font-size: 0.8rem;">Dado Mágico</span>
+                                <span class="fusion-card-rarity"
+                                    style="color:var(--accent); font-weight: bold;">Rara</span>
+                            </div>
+                        </div>
+
+                        <button class="btn-fuse" id="fuse-btn" onclick="startMockFusion()">Fundir 4 Cartas</button>
+                    </div>
+
+                    <h3>2. Mecânicas de Progressão Permanente</h3>
+                    <div class="grid-2">
+                        <div class="info-card primary">
+                            <span class="info-card-title">🧬 Ressonância Genética</span>
+                            <p>
+                                Capturar o mesmo Pokémon várias vezes funde a essência deles na Pokébox.
+                                <strong>Cada cópia duplicada confere +10% de bônus permanente em TODOS os
+                                    status</strong> (HP, Ataque, Defesa e Velocidade) para aquele Pokémon em seu time!
+                                Capped no bônus máximo de <strong>+100% de status</strong> (10 cópias extras
+                                capturadas).
+                            </p>
+                        </div>
+                        <div class="info-card success">
+                            <span class="info-card-title">⚔️ Maestria de Tipo</span>
+                            <p>
+                                Ao derrotar Pokémon selvagens de um determinado tipo, você aumenta sua maestria
+                                elemental.
+                                <strong>Cada nocaute concede +1% de bônus de dano permanente para aquele tipo de
+                                    ataque.</strong>
+                                Se você derrotar 20 Pokémon do tipo Fogo, todos os golpes de fogo de qualquer monstro do
+                                seu time causarão +20% de dano definitivo!
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="onboarding-box warning">
+                        <div class="onboarding-tag">🧬 BÔNUS DE EVOLUÇÃO FORÇADA</div>
+                        <h4>Evoluir Dá Cartas!</h4>
+                        <p>
+                            Quando um Pokémon sobe de nível (ou consome uma carta de evolução) e atinge o patamar de sua
+                            evolução, ele ganha um boost enorme de status e recupera todo o HP.
+                            Além disso, dependendo do nível de evolução (Trigger de evolução do Pokémon), você ganha
+                            cartas bônus grátis:
+                        </p>
+                        <ul>
+                            <li>Se a evolução ocorre no <strong>Nível 5 ou 10</strong>, você compra <strong>+1 Carta
+                                    Estratégica</strong> grátis!</li>
+                            <li>Se a evolução ocorre no <strong>Nível 8</strong>, você compra incríveis <strong>+2
+                                    Cartas Estratégicas</strong> grátis!</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- 5. EVENTOS E CLIMAS -->
+                <div id="eventos" class="tab-content">
+                    <h2>Eventos & Climas Globais <span class="section-badge">Mundo</span></h2>
+                    <p>
+                        O mundo do PokéBoard é instável. A cada <strong>5 rodadas</strong>, uma anomalia climática ou um
+                        evento global é sorteado aleatoriamente,
+                        mudando as regras do mapa ou dos combates para todos os jogadores simultaneamente por tempo
+                        limitado.
+                    </p>
+
+                    <h3>Catálogo Completo de Eventos Mundiais</h3>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Clima / Evento</th>
+                                    <th>Descrição Detalhada e Efeitos em Jogo</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>☀️ <strong>Onda de Calor</strong></td>
+                                    <td>Clima ensolarado extremo. Pokémon do tipo Fogo e Planta recebem <strong>+25% de
+                                            Dano</strong>. Tipo Água sofre penalidade de <strong>-25% de Dano</strong>.
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>🌧️ <strong>Chuva Torrencial</strong></td>
+                                    <td>A tempestade cai! Tipos Água e Elétrico recebem <strong>+25% de Dano</strong>.
+                                        Tipo Fogo enfraquece e perde <strong>-25% de Dano</strong>.</td>
+                                </tr>
+                                <tr>
+                                    <td>🌪️ <strong>Tempestade de Areia</strong></td>
+                                    <td>A poeira cobre o mapa. No início de cada rodada de combate, Pokémon que NÃO
+                                        sejam dos tipos Pedra, Terra ou Aço perdem <strong>10% do HP atual</strong>.
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>❄️ <strong>Nevasca Rigorosa</strong></td>
+                                    <td>Gelo implacável. Pokémon do tipo Gelo recebem impressionantes <strong>+50% de
+                                            Dano</strong>. Outros tipos perdem <strong>-20%</strong>. Além disso,
+                                        Pokémon não-Gelo possuem <strong>15% de chance de congelar</strong> e perder o
+                                        turno de ataque.</td>
+                                </tr>
+                                <tr>
+                                    <td>✨ <strong>Febre Shiny</strong></td>
+                                    <td>O brilho se espalha! Encontros selvagens recebem <strong>+30% de chance
+                                            extra</strong> de gerarem um Pokémon Shiny (brilhante) raro com status
+                                        aprimorados.</td>
+                                </tr>
+                                <tr>
+                                    <td>✨ <strong>Febre Lendária</strong></td>
+                                    <td>Atração de deuses. (Ativo a partir do turno 20). Encontros selvagens recebem
+                                        <strong>+30% de chance extra</strong> de gerarem deidades e Pokémon Lendários.
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>🪤 <strong>Zona Safari Global</strong></td>
+                                    <td>Temporada de caça. Todas as Pokébolas recebem <strong>+50% de chance de
+                                            captura</strong> e seu uso se torna <strong>INFINITO</strong> (as pokébolas
+                                        não são gastas da mochila ao serem jogadas).</td>
+                                </tr>
+                                <tr>
+                                    <td>💰 <strong>Dia de Pagamento</strong></td>
+                                    <td>Enriquecimento acelerado. Todo Ouro (G) conquistado em combates (selvagens, NPCs
+                                        ou ginásios) ou ao completar a volta no tabuleiro é <strong>DOBRADO
+                                            (2x)</strong>.</td>
+                                </tr>
+                                <tr>
+                                    <td>🚀 <strong>Invasão Rocket</strong></td>
+                                    <td>O crime domina. Todos os preços da Loja do Mart são <strong>DOBRADOS</strong>.
+                                        Se você perder qualquer combate para selvagem ou NPC, a Equipe Rocket roubará 1
+                                        Pokémon seu (apenas se seu time tiver mais de 3 membros).</td>
+                                </tr>
+                                <tr>
+                                    <td>📜 <strong>Imposto de Renda</strong></td>
+                                    <td>Fisco implacável. Todos os jogadores perdem instantaneamente <strong>metade de
+                                            todas as suas cartas</strong> (não-protegidas) e <strong>metade de todos os
+                                            itens</strong> da mochila.</td>
+                                </tr>
+                                <tr>
+                                    <td>🌌 <strong>Fenda Espacial</strong></td>
+                                    <td>Distorção espacial. A rolagem do dado para se mover no tabuleiro não dita
+                                        passos; em vez disso, você é <strong>teletransportado para coordenadas
+                                            aleatórias</strong> no mapa.</td>
+                                </tr>
+                                <tr>
+                                    <td>🌑 <strong>Lua Sangrenta</strong></td>
+                                    <td>Instinto assassino. Roubo de ouro em PvP sobe para <strong>60%</strong>.
+                                        Adicionalmente, Pokémon dos tipos Fantasma e Noturno recebem <strong>+20% de
+                                            Dano</strong>.</td>
+                                </tr>
+                                <tr>
+                                    <td>📡 <strong>Tempestade EMP</strong></td>
+                                    <td>Apagão eletrônico. O uso de qualquer Carta de Batalha (Battle Cards) é
+                                        estritamente <strong>bloqueado</strong> e todos os Centros Pokémon do mapa
+                                        fecham para cura.</td>
+                                </tr>
+                                <tr>
+                                    <td>💢 <strong>Fúria de Batalha</strong></td>
+                                    <td>Adrenalina pura. Todos os ataques causam <strong>Dano Dobrado (2x)</strong>.
+                                        Batalhas de combate tornam-se extremamente letais e velozes.</td>
+                                </tr>
+                                <tr>
+                                    <td>☠️ <strong>Névoa Tóxica</strong></td>
+                                    <td>Ar venenoso. Ao final de cada rodada nas batalhas, Pokémon que NÃO sejam dos
+                                        tipos Venenoso ou Aço perdem <strong>10% do seu HP Máximo</strong> por
+                                        sufocamento.</td>
+                                </tr>
+                                <tr>
+                                    <td>🚫 <strong>Bloqueio Mega</strong></td>
+                                    <td>Anomalia de energia. A ativação de qualquer Mega Evolução por meio da Mega Stone
+                                        é <strong>bloqueada</strong> durante os combates.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 6. ESTRATÉGIAS -->
+                <div id="estrategias" class="tab-content">
+                    <h2>Estratégias & Dicas <span class="section-badge">Avançado</span></h2>
+                    <p>
+                        Para sair do básico e garantir a liderança em partidas competitivas (seja contra IAs robustas ou
+                        no Firebase PvP),
+                        use estas táticas avançadas elaboradas pelos melhores treinadores do PokéBoard.
+                    </p>
+
+                    <div class="grid-2">
+                        <div class="info-card primary">
+                            <span class="info-card-title">💡 Primeiros 10 Minutos</span>
+                            <p>
+                                Foque em capturar 2 ou 3 Pokémon selvagens básicos rapidamente para servir de escudo e
+                                diversificar suas fraquezas de tipo.
+                                Não tente desafiar ginásios no nível 1. A prioridade inicial é farmar XP contra NPCs
+                                menores e coletar Ouro.
+                            </p>
+                        </div>
+                        <div class="info-card accent">
+                            <span class="info-card-title">💰 Ouro e Recursos</span>
+                            <p>
+                                Guarde ouro para itens essenciais: <strong>Revives</strong> e <strong>Hold
+                                    Items</strong>.
+                                Comprar um <i>Restos (Leftovers)</i> ou <i>Garra Rápida (Quick Claw)</i> no início é um
+                                investimento massivo de sobrevivência que economiza fortunas em poções a longo prazo.
+                            </p>
+                        </div>
+                    </div>
+
+                    <h3>Estratégias de Movimentação e Rotas</h3>
+                    <p>
+                        Estude a localização dos Ginásios. Planejar sua rota para cair em Cidades antes de enfrentar os
+                        Líderes garante
+                        que seus Pokémon entrem em campo com HP cheio e itens de batalha ativados.
+                    </p>
+
+                    <div class="onboarding-box">
+                        <div class="onboarding-tag">ROTA COMPLEMENTAR</div>
+                        <h4>Aproveitando Ginásios Derrotados:</h4>
+                        <p>
+                            Se você cair em um Ginásio de um Líder que você já derrotou anteriormente, o jogo te concede
+                            recompensas de consolo.
+                            Você ganha <strong>1 Carta de graça</strong> e tem uma chance considerável de ser
+                            <strong>teletransportado</strong> de forma direta
+                            para o portal de outro Ginásio cuja insígnia você ainda não conquistou! Use isso como atalho
+                            para cruzar o tabuleiro rápido.
+                        </p>
+                    </div>
+
+                    <h3>Tipos de Build & Combo de Cartas</h3>
+                    <ul>
+                        <li><strong>Build de Velocidade (Sniper Veloz):</strong> Equipar o item <i>Choice Scarf</i> e
+                            usar cartas como <i>Sniper Americano</i> garante prioridade absoluta e 100% de acerto.
+                            Excelente contra Pokémon com alto potencial de esquiva.</li>
+                        <li><strong>Combo do Nocaute Súbito:</strong> Use a carta <i>Foco Total</i> (causa 400% de dano
+                            no próximo ataque) combinado com a rolagem D6 do item <i>Scope Lens</i> para descarregar um
+                            ataque crítico colossal capaz de apagar chefes inteiros em 1 golpe.</li>
+                        <li><strong>Tática do Controle de Mapa (Troll):</strong> Guarde cartas de movimento como
+                            <i>Troca Rápida</i> ou <i>Moon Walker</i>. Use-as no turno de rivais que estão prestes a
+                            pousar na Liga ou em Ginásios cruciais para sabotá-los.
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- 7. GLOSSÁRIO -->
+                <div id="glossario" class="tab-content">
+                    <h2>Glossário do Treinador <span class="section-badge">Dicionário</span></h2>
+                    <p>Fique por dentro de cada termo técnico, abreviação e mecânica rápida do PokéBoard. Use o campo de
+                        busca abaixo para filtrar instantaneamente:</p>
+
+                    <!-- Interactive Glossary Search -->
+                    <div class="glossary-search-box">
+                        <input type="text" id="glossary-search" class="glossary-search-input" oninput="filterGlossary()"
+                            placeholder="Digite para filtrar os termos... (ex: HP, Ouro, Hold Item)">
+                    </div>
+
+                    <div class="glossary-list" id="glossary-list">
+                        <div class="glossary-item" data-term="hp">
+                            <span class="glossary-term">❤️ HP (Health Points)</span>
+                            <span class="glossary-definition">Pontos de vida do Pokémon. Quando chega a 0, o Pokémon
+                                desmaia e não pode lutar até ser ressuscitado com itens como Revive.</span>
+                        </div>
+                        <div class="glossary-item" data-term="xp">
+                            <span class="glossary-term">💹 XP (Experiência)</span>
+                            <span class="glossary-definition">Pontos necessários para subir o nível dos Pokémon. Subir
+                                de nível aumenta atributos e destrava evoluções.</span>
+                        </div>
+                        <div class="glossary-item" data-term="g ouro moedas">
+                            <span class="glossary-term">💰 G (Gold / Ouro)</span>
+                            <span class="glossary-definition">A moeda corrente do jogo. Usada para comprar itens no
+                                PokéMart, cartas e serviços de cura rápidos nas Cidades.</span>
+                        </div>
+                        <div class="glossary-item" data-term="hold item segurar">
+                            <span class="glossary-term">🎒 Hold Item (Item de Segurar)</span>
+                            <span class="glossary-definition">Equipamentos passivos que um Pokémon pode segurar (ex:
+                                Restos, Rocky Helmet). Eles concedem bônus constantes em combate. Limite de 1 por
+                                Pokémon.</span>
+                        </div>
+                        <div class="glossary-item" data-term="recoil ricochete reflexao">
+                            <span class="glossary-term">🔗 Recoil / Dano de Reflexão</span>
+                            <span class="glossary-definition">Dano sofrido pelo atacante devido a barreiras espelhadas,
+                                passivas de defesa bruta ou clima do evento de Vínculo Sombrio.</span>
+                        </div>
+                        <div class="glossary-item" data-term="stun atordoamento paralisia">
+                            <span class="glossary-term">⚡ Stun (Atordoamento)</span>
+                            <span class="glossary-definition">Efeito que impede o oponente de agir ou atacar por um
+                                número de turnos. Muito aplicado pela carta Ataque Surpresa.</span>
+                        </div>
+                        <div class="glossary-item" data-term="shiny brilhante">
+                            <span class="glossary-term">✨ Shiny (Pokémon Brilhante)</span>
+                            <span class="glossary-definition">Pokémon de coloração alternativa extremamente raros.
+                                Possuem um bônus nativo permanente de +20% em todos os status de combate.</span>
+                        </div>
+                        <div class="glossary-item" data-term="lendario lendarios divindades">
+                            <span class="glossary-term">👑 Lendário (Pokémon)</span>
+                            <span class="glossary-definition">Pokémon místicos e divinos (ex: Mewtwo, Lugia). Possuem
+                                atributos base gigantescos e um multiplicador passivo de +20% de status.</span>
+                        </div>
+                        <div class="glossary-item" data-term="mega evolucao pedra">
+                            <span class="glossary-term">🧬 Mega Evolução</span>
+                            <span class="glossary-definition">Transformação temporária em combate acionada pelo item
+                                Mega Stone. Concede +20% de bônus em todos os status de batalha daquela forma.</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
         </div>
 
+        <!-- FOOTER -->
         <div class="footer">
             <p>&copy; 2026 PokéBoard Game Studio. Todos os direitos reservados.</p>
-            <p>Desenvolvido com tecnologia de ponta para os melhores mestres Pokémon.</p>
+            <p>Guia do Treinador desenhado com maestria para os maiores mestres Pokémon do PokéBoard.</p>
         </div>
     </div>
 
+    <!-- JAVASCRIPT FOR INTERACTIVES -->
+    <script>
+        // Retro audio synthesizer setup
+        let soundEnabled = true;
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const btn = document.getElementById('sound-btn');
+            if (soundEnabled) {
+                btn.innerText = "🔊 Sons: Ativados";
+                btn.classList.remove('active');
+                playSound('success');
+            } else {
+                btn.innerText = "🔇 Sons: Desativados";
+                btn.classList.add('active');
+            }
+        }
+
+        function playSound(type) {
+            if (!soundEnabled) return;
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                if (type === 'click') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.1);
+                    gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.1);
+                } else if (type === 'hover') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(320, audioCtx.currentTime);
+                    osc.frequency.setValueAtTime(450, audioCtx.currentTime + 0.05);
+                    gain.gain.setValueAtTime(0.03, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.08);
+                } else if (type === 'success') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+                    osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); // E5
+                    osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.2); // G5
+                    gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.35);
+                }
+            } catch (e) {
+                console.warn("AudioContext block by browser auto-play policy.", e);
+            }
+        }
+
+        // Tab Switching Logic
+        function switchTab(evt, tabId) {
+            playSound('click');
+
+            // Get all elements with class="tab-content" and hide them
+            const tabContents = document.getElementsByClassName("tab-content");
+            for (let i = 0; i < tabContents.length; i++) {
+                tabContents[i].classList.remove("active");
+            }
+
+            // Get all elements with class="tab-btn" and remove the class "active"
+            const tabBtns = document.getElementsByClassName("tab-btn");
+            for (let i = 0; i < tabBtns.length; i++) {
+                tabBtns[i].classList.remove("active");
+            }
+
+            // Show the current tab, and add an "active" class to the button that opened the tab
+            document.getElementById(tabId).classList.add("active");
+            evt.currentTarget.classList.add("active");
+
+            // Save active tab in localStorage
+            localStorage.setItem('activeTrainerManualTab', tabId);
+        }
+
+        // Load active tab on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedTab = localStorage.getItem('activeTrainerManualTab');
+            if (savedTab) {
+                const targetBtn = Array.from(document.querySelectorAll('.tab-btn')).find(btn => {
+                    return btn.getAttribute('onclick').includes(savedTab);
+                });
+                if (targetBtn) {
+                    targetBtn.click();
+                }
+            }
+
+            // Add hover sounds to buttons and tiles
+            const buttons = document.querySelectorAll('.tab-btn, .btn-action, .mock-tile, .btn-fuse');
+            buttons.forEach(btn => {
+                btn.addEventListener('mouseenter', () => playSound('hover'));
+            });
+        });
+
+        // Card Fusion Mock Simulator Action
+        let fusionCooldown = false;
+        function startMockFusion() {
+            if (fusionCooldown) return;
+            fusionCooldown = true;
+            playSound('click');
+
+            const btn = document.getElementById('fuse-btn');
+            btn.disabled = true;
+            btn.innerText = "Fundindo...";
+
+            const card1 = document.getElementById('card-1');
+            const card2 = document.getElementById('card-2');
+            const card3 = document.getElementById('card-3');
+            const card4 = document.getElementById('card-4');
+            const result = document.getElementById('fusion-result');
+
+            // Play merge animations
+            card1.classList.add('merged');
+            card2.classList.add('merged');
+            card3.classList.add('merged');
+            card4.classList.add('merged');
+
+            setTimeout(() => {
+                playSound('success');
+                result.classList.add('active');
+
+                // Allow resetting
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.innerText = "Resetar Simulador";
+                    btn.onclick = resetMockFusion;
+                    fusionCooldown = false;
+                }, 1000);
+            }, 500);
+        }
+
+        function resetMockFusion() {
+            playSound('click');
+            const btn = document.getElementById('fuse-btn');
+            const card1 = document.getElementById('card-1');
+            const card2 = document.getElementById('card-2');
+            const card3 = document.getElementById('card-3');
+            const card4 = document.getElementById('card-4');
+            const result = document.getElementById('fusion-result');
+
+            result.classList.remove('active');
+            card1.classList.remove('merged');
+            card2.classList.remove('merged');
+            card3.classList.remove('merged');
+            card4.classList.remove('merged');
+
+            btn.innerText = "Fundir 4 Cartas";
+            btn.onclick = startMockFusion;
+        }
+
+        // Glossary Search Filter
+        function filterGlossary() {
+            const query = document.getElementById('glossary-search').value.toLowerCase();
+            const items = document.querySelectorAll('.glossary-item');
+
+            items.forEach(item => {
+                const termKeywords = item.getAttribute('data-term').toLowerCase();
+                const termText = item.querySelector('.glossary-term').innerText.toLowerCase();
+                const defText = item.querySelector('.glossary-definition').innerText.toLowerCase();
+
+                if (termKeywords.includes(query) || termText.includes(query) || defText.includes(query)) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+    </script>
 </body>
 
 </html>
