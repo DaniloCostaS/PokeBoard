@@ -578,7 +578,7 @@ export class BattleUI {
         }
 
         modal.innerHTML = `
-            <div class="modal-box" style="background: #2c3e50; border: 2px solid #e74c3c; text-align: center; max-width: 400px;">
+            <div class="modal-box" style="background: #2c3e50; border: 2px solid #e74c3c; text-align: center; max-width: 400px; height: auto;">
                 <h3 style="color: #e74c3c; margin-top: 0; font-size: 1.5rem; text-shadow: 0 0 10px rgba(231,76,60,0.3);">⚠️ Confirmação</h3>
                 <p style="color: #edf2f4; margin: 25px 0; font-size: 1.1rem; line-height: 1.4;">${msg}</p>
                 <div style="display: flex; gap: 15px; justify-content: center; width: 100%;">

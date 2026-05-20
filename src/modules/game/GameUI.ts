@@ -555,7 +555,7 @@ export class GameUI {
         }
 
         modal.innerHTML = `
-            <div class="modal-box" style="max-width: 500px; max-height: 80vh; display: flex; flex-direction: column; background: #111827; border: 1px solid #374151;">
+            <div class="modal-box" style="max-width: 500px; max-height: 80vh; display: flex; flex-direction: column; background: #111827; border: 1px solid #374151; height: auto;">
                 <h3 style="margin-top: 0; color: #fff; border-bottom: 1px solid #374151; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
                     <span>⚔️ Histórico de Combate</span>
                     <button onclick="document.getElementById('battle-history-modal').style.display='none'" style="background:none; border:none; color:#9ca3af; font-size:1.5rem; cursor:pointer;">&times;</button>

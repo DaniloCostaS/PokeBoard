@@ -40,7 +40,7 @@ export class NetworkActions {
                 } else {
                     alert("Sessão inválida ou jogo encerrado.");
                     localStorage.removeItem('pkbd_session');
-                    location.reload();
+                    setTimeout(() => location.reload(), 3000);
                 }
             }).catch(() => { alert("Erro ao reconectar."); });
         }
@@ -234,7 +234,7 @@ export class NetworkActions {
                 if (NetworkState.isOnline && !NetworkState.isHost) {
                     alert("A sala foi desfeita pelo Host.");
                     localStorage.removeItem('pkbd_session');
-                    location.reload();
+                    setTimeout(() => location.reload(), 3000);
                 }
                 return;
             }
@@ -247,7 +247,7 @@ export class NetworkActions {
             if (!stillExists && !NetworkState.isHost && NetworkState.isOnline) {
                 alert("Você foi removido da sala pelo Host.");
                 localStorage.removeItem('pkbd_session');
-                location.reload();
+                setTimeout(() => location.reload(), 3000);
                 return;
             }
 
