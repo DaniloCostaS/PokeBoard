@@ -82,9 +82,9 @@ export const GEN7: PokemonData[] = [
   {"id": 800, "name": "Necrozma", "type": "Psíquico", "secondType": "", "BaseTotal": 388, "hp": 97, "atk": 117, "def": 95, "spd": 79, "stage": 1, "nextForm": null, "isLegendary": true},
   {"id": 801, "name": "Magearna", "type": "Aço", "secondType": "Fada", "BaseTotal": 372, "hp": 80, "atk": 112, "def": 115, "spd": 65, "stage": 1, "nextForm": null, "isLegendary": true},
   {"id": 802, "name": "Marshadow", "type": "Lutador", "secondType": "Fantasma", "BaseTotal": 408, "hp": 90, "atk": 108, "def": 85, "spd": 125, "stage": 1, "nextForm": null, "isLegendary": true},
-  {"id": 803, "name": "Poipole", "type": "Veneno", "secondType": "", "BaseTotal": 280, "hp": 67, "atk": 73, "def": 67, "spd": 73, "stage": 1, "nextForm": "Naganadel", "evoTrigger": 8},
-  {"id": 804, "name": "Naganadel", "type": "Veneno", "secondType": "Dragão", "BaseTotal": 367, "hp": 73, "atk": 100, "def": 73, "spd": 121, "stage": 2, "nextForm": null},
-  {"id": 805, "name": "Stakataka", "type": "Pedra", "secondType": "Aço", "BaseTotal": 322, "hp": 61, "atk": 92, "def": 156, "spd": 13, "stage": 1, "nextForm": null},
-  {"id": 806, "name": "Blacephalon", "type": "Fogo", "secondType": "Fantasma", "BaseTotal": 365, "hp": 53, "atk": 139, "def": 66, "spd": 107, "stage": 1, "nextForm": null},
+  {"id": 803, "name": "Poipole", "type": "Veneno", "secondType": "", "BaseTotal": 280, "hp": 67, "atk": 73, "def": 67, "spd": 73, "stage": 1, "nextForm": "Naganadel", "evoTrigger": 8, "isLegendary": true},
+  {"id": 804, "name": "Naganadel", "type": "Veneno", "secondType": "Dragão", "BaseTotal": 367, "hp": 73, "atk": 100, "def": 73, "spd": 121, "stage": 2, "nextForm": null, "isLegendary": true},
+  {"id": 805, "name": "Stakataka", "type": "Pedra", "secondType": "Aço", "BaseTotal": 322, "hp": 61, "atk": 92, "def": 156, "spd": 13, "stage": 1, "nextForm": null, "isLegendary": true},
+  {"id": 806, "name": "Blacephalon", "type": "Fogo", "secondType": "Fantasma", "BaseTotal": 365, "hp": 53, "atk": 139, "def": 66, "spd": 107, "stage": 1, "nextForm": null, "isLegendary": true},
   {"id": 807, "name": "Zeraora", "type": "Elétrico", "secondType": "", "BaseTotal": 416, "hp": 88, "atk": 107, "def": 78, "spd": 143, "stage": 1, "nextForm": null, "isLegendary": true}
 ];
