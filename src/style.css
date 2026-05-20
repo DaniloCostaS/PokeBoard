@@ -1323,30 +1323,82 @@ body {
 }
 
 .btn-attack {
-    background: #e74c3c;
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    border-bottom: 3px solid #922b21;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.btn-attack:hover:not(:disabled) {
+    background: linear-gradient(135deg, #ff5a47 0%, #e74c3c 100%);
+    box-shadow: 0 0 18px rgba(231, 76, 60, 0.55);
+    transform: translateY(-2px);
+}
+
+.btn-attack:active {
+    transform: translateY(1px);
+    border-bottom: none;
 }
 
 .btn-items {
-    background: #e67e22;
+    background: linear-gradient(135deg, #e67e22 0%, #ca6f1e 100%);
+    border-bottom: 3px solid #a04000;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.btn-items:hover:not(:disabled) {
+    background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+    box-shadow: 0 0 18px rgba(230, 126, 34, 0.55);
+    transform: translateY(-2px);
+}
+
+.btn-items:active {
+    transform: translateY(1px);
+    border-bottom: none;
 }
 
 .btn-cards {
-    background: #8e44ad;
+    background: linear-gradient(135deg, #8e44ad 0%, #6c3483 100%);
+    border-bottom: 3px solid #512e80;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.btn-cards:hover:not(:disabled) {
+    background: linear-gradient(135deg, #a569bd 0%, #8e44ad 100%);
+    box-shadow: 0 0 18px rgba(142, 68, 173, 0.55);
+    transform: translateY(-2px);
+}
+
+.btn-cards:active {
+    transform: translateY(1px);
+    border-bottom: none;
 }
 
 .btn-run {
-    background: #95a5a6;
+    background: linear-gradient(135deg, #7f8c8d 0%, #616a6b 100%);
+    border-bottom: 3px solid #424949;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.btn-run:hover:not(:disabled) {
+    background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+    box-shadow: 0 0 12px rgba(127, 140, 141, 0.4);
+    transform: translateY(-2px);
+}
+
+.btn-run:active {
+    transform: translateY(1px);
+    border-bottom: none;
 }
 
 .btn-surrender {
-    background: #c0392b;
-    border-bottom: 3px solid #922b21;
-    transition: all 0.2s ease;
+    background: linear-gradient(135deg, #c0392b 0%, #922b21 100%);
+    border-bottom: 3px solid #6e1f17;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-.btn-surrender:hover {
-    background: #e74c3c;
-    box-shadow: 0 0 15px rgba(231, 76, 60, 0.4);
+.btn-surrender:hover:not(:disabled) {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    box-shadow: 0 0 18px rgba(231, 76, 60, 0.5);
     transform: translateY(-2px);
 }
 
@@ -1625,11 +1677,22 @@ body {
 }
 
 .battle-box {
-    background: #2c3e50;
+    background:
+        radial-gradient(circle at 20% 0%, rgba(231, 76, 60, 0.12), transparent 45%),
+        radial-gradient(circle at 80% 100%, rgba(52, 152, 219, 0.08), transparent 40%),
+        linear-gradient(180deg, rgba(12, 22, 30, 0.97) 0%, rgba(7, 18, 22, 0.99) 100%);
     color: white;
-    border: 3px solid #fff;
-    max-width: 700px !important;
-    max-height: 600px !important;
+    border: 1px solid rgba(241, 196, 15, 0.25);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    max-width: 900px !important;
+    max-height: 620px !important;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.4),
+        0 30px 80px rgba(0, 0, 0, 0.7),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
 }
 
 .text-highlight {
@@ -1774,7 +1837,13 @@ body {
 #battle-title {
     color: #f1c40f;
     margin-top: 0;
-    text-shadow: 2px 2px 0 #000;
+    font-size: 1.2rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-shadow: 0 0 20px rgba(241, 196, 15, 0.5), 0 2px 4px rgba(0, 0, 0, 0.8);
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(241, 196, 15, 0.2);
+    margin-bottom: 12px;
 }
 
 .battle-wrapper {
@@ -1791,29 +1860,63 @@ body {
     flex: 1;
     display: flex;
     flex-direction: column;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 8px;
-    border: 1px solid #555;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(0, 0, 0, 0.0) 100%),
+        rgba(4, 10, 14, 0.7);
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
     height: 540px;
+    backdrop-filter: blur(8px);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 8px 24px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
 }
 
+.battle-panel-header {
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 10px 14px;
+    color: #f1c40f;
+    background: rgba(0, 0, 0, 0.4);
+    border-bottom: 1px solid rgba(241, 196, 15, 0.2);
+    border-radius: 14px 14px 0 0;
+    text-shadow: 0 0 10px rgba(241, 196, 15, 0.4);
+    flex-shrink: 0;
+}
+
+.log-history-content {
+    padding: 8px;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: #ccc;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.log-history-content > div {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+    padding: 4px 2px !important;
+}
+
+
 .battle-scene {
-    /*background: linear-gradient(180deg, #70c5ce 0%, #70c5ce 60%, #5a9e5a 60%, #5a9e5a 100%); */
-    /* background-image: url('/assets/img/Background/BatalhaTerrenoGrama.png'); background-size: 100% 100%; */
-    background-color: #333;
+    background-color: #1a2a2a;
     /* Cor de fundo caso a imagem falhe */
-    border-radius: 10px;
+    border-radius: 16px;
     padding: 20px;
     margin-bottom: 15px;
     position: relative;
-    height: 260px;
-    /* Mais altura */
+    height: 270px;
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
     overflow: hidden;
-    border: 4px solid #fff;
-    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    box-shadow:
+        inset 0 0 40px rgba(0, 0, 0, 0.5),
+        0 8px 32px rgba(0, 0, 0, 0.5);
     gap: 60px;
 }
 
@@ -1905,14 +2008,14 @@ body {
 
 /* HP Container Atualizado */
 .hp-container {
-    background: #444;
+    background: rgba(0, 0, 0, 0.55);
     height: 18px;
     width: 100%;
     border-radius: 9px;
     margin-top: 5px;
-    border: 2px solid #fff;
+    border: 1px solid rgba(255, 255, 255, 0.15);
     position: relative;
-    /* Para texto absoluto */
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
 }
 
 .hp-fill {
@@ -1938,29 +2041,177 @@ body {
 }
 
 .battle-info-box {
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     color: white;
-    padding: 5px 10px;
-    border-radius: 15px;
+    padding: 6px 10px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
     margin-top: 5px;
     font-size: 0.8rem;
     width: 100%;
     text-align: center;
     box-sizing: border-box;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
 }
 
 #battle-msg {
-    height: 25px;
-    margin: 5px 0;
+    height: 28px;
+    margin: 6px 0;
     font-style: italic;
     color: #f1c40f;
     font-weight: bold;
+    font-size: 0.92rem;
+    text-shadow: 0 0 12px rgba(241, 196, 15, 0.5);
+    letter-spacing: 0.5px;
+    padding: 0 4px;
+    display: flex;
+    align-items: center;
+    border-left: 3px solid rgba(241, 196, 15, 0.4);
+    padding-left: 8px;
 }
 
 .battle-actions {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
-    gap: 10px;
+    gap: 6px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(6px);
+}
+
+/* Botões da batalha — compactos e muted, no estilo do painel lateral */
+.battle-actions .btn {
+    padding: 8px 6px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    margin-top: 0;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: none;
+    letter-spacing: 0.3px;
+    transition: all 0.18s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    text-align: left;
+    justify-content: flex-start;
+    gap: 6px;
+}
+
+.battle-actions .btn-attack {
+    background: rgba(192, 57, 43, 0.55);
+    color: #fdd5d1;
+    border-color: rgba(231, 76, 60, 0.25);
+    box-shadow: none;
+}
+
+.battle-actions .btn-attack:hover:not(:disabled) {
+    background: rgba(231, 76, 60, 0.75);
+    box-shadow: 0 0 14px rgba(231, 76, 60, 0.35);
+    transform: translateY(-1px);
+    color: #fff;
+}
+
+.battle-actions .btn-items {
+    background: rgba(176, 90, 20, 0.55);
+    color: #fde9c9;
+    border-color: rgba(230, 126, 34, 0.25);
+    box-shadow: none;
+}
+
+.battle-actions .btn-items:hover:not(:disabled) {
+    background: rgba(230, 126, 34, 0.75);
+    box-shadow: 0 0 14px rgba(230, 126, 34, 0.35);
+    transform: translateY(-1px);
+    color: #fff;
+}
+
+.battle-actions .btn-cards {
+    background: rgba(108, 52, 131, 0.55);
+    color: #e8d0f5;
+    border-color: rgba(142, 68, 173, 0.25);
+    box-shadow: none;
+}
+
+.battle-actions .btn-cards:hover:not(:disabled) {
+    background: rgba(142, 68, 173, 0.75);
+    box-shadow: 0 0 14px rgba(142, 68, 173, 0.35);
+    transform: translateY(-1px);
+    color: #fff;
+}
+
+.battle-actions .btn-secondary {
+    background: rgba(255, 255, 255, 0.07);
+    color: #d0e8e2;
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: none;
+}
+
+.battle-actions .btn-secondary:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.14);
+    transform: translateY(-1px);
+}
+
+.battle-actions .btn-run {
+    background: rgba(97, 106, 107, 0.55);
+    color: #d5dcdc;
+    border-color: rgba(127, 140, 141, 0.2);
+    box-shadow: none;
+}
+
+.battle-actions .btn-run:hover:not(:disabled) {
+    background: rgba(127, 140, 141, 0.75);
+    box-shadow: 0 0 10px rgba(127, 140, 141, 0.3);
+    transform: translateY(-1px);
+}
+
+.battle-actions .btn-surrender {
+    background: rgba(110, 31, 23, 0.55);
+    color: #f5c4c0;
+    border-color: rgba(192, 57, 43, 0.25);
+    box-shadow: none;
+}
+
+.battle-actions .btn-surrender:hover:not(:disabled) {
+    background: rgba(192, 57, 43, 0.75);
+    box-shadow: 0 0 14px rgba(192, 57, 43, 0.35);
+    transform: translateY(-1px);
+    color: #fff;
+}
+
+/* Auto Atacar — span toda a linha, dourado muted */
+.battle-actions .btn-auto {
+    background: rgba(185, 119, 13, 0.45);
+    color: #fde68a;
+    border-color: rgba(241, 196, 15, 0.22);
+    text-shadow: none;
+    box-shadow: none;
+    justify-content: center;
+    font-size: 0.85rem;
+}
+
+.battle-actions .btn-auto:hover:not(:disabled) {
+    background: rgba(241, 196, 15, 0.55);
+    color: #1a1a1a;
+    box-shadow: 0 0 16px rgba(241, 196, 15, 0.35);
+    transform: translateY(-1px);
+}
+
+.battle-actions .btn-auto.active-auto {
+    background: rgba(192, 57, 43, 0.65);
+    color: #fdd5d1;
+    animation: pulseAuto 1s infinite;
+}
+
+/* Botões desabilitados na área de batalha */
+.battle-actions .btn:disabled {
+    background: rgba(255, 255, 255, 0.04) !important;
+    color: rgba(255, 255, 255, 0.25) !important;
+    border-color: rgba(255, 255, 255, 0.05) !important;
+    box-shadow: none !important;
+    transform: none !important;
+    cursor: not-allowed;
 }
 
 .mt-15 {
@@ -2517,13 +2768,20 @@ body {
     }
 }
 
-/* BotÃ£o de Auto Battle PvE */
+/* Botão de Auto Battle PvE */
 .btn-auto {
-    background: #1abc9c;
-    /* Turquesa */
-    color: white;
+    background: linear-gradient(135deg, #f1c40f 0%, #e67e22 100%);
+    color: #1a1a1a;
     font-weight: bold;
-    border-bottom: 3px solid #16a085;
+    border-bottom: 3px solid #b7770d;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.btn-auto:hover:not(:disabled) {
+    background: linear-gradient(135deg, #f4d03f 0%, #f39c12 100%);
+    box-shadow: 0 0 20px rgba(241, 196, 15, 0.5);
+    transform: translateY(-2px);
 }
 
 .btn-auto:active {
@@ -2531,10 +2789,11 @@ body {
     transform: translateY(3px);
 }
 
-/* Efeito pulsante quando estiver ativo */
+/* Efeito pulsante quando estiver ativo (STOP) */
 .btn-auto.active-auto {
-    background: #e74c3c;
-    /* Vira vermelho para "PARAR" */
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    color: white;
+    text-shadow: none;
     animation: pulseAuto 1s infinite;
 }
 

@@ -306,41 +306,48 @@ export class BattleUI {
 
             const card = document.createElement('div');
             card.style.cssText = `
-                background: linear-gradient(180deg, ${bgColor}44 0%, rgba(0,0,0,0.6) 100%);
+                background: linear-gradient(180deg, ${bgColor}44 0%, rgba(9,24,29,0.74) 100%);
                 border: 1px solid ${isShiny ? '#f1c40f' : bgColor};
-                border-radius: 8px;
-                padding: 8px;
+                border-radius: 16px;
+                padding: 10px;
                 text-align: center;
                 cursor: pointer;
-                transition: transform 0.2s;
+                transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
                 width: 140px;
-                box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+                box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 10px 20px rgba(0,0,0,0.4);
+                backdrop-filter: blur(8px);
                 display: flex;
                 flex-direction: column;
                 align-items: center;
                 position: relative;
             `;
 
-            card.onmouseover = () => card.style.transform = 'scale(1.05)';
-            card.onmouseout = () => card.style.transform = 'scale(1)';
+            card.onmouseover = () => {
+                card.style.transform = 'translateY(-2px)';
+                card.style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.15), 0 15px 30px rgba(0,0,0,0.6)';
+            };
+            card.onmouseout = () => {
+                card.style.transform = 'translateY(0)';
+                card.style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.1), 0 10px 20px rgba(0,0,0,0.4)';
+            };
 
-            const megaIcon = p.megaStone ? `<img src="/assets/img/megaStone.png" style="width:16px; position:absolute; top:5px; right:5px;" title="Mega Evoluído!">` : '';
-            const vinculoIcon = p.vinculoSupremo ? `<span style="font-size:14px; position:absolute; top:5px; left:5px;" title="Vínculo Supremo">🤝</span>` : '';
+            const megaIcon = p.megaStone ? `<img src="/assets/img/megaStone.png" style="width:16px; position:absolute; top:8px; right:8px; filter: drop-shadow(0 0 4px #fff);" title="Mega Evoluído!">` : '';
+            const vinculoIcon = p.vinculoSupremo ? `<span style="font-size:14px; position:absolute; top:8px; left:8px; filter: drop-shadow(0 0 4px #fff);" title="Vínculo Supremo">🤝</span>` : '';
 
             card.innerHTML = `
                 ${vinculoIcon}
                 ${megaIcon}
-                <div style="font-size: 0.8rem; font-weight: bold; color: #fff; background: rgba(0,0,0,0.5); padding: 2px 5px; border-radius: 4px; margin-bottom: 5px;">Lv.${p.level}</div>
-                <img src="${spriteUrl}" style="width: 70px; height: 70px; object-fit: contain; filter: drop-shadow(0 0 5px ${isShiny ? '#f1c40f' : 'transparent'});">
-                <div style="font-weight: bold; color: #fff; margin-top: 5px; font-size: 0.9rem; text-shadow: 1px 1px 2px #000;">${p.name}</div>
-                <div style="color: ${isShiny ? '#f1c40f' : '#ccc'}; font-size: 0.75rem; display: flex; align-items: center; justify-content: center; gap: 3px; margin-top: 3px;">
+                <div style="font-size: 0.75rem; font-weight: 800; color: #fff; background: rgba(0,0,0,0.4); padding: 3px 8px; border-radius: 999px; margin-bottom: 5px; border: 1px solid rgba(255,255,255,0.1); letter-spacing: 0.5px;">Lv.${p.level}</div>
+                <img src="${spriteUrl}" style="width: 70px; height: 70px; object-fit: contain; filter: drop-shadow(0 0 8px ${isShiny ? '#f1c40f' : 'transparent'}); margin: 5px 0;">
+                <div style="font-weight: 800; color: #fff; margin-top: 5px; font-size: 0.95rem; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">${p.name}</div>
+                <div style="color: ${isShiny ? '#f1c40f' : '#ccc'}; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: center; gap: 3px; margin-top: 3px;">
                     ${isShiny ? '✨ Shiny' : p.type}
                 </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; width: 100%; margin-top: 8px; font-size: 0.75rem; color: #ecf0f1; background: rgba(0,0,0,0.4); padding: 5px; border-radius: 4px;">
-                    <div title="HP Atual / Máx">❤️ ${p.currentHp}/${p.maxHp}</div>
-                    <div title="Ataque">⚔️ ${p.atk}</div>
-                    <div title="Defesa">🛡️ ${p.def}</div>
-                    <div title="Velocidade">💨 ${p.speed}</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; width: 100%; margin-top: 10px; font-size: 0.75rem; color: #e7f2ee; background: rgba(0,0,0,0.3); padding: 6px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+                    <div title="HP Atual / Máx" style="display:flex; align-items:center; gap:3px;">❤️ ${p.currentHp}/${p.maxHp}</div>
+                    <div title="Ataque" style="display:flex; align-items:center; gap:3px;">⚔️ ${p.atk}</div>
+                    <div title="Defesa" style="display:flex; align-items:center; gap:3px;">🛡️ ${p.def}</div>
+                    <div title="Velocidade" style="display:flex; align-items:center; gap:3px;">💨 ${p.speed}</div>
                 </div>
             `;
             listContainer.appendChild(card);

@@ -106,8 +106,8 @@
             <div id="host-controls" style="display:none; margin-top:15px; border-top:1px solid #eee; padding-top:10px;">
                 <label>Tamanho do Mapa:</label>
                 <select id="online-map-size">
-                    <option value="10">Pequeno (10x10)</option>
-                    <option value="20" selected>Médio (20x20)</option>
+                    <option value="10" selected>Pequeno (10x10)</option>
+                    <option value="20">Médio (20x20)</option>
                     <option value="30">Grande (30x30)</option>
                 </select>
 
@@ -167,8 +167,8 @@
             <div class="setup-group">
                 <label>Tamanho do Mapa:</label>
                 <select id="map-size">
-                    <option value="10">Pequeno (10x10)</option>
-                    <option value="20" selected>Médio (20x20)</option>
+                    <option value="10" selected>Pequeno (10x10)</option>
+                    <option value="20">Médio (20x20)</option>
                     <option value="30">Grande (30x30)</option>
                 </select>
             </div>
@@ -239,8 +239,7 @@
 
             <div class="panel-box dice-section">
                 <div id="d20-display">🎲 6</div>
-                <button id="iniciar-turno-btn" class="btn btn-start-turn"
-                    style="display:none;"
+                <button id="iniciar-turno-btn" class="btn btn-start-turn" style="display:none;"
                     onclick="window.Game.iniciarTurno()">🎮 Iniciar Turno</button>
                 <button id="roll-btn" class="btn btn-roll" onclick="window.Game.rollDice()">ROLAR</button>
                 <button id="sync-turn-btn" class="btn-sync-turn" onclick="window.Game.syncTurnState()"
@@ -410,12 +409,13 @@
     </div>
 
     <div id="team-view-modal" class="modal-overlay" style="z-index: 2500;">
-        <div class="modal-box" style="text-align: center; width: 95%; max-width: 600px;">
-            <h3 style="color: #3498db;">👀 Seu Time Atual</h3>
+        <div class="modal-box stats-modal-box" style="width: 95%; max-width: 600px; text-align: center;">
+            <h3 style="color: #f1c40f; text-shadow: 0 0 10px rgba(241,196,15,0.5); margin-bottom: 10px;">👀 Seu Time
+                Atual</h3>
             <div id="team-view-list"
                 style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 15px; margin-bottom: 15px;">
             </div>
-            <button class="btn btn-secondary"
+            <button class="btn btn-secondary stats-close-btn"
                 onclick="document.getElementById('team-view-modal').style.display='none'">Fechar</button>
         </div>
     </div>
@@ -872,7 +872,7 @@
                         <button class="btn btn-attack" onclick="window.Battle.attack()">⚔️ Atacar</button>
                         <button class="btn btn-items" onclick="window.Battle.openBag()">🎒 Itens</button>
                         <button class="btn btn-cards" onclick="window.Battle.openCardSelection()">🃏 Cartas</button>
-                        <button class="btn btn-secondary" onclick="window.Battle.viewTeam()">👀 Ver Meu Time</button>
+                        <button class="btn btn-secondary" onclick="window.Battle.viewTeam()">👀 Meu Time</button>
                         <button id="btn-run" class="btn btn-run" onclick="window.Battle.run()">🏃 Fugir</button>
                         <button id="btn-surrender" class="btn btn-surrender" onclick="window.Battle.surrender()">🏳️
                             Desistir</button>
@@ -882,19 +882,20 @@
                 </div>
 
                 <div class="battle-log-column">
-                    <div class="panel-header"
-                        style="font-size:0.9rem; padding:10px; background: rgba(0,0,0,0.4); border-radius: 5px 5px 0 0;">
-                        📜 Histórico</div>
+                    <div class="battle-panel-header">
+                        📜 Histórico de Batalha</div>
                     <div id="battle-log-history" class="scroll-list log-history-content">
                     </div>
                 </div>
             </div>
 
             <div id="battle-bag"
-                style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(44, 62, 80, 0.95); z-index:20; padding:20px; box-sizing:border-box; border-radius:10px;">
-                <h3>Usar Item (Batalha)</h3>
+                style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background: linear-gradient(180deg, rgba(7,18,22,0.97) 0%, rgba(12,22,30,0.99) 100%); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(241,196,15,0.2); z-index:20; padding:24px; box-sizing:border-box; border-radius:18px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.07);">
+                <h3
+                    style="color:#f1c40f; text-shadow: 0 0 16px rgba(241,196,15,0.5); letter-spacing:1px; margin-top:0; border-bottom: 1px solid rgba(241,196,15,0.2); padding-bottom:10px;">
+                    🎒 Usar Item (Batalha)</h3>
                 <div id="battle-bag-list" class="scroll-list"></div><button class="btn btn-secondary mt-15"
-                    onclick="document.getElementById('battle-bag').style.display='none'">Cancelar</button>
+                    onclick="document.getElementById('battle-bag').style.display='none'">✕ Cancelar</button>
             </div>
         </div>
     </div>
