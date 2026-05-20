@@ -41,7 +41,7 @@ export class GameUI {
             const d = document.createElement('div');
             d.className = `player-slot ${i === GameState.turn ? 'active' : ''}`;
             const playerColor = PLAYER_COLORS[i % PLAYER_COLORS.length];
-            d.style.background = `linear-gradient(135deg, rgba(26,26,29,0.95) 40%, ${playerColor}44 100%)`;
+            d.style.background = `linear-gradient(135deg, ${playerColor}cc 0%, rgba(26, 26, 29, 0.96) 100%)`;
             d.style.borderLeft = `4px solid ${playerColor}`;
 
             let badgeHTML = `<div class="badges-container" style="cursor: pointer;" onclick="window.openPlayerBadges(${i})" title="Clique para abrir o Porta-Insígnias de ${p.name}">`;
@@ -169,7 +169,7 @@ export class GameUI {
             if (GameState.currentGlobalEvent) {
                 const roundsLeft = GameState.eventEndRound - GameState.round;
                 eventEl.innerHTML = `
-                <div style="margin-top: 10px; padding: 5px; background: rgba(231, 76, 60, 0.15); border: 1px dashed #e74c3c; border-radius: 4px; color: #fff; font-size: 0.8rem; text-align: center; animation: pulseShiny 2s infinite alternate; cursor: pointer;" onclick="window.Game.showEventDetails()">
+                <div class="global-event-card" onclick="window.Game.showEventDetails()">
                     <b style="color: #f1c40f;">${GameState.currentGlobalEvent.icon} ${GameState.currentGlobalEvent.name}</b><br>
                     <span style="font-size: 0.65rem; color: #bdc3c7;">Faltam ${roundsLeft} rodada(s)</span>
                 </div>`;
@@ -608,7 +608,7 @@ export class GameUI {
         if (!container) return;
 
         if (GameState.cardLogs.length === 0) {
-            container.innerHTML = `<div style="color: #7f8c8d; text-align: center; padding-top: 20px; font-style: italic;">Nenhum ataque registrado...</div>`;
+            container.innerHTML = `<div class="empty-log">Nenhum ataque registrado...</div>`;
             return;
         }
 

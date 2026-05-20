@@ -219,13 +219,12 @@
             </div>
 
             <div class="panel-box info-section" style="font-size: 0.85rem; text-align: left; line-height: 1.6;">
-                <div
-                    style="color: var(--gold); font-weight: bold; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.2); margin-bottom: 5px; padding-bottom: 5px;">
+                <div class="info-title">
                     🌍 Status do Mundo</div>
                 <div class="info-panel">
                     <div class="info-item">
                         <span class="info-label">🏠 SALA: </span>
-                        <span id="room-code-indicator" class="info-value" style="color: #00ffea;">OFFLINE</span>
+                        <span id="room-code-indicator" class="info-value">OFFLINE</span>
                     </div>
                 </div>
                 <div>🔄 Rodada: <b id="round-indicator" style="color:#fff;">1</b></div>
@@ -233,14 +232,14 @@
                 <div>🌲 Selvagem: <b id="svg-lvl-indicator" style="color:#fff;">Lv.1-Lv.1</b></div>
                 <div>🏛️ Líder Ginásio: <b id="gym-lvl-indicator" style="color:#fff;">Lv.2</b></div>
                 <div>👥 Time Inimigo: <b id="npc-team-indicator" style="color:#fff;">1</b> PKMN</div>
-                <button onclick="window.Game.openPlayerStats()"
+                <button class="panel-mini-btn" onclick="window.Game.openPlayerStats()"
                     style="width:100%; margin-top:8px; padding:4px 8px; background:rgba(241,196,15,0.15); border:1px solid rgba(241,196,15,0.4); color:#f1c40f; border-radius:6px; font-size:0.75rem; cursor:pointer; font-weight:bold;">📊
                     Ver Estatísticas</button>
             </div>
 
             <div class="panel-box dice-section">
                 <div id="d20-display">🎲 6</div>
-                <button id="iniciar-turno-btn" class="btn"
+                <button id="iniciar-turno-btn" class="btn btn-start-turn"
                     style="display:none; background: linear-gradient(135deg, #27ae60, #2ecc71); font-size:1rem; font-weight:bold; letter-spacing:0.5px;"
                     onclick="window.Game.iniciarTurno()">🎮 Iniciar Turno</button>
                 <button id="roll-btn" class="btn btn-roll" onclick="window.Game.rollDice()">ROLAR</button>
@@ -253,12 +252,12 @@
                 <button class="btn btn-secondary" onclick="window.Game.openCardLibrary()">📖 Ver Todas as
                     Cartas</button>
                 <button class="btn btn-secondary" onclick="window.Game.openItemLibrary()">🎒 Ver Todos os Itens</button>
-                <button class="btn btn-secondary" style="background: #e67e22;"
+                <button class="btn btn-secondary btn-rules-capture"
                     onclick="window.Game.openCaptureRules()">🦅 Regras de Captura</button>
-                <button class="btn btn-secondary" style="background: #e74c3c;"
+                <button class="btn btn-secondary btn-rules-combat"
                     onclick="window.Game.openCombatRules()">⚔️
                     Regras de Combate</button>
-                <button class="btn btn-secondary" style="background: #9b59b6; margin-top: 5px;"
+                <button class="btn btn-secondary btn-trash"
                     onclick="window.Game.openLixeira(false)">🗑️ Ver Lixeira</button>
                 <button id="btn-admin-panel" class="btn"
                     style="display:none; background:#c0392b; color:white; margin-top:10px; font-weight:bold; box-shadow:0 0 5px #c0392b;"
@@ -279,18 +278,15 @@
                 style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:5px;">
                 <div style="display:flex; align-items:center; gap:8px;">
                     <span>📟 Log da partida</span>
-                    <button onclick="window.Game.syncLogsManually()"
-                        style="margin:0; padding:2px 4px; font-size:0.75rem; background:#334; color:#fff; border:1px solid #556; border-radius:4px; cursor:pointer; width:auto; min-width:unset; height:auto; display:inline-flex; align-items:center; justify-content:center; line-height:1;"
+                    <button class="icon-chip-btn" onclick="window.Game.syncLogsManually()"
                         title="Sincronizar Logs">🔄</button>
                 </div>
-                <div style="display:flex; gap:5px; align-items:center;">
+                <div class="log-toolbar">
                     <input type="text" id="log-search-input" placeholder="🔍 Buscar..."
                         oninput="window.Game.filterLogs(document.getElementById('log-filter-select').value)"
-                        style="background:rgba(0,0,0,0.2); color:#fff; border:1px solid #556; padding:3px 8px; border-radius:4px; font-size:0.7rem; outline:none; width:90px; transition: width 0.3s;"
-                        onfocus="this.style.width='130px'; this.style.borderColor='#8d99ae'"
-                        onblur="if(!this.value) this.style.width='90px'; this.style.borderColor='#556'">
+                        class="log-search-input">
                     <select id="log-filter-select" onchange="window.Game.filterLogs(this.value)"
-                        style="background:#334; color:#fff; border:1px solid #556; padding:2px 5px; border-radius:3px; font-size:0.75rem; outline:none; cursor:pointer;">
+                        class="log-filter-select">
                         <option value="all">Ver Tudo</option>
                         <option value="cards">Só Cartas</option>
                         <option value="items">Só Itens</option>
@@ -301,14 +297,12 @@
             </div>
             <div id="log-container"></div>
 
-            <div id="card-log-header" class="panel-header"
-                style="margin-top: 10px; background: #c0392b; display: flex; justify-content: space-between; align-items: center; padding: 10px; border-top: 2px solid rgba(255,255,255,0.1);">
+            <div id="card-log-header" class="panel-header card-log-header">
                 <span style="font-size: 0.8rem;">🃏 Log de Ataques (Cartas)</span>
                 <small style="opacity: 0.7; font-size: 0.6rem;">Últimos 20</small>
             </div>
-            <div id="card-log-container"
-                style="height: 250px; background: rgba(0,0,0,0.3); border-radius: 0 0 8px 8px; overflow-y: auto; font-size: 0.7rem; padding: 5px; display: flex; flex-direction: column; gap: 5px;">
-                <div style="color: #7f8c8d; text-align: center; padding-top: 20px; font-style: italic;">Nenhum ataque
+            <div id="card-log-container">
+                <div class="empty-log">Nenhum ataque
                     registrado...</div>
             </div>
         </div>
@@ -428,13 +422,12 @@
     </div>
 
     <div id="player-stats-modal" class="modal-overlay" style="z-index: 2500;">
-        <div class="modal-box"
-            style="text-align: center; width: 95%; max-width: 500px; background: #1a1a2e; color: #eee; border: 2px solid #f1c40f;">
+        <div class="modal-box stats-modal-box">
             <h3 style="color: #f1c40f; text-shadow: 0 0 10px rgba(241,196,15,0.5); margin-bottom: 5px;">📊 Painel de
                 Dano Statístico</h3>
             <p style="color: #aaa; font-size: 0.85rem; margin-top: 0;">Quem está sofrendo mais nessa partida?</p>
-            <div id="player-stats-list" style="display: flex; flex-direction: column; gap: 12px; margin: 15px 0;"></div>
-            <button class="btn btn-secondary"
+            <div id="player-stats-list" class="stats-player-list"></div>
+            <button class="btn btn-secondary stats-close-btn"
                 onclick="document.getElementById('player-stats-modal').style.display='none'">Fechar</button>
         </div>
     </div>
