@@ -252,13 +252,12 @@
                 <button class="btn btn-secondary" onclick="window.Game.openCardLibrary()">📖 Ver Todas as
                     Cartas</button>
                 <button class="btn btn-secondary" onclick="window.Game.openItemLibrary()">🎒 Ver Todos os Itens</button>
-                <button class="btn btn-secondary btn-rules-capture"
-                    onclick="window.Game.openCaptureRules()">🦅 Regras de Captura</button>
-                <button class="btn btn-secondary btn-rules-combat"
-                    onclick="window.Game.openCombatRules()">⚔️
+                <button class="btn btn-secondary btn-rules-capture" onclick="window.Game.openCaptureRules()">🦅 Regras
+                    de Captura</button>
+                <button class="btn btn-secondary btn-rules-combat" onclick="window.Game.openCombatRules()">⚔️
                     Regras de Combate</button>
-                <button class="btn btn-secondary btn-trash"
-                    onclick="window.Game.openLixeira(false)">🗑️ Ver Lixeira</button>
+                <button class="btn btn-secondary btn-trash" onclick="window.Game.openLixeira(false)">🗑️ Ver
+                    Lixeira</button>
                 <button id="btn-admin-panel" class="btn"
                     style="display:none; background:#c0392b; color:white; margin-top:10px; font-weight:bold; box-shadow:0 0 5px #c0392b;"
                     onclick="window.Game.openAdminPanel()">🛠️ Painel Host</button>
@@ -424,7 +423,7 @@
     <div id="player-stats-modal" class="modal-overlay" style="z-index: 2500;">
         <div class="modal-box stats-modal-box">
             <h3 style="color: #f1c40f; text-shadow: 0 0 10px rgba(241,196,15,0.5); margin-bottom: 5px;">📊 Painel de
-                Dano Statístico</h3>
+                Dano Estatístico</h3>
             <p style="color: #aaa; font-size: 0.85rem; margin-top: 0;">Quem está sofrendo mais nessa partida?</p>
             <div id="player-stats-list" class="stats-player-list"></div>
             <button class="btn btn-secondary stats-close-btn"
@@ -599,7 +598,8 @@
                 style="color: #f1c40f; margin-top: 0; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px; display: flex; align-items: center; gap: 8px; font-family: 'Outfit', sans-serif;">
                 🃏 Minhas Cartas (Tabuleiro)</h3>
             <p style="font-size:0.8rem; color:#aaa; margin-bottom: 12px; margin-top: 5px;">Apenas cartas do tipo
-                <b>Move</b> podem ser usadas aqui.</p>
+                <b>Move</b> podem ser usadas aqui.
+            </p>
             <div style="display:flex; gap:10px; margin-bottom: 15px; justify-content:center;">
                 <select id="board-cards-rarity-filter" class="form-control"
                     style="background:rgba(0,0,0,0.3); color:#fff; border:1px solid rgba(255,255,255,0.2); border-radius:8px; padding:8px 12px; font-size: 0.9rem;"
@@ -702,7 +702,8 @@
                 ⚠️ Time Cheio!</h3>
             <p style="color: #aaa; margin: 10px 0 5px 0;">Seu time já tem 6 Pokémons.</p>
             <p style="font-size:0.9rem; color: #e74c3c; margin: 0 0 15px 0;">Clique em um Pokémon para
-                <strong>SOLTAR</strong> (abandonar) e manter o resto.</p>
+                <strong>SOLTAR</strong> (abandonar) e manter o resto.
+            </p>
             <div id="swap-list" class="scroll-list"
                 style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 5px;">
             </div>
