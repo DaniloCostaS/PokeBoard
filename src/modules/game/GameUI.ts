@@ -40,6 +40,9 @@ export class GameUI {
         GameState.players.forEach((p, i) => {
             const d = document.createElement('div');
             d.className = `player-slot ${i === GameState.turn ? 'active' : ''}`;
+            const playerColor = PLAYER_COLORS[i % PLAYER_COLORS.length];
+            d.style.background = `linear-gradient(135deg, rgba(26,26,29,0.95) 40%, ${playerColor}44 100%)`;
+            d.style.borderLeft = `4px solid ${playerColor}`;
 
             let badgeHTML = '<div class="badges-container">';
             for (let b = 0; b < 8; b++) {
