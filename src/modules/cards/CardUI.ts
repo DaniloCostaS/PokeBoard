@@ -1,5 +1,6 @@
 import { CardEffects } from './CardEffects';
 import { CARD_RARITIES } from '../../constants';
+import { GLOBAL_EVENTS } from '../../constants/globalEvents';
 
 export class CardUI {
     static openTargetSelection(cardId: string) {
@@ -928,6 +929,62 @@ export class CardUI {
         okBtn.innerText = 'Entendido';
         okBtn.onclick = () => { modal.style.display = 'none'; };
         list.appendChild(okBtn);
+
+        modal.style.display = 'flex';
+    }
+
+    static openEventSelection(cardId: string) {
+        const modal = document.getElementById('event-selection-modal')!;
+        const list = document.getElementById('event-selection-list')!;
+
+        const boardCardsModal = document.getElementById('board-cards-modal');
+        if (boardCardsModal) boardCardsModal.style.display = 'none';
+
+        list.innerHTML = '';
+
+        GLOBAL_EVENTS.forEach((ev: any) => {
+            const div = document.createElement('div');
+            div.className = 'mon-select-item';
+            div.style.cssText = `
+                display: flex; 
+                flex-direction: column; 
+                align-items: flex-start; 
+                gap: 5px; 
+                padding: 12px; 
+                border: 1px solid #444; 
+                border-radius: 8px; 
+                background: rgba(255,255,255,0.03); 
+                cursor: pointer; 
+                transition: background 0.2s, border-color 0.2s;
+                text-align: left;
+                width: 100%;
+                box-sizing: border-box;
+            `;
+
+            div.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 1.4rem;">${ev.icon}</span>
+                    <b style="font-size: 1.1rem; color: #f1c40f;">${ev.name}</b>
+                </div>
+                <div style="font-size: 0.8rem; color: #ccc; line-height: 1.3;">${ev.desc}</div>
+            `;
+
+            div.onmouseover = () => {
+                div.style.background = 'rgba(241, 196, 15, 0.1)';
+                div.style.borderColor = '#f1c40f';
+            };
+            div.onmouseout = () => {
+                div.style.background = 'rgba(255,255,255,0.03)';
+                div.style.borderColor = '#444';
+            };
+
+            div.onclick = () => {
+                modal.style.display = 'none';
+                CardEffects.activate(cardId, ev.id);
+            };
+
+            list.appendChild(div);
+        });
 
         modal.style.display = 'flex';
     }

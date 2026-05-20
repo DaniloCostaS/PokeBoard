@@ -1,8 +1,9 @@
-import { CARDS_DB } from '../../constants';
+import { CARDS_DB, TILE } from '../../constants';
 import type { Player } from '../../models/Player';
 import { CardManager } from './CardManager';
 import { MapSystem } from '../../systems/MapSystem';
 import { CardUI } from './CardUI';
+import { GLOBAL_EVENTS } from '../../constants/globalEvents';
 
 export class CardEffects {
     static async checkAutoDefense(attacker: Player, target: Player, incomingCardId: string, incomingCardName: string): Promise<boolean> {
@@ -1071,6 +1072,79 @@ export class CardEffects {
                 else { CardUI.openTypeSelection(cardId); consumed = false; }
                 break;
 
+            case 'samu': {
+                const totalTiles = MapSystem.size * MapSystem.size;
+                const startIdx = MapSystem.getIndex(player.x, player.y);
+                let targetIdx = startIdx;
+                for (let i = 1; i <= totalTiles; i++) {
+                    const checkIdx = (startIdx + i) % totalTiles;
+                    const coord = MapSystem.getCoord(checkIdx);
+                    if (MapSystem.grid[coord.y][coord.x] === TILE.CITY) {
+                        targetIdx = checkIdx;
+                        break;
+                    }
+                }
+
+                if (targetIdx === startIdx) {
+                    alert("Nenhuma outra cidade encontrada no tabuleiro!");
+                    consumed = false;
+                    break;
+                }
+
+                const targetCoord = MapSystem.getCoord(targetIdx);
+                player.x = targetCoord.x;
+                player.y = targetCoord.y;
+
+                effectLog = `🚑 SAMU! ${player.name} foi resgatado e transportado em segurança para o Centro Pokémon da próxima cidade.`;
+                
+                Game.moveVisuals();
+
+                if (targetIdx < startIdx) {
+                    let lapGold = 500;
+                    if (Game.currentGlobalEvent?.id === 'GOLD_RUSH') lapGold *= 2;
+                    player.gold += lapGold;
+
+                    CardManager.draw(player, true);
+                    CardManager.draw(player, true);
+
+                    player.team.forEach(mon => {
+                        if (mon.level < 25) {
+                            mon.levelUp(player);
+                        }
+                    });
+
+                    Game.sendGlobalLog(`🚩 ${player.name} completou uma volta! Ganhou 500G, 2 Cartas e +1 Level para todo o time!`);
+                    Game.sendGlobalLog(`💰 [Extrato] ${player.name} recebeu +500G (Volta no Tabuleiro).`);
+                }
+
+                Game.hasRolled = true;
+                Game.pendingTileEvent = true;
+                requiresGlobalSync = true;
+                break;
+            }
+
+            case 'change_event': {
+                if (typeof targetId === 'string') {
+                    const chosenEvent = GLOBAL_EVENTS.find((e: any) => e.id === targetId);
+                    if (!chosenEvent) {
+                        consumed = false;
+                        break;
+                    }
+
+                    if (!Game.currentGlobalEvent || Game.round >= Game.eventEndRound) {
+                        Game.eventEndRound = Game.round + 5;
+                    }
+
+                    Game.currentGlobalEvent = chosenEvent;
+                    effectLog = `🌍 MUDANÇA GLOBAL! O evento global foi alterado para: ${chosenEvent.icon} ${chosenEvent.name}!`;
+                    requiresGlobalSync = true;
+                } else {
+                    CardUI.openEventSelection(cardId);
+                    consumed = false;
+                }
+                break;
+            }
+
             default: consumed = false;
         }
 
@@ -1176,6 +1250,11 @@ export class CardEffects {
                     } else {
                         atomicUpd[`${roomPath}/players/${player.id}`] = sanitize(player);
                         if (targetObjForSync) atomicUpd[`${roomPath}/players/${targetObjForSync.id}`] = sanitize(targetObjForSync);
+                    }
+
+                    if (cardId === 'change_event') {
+                        atomicUpd[`${roomPath}/currentEventId`] = Game.currentGlobalEvent ? Game.currentGlobalEvent.id : null;
+                        atomicUpd[`${roomPath}/eventEndRound`] = Game.eventEndRound;
                     }
 
                     await update(ref(db), atomicUpd);

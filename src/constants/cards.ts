@@ -9,6 +9,7 @@ export const CARDS_DB: CardData[] = [
     { id: 'shiny', name: "Lure Shiny", icon: "✨", desc: "As próximas 3 rodadas sua chance de Shiny aumenta para 15%.", type: 'move', rarity: 'Rara' },
     { id: 'doublexp', name: "Double XP", icon: "🚻", desc: "Seus próximos 5 ganhos de XP serão dobrados (XP do dado conta)", type: 'move', rarity: 'Incomum' },
     { id: 'expshare', name: "Exp Share", icon: "🤩", desc: "Seus próximo 5 ganhos de XP serão igualmente distribuído para todo o time (XP do dado conta)", type: 'move', rarity: 'Comum' },
+    { id: 'samu', name: "Chama o SAMU", icon: "🚑", desc: "Transporta você para a próxima cidade e ativa as ações de lá.", type: 'move', rarity: 'Rara' },
 
     // Cartas de dano em batalha
     { id: 'crit', name: "Super Crítico", icon: "💥", desc: "Dobra o dano causado dos próximos 3 ataques.", type: 'battle', rarity: 'Comum' },
@@ -70,6 +71,7 @@ export const CARDS_DB: CardData[] = [
     { id: 'spy', name: "Espião", icon: "🕵️", desc: "Escolha um jogador e veja 3 cartas aleatórias da mão dele (mesmo as protegidas ou lendárias).", type: 'move', rarity: 'Incomum' },
     { id: 'katrina', name: "Furacão Katrina", icon: "🌪️", desc: "Todos os jogadores são movidos para casas aleatórias no tabuleiro.", type: 'global', rarity: 'Rara' },
     { id: 'lure_type', name: "Lure Type", icon: "🆎", desc: "Escolha uma tipagem. Os próximos 2 selvagens que encontrar será da tipagem escolhida.", type: 'move', rarity: 'Incomum' },
+    { id: 'change_event', name: "Modulador de Eventos", icon: "🎛️", desc: "Substitui o evento global atual por outro de sua escolha (mantém a duração original).", type: 'move', rarity: 'Rara' },
 
     // Cartas Lendárias
     { id: 'supreme_bond', name: "Vínculo Supremo", icon: "🤝", desc: "Cria um laço eterno: o Pokémon se torna SHINY (+20% Status), nunca poderá ser removido e não pode perder a Mega Pedra.", type: 'move', rarity: 'Lendária' },

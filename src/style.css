@@ -267,15 +267,37 @@ body {
     justify-content: space-between;
     margin-bottom: 5px;
     font-weight: bold;
-    font-size: 0.85vw;
-    border-bottom: 1px solid #eee;
+    font-size: clamp(13px, 0.85vw, 16px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
     padding-bottom: 5px;
+    color: #fff;
 }
 
 .hud-name-group {
     display: flex;
     align-items: center;
     flex: 1;
+    min-width: 0;
+}
+
+.hud-name-group span {
+    color: #fff;
+    font-size: clamp(12px, 0.85vw, 15px);
+    font-weight: bold;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.hud-gold {
+    font-weight: bold;
+    color: #f1c40f;
+    text-shadow: 1px 1px 0 #000;
+    font-size: clamp(12px, 0.85vw, 15px);
+    white-space: nowrap;
+    margin-left: 8px;
+    flex-shrink: 0;
 }
 
 .hud-avatar-img {
@@ -1562,6 +1584,19 @@ body {
     .player-slot {
         min-width: 200px;
         min-height: auto;
+    }
+
+    .hud-header {
+        font-size: 14px !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .hud-name-group span {
+        font-size: 13px !important;
+    }
+
+    .hud-gold {
+        font-size: 13px !important;
     }
 
     .battle-wrapper {

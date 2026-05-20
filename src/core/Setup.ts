@@ -9,7 +9,45 @@ export class Setup {
     static showOfflineSetup() { document.getElementById('menu-phase-1')!.style.display = 'none'; document.getElementById('menu-phase-setup')!.style.display = 'block'; }
     static showOnlineLogin() { document.getElementById('menu-phase-1')!.style.display = 'none'; document.getElementById('online-login')!.style.display = 'block'; }
     static showOnlineMenu() { document.getElementById('online-login')!.style.display = 'none'; document.getElementById('menu-phase-online')!.style.display = 'block'; const sel = document.getElementById('online-avatar-select') as HTMLSelectElement; if (sel && sel.options.length === 0) { sel.innerHTML = TRAINER_IMAGES.map(img => `<option value="${img.file}">${img.label}</option>`).join(''); } this.updateOnlinePreview(); }
-    static updateOnlinePreview() { const sel = document.getElementById('online-avatar-select') as HTMLSelectElement; const img = document.getElementById('online-avatar-preview') as HTMLImageElement; if (sel && img && sel.value) { img.src = `/assets/img/Treinadores/${sel.value}`; } }
+    static async updateOnlinePreview() {
+        const sel = document.getElementById('online-avatar-select') as HTMLSelectElement;
+        const img = document.getElementById('online-avatar-preview') as HTMLImageElement;
+        if (sel && img && sel.value) {
+            img.src = `/assets/img/Treinadores/${sel.value}`;
+        }
+
+        if (Network.isOnline && Network.currentRoomId) {
+            const players = Network.lobbyPlayers || [];
+            // Check if another player is already using this avatar
+            const isAvatarTaken = players.some((p: any) => {
+                if (p.id === Network.myPlayerId) return false;
+                const avFile = (p.avatar || "").split('/').pop();
+                const selFile = sel.value.split('/').pop();
+                return avFile === selFile;
+            });
+
+            if (isAvatarTaken) {
+                alert("Este avatar já foi escolhido por outro jogador! Escolha outro.");
+                // Revert to player's previous avatar
+                const me = players.find((p: any) => p.id === Network.myPlayerId);
+                if (me && me.avatar) {
+                    const avFile = me.avatar.split('/').pop();
+                    sel.value = avFile || "Ash.png";
+                    img.src = `/assets/img/Treinadores/${avFile || "Ash.png"}`;
+                }
+                return;
+            }
+
+            // Sync the updated avatar with Firebase
+            try {
+                const updates: any = {};
+                updates[`rooms/${Network.currentRoomId}/players/${Network.myPlayerId}/avatar`] = sel.value;
+                await update(ref(db), updates);
+            } catch (e) {
+                console.error("Erro ao atualizar avatar no lobby:", e);
+            }
+        }
+    }
     static showLobbyUIOnly() { const ctrl = document.getElementById('online-lobby-controls'); if (ctrl) ctrl.style.display = 'none'; if (!Network.isHost) { const hc = document.getElementById('host-controls'); if (hc) hc.style.display = 'none'; } }
     static showSetupScreen() { document.getElementById('menu-phase-online')!.style.display = 'none'; document.getElementById('menu-phase-setup')!.style.display = 'block'; }
     static updateSlots() { const numInput = document.getElementById('num-players') as HTMLSelectElement; if (!numInput) return; const n = parseInt(numInput.value); const c = document.getElementById('player-slots-container')!; c.innerHTML = ''; const defs = ["Ash", "Gary", "Misty", "Brock", "May", "Dawn", "Serena", "Goh"]; for (let i = 0; i < n; i++) { const defImg = TRAINER_IMAGES[i % TRAINER_IMAGES.length].file; const opts = TRAINER_IMAGES.map(img => `<option value="${img.file}" ${img.file === defImg ? 'selected' : ''}>${img.label}</option>`).join(''); c.innerHTML += `<div class="setup-row"><strong>P${i + 1}</strong><input type="text" id="p${i}-name" value="${defs[i] || 'Player'}" style="width:100px;"><div class="avatar-selection"><img id="p${i}-preview" src="/assets/img/Treinadores/${defImg}" class="avatar-preview"><select id="p${i}-av" onchange="window.Setup.updatePreview(${i})">${opts}</select></div></div>`; } }
@@ -212,13 +250,24 @@ export class Setup {
             const snap = await get(ref(db, `rooms/${Network.currentRoomId}/players`));
             if (snap.exists()) {
                 const playersData = snap.val();
-                Object.values(playersData).forEach((pd: any) => {
-                    const tempPlayer = new Player(pd.id, pd.name, pd.avatar, true); // true = no starter logic
+                const validPlayers = Object.values(playersData).filter((pd: any) => pd !== null && pd !== undefined);
+                
+                const playOrder: number[] = [];
+                const updatedPlayers: any = {};
+                
+                validPlayers.forEach((pd: any, index: number) => {
+                    pd.id = index; // Re-index sequentially to avoid gaps
+                    const tempPlayer = new Player(index, pd.name, pd.avatar, true); // true = no starter logic
                     tempPlayer.assignStarter(settings);
                     pd.team = tempPlayer.team;
                     pd.pokedexData = Object.assign({}, pd.pokedexData, tempPlayer.pokedexData);
+                    
+                    updatedPlayers[index] = pd;
+                    playOrder.push(index);
                 });
-                updateData.players = playersData;
+                
+                updateData.players = updatedPlayers;
+                updateData.playOrder = playOrder;
             }
             await update(ref(db, `rooms/${Network.currentRoomId}`), updateData); 
         }

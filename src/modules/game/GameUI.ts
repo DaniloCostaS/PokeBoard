@@ -132,7 +132,7 @@ export class GameUI {
             <div class="hud-header" style="flex-direction:column; align-items:flex-start; gap:0;">
                 <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
                     <div class="hud-name-group" onclick="window.Game.openPlayerMastery(${i})" style="cursor:pointer;" title="Ver Maestria do Treinador"><img src="${p.avatar}" class="hud-avatar-img"><span>${p.name}</span></div>
-                    <div style="font-weight:bold; color:#f1c40f; text-shadow:1px 1px 0 #000;">💰${p.gold}</div>
+                    <div class="hud-gold">💰${p.gold}</div>
                 </div>
                 ${effectsHTML}
             </div> 

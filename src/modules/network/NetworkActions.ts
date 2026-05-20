@@ -138,7 +138,7 @@ export class NetworkActions {
 
         const data = snapshot.val();
         if (data.status === "PLAYING") {
-            const existingPlayers = Object.values(data.players || {});
+            const existingPlayers = Object.values(data.players || {}).filter((p: any) => p !== null && p !== undefined);
             const found = existingPlayers.find((p: any) => p.name === NetworkState.localName);
             if (found) {
                 NetworkState.myPlayerId = (found as any).id;
@@ -155,12 +155,37 @@ export class NetworkActions {
         }
 
         const players = data.players || {};
-        const currentCount = Object.keys(players).length;
-        if (currentCount >= 8) return alert("Sala cheia!");
+        const existingPlayers = Object.values(players).filter((p: any) => p !== null && p !== undefined);
+        const nameFound = existingPlayers.find((p: any) => p.name === NetworkState.localName);
 
-        NetworkState.myPlayerId = currentCount;
+        let targetId = existingPlayers.length;
+        let isRejoining = false;
+
+        if (nameFound) {
+            targetId = (nameFound as any).id;
+            isRejoining = true;
+        } else {
+            const existingIds = existingPlayers.map((p: any) => p.id);
+            targetId = existingIds.length > 0 ? Math.max(...existingIds) + 1 : 0;
+            if (existingPlayers.length >= 8) return alert("Sala cheia!");
+        }
+
+        // Check if another player is already using this avatar
+        const selectedAvatar = NetworkState.localAvatar;
+        const isAvatarTaken = existingPlayers.some((p: any) => {
+            if (isRejoining && p.id === targetId) return false;
+            const avFile = (p.avatar || "").split('/').pop();
+            const selFile = selectedAvatar.split('/').pop();
+            return avFile === selFile;
+        });
+
+        if (isAvatarTaken) {
+            return alert("Este avatar já foi escolhido por outro jogador na sala! Escolha outro antes de entrar.");
+        }
+
+        NetworkState.myPlayerId = targetId;
         NetworkState.currentRoomId = code;
-        NetworkState.isHost = false;
+        NetworkState.isHost = (targetId === 0);
 
         const myPlayerObj = new Player(NetworkState.myPlayerId, NetworkState.localName, NetworkState.localAvatar, false);
 
@@ -205,14 +230,37 @@ export class NetworkActions {
 
         onValue(playersRef, (snapshot) => {
             const players = snapshot.val();
-            if (!players) return;
-            NetworkState.lobbyPlayers = Object.values(players);
+            if (!players) {
+                if (NetworkState.isOnline && !NetworkState.isHost) {
+                    alert("A sala foi desfeita pelo Host.");
+                    localStorage.removeItem('pkbd_session');
+                    location.reload();
+                }
+                return;
+            }
+            
+            // Filter nulls/undefineds to handle Firebase sequential array conversion gaps
+            NetworkState.lobbyPlayers = Object.values(players).filter((p: any) => p !== null && p !== undefined);
+
+            // Check if local player was removed
+            const stillExists = NetworkState.lobbyPlayers.some((p: any) => p.id === NetworkState.myPlayerId);
+            if (!stillExists && !NetworkState.isHost && NetworkState.isOnline) {
+                alert("Você foi removido da sala pelo Host.");
+                localStorage.removeItem('pkbd_session');
+                location.reload();
+                return;
+            }
+
             const list = document.getElementById('online-lobby-list')!;
             list.style.display = 'block';
 
             list.innerHTML = NetworkState.lobbyPlayers.map((p: any) => {
                 const avatarFile = (p.avatar || "Red.jpg").split('/').pop();
-                return `<div class="lobby-player-item"><img src="/assets/img/Treinadores/${avatarFile}"><span><b>P${p.id + 1}</b>: ${p.name} ${p.id === 0 ? '(HOST)' : ''}</span></div>`;
+                let removeBtn = '';
+                if (NetworkState.isHost && p.id !== 0) {
+                    removeBtn = `<button class="btn btn-danger" style="padding: 2px 6px; font-size: 0.75rem; margin-left: 10px; background: #e74c3c; border: none; border-radius: 4px; color: white;" onclick="window.Network.removePlayer(${p.id})">Remover</button>`;
+                }
+                return `<div class="lobby-player-item"><img src="/assets/img/Treinadores/${avatarFile}"><span><b>P${p.id + 1}</b>: ${p.name} ${p.id === 0 ? '(HOST)' : ''}${removeBtn}</span></div>`;
             }).join('');
         });
 
@@ -220,6 +268,17 @@ export class NetworkActions {
             const status = snapshot.val();
             if (status === 'PLAYING') { this.initializeGameFromFirebase(); }
         });
+    }
+
+    static async removePlayer(playerId: number) {
+        if (!NetworkState.isHost) return;
+        try {
+            const updates: any = {};
+            updates[`rooms/${NetworkState.currentRoomId}/players/${playerId}`] = null;
+            await update(ref(db), updates);
+        } catch (e) {
+            console.error("Erro ao remover jogador:", e);
+        }
     }
 
     static async initializeGameFromFirebase() {
@@ -269,28 +328,38 @@ export class NetworkActions {
             GameUI.renderCardLogs();
         }
 
-        const playerArray = Object.values(data.players).map((pd: any) => {
-            const avatarFile = (pd.avatar || "Red.jpg").split('/').pop();
-            const pl = new Player(pd.id, pd.name, avatarFile, true);
-            pl.x = pd.x; pl.y = pd.y; pl.gold = pd.gold;
+        const playerArray = Object.values(data.players)
+            .filter((pd: any) => pd !== null && pd !== undefined)
+            .map((pd: any) => {
+                const avatarFile = (pd.avatar || "Red.jpg").split('/').pop();
+                const pl = new Player(pd.id, pd.name, avatarFile, true);
+                pl.x = pd.x; pl.y = pd.y; pl.gold = pd.gold;
 
-            pl.skipTurns = pd.skipTurns || 0;
-            pl.badges = pd.badges || [false, false, false, false, false, false, false, false];
-            pl.cards = pd.cards || [];
-            pl.effects = pd.effects || {};
-            pl.pokedexData = pd.pokedexData || {};
-            pl.stats = pd.stats || { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
+                pl.skipTurns = pd.skipTurns || 0;
+                pl.badges = pd.badges || [false, false, false, false, false, false, false, false];
+                pl.cards = pd.cards || [];
+                pl.effects = pd.effects || {};
+                pl.pokedexData = pd.pokedexData || {};
+                pl.stats = pd.stats || { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
 
-            if (pd.team && pd.team.length > 0) {
-                pl.team = pd.team.map((td: any) => {
-                    const po = new Pokemon(td.id, td.level, td.isShiny);
-                    Object.assign(po, td);
-                    return po;
-                });
-            }
-            if (pd.items) pl.items = pd.items;
-            return pl;
-        });
+                if (pd.team && pd.team.length > 0) {
+                    pl.team = pd.team.map((td: any) => {
+                        const po = new Pokemon(td.id, td.level, td.isShiny);
+                        Object.assign(po, td);
+                        return po;
+                    });
+                }
+                if (pd.items) pl.items = pd.items;
+                return pl;
+            });
+
+        // Update local player ID based on name matching
+        const me = playerArray.find((p: any) => p.name === NetworkState.localName);
+        if (me) {
+            NetworkState.myPlayerId = me.id;
+            localStorage.setItem('pkbd_session', JSON.stringify({ roomId: NetworkState.currentRoomId, id: me.id }));
+            NetworkState.isHost = (me.id === 0);
+        }
 
         if (data.playOrder) {
             playerArray.sort((a: Player, b: Player) => data.playOrder.indexOf(a.id) - data.playOrder.indexOf(b.id));
@@ -372,7 +441,7 @@ export class NetworkActions {
             const playersData = snapshot.val();
             if (!playersData) return;
 
-            Object.values(playersData).forEach((pd: any) => {
+            Object.values(playersData).filter((pd: any) => pd !== null && pd !== undefined).forEach((pd: any) => {
                 const localPlayer = Game.players.find((p: any) => p.id == pd.id);
                 if (localPlayer) {
                     const isMeAndMyTurn = (localPlayer.id === NetworkState.myPlayerId && Game.canAct && Game.canAct());

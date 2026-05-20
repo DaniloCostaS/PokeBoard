@@ -927,6 +927,20 @@
         </div>
     </div>
 
+    <div id="event-selection-modal" class="modal-overlay" style="z-index: 5000; display: none;">
+        <div class="modal-box"
+            style="max-width: 600px; width: 90%; height: auto; max-height: 85vh; background: #1a1a2e; color: white; border: 2px solid #f1c40f; display: flex; flex-direction: column;">
+            <h2 class="title-highlight" style="color: #f1c40f; border-bottom: 2px solid #f1c40f; padding-bottom: 10px;">🎛️ Modulador de Eventos</h2>
+            <p class="subtitle" style="color: #bdc3c7; margin-top: 10px; margin-bottom: 15px;">Escolha o novo Evento Global que ficará ativo no tabuleiro:</p>
+            <div id="event-selection-list" class="scroll-list"
+                style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; max-height: 50vh; padding: 5px;">
+                <!-- Eventos serão gerados via JS -->
+            </div>
+            <button class="btn btn-secondary mt-15" style="background: #34495e; border: none; margin-top: 15px;"
+                onclick="document.getElementById('event-selection-modal').style.display='none'">Cancelar</button>
+        </div>
+    </div>
+
     <!-- ROOMS HUB MODAL -->
     <div id="rooms-hub-modal" class="modal">
         <div class="modal-content" style="max-width: 500px; background: #2c3e50;">
