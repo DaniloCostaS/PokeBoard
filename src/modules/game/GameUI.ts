@@ -44,7 +44,7 @@ export class GameUI {
             d.style.background = `linear-gradient(135deg, rgba(26,26,29,0.95) 40%, ${playerColor}44 100%)`;
             d.style.borderLeft = `4px solid ${playerColor}`;
 
-            let badgeHTML = '<div class="badges-container">';
+            let badgeHTML = `<div class="badges-container" style="cursor: pointer;" onclick="window.openPlayerBadges(${i})" title="Clique para abrir o Porta-Insígnias de ${p.name}">`;
             for (let b = 0; b < 8; b++) {
                 const isActive = p.badges[b];
                 const actualGymId = GameState.activeGyms ? GameState.activeGyms[b] : (b + 1);
@@ -809,10 +809,15 @@ export class GameUI {
             document.body.appendChild(modal);
         }
         modal.innerHTML = `
-            <div class="modal-box" style="text-align: center;">
-                <h3 style="color:#f1c40f;">${GameState.currentGlobalEvent.icon} ${GameState.currentGlobalEvent.name}</h3>
-                <p style="font-size: 1.1rem; line-height: 1.5; margin: 20px 0; color: #fff; text-shadow: 1px 1px 2px #000;">${GameState.currentGlobalEvent.desc}</p>
-                <button class="btn btn-secondary mt-15" onclick="document.getElementById('event-details-modal').style.display='none'">Fechar</button>
+            <div style="text-align: center; max-width: 500px; width: 90%; height: auto; background: rgba(20, 20, 20, 0.95); border: 2px solid #f1c40f; color: #fff; border-radius: 16px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); overflow-y: auto;">
+                <h3 style="color:#f1c40f; font-size: 1.5rem; margin-top: 0; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <span>${GameState.currentGlobalEvent.icon}</span> 
+                    <span>${GameState.currentGlobalEvent.name}</span>
+                </h3>
+                <p style="font-size: 1.1rem; line-height: 1.6; margin: 20px 0; color: #ecf0f1;">
+                    ${GameState.currentGlobalEvent.desc}
+                </p>
+                <button class="btn btn-secondary mt-15" style="padding: 10px 25px; font-size: 1rem; border-radius: 8px;" onclick="document.getElementById('event-details-modal').style.display='none'">Fechar</button>
             </div>
         `;
         modal.style.display = 'flex';
@@ -859,21 +864,36 @@ export class GameUI {
         [mon.type, mon.secondType].filter(t => t).forEach(t => {
             const span = document.createElement('span');
             span.innerText = t;
-            span.style.cssText = `background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; margin-left: 4px;`;
+            const bgColor = colors[t] || '#555';
+            span.style.cssText = `background: ${bgColor}; border: 1px solid rgba(255,255,255,0.3); color: white; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; margin-left: 4px; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);`;
             typeContainer.appendChild(span);
         });
+
+        // Configurar botão da Pokédex
+        const dexBtn = document.getElementById('detail-dex-btn');
+        if (dexBtn) {
+            if (!championData && playerIndex >= 0) {
+                dexBtn.style.display = 'inline-block';
+                dexBtn.onclick = () => {
+                    (window as any).Game.openPokedex(playerIndex, mon.id);
+                    document.getElementById('detail-modal')!.style.display = 'none';
+                };
+            } else {
+                dexBtn.style.display = 'none';
+            }
+        }
 
         const ivs = (mon as any).ivs || { hp: 0, atk: 0, def: 0, spd: 0 };
         const bonus = (mon as any).bonusStats || { hp: 0, atk: 0, def: 0, spd: 0 };
         const createStatRow = (label: string, total: number, iv: number, bon: number, icon: string) => `
-                <div style="background: #fff; border: 1px solid #eee; padding: 8px; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                <div style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); padding: 8px; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.15);">
                     <div style="font-weight: bold; margin-bottom: 4px; display:flex; justify-content:space-between; align-items:center;">
                         <span>${icon} ${label}</span>
-                        <span style="font-size:1.1rem; color:#2c3e50;">${total}</span>
+                        <span style="font-size:1.1rem; color:#fff;">${total}</span>
                     </div>
-                    <div style="font-size: 0.7rem; color: #7f8c8d; display:flex; justify-content:space-between; border-top: 1px dashed #eee; padding-top:4px;">
-                        <span title="IV">🧬 IV: <b style="color:#8e44ad">${iv}</b></span>
-                        <span title="Up" style="color:#2980b9;">⬆️ Up: +${bon}</span>
+                    <div style="font-size: 0.7rem; color: #aaa; display:flex; justify-content:space-between; border-top: 1px dashed rgba(255,255,255,0.1); padding-top:4px;">
+                        <span title="IV">🧬 IV: <b style="color:#a29bfe">${iv}</b></span>
+                        <span title="Up" style="color:#74b9ff;">⬆️ Up: +${bon}</span>
                     </div>
                 </div>`;
         const grid = document.getElementById('detail-stats-grid')!;
@@ -890,9 +910,9 @@ export class GameUI {
             itemSection.id = 'detail-item-section';
             grid.parentElement?.insertBefore(itemSection, grid.nextSibling);
         }
-        itemSection.style.cssText = "margin-top: 15px; background: rgba(0,0,0,0.05); padding: 10px; border-radius: 8px; border: 1px solid #ddd;";
+        itemSection.style.cssText = "margin-top: 15px; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);";
         
-        let itemHTML = `<div style="font-weight: bold; color: #2c3e50; font-size: 0.9rem; margin-bottom: 5px;">📦 Item Segurando</div>`;
+        let itemHTML = `<div style="font-weight: bold; color: #fff; font-size: 0.9rem; margin-bottom: 5px;">📦 Item Segurando</div>`;
         if (mon.heldItem || mon.megaStone) {
             const heldId = mon.heldItem || 'megastone';
             const heldData = SHOP_ITEMS.find(i => i.id === heldId);
@@ -900,16 +920,16 @@ export class GameUI {
             const canRemove = isMe && mon.heldItem; // Only allow removal if it's a held item, not mega stone
 
             itemHTML += `
-                <div style="display:flex; align-items:center; justify-content:space-between; background:#fff; padding:8px; border-radius:6px; border:1px solid #eee;">
+                <div style="display:flex; align-items:center; justify-content:space-between; background: rgba(0,0,0,0.3); padding:8px; border-radius:6px; border: 1px solid rgba(255,255,255,0.1);">
                     <div style="display:flex; align-items:center; gap:10px;">
                         <img src="/assets/img/Itens/${heldData?.icon || 'MegaStone.png'}" style="width:24px; height:24px; object-fit:contain;">
-                        <span style="font-weight:bold; color:#2c3e50; font-size:0.9rem;">${heldData?.name || 'Mega Pedra'}</span>
+                        <span style="font-weight:bold; color:#fff; font-size:0.9rem;">${heldData?.name || 'Mega Pedra'}</span>
                     </div>
                     ${canRemove ? `<button class="btn btn-mini" style="background:#e74c3c; color:white; border:none; padding:4px 10px; border-radius:4px; cursor:pointer;" onclick="window.Game.removeHeldItem(${playerIndex}, ${slotIndex})">Remover</button>` : ''}
                 </div>
             `;
         } else {
-            itemHTML += `<div style="color:#7f8c8d; font-size:0.8rem; font-style:italic; text-align:center; padding:5px;">Nenhum item equipado.</div>`;
+            itemHTML += `<div style="color:#aaa; font-size:0.8rem; font-style:italic; text-align:center; padding:5px;">Nenhum item equipado.</div>`;
         }
         itemSection.innerHTML = itemHTML;
 
@@ -945,12 +965,12 @@ export class GameUI {
                 const currentBonus = kills;
                 const nextCheckpoint = kills + 1;
                 return `
-                    <div style="margin-bottom: 4px; border-bottom: 1px dashed #eee; padding-bottom: 2px;">
+                    <div style="margin-bottom: 4px; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 2px;">
                         <div style="display:flex; justify-content:space-between;">
                             <span>Tipo ${t}:</span>
-                            <b style="color: ${currentBonus > 0 ? '#27ae60' : '#c0392b'};">+${currentBonus}% Dano</b>
+                            <b style="color: ${currentBonus > 0 ? '#2ecc71' : '#e74c3c'};">+${currentBonus}% Dano</b>
                         </div>
-                        <div style="font-size:0.7rem; color:#7f8c8d;">
+                        <div style="font-size:0.7rem; color:#aaa;">
                             Abatidos: <b>${kills}</b> / ${nextCheckpoint}
                         </div>
                     </div>
@@ -1012,27 +1032,27 @@ export class GameUI {
 
         if (chain.length > 1) {
             let chainHTML = `
-                <div style="font-weight: bold; color: #8e44ad; font-size: 0.9rem; margin-bottom: 8px; display: flex; align-items: center; gap: 5px;">
+                <div style="font-weight: bold; color: #9b59b6; font-size: 0.9rem; margin-bottom: 8px; display: flex; align-items: center; gap: 5px;">
                     🧬 Caminho Evolutivo Previsto
                 </div>
-                <div style="display: flex; justify-content: center; align-items: center; background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px solid #eee; overflow-x: auto; gap: 5px;">
+                <div style="display: flex; justify-content: center; align-items: center; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); overflow-x: auto; gap: 5px;">
             `;
 
             chain.forEach((stage, idx) => {
                 const isCurrent = stage.id === mon.id;
                 const filterStyle = stage.isMega ? 'filter: drop-shadow(0 0 5px #f1c40f);' : '';
-                const highlightBorder = isCurrent ? 'border: 2px solid #2ecc71; background: #e8f8f5;' : 'border: 2px solid transparent;';
+                const highlightBorder = isCurrent ? 'border: 2px solid #2ecc71; background: rgba(46, 204, 113, 0.15);' : 'border: 2px solid transparent;';
 
                 chainHTML += `
                     <div style="display: flex; flex-direction: column; align-items: center; padding: 5px; border-radius: 8px; ${highlightBorder} min-width: 60px;">
                         <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${stage.id}.png" style="width: 50px; height: 50px; image-rendering: pixelated; ${filterStyle}">
-                        <span style="font-size: 0.65rem; font-weight: bold; color: #2c3e50; text-align: center; line-height: 1;">${stage.name}</span>
-                        <span style="font-size: 0.55rem; color: ${stage.isMega ? '#f39c12' : '#7f8c8d'}; font-weight: bold; background: ${stage.isMega ? '#fef9e7' : '#e0e6ed'}; padding: 2px 4px; border-radius: 4px; margin-top: 4px; white-space: nowrap;">${stage.trigger}</span>
+                        <span style="font-size: 0.65rem; font-weight: bold; color: #fff; text-align: center; line-height: 1;">${stage.name}</span>
+                        <span style="font-size: 0.55rem; color: ${stage.isMega ? '#f1c40f' : '#ccc'}; font-weight: bold; background: ${stage.isMega ? 'rgba(243, 156, 18, 0.15)' : 'rgba(255,255,255,0.1)'}; padding: 2px 4px; border-radius: 4px; margin-top: 4px; white-space: nowrap;">${stage.trigger}</span>
                     </div>
                 `;
 
                 if (idx < chain.length - 1) {
-                    chainHTML += `<div style="color: #bdc3c7; font-size: 1.2rem; font-weight: bold;">➔</div>`;
+                    chainHTML += `<div style="color: #666; font-size: 1.2rem; font-weight: bold;">➔</div>`;
                 }
             });
 
@@ -1041,10 +1061,10 @@ export class GameUI {
             evoContainer.style.display = 'block';
         } else {
             evoContainer.innerHTML = `
-                <div style="font-weight: bold; color: #8e44ad; font-size: 0.9rem; margin-bottom: 8px; display: flex; align-items: center; gap: 5px;">
+                <div style="font-weight: bold; color: #9b59b6; font-size: 0.9rem; margin-bottom: 8px; display: flex; align-items: center; gap: 5px;">
                     🧬 Caminho Evolutivo Previsto
                 </div>
-                <div style="text-align: center; background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px solid #eee; font-size: 0.8rem; color: #7f8c8d;">
+                <div style="text-align: center; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); font-size: 0.8rem; color: #ccc;">
                     Estágio Final alcançado.
                 </div>
             `;
@@ -1064,14 +1084,7 @@ export class GameUI {
         const list = document.getElementById('library-list')!;
         list.innerHTML = '';
 
-        const modalContent = document.querySelector('#library-modal .modal-content') as HTMLElement;
-        if (modalContent) {
-            modalContent.style.width = "98%";
-            modalContent.style.maxWidth = "1400px";
-            modalContent.style.maxHeight = "95vh";
-            modalContent.style.padding = "30px";
-            modalContent.style.overflowY = "auto";
-        }
+        // Removido override dinâmico para respeitar estilos premium do HTML
 
         list.style.display = 'grid';
         list.style.gridTemplateColumns = 'repeat(auto-fill, minmax(180px, 1fr))';
@@ -1143,14 +1156,7 @@ export class GameUI {
         const list = document.getElementById('item-library-list')!;
         list.innerHTML = '';
 
-        const modalContent = document.querySelector('#item-library-modal .modal-content') as HTMLElement || document.querySelector('#item-library-modal .modal-box') as HTMLElement;
-        if (modalContent) {
-            modalContent.style.width = "98%";
-            modalContent.style.maxWidth = "1400px";
-            modalContent.style.maxHeight = "95vh";
-            modalContent.style.padding = "30px";
-            modalContent.style.overflowY = "auto";
-        }
+        // Removido override dinâmico para respeitar estilos premium do HTML
 
         list.style.display = 'grid';
         list.style.gridTemplateColumns = 'repeat(auto-fill, minmax(220px, 1fr))';
@@ -1402,6 +1408,56 @@ export class GameUI {
         document.getElementById('board-inventory-modal')!.style.display = 'flex';
     }
 
+    static openPlayerBadgesModal(pId: number) {
+        const p = GameState.players[pId];
+        if (!p) return;
+
+        const nameEl = document.getElementById('badges-player-name')!;
+        nameEl.textContent = `- ${p.name}`;
+
+        const grid = document.getElementById('badges-case-grid')!;
+        grid.innerHTML = '';
+
+        for (let b = 0; b < 8; b++) {
+            const isActive = p.badges[b];
+            const actualGymId = GameState.activeGyms ? GameState.activeGyms[b] : (b + 1);
+            const gData = GYM_DATA.find(g => g.id === actualGymId);
+            
+            const badgeImg = gData ? `/assets/img/Insignias/${gData.badgeImg}` : '';
+            const leaderName = gData ? gData.leaderName : `Líder ${b + 1}`;
+            const gymType = gData ? gData.type.join('/') : 'Desconhecido';
+
+            const d = document.createElement('div');
+            d.style.cssText = "display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 12px; border-radius: 12px; width: 100%; box-sizing: border-box; transition: transform 0.2s, box-shadow: 0.2s; position: relative;";
+
+            if (isActive) {
+                d.style.background = 'rgba(241, 196, 15, 0.08)';
+                d.style.border = '2px solid #f1c40f';
+                d.style.boxShadow = '0 0 12px rgba(241, 196, 15, 0.25), inset 0 0 8px rgba(241, 196, 15, 0.1)';
+                
+                d.innerHTML = `
+                    <img src="${badgeImg}" style="width: 55px; height: 55px; object-fit: contain; filter: drop-shadow(0 2px 6px rgba(241,196,15,0.5)); margin-bottom: 8px;" title="Conquistada!">
+                    <span style="font-size: 0.85rem; font-weight: bold; color: #fff; text-align: center;">${gymType}</span>
+                    <span style="font-size: 0.7rem; color: #f1c40f; margin-top: 2px;">${leaderName}</span>
+                    <div style="margin-top: 6px; background: #2ecc71; color: #fff; font-size: 0.6rem; font-weight: bold; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Ganho</div>
+                `;
+            } else {
+                d.style.background = 'rgba(0, 0, 0, 0.4)';
+                d.style.border = '2px dashed rgba(255, 255, 255, 0.1)';
+                
+                d.innerHTML = `
+                    <img src="${badgeImg}" style="width: 55px; height: 55px; object-fit: contain; filter: grayscale(100%) opacity(0.2); margin-bottom: 8px;" title="Bloqueada">
+                    <span style="font-size: 0.85rem; font-weight: normal; color: #7f8c8d; text-align: center;">${gymType}</span>
+                    <span style="font-size: 0.7rem; color: #5d6d7e; margin-top: 2px;">${leaderName}</span>
+                    <div style="margin-top: 6px; background: rgba(255,255,255,0.05); color: #7f8c8d; border: 1px solid rgba(255,255,255,0.1); font-size: 0.6rem; font-weight: bold; padding: 1px 5px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Pendente</div>
+                `;
+            }
+            grid.appendChild(d);
+        }
+
+        document.getElementById('player-badges-modal')!.style.display = 'flex';
+    }
+
     static openPokedexEntry(targetId: number) {
         this.openPokedex(GameState.turn, targetId);
     }
@@ -1410,19 +1466,18 @@ export class GameUI {
         const p = GameState.players[pId];
         const list = document.getElementById('pokedex-list')!;
         list.innerHTML = '';
-
         if (filterId === null) {
             const searchContainer = document.createElement('div');
             searchContainer.style.cssText = "width: 100%; grid-column: 1 / -1; margin-bottom: 20px; display: flex; gap: 10px;";
             searchContainer.innerHTML = `
-                <input type="text" id="pokedex-search" placeholder="🔍 Buscar Pokémon por nome..." style="flex: 1; padding: 12px 15px; border-radius: 4px; border: 2px solid #8d99ae; font-size: 1rem; box-sizing: border-box; background: #fff; color: #2c3e50; outline: none; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);" onkeyup="window.Game.filterPokedex()">
-                <select id="pokedex-category-filter" style="padding: 12px; border-radius: 4px; border: 2px solid #8d99ae; font-size: 1rem; background: #fff; color: #2c3e50; outline: none; cursor: pointer;" onchange="window.Game.filterPokedex()">
-                    <option value="all">Todos</option>
-                    <option value="seen">Vistos</option>
-                    <option value="caught">Capturados</option>
-                    <option value="defeated">Derrotados</option>
-                    <option value="unseen">Não Vistos</option>
-                    <option value="uncaught">Não Capturados</option>
+                <input type="text" id="pokedex-search" placeholder="🔍 Buscar Pokémon por nome..." style="flex: 1; padding: 12px 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); font-size: 1rem; box-sizing: border-box; background: rgba(0,0,0,0.3); color: #fff; outline: none; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);" onkeyup="window.Game.filterPokedex()">
+                <select id="pokedex-category-filter" style="padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); font-size: 1rem; background: rgba(0,0,0,0.3); color: #fff; outline: none; cursor: pointer;" onchange="window.Game.filterPokedex()">
+                    <option value="all" style="background:#222; color:#fff;">Todos</option>
+                    <option value="seen" style="background:#222; color:#fff;">Vistos</option>
+                    <option value="caught" style="background:#222; color:#fff;">Capturados</option>
+                    <option value="defeated" style="background:#222; color:#fff;">Derrotados</option>
+                    <option value="unseen" style="background:#222; color:#fff;">Não Vistos</option>
+                    <option value="uncaught" style="background:#222; color:#fff;">Não Capturados</option>
                 </select>
             `;
             list.appendChild(searchContainer);
@@ -1501,14 +1556,16 @@ export class GameUI {
             d.setAttribute('data-caught', (dexEntry.caught > 0).toString());
             d.setAttribute('data-defeated', (dexEntry.defeated > 0).toString());
 
+
             const isDiscovered = dexEntry.seen > 0 || dexEntry.caught > 0;
-            const imgFilter = isDiscovered ? '' : 'filter: brightness(0) opacity(0.4);';
+            const imgFilter = isDiscovered ? '' : 'filter: brightness(0) invert(1) opacity(0.15);';
             const displayName = mon.name;
 
+
             d.innerHTML = `
-                <div style="font-weight: bold; color: #7f8c8d; width: 100%; text-align: left; font-size: 0.8rem;">#${mon.id.toString().padStart(3, '0')}</div>
+                <div style="font-weight: bold; color: #aaa; width: 100%; text-align: left; font-size: 0.8rem;">#${mon.id.toString().padStart(3, '0')}</div>
                 <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${mon.id}.png" style="width: 70px; height: 70px; image-rendering: pixelated; ${imgFilter}">
-                <b style="font-size: 1rem; color: #2c3e50;">${displayName}</b>
+                <b style="font-size: 1rem; color: #fff;">${displayName}</b>
                 <div style="display:flex; gap:5px; margin: 5px 0;">${typeHtml}</div>
                 
                 <div class="dex-stats-row">
@@ -1519,12 +1576,12 @@ export class GameUI {
                 </div>
                 
                 <div style="margin-top:5px; text-align:left; width:100%; padding:0 5px;">
-                    ${formatTypeList(weaknesses, 'Fraquezas', '#c0392b')}
-                    ${formatTypeList(resistances, 'Resistências', '#27ae60')}
+                    ${formatTypeList(weaknesses, 'Fraquezas', '#ff7675')}
+                    ${formatTypeList(resistances, 'Resistências', '#2ecc71')}
                 </div>
 
-                <div style="font-size: 0.75rem; color: #8e44ad; margin-top: 6px; text-align: center; min-height: 15px;">
-                    ${mon.nextForm ? `Evolui: <b>${mon.nextForm}</b> (Lv.${mon.evoTrigger})` : (MAPA_MEGAS[mon.id] ? '<b>Estágio Final <span style="color:#e67e22;">- Mega Evolui</span></b>' : '<b>Estágio Final</b>')}
+                <div style="font-size: 0.75rem; color: #9b59b6; margin-top: 6px; text-align: center; min-height: 15px;">
+                    ${mon.nextForm ? `Evolui: <b>${mon.nextForm}</b> (Lv.${mon.evoTrigger})` : (MAPA_MEGAS[mon.id] ? '<b>Estágio Final <span style="color:#f1c40f;">- Mega Evolui</span></b>' : '<b>Estágio Final</b>')}
                 </div>
 
                 <div class="dex-track-row">
@@ -1640,6 +1697,8 @@ export class GameUI {
         modal.style.display = 'flex';
     }
 
+
+
     static openSwapModal(newMon: Pokemon) {
         const modal = document.getElementById('swap-modal')!;
         const list = document.getElementById('swap-list')!;
@@ -1650,14 +1709,15 @@ export class GameUI {
             const div = document.createElement('div');
             div.className = 'swap-item';
 
+            const isShiny = currP.isShiny;
             div.innerHTML = `
                 <div style="display: flex; align-items: center; gap: 15px; width: 100%; padding: 5px;">
-                    <img src="${currP.getSprite()}" width="50" style="filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.2));">
+                    <img src="${currP.getSprite()}" width="50" style="filter: drop-shadow(0 0 3px ${isShiny ? '#f1c40f' : 'transparent'});">
                     <div style="text-align: left; line-height: 1.4; flex-grow: 1;">
-                        <b style="font-size: 1.1rem; color: #2c3e50;">${currP.name}</b> 
-                        <small style="color: #e67e22; font-weight: bold;">Lv.${currP.level}</small><br>
+                        <b style="font-size: 1.1rem; color: ${isShiny ? '#f1c40f' : '#fff'};">${currP.name} ${isShiny ? '✨' : ''}</b> 
+                        <small style="color: #f1c40f; font-weight: bold;">Lv.${currP.level}</small><br>
                         
-                        <div style="font-size: 0.85rem; color: #7f8c8d; margin-top: 4px; display: flex; gap: 10px;">
+                        <div style="font-size: 0.85rem; color: #ecf0f1; margin-top: 4px; display: flex; gap: 10px;">
                             <span>❤️ <b>${currP.maxHp}</b></span>
                             <span>⚔️ <b>${currP.atk}</b></span>
                             <span>🛡️ <b>${currP.def}</b></span>
@@ -1674,25 +1734,26 @@ export class GameUI {
         const divNew = document.createElement('div');
         divNew.className = 'swap-item new-mon';
 
+        const isNewShiny = newMon.isShiny;
         divNew.innerHTML = `
-            <div style="display: flex; align-items: center; gap: 15px; width: 100%; padding: 5px; background-color: #fcf3f2; border: 1px dashed #e74c3c; border-radius: 8px; margin-top: 10px;">
-                <img src="${newMon.getSprite()}" width="50" style="filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.2));">
+            <div style="display: flex; align-items: center; gap: 15px; width: 100%; padding: 8px; background-color: rgba(231, 76, 60, 0.15); border: 2px dashed #e74c3c; border-radius: 8px; box-sizing: border-box;">
+                <img src="${newMon.getSprite()}" width="50" style="filter: drop-shadow(0 0 3px ${isNewShiny ? '#f1c40f' : 'transparent'});">
                 <div style="text-align: left; line-height: 1.4; flex-grow: 1;">
-                    <b style="font-size: 1.1rem; color: #e74c3c;">${newMon.name} (NOVO)</b> 
-                    <small style="color: #e67e22; font-weight: bold;">Lv.${newMon.level}</small><br>
+                    <b style="font-size: 1.1rem; color: #e74c3c;">${newMon.name} (NOVO) ${isNewShiny ? '✨' : ''}</b> 
+                    <small style="color: #f1c40f; font-weight: bold;">Lv.${newMon.level}</small><br>
                     
-                    <div style="font-size: 0.85rem; color: #7f8c8d; margin-top: 4px; display: flex; gap: 10px;">
+                    <div style="font-size: 0.85rem; color: #ecf0f1; margin-top: 4px; display: flex; gap: 10px;">
                         <span>❤️ <b>${newMon.maxHp}</b></span>
                         <span>⚔️ <b>${newMon.atk}</b></span>
                         <span>🛡️ <b>${newMon.def}</b></span>
                         <span>💨 <b>${newMon.speed}</b></span>
                     </div>
-                    <small style="color: #c0392b; font-weight: bold; display: block; margin-top: 5px;">❌ Clique aqui para soltar e não capturar este</small>
+                    <small style="color: #e74c3c; font-weight: bold; display: block; margin-top: 5px; cursor: pointer;">❌ Clique aqui para soltar e não capturar este</small>
                 </div>
             </div>
         `;
 
-        divNew.onclick = () => GameEvents.executeSwap(-1, newMon);
+            divNew.onclick = () => GameEvents.executeSwap(-1, newMon);
         list.appendChild(divNew);
 
         modal.style.display = 'block';

@@ -29,19 +29,32 @@ export class ShopUI {
             const finalPrice = item.price * priceMulti;
 
             const div = document.createElement('div');
-            div.className = 'shop-item';
+            // Estilização premium da linha do item
+            div.style.display = 'flex';
+            div.style.justifyContent = 'space-between';
+            div.style.alignItems = 'center';
+            div.style.padding = '12px 10px';
+            div.style.borderBottom = '1px solid rgba(255, 255, 255, 0.08)';
+            div.style.gap = '12px';
 
-            const btnStyle = priceMulti === 2 ? 'width:auto; background:#e74c3c;' : 'width:auto;';
+            const btnBg = priceMulti === 2 
+                ? 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)' 
+                : 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)';
+            const btnShadow = priceMulti === 2
+                ? '0 2px 8px rgba(231, 76, 60, 0.4)'
+                : '0 2px 8px rgba(52, 152, 219, 0.4)';
 
             div.innerHTML = `
-                <div style="display:flex; align-items:center; gap:8px; flex:1; min-width:0;">
-                    <img src="/assets/img/Itens/${item.icon}" class="item-icon-mini" style="flex-shrink:0;">
+                <div style="display:flex; align-items:center; gap:12px; flex:1; min-width:0;">
+                    <img src="/assets/img/Itens/${item.icon}" class="item-icon-mini" style="width: 32px; height: 32px; object-fit: contain; flex-shrink:0;">
                     <div style="display:flex; flex-direction:column; min-width:0;">
-                        <span style="font-weight:600;">${item.name}</span>
-                        <span style="font-size:0.72em; color:#a0aec0; line-height:1.3; white-space:normal;">${item.desc}</span>
+                        <span style="font-weight:600; color: #fff; font-size: 0.95rem;">${item.name}</span>
+                        <span style="font-size:0.75rem; color:#a0aec0; line-height:1.4; white-space:normal; margin-top: 2px;">${item.desc}</span>
                     </div>
                 </div>
-                <button class="btn" style="${btnStyle}" onclick="window.Shop.buy('${item.id}', ${finalPrice})">${finalPrice}G</button>
+                <button class="btn" style="width:auto; min-width: 80px; height: 34px; padding: 0 12px; margin: 0; background: ${btnBg}; color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 0.85rem; box-shadow: ${btnShadow}; transition: transform 0.1s, filter 0.1s;" onclick="window.Shop.buy('${item.id}', ${finalPrice})">
+                    ${finalPrice}G
+                </button>
             `;
             list.appendChild(div);
         });

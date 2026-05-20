@@ -72,11 +72,10 @@ export const CARDS_DB: CardData[] = [
     { id: 'lure_type', name: "Lure Type", icon: "🆎", desc: "Escolha uma tipagem. Os próximos 2 selvagens que encontrar será da tipagem escolhida.", type: 'move', rarity: 'Incomum' },
 
     // Cartas Lendárias
-    { id: 'supreme_bond', name: "Vínculo Supremo", icon: "🤝", desc: "Cria um laço eterno: o Pokémon nunca poderá ser removido. Se for um Pokémon comum, ele também se torna SHINY (+20% bônus).", type: 'move', rarity: 'Lendária' },
+    { id: 'supreme_bond', name: "Vínculo Supremo", icon: "🤝", desc: "Cria um laço eterno: o Pokémon se torna SHINY (+20% Status), nunca poderá ser removido e não pode perder a Mega Pedra.", type: 'move', rarity: 'Lendária' },
     { id: 'ash_goodbye', name: "O Adeus de Ash", icon: "👋", desc: "Mande embora 2 pokémon (podem ser de jogadores diferentes), sem defesa, só não pode com Vínculo Supremo.", type: 'move', rarity: 'Lendária' },
-    { id: 'tremembe', name: "Tremembé", icon: "⛓️", desc: "Todos os jogadores exceto você ficam 20 rodadas sem jogar.", type: 'global', rarity: 'Lendária' },
-    { id: 'grande_assalto', name: "O Grande Assalto", icon: "🔫", desc: "Roube TODO o gold, itens e cartas (exceto lendárias) de todos os outros jogadores.", type: 'global', rarity: 'Lendária' },
-    { id: 'legendary_encounter', name: "Encontro Lendário", icon: "🦅", desc: "Sortear 3 lendários de level 10 e escolher um dos 3 para lutar.", type: 'move', rarity: 'Lendária' },
-    { id: 'legendary_shiny', name: "Lendário Shiny", icon: "🌟", desc: "Pode transformar um pokémon lendário do seu time em shiny (e recalcula o bônus).", type: 'move', rarity: 'Lendária' }
+    { id: 'tremembe', name: "Tremembé", icon: "⛓️", desc: "Todos os jogadores exceto você ficam 15 rodadas sem jogar.", type: 'global', rarity: 'Lendária' },
+    { id: 'grande_assalto', name: "O Grande Assalto", icon: "🔫", desc: "Todos os outros perdem tudo. Você recebe 50% do gold total, e metade dos itens e cartas (exceto lendárias/protegidas) roubadas de forma aleatória.", type: 'global', rarity: 'Lendária' },
+    { id: 'legendary_encounter', name: "Encontro Lendário", icon: "🦅", desc: "Sortear 3 lendários no level cap máximo atual e escolher um dos 3 para lutar. Jogador ganha uma MasterBall.", type: 'move', rarity: 'Lendária' }
 
 ];

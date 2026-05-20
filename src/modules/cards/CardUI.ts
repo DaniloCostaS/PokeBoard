@@ -19,6 +19,7 @@ export class CardUI {
         const boardCardsModal = document.getElementById('board-cards-modal');
         if (boardCardsModal) boardCardsModal.style.display = 'none';
 
+
         document.getElementById('select-title')!.innerText = "Selecione o Jogador Alvo:";
         list.innerHTML = '';
 
@@ -27,9 +28,13 @@ export class CardUI {
             div.className = `mon-select-item`;
 
             div.innerHTML = `
-                <img src="${target.avatar}" width="40" style="border-radius: 50%; border: 2px solid #ecf0f1;">
-                <b>${target.name}</b> 
-                <small style="color:#bdc3c7;">(P${target.id + 1})</small>
+                <div style="display: flex; align-items: center; gap: 15px; width: 100%; padding: 5px;">
+                    <img src="${target.avatar}" width="45" style="border-radius: 50%; border: 2px solid #f1c40f; box-shadow: 0 0 5px rgba(241, 196, 15, 0.4);">
+                    <div style="text-align: left; line-height: 1.4; flex-grow: 1;">
+                        <b style="font-size: 1.1rem; color: #fff;">${target.name}</b>
+                        <small style="color: #f1c40f; font-weight: bold; margin-left: 8px;">(P${target.id + 1})</small>
+                    </div>
+                </div>
             `;
 
             div.onclick = () => {
@@ -40,13 +45,14 @@ export class CardUI {
         });
 
         const cancelBtn = document.createElement('button');
-        cancelBtn.className = 'btn btn-secondary mt-15';
         cancelBtn.innerText = 'Cancelar';
         cancelBtn.onclick = () => { modal.style.display = 'none'; };
         list.appendChild(cancelBtn);
 
         modal.style.display = 'flex';
     }
+
+
 
     static openPokemonSelectionForCard(cardId: string, customTitle: string = "Escolha quem vai comer o Rare Candy:") {
         const Game = (window as any).Game;
@@ -63,7 +69,26 @@ export class CardUI {
         player.team.forEach((mon: any, index: number) => {
             const div = document.createElement('div');
             div.className = `mon-select-item`;
-            div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>Lv.${mon.level}</small><br><small style="color:#f1c40f">XP: ${mon.currentXp}/${mon.maxXp}</small>`;
+
+            const isShiny = mon.isShiny;
+            div.innerHTML = `
+                <img src="${mon.getSprite()}" width="45" style="object-fit:contain; filter: drop-shadow(0 0 3px ${isShiny ? '#f1c40f' : 'transparent'});">
+                <div style="display:flex; flex-direction:column; gap:4px; flex:1; text-align:left;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                        <b style="font-size:1.1rem; color:${isShiny ? '#f1c40f' : '#fff'};">${mon.name} ${isShiny ? '✨' : ''}</b>
+                        <span style="font-size:0.9rem; font-weight:bold; color:#f1c40f; background:rgba(0,0,0,0.5); padding:2px 6px; border-radius:4px;">Lv.${mon.level}</span>
+                    </div>
+                    <div style="font-size:0.8rem; color:#ecf0f1; background:rgba(0,0,0,0.3); padding:4px; border-radius:4px; display:flex; justify-content:space-between;">
+                        <span>XP: <b>${mon.currentXp}/${mon.maxXp}</b></span>
+                        <span style="display: flex; gap: 8px;">
+                            <span>❤️ ${mon.currentHp}/${mon.maxHp}</span>
+                            <span>⚔️ ${mon.atk}</span>
+                            <span>🛡️ ${mon.def}</span>
+                            <span>💨 ${mon.speed}</span>
+                        </span>
+                    </div>
+                </div>
+            `;
 
             div.onclick = () => {
                 modal.style.display = 'none';
@@ -97,16 +122,35 @@ export class CardUI {
             const canEvolve = mon.evoData && mon.evoData.next && mon.evoData.next !== "";
             const div = document.createElement('div');
 
+            const isShiny = mon.isShiny;
             if (canEvolve) {
                 div.className = `mon-select-item`;
-                div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>Lv.${mon.level}</small><br><small style="color:#2ecc71">🧬 Evolução Disponível!</small>`;
+                div.innerHTML = `
+                    <img src="${mon.getSprite()}" width="45" style="object-fit:contain; filter: drop-shadow(0 0 3px ${isShiny ? '#f1c40f' : 'transparent'});">
+                    <div style="display:flex; flex-direction:column; gap:4px; flex:1; text-align:left;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                            <b style="font-size:1.1rem; color:${isShiny ? '#f1c40f' : '#fff'};">${mon.name} ${isShiny ? '✨' : ''}</b>
+                            <span style="font-size:0.9rem; font-weight:bold; color:#f1c40f; background:rgba(0,0,0,0.5); padding:2px 6px; border-radius:4px;">Lv.${mon.level}</span>
+                        </div>
+                        <div style="font-size:0.8rem; color:#2ecc71; font-weight:500;">🧬 Evolução Disponível para: ${mon.evoData.next}!</div>
+                    </div>
+                `;
                 div.onclick = () => {
                     modal.style.display = 'none';
                     CardEffects.activate(cardId, index);
                 };
             } else {
                 div.className = `mon-select-item disabled`;
-                div.innerHTML = `<img src="${mon.getSprite()}" width="40" style="filter: grayscale(100%);"><b>${mon.name}</b> <small>Lv.${mon.level}</small><br><small style="color:#e74c3c">Estágio Máximo</small>`;
+                div.innerHTML = `
+                    <img src="${mon.getSprite()}" width="45" style="object-fit:contain; filter: grayscale(100%) opacity(0.6);">
+                    <div style="display:flex; flex-direction:column; gap:4px; flex:1; text-align:left;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                            <b style="font-size:1.1rem; color:#888;">${mon.name}</b>
+                            <span style="font-size:0.9rem; font-weight:bold; color:#666; background:rgba(0,0,0,0.3); padding:2px 6px; border-radius:4px;">Lv.${mon.level}</span>
+                        </div>
+                        <div style="font-size:0.8rem; color:#e74c3c;">🚫 Estágio Máximo (não pode evoluir)</div>
+                    </div>
+                `;
             }
             list.appendChild(div);
         });
@@ -119,6 +163,8 @@ export class CardUI {
 
         modal.style.display = 'flex';
     }
+
+
 
     static async openMegaSelection(cardId: string) {
         const Game = (window as any).Game;
@@ -137,13 +183,32 @@ export class CardUI {
             const div = document.createElement('div');
             const canMega = !!MAPA_MEGAS[mon.id];
 
+            const isShiny = mon.isShiny;
             if (canMega) {
                 if (mon.megaStone) {
                     div.className = `mon-select-item disabled`;
-                    div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b><br><small style="color:#f1c40f">💎 Já Equipado</small>`;
+                    div.innerHTML = `
+                        <img src="${mon.getSprite()}" width="45" style="object-fit:contain; filter: drop-shadow(0 0 3px ${isShiny ? '#f1c40f' : 'transparent'});">
+                        <div style="display:flex; flex-direction:column; gap:4px; flex:1; text-align:left;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                                <b style="font-size:1.1rem; color:${isShiny ? '#f1c40f' : '#fff'};">${mon.name} ${isShiny ? '✨' : ''}</b>
+                                <span style="font-size:0.9rem; font-weight:bold; color:#f1c40f; background:rgba(0,0,0,0.5); padding:2px 6px; border-radius:4px;">Lv.${mon.level}</span>
+                            </div>
+                            <div style="font-size:0.8rem; color:#f1c40f;">💎 Mega Pedra já equipada</div>
+                        </div>
+                    `;
                 } else {
                     div.className = `mon-select-item`;
-                    div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b><br><small style="color:#2ecc71">Compatível!</small>`;
+                    div.innerHTML = `
+                        <img src="${mon.getSprite()}" width="45" style="object-fit:contain; filter: drop-shadow(0 0 3px ${isShiny ? '#f1c40f' : 'transparent'});">
+                        <div style="display:flex; flex-direction:column; gap:4px; flex:1; text-align:left;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                                <b style="font-size:1.1rem; color:${isShiny ? '#f1c40f' : '#fff'};">${mon.name} ${isShiny ? '✨' : ''}</b>
+                                <span style="font-size:0.9rem; font-weight:bold; color:#f1c40f; background:rgba(0,0,0,0.5); padding:2px 6px; border-radius:4px;">Lv.${mon.level}</span>
+                            </div>
+                            <div style="font-size:0.8rem; color:#2ecc71;">🧬 Compatível com Mega Evolução!</div>
+                        </div>
+                    `;
                     div.onclick = () => {
                         modal.style.display = 'none';
                         CardEffects.activate(cardId, index);
@@ -151,7 +216,16 @@ export class CardUI {
                 }
             } else {
                 div.className = `mon-select-item disabled`;
-                div.innerHTML = `<img src="${mon.getSprite()}" width="40" style="filter: grayscale(100%); opacity:0.6;"><b>${mon.name}</b><br><small style="color:#e74c3c">Incompatível</small>`;
+                div.innerHTML = `
+                    <img src="${mon.getSprite()}" width="45" style="object-fit:contain; filter: grayscale(100%) opacity(0.6);">
+                    <div style="display:flex; flex-direction:column; gap:4px; flex:1; text-align:left;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                            <b style="font-size:1.1rem; color:#888;">${mon.name}</b>
+                            <span style="font-size:0.9rem; font-weight:bold; color:#666; background:rgba(0,0,0,0.3); padding:2px 6px; border-radius:4px;">Lv.${mon.level}</span>
+                        </div>
+                        <div style="font-size:0.8rem; color:#e74c3c;">❌ Incompatível com Mega Evolução</div>
+                    </div>
+                `;
             }
             list.appendChild(div);
         });
@@ -181,17 +255,36 @@ export class CardUI {
         player.team.forEach((mon: any, index: number) => {
             const div = document.createElement('div');
 
+            const isShiny = mon.isShiny;
             if (mon.megaStone) {
                 hasMega = true;
                 div.className = `mon-select-item`;
-                div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>Lv.${mon.level}</small><br><small style="color:#2ecc71">💎 Mega Pedra Equipada!</small>`;
+                div.innerHTML = `
+                    <img src="${mon.getSprite()}" width="45" style="object-fit:contain; filter: drop-shadow(0 0 3px ${isShiny ? '#f1c40f' : 'transparent'});">
+                    <div style="display:flex; flex-direction:column; gap:4px; flex:1; text-align:left;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                            <b style="font-size:1.1rem; color:${isShiny ? '#f1c40f' : '#fff'};">${mon.name} ${isShiny ? '✨' : ''}</b>
+                            <span style="font-size:0.9rem; font-weight:bold; color:#f1c40f; background:rgba(0,0,0,0.5); padding:2px 6px; border-radius:4px;">Lv.${mon.level}</span>
+                        </div>
+                        <div style="font-size:0.8rem; color:#2ecc71;">💎 Mega Pedra Equipada! (Clique para recuperar)</div>
+                    </div>
+                `;
                 div.onclick = () => {
                     modal.style.display = 'none';
                     CardEffects.activate(cardId, index);
                 };
             } else {
                 div.className = `mon-select-item disabled`;
-                div.innerHTML = `<img src="${mon.getSprite()}" width="40" style="filter: grayscale(100%);"><b>${mon.name}</b> <small>Lv.${mon.level}</small><br><small style="color:#e74c3c">Sem Mega Pedra</small>`;
+                div.innerHTML = `
+                    <img src="${mon.getSprite()}" width="45" style="object-fit:contain; filter: grayscale(100%) opacity(0.6);">
+                    <div style="display:flex; flex-direction:column; gap:4px; flex:1; text-align:left;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                            <b style="font-size:1.1rem; color:#888;">${mon.name}</b>
+                            <span style="font-size:0.9rem; font-weight:bold; color:#666; background:rgba(0,0,0,0.3); padding:2px 6px; border-radius:4px;">Lv.${mon.level}</span>
+                        </div>
+                        <div style="font-size:0.8rem; color:#e74c3c;">🚫 Sem Mega Pedra para recuperar</div>
+                    </div>
+                `;
             }
             list.appendChild(div);
         });
@@ -215,7 +308,7 @@ export class CardUI {
         const currentPlayer = Game.getCurrentPlayer();
 
         const targets = Game.players.filter((p: any) =>
-            p.id !== currentPlayer.id && p.team.some((mon: any) => mon.megaStone)
+            p.id !== currentPlayer.id && p.team.some((mon: any) => mon.megaStone && !mon.vinculoSupremo)
         );
 
         if (targets.length === 0) {
@@ -272,12 +365,17 @@ export class CardUI {
             const div = document.createElement('div');
 
             if (mon.megaStone) {
-                div.className = `mon-select-item`;
-                div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>Lv.${mon.level}</small><br><small style="color:#e74c3c">💎 Mega Pedra Alvo</small>`;
-                div.onclick = () => {
-                    modal.style.display = 'none';
-                    CardEffects.activate(cardId, { targetId, pokemonIndex: index });
-                };
+                if (mon.vinculoSupremo) {
+                    div.className = `mon-select-item disabled`;
+                    div.innerHTML = `<img src="${mon.getSprite()}" width="40" style="filter: grayscale(100%);"><b>${mon.name}</b> <small>Lv.${mon.level}</small><br><small style="color:#f1c40f">🤝 Vínculo Supremo (Protegido)</small>`;
+                } else {
+                    div.className = `mon-select-item`;
+                    div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>Lv.${mon.level}</small><br><small style="color:#e74c3c">💎 Mega Pedra Alvo</small>`;
+                    div.onclick = () => {
+                        modal.style.display = 'none';
+                        CardEffects.activate(cardId, { targetId, pokemonIndex: index });
+                    };
+                }
             } else {
                 div.className = `mon-select-item disabled`;
                 div.innerHTML = `<img src="${mon.getSprite()}" width="40" style="filter: grayscale(100%);"><b>${mon.name}</b> <small>Lv.${mon.level}</small><br><small style="color:#7f8c8d">Sem Mega Pedra</small>`;
@@ -387,21 +485,63 @@ export class CardUI {
         document.getElementById('select-title')!.innerText = "Encontro Lendário! Escolha um para lutar e capturar:";
         list.innerHTML = '';
 
+        const globalAvg = Game.getGlobalAverageLevel ? Game.getGlobalAverageLevel() : 10;
+        const maxLevelCap = Math.min(25, Math.max(1, globalAvg + 2));
+
+        const PokemonClass = (window as any).Pokemon || Game.players[0].team[0].constructor;
+
         options.forEach((monTemplate: any) => {
+            const wildMon = new PokemonClass(monTemplate.id, maxLevelCap);
+            wildMon.vinculoSupremo = true;
+            const isShiny = wildMon.isShiny;
+
             const div = document.createElement('div');
             div.className = `mon-select-item`;
-            const sprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${monTemplate.id}.png`;
-            div.innerHTML = `<img src="${sprite}" width="40"><b>${monTemplate.name}</b>`;
+
+            div.style.cssText = `
+                display: flex; 
+                align-items: center; 
+                gap: 12px; 
+                text-align: left; 
+                width: 100%; 
+                justify-content: flex-start;
+                border: 1px solid ${isShiny ? '#f1c40f' : '#555'};
+                background: ${isShiny ? 'rgba(241, 196, 15, 0.1)' : 'transparent'};
+                padding: 8px;
+                border-radius: 6px;
+                box-sizing: border-box;
+            `;
+
+            div.innerHTML = `
+                <img src="${wildMon.getSprite()}" width="50" style="object-fit:contain; filter: drop-shadow(0 0 3px ${isShiny ? '#f1c40f' : 'transparent'});">
+                <div style="display:flex; flex-direction:column; gap:4px; flex:1;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                        <b style="font-size:1.1rem; color:${isShiny ? '#f1c40f' : '#fff'};">${wildMon.name} ${isShiny ? '✨' : ''}</b>
+                        <span style="font-size:0.9rem; font-weight:bold; color:#f1c40f; background:rgba(0,0,0,0.5); padding:2px 6px; border-radius:4px;">Lv.${wildMon.level}</span>
+                    </div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap:4px; font-size:0.8rem; color:#ecf0f1; background:rgba(0,0,0,0.3); padding:4px; border-radius:4px; text-align:center;">
+                        <span title="HP">❤️ ${wildMon.maxHp}</span>
+                        <span title="Ataque">⚔️ ${wildMon.atk}</span>
+                        <span title="Defesa">🛡️ ${wildMon.def}</span>
+                        <span title="Velocidade">💨 ${wildMon.speed}</span>
+                    </div>
+                </div>
+            `;
+
             div.onclick = () => {
                 modal.style.display = 'none';
 
-                const PokemonClass = (window as any).Pokemon || Game.players[0].team[0].constructor;
-                const encounterLevel = 10;
-                const wildMon = new PokemonClass(monTemplate.id, encounterLevel);
-                wildMon.vinculoSupremo = true;
+                const currentPlayer = Game.getCurrentPlayer();
+                currentPlayer.items['masterball'] = (currentPlayer.items['masterball'] || 0) + 1;
+                Game.sendGlobalLog(`🎒 ${currentPlayer.name} recebeu uma Master Ball para tentar capturar ${wildMon.name}${isShiny ? ' ✨' : ''}!`);
+
+                const Network = (window as any).Network || { isOnline: false };
+                if (Network.isOnline && typeof Network.syncPlayerState === 'function') {
+                    Network.syncPlayerState();
+                }
 
                 const Battle = (window as any).Battle;
-                Battle.setup(Game.getCurrentPlayer(), wildMon, false, "Selvagem", 0, null, false, 0, "", 1);
+                Battle.setup(currentPlayer, wildMon, false, "Selvagem", 0, null, false, 0, "", 1);
             };
             list.appendChild(div);
         });

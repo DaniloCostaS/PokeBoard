@@ -650,6 +650,11 @@ export class CardEffects {
                     if (!target) { consumed = false; break; }
                     const targetMon = target.team[pIdx];
                     if (!targetMon || !targetMon.megaStone) { consumed = false; break; }
+                    if (targetMon.vinculoSupremo) {
+                        alert("Este Pokémon possui Vínculo Supremo! A Mega Pedra dele não pode ser destruída.");
+                        consumed = false;
+                        break;
+                    }
                     targetMon.megaStone = false;
                     effectLog = `💥 DESTRUÍDA! ${player.name} destruiu a Mega Pedra de ${targetMon.name} de ${target.name}!`;
                 } else { CardUI.openStealMegaStoneTargetSelection(cardId); consumed = false; }
@@ -661,14 +666,22 @@ export class CardEffects {
                     if (!targetMon) { consumed = false; break; }
                     
                     let shinyMsg = "";
-                    if (!targetMon.isLegendary && !targetMon.isShiny) {
+                    if (!targetMon.isShiny) {
                         targetMon.isShiny = true;
                         targetMon.recalculateStats(true);
                         shinyMsg = " e agora brilha intensamente como um SHINY (+20% Status)!";
                     }
 
                     targetMon.vinculoSupremo = true;
-                    effectLog = `🤝 VÍNCULO SUPREMO! ${targetMon.name} prometeu nunca abandonar ${player.name}${shinyMsg}!`;
+
+                    let megaMsg = "";
+                    const { MAPA_MEGAS } = await import('../../constants/mapaMegas');
+                    if (MAPA_MEGAS[targetMon.id] && !targetMon.megaStone && !targetMon.heldItem) {
+                        targetMon.megaStone = true;
+                        megaMsg = " Além disso, uma Mega Pedra reagiu ao forte laço e foi equipada automaticamente!";
+                    }
+
+                    effectLog = `🤝 VÍNCULO SUPREMO! ${targetMon.name} prometeu nunca abandonar ${player.name}${shinyMsg}${megaMsg}`;
                 } else { CardUI.openPokemonSelectionForCard(cardId, "Escolha um Pokémon para criar um Vínculo Supremo:"); consumed = false; }
                 break;
 
@@ -744,27 +757,71 @@ export class CardEffects {
                         p.stats.cardsSuffered = (p.stats.cardsSuffered || 0) + weight;
                         if (!p.stats.effectsReceived) p.stats.effectsReceived = {};
                         p.stats.effectsReceived['Tremembé'] = (p.stats.effectsReceived['Tremembé'] || 0) + 1;
-                        p.skipTurns += 20;
+                        p.skipTurns += 15;
                     }
                 });
-                player.effects.tremembeUserTurns = 20;
-                effectLog = `⛓️ DECRETO DA PRISÃO DE TREMEMBÉ! Todos os outros jogadores ficarão enjaulados por 20 rodadas!`;
+                player.effects.tremembeUserTurns = 15;
+                effectLog = `⛓️ DECRETO DA PRISÃO DE TREMEMBÉ! Todos os outros jogadores ficarão enjaulados por 15 rodadas!`;
                 requiresGlobalSync = true;
                 break;
 
-            case 'grande_assalto':
+
+
+            case 'grande_assalto': {
+                let totalStolenGold = 0;
+                const stolenItemsList: string[] = [];
+                const stolenCardsList: any[] = [];
+
                 Game.players.forEach((p: any) => {
                     if (p.id !== player.id) {
-                        player.gold += (p.gold || 0); p.gold = 0;
-                        if (p.items) { Object.keys(p.items).forEach(k => { player.items[k] = (player.items[k] || 0) + p.items[k]; p.items[k] = 0; }); }
-                        if (p.cards) { const stolenCards = p.cards.filter((c: any) => c.rarity !== 'Lendária' && !c.isProtected); player.cards.push(...stolenCards); p.cards = p.cards.filter((c: any) => c.rarity === 'Lendária' || c.isProtected); }
-                        Game.sendGlobalLog(`🃏 [Extrato] ${p.name} perdeu suas cartas no Grande Assalto. Total: ${p.cards.length}`);
+                        // Gold
+                        totalStolenGold += (p.gold || 0);
+                        p.gold = 0;
+
+                        // Items
+                        if (p.items) {
+                            Object.keys(p.items).forEach(k => {
+                                const qty = p.items[k] || 0;
+                                for (let i = 0; i < qty; i++) {
+                                    stolenItemsList.push(k);
+                                }
+                                p.items[k] = 0;
+                            });
+                        }
+
+                        // Cards (Except legendary and protected)
+                        if (p.cards) {
+                            const stolen = p.cards.filter((c: any) => c.rarity !== 'Lendária' && !c.isProtected);
+                            stolenCardsList.push(...stolen);
+                            p.cards = p.cards.filter((c: any) => c.rarity === 'Lendária' || c.isProtected);
+                        }
+                        Game.sendGlobalLog(`🃏 [Extrato] ${p.name} perdeu todas as suas cartas, itens e gold no Grande Assalto.`);
                     }
                 });
-                Game.sendGlobalLog(`🃏 [Extrato] ${player.name} acumulou o saque! Novo Total: ${player.cards.length}`);
-                effectLog = `💰 O GRANDE ASSALTO! ${player.name} limpou a conta de todos os adversários!`;
+
+                // Calculate half for the player who played it
+                const goldReceived = Math.floor(totalStolenGold / 2);
+                player.gold += goldReceived;
+
+                // Shuffle and slice items
+                const shuffledItems = stolenItemsList.sort(() => 0.5 - Math.random());
+                const itemsCount = Math.floor(shuffledItems.length / 2);
+                const itemsReceived = shuffledItems.slice(0, itemsCount);
+                itemsReceived.forEach(k => {
+                    player.items[k] = (player.items[k] || 0) + 1;
+                });
+
+                // Shuffle and slice cards
+                const shuffledCards = stolenCardsList.sort(() => 0.5 - Math.random());
+                const cardsCount = Math.floor(shuffledCards.length / 2);
+                const cardsReceived = shuffledCards.slice(0, cardsCount);
+                player.cards.push(...cardsReceived);
+
+                Game.sendGlobalLog(`💰 [Extrato] Assalto: Arrecadado ${totalStolenGold}G (recebeu ${goldReceived}G). Itens: ${stolenItemsList.length} (recebeu ${itemsCount}). Cartas: ${stolenCardsList.length} (recebeu ${cardsCount}).`);
+                effectLog = `💰 O GRANDE ASSALTO! ${player.name} roubou de todos, mas recebeu apenas metade dos espólios devido ao balanceamento!`;
                 requiresGlobalSync = true;
                 break;
+            }
 
             case 'legendary_encounter':
                 const _POKEDEX = (await import('../../constants/pokedex')).POKEDEX;
@@ -772,18 +829,6 @@ export class CardEffects {
                 const shuffled = legendaries.sort(() => 0.5 - Math.random());
                 CardUI.openLegendaryEncounterSelection(shuffled.slice(0, 3));
                 effectLog = `🦅 ${player.name} tocou a Flauta do Tempo e atraiu a presença de três divindades!`;
-                break;
-
-            case 'legendary_shiny':
-                if (targetId !== null) {
-                    const targetMon = player.team[targetId];
-                    if (!targetMon) { consumed = false; break; }
-                    if (!targetMon.isLegendary) { alert("Este Pokémon não é Lendário!"); consumed = false; break; }
-                    if (targetMon.isShiny) { alert("Já é Shiny!"); consumed = false; break; }
-
-                    targetMon.isShiny = true; targetMon.vinculoSupremo = true; targetMon.recalculateStats(true);
-                    effectLog = `🌟 UMA LUZ OFUSCANTE! O ${targetMon.name} se tornou SHINY e ganhou Vínculo Supremo!`;
-                } else { CardUI.openPokemonSelectionForCard(cardId, "Escolha um Pokémon Lendário para transformar em Shiny:"); consumed = false; }
                 break;
 
             case 'epic_shiny':

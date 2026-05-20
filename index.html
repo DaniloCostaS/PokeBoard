@@ -314,13 +314,15 @@
         </div>
     </div>
 
+
+
     <div id="xp-rules-modal" class="modal-overlay">
-        <div class="modal-box" style="text-align: left;">
-            <h3 style="text-align:center; color: var(--gold);">⭐ Regras de XP & Nível</h3>
-            <ul style="font-size: 0.9rem; line-height: 1.5;">
+        <div style="width: 500px; max-width: 95%; max-height: 90vh; overflow-y: auto; background: rgba(20, 20, 20, 0.95); border: 2px solid #f1c40f; color: #fff; border-radius: 16px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box; text-align: left;">
+            <h3 style="text-align:center; color: #f1c40f; margin-top: 0; font-family: 'Outfit', sans-serif;">⭐ Regras de XP & Nível</h3>
+            <ul style="font-size: 0.9rem; line-height: 1.6; color: #ddd;">
                 <li><strong>Nível Máximo:</strong> 25 (Sem limite de níveis por turno)</li>
                 <li><strong>Volta no Mapa:</strong> +200G e +1 Carta</li>
-                <hr style="border-color:#eee; margin: 5px 0;">
+                <hr style="border-color: rgba(255,255,255,0.1); margin: 8px 0;">
                 <li><strong>Movimento:</strong> XP exato do dado d6 (Aleatório no time vivo)</li>
                 <li><strong>Vitória em Combate:</strong> Status Total do oponente derrotado / 15</li>
                 <li><strong>Derrota em Combate:</strong> Status Total do oponente / 45 (Consolação)</li>
@@ -333,18 +335,16 @@
     </div>
 
     <div id="combat-rules-modal" class="modal-overlay">
-        <div class="modal-box" style="text-align: left;">
-            <h3 style="text-align:center; color: #e74c3c;">⚔️ Nova Mecânica de Combate 2.1</h3>
-            <ul style="font-size: 0.9rem; line-height: 1.5;">
+        <div style="width: 550px; max-width: 95%; max-height: 90vh; overflow-y: auto; background: rgba(20, 20, 20, 0.95); border: 2px solid #f1c40f; color: #fff; border-radius: 16px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box; text-align: left;">
+            <h3 style="text-align:center; color: #e74c3c; margin-top: 0; font-family: 'Outfit', sans-serif;">⚔️ Nova Mecânica de Combate 2.1</h3>
+            <ul style="font-size: 0.9rem; line-height: 1.6; color: #ddd;">
                 <li><strong>Ataque Base:</strong> Híbrido! Soma de (65% Atk) + (15% Spd) + (20% HP).</li>
                 <li><strong>Defesa:</strong> Redução percentual. Dano = (Base / 5) - (Def / 20).</li>
                 <li><strong>🛡️ Bloqueio:</strong> (Def - Atk) / 5 = % Chance Bloqueio Total (Máx 90%).</li>
-                <li><strong>🛡️ Reflexão:</strong> Se a Def for 50% maior que o Atk, há 15% de chance de devolver o
-                    dano.</li>
+                <li><strong>🛡️ Reflexão:</strong> Se a Def for 50% maior que o Atk, há 15% de chance de devolver o dano.</li>
                 <li><strong>⚡ Esquiva:</strong> ((SpdA - SpdD) / 5)% de chance de evitar 100% do dano (Mínimo 10%).</li>
                 <li><strong>⚡ Crítico Veloz:</strong> (Spd / 8)% de chance de causar +5 de dano fixo.</li>
-                <li><strong>⚡ Ataque Duplo:</strong> Se sua Spd for 50% maior que a do rival, tem 20% de chance de
-                    atacar 2x!</li>
+                <li><strong>⚡ Ataque Duplo:</strong> Se sua Spd for 50% maior que a do rival, tem 20% de chance de atacar 2x!</li>
                 <li><strong>Multiplicadores:</strong> Vantagem (x1.75), Normal (x1), Desvantagem (x0.75).</li>
                 <li><strong>Sorte (Dado d6):</strong> 1:(-2), 2:(-1), 3:(0), 4:(+2), 5:(+3), 6:(+5 Crítico💥).</li>
             </ul>
@@ -354,21 +354,21 @@
     </div>
 
     <div id="capture-rules-modal" class="modal-overlay">
-        <div class="modal-box" style="text-align: left;">
-            <h3 style="text-align:center; color: #e67e22;">🦅 Regras de Captura</h3>
-            <ul style="font-size: 0.9rem; line-height: 1.5;">
+        <div style="width: 550px; max-width: 95%; max-height: 90vh; overflow-y: auto; background: rgba(20, 20, 20, 0.95); border: 2px solid #f1c40f; color: #fff; border-radius: 16px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box; text-align: left;">
+            <h3 style="text-align:center; color: #e67e22; margin-top: 0; font-family: 'Outfit', sans-serif;">🦅 Regras de Captura</h3>
+            <ul style="font-size: 0.9rem; line-height: 1.6; color: #ddd;">
                 <li><strong>Base Inicial:</strong> 15%</li>
-                <hr style="border-color:#eee; margin: 5px 0;">
+                <hr style="border-color: rgba(255,255,255,0.1); margin: 8px 0;">
                 <li><strong>HP &lt; 60%:</strong> +25%</li>
                 <li><strong>HP &lt; 15%:</strong> +50%</li>
-                <hr style="border-color:#eee; margin: 5px 0;">
+                <hr style="border-color: rgba(255,255,255,0.1); margin: 8px 0;">
                 <li><strong>Resistência (Penalidade):</strong> (MaxHP + Atk + Def + Spd) / 15</li>
                 <li><strong>Lendário:</strong> -10% | <strong>Shiny:</strong> -10%</li>
                 <li><strong>Sorte (Dado):</strong> Pode variar de -10% a +10%</li>
-                <hr style="border-color:#eee; margin: 5px 0;">
+                <hr style="border-color: rgba(255,255,255,0.1); margin: 8px 0;">
                 <li><strong>Trava Mínima:</strong> Se o cálculo acima for menor que 15%, a base ajustada será 15%</li>
                 <li><strong>Bônus da Bola:</strong> Poké (+0%), Great (+20%), Ultra (+40%)</li>
-                <hr style="border-color:#eee; margin: 5px 0;">
+                <hr style="border-color: rgba(255,255,255,0.1); margin: 8px 0;">
                 <li><strong>Master Ball:</strong> 100% Garantido</li>
                 <li><strong>Limite Máximo:</strong> 95% (Exceto Master/Eventos)</li>
             </ul>
@@ -378,21 +378,18 @@
     </div>
 
     <div id="lixeira-modal" class="modal-overlay">
-        <div class="modal-box" style="text-align: center; width: 90%; max-width: 800px;">
-            <h3 style="color: #9b59b6;">🗑️ Lixeira (Pokémon Abandonados)</h3>
-            <p style="font-size: 0.9rem; margin-bottom: 15px;">Estes Pokémon foram descartados pelos treinadores e estão
-                aguardando uma segunda chance!</p>
-            <div id="lixeira-list"
-                style="display:flex; flex-wrap:wrap; gap:10px; justify-content:center; max-height: 60vh; overflow-y: auto; padding: 10px;">
-            </div>
+        <div style="width: 800px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: rgba(20, 20, 20, 0.95); border: 2px solid #f1c40f; color: #fff; border-radius: 16px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box;">
+            <h3 style="color: #f1c40f; margin-top: 0; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px; display: flex; align-items: center; gap: 8px; font-family: 'Outfit', sans-serif;">🗑️ Lixeira (Pokémon Abandonados)</h3>
+            <p style="font-size: 0.9rem; color: #aaa; margin: 10px 0 15px 0;">Estes Pokémon foram descartados pelos treinadores e estão aguardando uma segunda chance!</p>
+            <div id="lixeira-list" style="flex: 1; overflow-y: auto; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; padding: 10px;"></div>
             <button class="btn btn-secondary mt-15"
                 onclick="document.getElementById('lixeira-modal').style.display='none'">Fechar</button>
         </div>
     </div>
 
     <div id="champion-team-modal" class="modal-overlay">
-        <div class="modal-box" style="text-align: center; width: 95%; max-width: 600px;">
-            <h3 style="color: #f1c40f;">🏆 TIME DO CAMPEÃO 🏆</h3>
+        <div style="text-align: center; width: 95%; max-width: 600px; background: rgba(20, 20, 20, 0.95); border: 2px solid #f1c40f; color: #fff; border-radius: 16px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); overflow-y: auto;">
+            <h3 style="color: #f1c40f; margin-top: 0;">🏆 TIME DO CAMPEÃO 🏆</h3>
             <p style="font-size: 0.9rem; color: #f1c40f; font-weight: bold; text-shadow: 1px 1px 2px black;">Prepare-se
                 bem antes de conseguir a 8ª Insígnia! O Campeão Atual (<b id="champion-name-display"
                     style="color: white;"></b>) usa:</p>
@@ -428,44 +425,73 @@
     </div>
 
     <div id="city-modal" class="modal-overlay">
-        <div class="modal-box">
-            <h2 style="color: #3498db;">🏙️ Centro Pokémon</h2>
-            <p>O que deseja fazer? <span id="city-gold-display" class="gold-text"
-                    style="font-size: 1rem; margin-left: 10px;">Saldo: 0G</span></p>
+        <div style="text-align: center; width: 95%; max-width: 500px; background: rgba(20, 20, 20, 0.95); border: 2px solid #f1c40f; color: #fff; border-radius: 16px; padding: 25px 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box; overflow-y: auto;">
+            <h3 style="color: #f1c40f; margin-top: 0; font-family: 'Outfit', sans-serif; font-size: 1.6rem; display: flex; align-items: center; justify-content: center; gap: 8px;">🏥 Centro Pokémon</h3>
+            <p style="font-size: 0.95rem; color: #ccc; margin: 10px 0 20px 0;">O que deseja fazer? <span id="city-gold-display" class="gold-text" style="font-size: 1rem; margin-left: 10px; font-weight: bold; color: #f1c40f;">Saldo: 0G</span></p>
 
-            <div style="display:flex; flex-direction:column; gap:10px; justify-content:center; margin-top:20px;">
-                <div style="display:flex; gap:10px;">
-                    <button class="btn" style="background:#2ecc71;" onclick="window.Game.handleCityChoice('heal')">❤️
-                        Curar Time</button>
-                    <button class="btn btn-shop" onclick="window.Game.handleCityChoice('shop')">🛒 Loja de
-                        Itens</button>
+            <div style="display:flex; flex-direction:column; gap:14px; margin-top:20px;">
+                <div style="display:flex; gap:14px;">
+                    <button class="btn" style="background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%); color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 0.95rem; height: 50px; flex: 1; margin: 0; box-shadow: 0 4px 12px rgba(46, 204, 113, 0.3); transition: transform 0.2s, filter 0.2s;" onclick="window.Game.handleCityChoice('heal')">
+                        ❤️ Curar Time
+                    </button>
+                    <button class="btn" style="background: linear-gradient(135deg, #f1c40f 0%, #d68910 100%); color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 0.95rem; height: 50px; flex: 1; margin: 0; box-shadow: 0 4px 12px rgba(241, 196, 15, 0.3); transition: transform 0.2s, filter 0.2s;" onclick="window.Game.handleCityChoice('shop')">
+                        🛒 Loja de Itens
+                    </button>
                 </div>
 
-                <button class="btn btn-cards" onclick="window.Game.handleCityChoice('card')">🃏 Comprar Carta Misteriosa
-                    (500G)</button>
+                <div style="display:flex; gap:14px;">
+                    <button class="btn" style="background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%); color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 0.95rem; height: 50px; flex: 1; margin: 0; box-shadow: 0 4px 12px rgba(155, 89, 182, 0.3); transition: transform 0.2s, filter 0.2s;" onclick="window.Game.handleCityChoice('card')">
+                        🃏 Comprar Carta (500G)
+                    </button>
+                    <button class="btn" style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 0.95rem; height: 50px; flex: 1; margin: 0; box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3); transition: transform 0.2s, filter 0.2s;" onclick="window.openInventory(window.Game.getCurrentPlayer().id, true)">
+                        🎒 Ver Mochila
+                    </button>
+                </div>
             </div>
         </div>
     </div>
-    <div id="shop-modal" class="modal-overlay">
-        <div class="modal-box">
-            <h2 class="text-highlight">🛒 PokéMart</h2>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <p style="margin: 0;">Saldo: <span id="shop-gold" class="gold-text">0</span> G</p>
+
+    <div id="shop-modal" class="modal-overlay" style="z-index: 2000;">
+        <div style="width: 95%; max-width: 600px; height: 85vh; display: flex; flex-direction: column; background: rgba(20, 20, 20, 0.95); border: 2px solid #f1c40f; color: #fff; border-radius: 16px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box;">
+            <h3 style="color: #f1c40f; margin-top: 0; font-family: 'Outfit', sans-serif; font-size: 1.6rem; display: flex; align-items: center; justify-content: center; gap: 8px; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 15px; margin-bottom: 15px;">🛒 PokéMart</h3>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: rgba(255,255,255,0.05); padding: 10px 15px; border-radius: 8px;">
+                <span style="font-size: 0.95rem; color: #ccc;">Seu Saldo Disponível:</span>
+                <span id="shop-gold" class="gold-text" style="font-size: 1.2rem; font-weight: bold; color: #f1c40f;">0G</span>
             </div>
-            <div style="display:flex; gap:10px; margin-bottom:15px;">
-                <button class="btn btn-secondary" style="flex:1; margin-top:0;"
+
+            <div style="display:flex; gap:12px; margin-bottom:15px;">
+                <button class="btn" style="flex:1; margin-top:0; height: 45px; background: linear-gradient(135deg, #e67e22 0%, #d35400 100%); color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 0.9rem; box-shadow: 0 4px 10px rgba(230, 126, 34, 0.3); transition: transform 0.2s, filter 0.2s;"
                     onclick="window.openInventory(window.Game.getCurrentPlayer().id, true)">🎒 Ver Minha Bag</button>
-                <button class="btn btn-secondary" style="flex:1; margin-top:0;"
+                <button class="btn" style="flex:1; margin-top:0; height: 45px; background: linear-gradient(135deg, #7f8c8d 0%, #5d6d7e 100%); color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 0.9rem; box-shadow: 0 4px 10px rgba(127, 140, 141, 0.3); transition: transform 0.2s, filter 0.2s;"
                     onclick="window.Shop.close()">Fechar</button>
             </div>
-            <div id="shop-items-list" class="scroll-list"></div>
+            
+            <div id="shop-items-list" class="scroll-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 5px;"></div>
         </div>
     </div>
-    <div id="board-inventory-modal" class="modal-overlay">
-        <div class="modal-box">
-            <h3>🎒 Mochila</h3>
-            <div id="board-inventory-list" class="scroll-list"></div><button class="btn btn-secondary mt-15"
+
+    <div id="board-inventory-modal" class="modal-overlay" style="z-index: 2500;">
+        <div style="width: 500px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: rgba(20, 20, 20, 0.95); border: 2px solid #f1c40f; color: #fff; border-radius: 16px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box;">
+            <h3 style="color: #f1c40f; margin-top: 0; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px; display: flex; align-items: center; gap: 8px; font-family: 'Outfit', sans-serif;">🎒 Mochila</h3>
+            <div id="board-inventory-list" class="scroll-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 5px;"></div>
+            <button class="btn btn-secondary mt-15"
                 onclick="document.getElementById('board-inventory-modal').style.display='none'">Fechar</button>
+        </div>
+    </div>
+
+    <div id="player-badges-modal" class="modal-overlay" style="z-index: 2500;">
+        <div style="width: 550px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: rgba(20, 20, 20, 0.98); border: 2px solid #f1c40f; color: #fff; border-radius: 16px; padding: 25px; box-shadow: 0 15px 40px rgba(0,0,0,0.6); box-sizing: border-box;">
+            <h3 style="color: #f1c40f; margin-top: 0; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; font-family: 'Outfit', sans-serif;">🏆 Porta-Insígnias <span id="badges-player-name" style="color: #fff;"></span></h3>
+            
+            <p style="text-align: center; color: #aaa; font-size: 0.85rem; margin-top: 5px; margin-bottom: 15px;">Coleção de Insígnias conquistadas nesta partida</p>
+            
+            <div id="badges-case-grid" style="flex: 1; overflow-y: auto; background: radial-gradient(circle at center, #1b160b 0%, #0d0a06 100%); border: 3px double #d68910; border-radius: 12px; padding: 20px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; box-shadow: inset 0 0 20px rgba(0,0,0,0.8); justify-items: center; align-items: center;">
+                <!-- Populada dinamicamente via JS -->
+            </div>
+            
+            <button class="btn btn-secondary mt-15" style="height: 45px; font-weight: bold; border-radius: 8px;"
+                onclick="document.getElementById('player-badges-modal').style.display='none'">Fechar</button>
         </div>
     </div>
 
@@ -514,10 +540,8 @@
         </div>
     </div>
     <div id="pokedex-modal" class="modal-overlay" style="z-index: 1500;">
-        <div class="modal-box"
-            style="width: 850px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: #f4f6f7;">
-            <h2 style="color: #e74c3c; margin-top: 0; border-bottom: 2px solid #ccc; padding-bottom: 10px;">📖 Pokédex
-                Regional</h2>
+        <div style="width: 850px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: rgba(20, 20, 20, 0.95); border: 2px solid #f1c40f; color: #fff; border-radius: 16px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box;">
+            <h2 style="color: #f1c40f; margin-top: 0; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px; display: flex; align-items: center; gap: 8px;">📖 Pokédex Regional</h2>
             <div id="pokedex-list" class="scroll-list"
                 style="flex: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; padding: 10px; max-height: 90%;">
             </div>
@@ -526,167 +550,171 @@
         </div>
     </div>
     <div id="board-cards-modal" class="modal-overlay">
-        <div class="modal-box">
-            <h3>🃏 Minhas Cartas (Tabuleiro)</h3>
-            <p style="font-size:0.8rem; color:#666; margin-bottom: 5px;">Apenas cartas do tipo <b>Move</b> podem ser
-                usadas aqui.</p>
+        <div style="width: 850px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: rgba(20, 20, 20, 0.95); border: 2px solid #f1c40f; color: #fff; border-radius: 16px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box;">
+            <h3 style="color: #f1c40f; margin-top: 0; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px; display: flex; align-items: center; gap: 8px; font-family: 'Outfit', sans-serif;">🃏 Minhas Cartas (Tabuleiro)</h3>
+            <p style="font-size:0.8rem; color:#aaa; margin-bottom: 12px; margin-top: 5px;">Apenas cartas do tipo <b>Move</b> podem ser usadas aqui.</p>
             <div style="display:flex; gap:10px; margin-bottom: 15px; justify-content:center;">
                 <select id="board-cards-rarity-filter" class="form-control"
-                    style="background:#2b2d42; color:#fff; border:1px solid #556; border-radius:4px; padding:5px;"
+                    style="background:rgba(0,0,0,0.3); color:#fff; border:1px solid rgba(255,255,255,0.2); border-radius:8px; padding:8px 12px; font-size: 0.9rem;"
                     onchange="window.Game.openBoardCards(window.Game.turn)">
-                    <option value="all">Todas as Raridades</option>
-                    <option value="Comum">Comum</option>
-                    <option value="Incomum">Incomum</option>
-                    <option value="Rara">Rara</option>
-                    <option value="Épica">Épica</option>
-                    <option value="Lendária">Lendária</option>
+                    <option value="all" style="background:#222; color:#fff;">Todas as Raridades</option>
+                    <option value="Comum" style="background:#222; color:#fff;">Comum</option>
+                    <option value="Incomum" style="background:#222; color:#fff;">Incomum</option>
+                    <option value="Rara" style="background:#222; color:#fff;">Rara</option>
+                    <option value="Épica" style="background:#222; color:#fff;">Épica</option>
+                    <option value="Lendária" style="background:#222; color:#fff;">Lendária</option>
                 </select>
                 <select id="board-cards-type-filter" class="form-control"
-                    style="background:#2b2d42; color:#fff; border:1px solid #556; border-radius:4px; padding:5px;"
+                    style="background:rgba(0,0,0,0.3); color:#fff; border:1px solid rgba(255,255,255,0.2); border-radius:8px; padding:8px 12px; font-size: 0.9rem;"
                     onchange="window.Game.openBoardCards(window.Game.turn)">
-                    <option value="all">Todos os Tipos</option>
-                    <option value="move">Move</option>
-                    <option value="battle">Battle</option>
-                    <option value="auto">Auto</option>
-                    <option value="global">Global</option>
+                    <option value="all" style="background:#222; color:#fff;">Todos os Tipos</option>
+                    <option value="move" style="background:#222; color:#fff;">Move</option>
+                    <option value="battle" style="background:#222; color:#fff;">Battle</option>
+                    <option value="auto" style="background:#222; color:#fff;">Auto</option>
+                    <option value="global" style="background:#222; color:#fff;">Global</option>
                 </select>
             </div>
-            <div id="board-cards-list" class="scroll-list"></div><button class="btn btn-secondary mt-15"
+            <div id="board-cards-list" class="scroll-list" style="flex: 1; overflow-y: auto;"></div>
+            <button class="btn btn-secondary mt-15"
                 onclick="document.getElementById('board-cards-modal').style.display='none'">Fechar</button>
         </div>
     </div>
     <div id="library-modal" class="modal-overlay">
-        <div class="modal-box" style="width: 1200px;">
-            <h3>📖 Biblioteca de Cartas</h3>
-            <div style="display:flex; gap:10px; margin-bottom: 15px; justify-content:center;">
+        <div style="width: 1200px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: rgba(20, 20, 20, 0.95); border: 2px solid #f1c40f; color: #fff; border-radius: 16px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box;" class="modal-box">
+            <h3 style="color: #f1c40f; margin-top: 0; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px; display: flex; align-items: center; gap: 8px; font-family: 'Outfit', sans-serif;">📖 Biblioteca de Cartas</h3>
+            <div style="display:flex; gap:12px; margin-bottom: 15px; justify-content:center;">
                 <select id="library-rarity-filter" class="form-control"
-                    style="background:#2b2d42; color:#fff; border:1px solid #556; border-radius:4px; padding:5px;"
+                    style="background:rgba(0,0,0,0.3); color:#fff; border:1px solid rgba(255,255,255,0.2); border-radius:8px; padding:8px 12px; font-size: 0.9rem;"
                     onchange="window.Game.openCardLibrary()">
-                    <option value="all">Todas as Raridades</option>
-                    <option value="Comum">Comum</option>
-                    <option value="Incomum">Incomum</option>
-                    <option value="Rara">Rara</option>
-                    <option value="Épica">Épica</option>
-                    <option value="Lendária">Lendária</option>
+                    <option value="all" style="background:#222; color:#fff;">Todas as Raridades</option>
+                    <option value="Comum" style="background:#222; color:#fff;">Comum</option>
+                    <option value="Incomum" style="background:#222; color:#fff;">Incomum</option>
+                    <option value="Rara" style="background:#222; color:#fff;">Rara</option>
+                    <option value="Épica" style="background:#222; color:#fff;">Épica</option>
+                    <option value="Lendária" style="background:#222; color:#fff;">Lendária</option>
                 </select>
                 <select id="library-type-filter" class="form-control"
-                    style="background:#2b2d42; color:#fff; border:1px solid #556; border-radius:4px; padding:5px;"
+                    style="background:rgba(0,0,0,0.3); color:#fff; border:1px solid rgba(255,255,255,0.2); border-radius:8px; padding:8px 12px; font-size: 0.9rem;"
                     onchange="window.Game.openCardLibrary()">
-                    <option value="all">Todos os Tipos</option>
-                    <option value="move">Move</option>
-                    <option value="battle">Battle</option>
-                    <option value="auto">Auto</option>
-                    <option value="global">Global</option>
+                    <option value="all" style="background:#222; color:#fff;">Todos os Tipos</option>
+                    <option value="move" style="background:#222; color:#fff;">Move</option>
+                    <option value="battle" style="background:#222; color:#fff;">Battle</option>
+                    <option value="auto" style="background:#222; color:#fff;">Auto</option>
+                    <option value="global" style="background:#222; color:#fff;">Global</option>
                 </select>
             </div>
-            <div id="library-list" class="scroll-list" style="max-height: 80%;"></div><button
-                class="btn btn-secondary mt-15"
+            <div id="library-list" class="scroll-list" style="flex: 1; overflow-y: auto;"></div>
+            <button class="btn btn-secondary mt-15"
                 onclick="document.getElementById('library-modal').style.display='none'">Fechar</button>
         </div>
     </div>
     <div id="item-library-modal" class="modal-overlay">
-        <div class="modal-box" style="width: 1200px;">
-            <h3>🎒 Enciclopédia de Itens</h3>
-            <div style="display:flex; gap:10px; margin-bottom: 15px; justify-content:center;">
+        <div style="width: 1200px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: rgba(20, 20, 20, 0.95); border: 2px solid #f1c40f; color: #fff; border-radius: 16px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box;" class="modal-box">
+            <h3 style="color: #f1c40f; margin-top: 0; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px; display: flex; align-items: center; gap: 8px; font-family: 'Outfit', sans-serif;">🎒 Enciclopédia de Itens</h3>
+            <div style="display:flex; gap:12px; margin-bottom: 15px; justify-content:center;">
                 <select id="item-library-type-filter" class="form-control"
-                    style="background:#2b2d42; color:#fff; border:1px solid #556; border-radius:4px; padding:5px;"
+                    style="background:rgba(0,0,0,0.3); color:#fff; border:1px solid rgba(255,255,255,0.2); border-radius:8px; padding:8px 12px; font-size: 0.9rem;"
                     onchange="window.Game.openItemLibrary()">
-                    <option value="all">Todos os Tipos</option>
-                    <option value="heal">Cura</option>
-                    <option value="revive">Reviver</option>
-                    <option value="capture">Captura</option>
-                    <option value="mega">Mega Stone</option>
-                    <option value="boost">Boost</option>
-                    <option value="hold">Segurar (Hold)</option>
+                    <option value="all" style="background:#222; color:#fff;">Todos os Tipos</option>
+                    <option value="heal" style="background:#222; color:#fff;">Cura</option>
+                    <option value="revive" style="background:#222; color:#fff;">Reviver</option>
+                    <option value="capture" style="background:#222; color:#fff;">Captura</option>
+                    <option value="mega" style="background:#222; color:#fff;">Mega Stone</option>
+                    <option value="boost" style="background:#222; color:#fff;">Boost</option>
+                    <option value="hold" style="background:#222; color:#fff;">Segurar (Hold)</option>
                 </select>
             </div>
-            <div id="item-library-list" class="scroll-list" style="max-height: 80%;"></div><button
-                class="btn btn-secondary mt-15"
+            <div id="item-library-list" class="scroll-list" style="flex: 1; overflow-y: auto;"></div>
+            <button class="btn btn-secondary mt-15"
                 onclick="document.getElementById('item-library-modal').style.display='none'">Fechar</button>
         </div>
     </div>
     <div id="battle-cards-modal" class="modal-overlay" style="z-index: 1200;">
-        <div class="modal-box">
-            <h3>🃏 Cartas de Batalha</h3>
-            <div id="battle-cards-list" class="scroll-list"></div><button class="btn btn-secondary mt-15"
+        <div style="width: 850px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: rgba(20, 20, 20, 0.95); border: 2px solid #f1c40f; color: #fff; border-radius: 16px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box;">
+            <h3 style="color: #f1c40f; margin-top: 0; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px; display: flex; align-items: center; gap: 8px; font-family: 'Outfit', sans-serif;">🃏 Cartas de Batalha</h3>
+            <div id="battle-cards-list" class="scroll-list" style="flex: 1; overflow-y: auto;"></div>
+            <button class="btn btn-secondary mt-15"
                 onclick="document.getElementById('battle-cards-modal').style.display='none'">Cancelar</button>
         </div>
     </div>
+
     <div id="swap-modal" class="modal-overlay" style="z-index: 1300;">
-        <div class="modal-box">
-            <h3>⚠️ Time Cheio!</h3>
-            <p>Seu time já tem 6 Pokémons.</p>
-            <p style="font-size:0.9rem;">Clique em um Pokémon para <strong>SOLTAR</strong> (abandonar) e manter o resto.
-            </p>
-            <div id="swap-list" class="scroll-list"></div>
+        <div style="width: 500px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: rgba(20, 20, 20, 0.95); border: 2px solid #f1c40f; color: #fff; border-radius: 16px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box;">
+            <h3 style="color: #f1c40f; margin-top: 0; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px; display: flex; align-items: center; gap: 8px; font-family: 'Outfit', sans-serif;">⚠️ Time Cheio!</h3>
+            <p style="color: #aaa; margin: 10px 0 5px 0;">Seu time já tem 6 Pokémons.</p>
+            <p style="font-size:0.9rem; color: #e74c3c; margin: 0 0 15px 0;">Clique em um Pokémon para <strong>SOLTAR</strong> (abandonar) e manter o resto.</p>
+            <div id="swap-list" class="scroll-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 5px;"></div>
         </div>
     </div>
     <div id="pkmn-select-modal" class="modal-overlay z-high">
-        <div class="modal-box">
-            <h3 id="select-title">Escolha</h3>
-            <div id="pkmn-select-list" class="scroll-list text-left"></div>
+        <div style="width: 500px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: rgba(20, 20, 20, 0.95); border: 2px solid #f1c40f; color: #fff; border-radius: 16px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box;">
+            <h3 id="select-title" style="color: #f1c40f; margin-top: 0; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px; display: flex; align-items: center; gap: 8px; font-family: 'Outfit', sans-serif;">Escolha</h3>
+            <div id="pkmn-select-list" class="scroll-list text-left" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 5px;"></div>
         </div>
     </div>
+    
     <div id="detail-modal" class="modal-overlay" style="z-index: 2000;">
-        <div class="modal-box"
-            style="width: 450px; max-height: 660px; text-align: left; padding: 0; overflow: hidden; border-radius: 12px;">
+        <div style="width: 450px; max-height: 90vh; text-align: left; padding: 0; overflow-y: auto; border-radius: 16px; background: rgba(20, 20, 20, 0.95); border: 2px solid #f1c40f; color: #fff; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
 
             <div id="detail-header"
                 style="background: #333; padding: 15px; display: flex; align-items: center; justify-content: space-between; color: white;">
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <span id="detail-id" style="opacity: 0.7; font-size: 0.8rem;">#001</span>
                     <h2 id="detail-name" style="margin:0; font-size: 1.4rem;">Bulbasaur</h2>
+                    <button id="detail-dex-btn" class="btn btn-mini" style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.3); color: white; display: none; margin-left: 5px; padding: 2px 6px; font-size: 0.7rem; border-radius: 4px; cursor: pointer;">📖 Dex</button>
                 </div>
                 <div id="detail-types" style="display: flex; gap: 5px;"></div>
             </div>
 
-            <div style="padding: 15px; background: #fdfdfd;">
+            <div style="padding: 15px; background: transparent;">
                 <div style="display: flex; gap: 15px; margin-bottom: 15px;">
                     <div style="position: relative;">
                         <img id="detail-img" src=""
-                            style="width: 100px; height: 100px; image-rendering: pixelated; border: 2px solid #ddd; border-radius: 8px; background: #eee;">
+                            style="width: 100px; height: 100px; image-rendering: pixelated; border: 2px solid rgba(255,255,255,0.1); border-radius: 8px; background: rgba(0,0,0,0.3);">
                         <div id="detail-shiny" style="display:none; position:absolute; top:-5px; right:-5px;">✨</div>
                     </div>
                     <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 5px;">
-                        <div style="font-size: 0.9rem; color: #555;">Nível <b id="detail-level"
-                                style="color: black;">5</b></div>
-                        <div style="font-size: 0.9rem; color: #555;">XP: <span id="detail-xp">0 / 100</span></div>
+                        <div style="font-size: 0.9rem; color: #eee;">Nível <b id="detail-level"
+                                style="color: white;">5</b></div>
+                        <div style="font-size: 0.9rem; color: #eee;">XP: <span id="detail-xp" style="color: white;">0 / 100</span></div>
                         <div class="xp-bar-bg"
-                            style="height: 6px; background: #ddd; border-radius: 3px; width: 100%; overflow: hidden;">
+                            style="height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; width: 100%; overflow: hidden;">
                             <div id="detail-xp-bar" style="height: 100%; background: #3498db; width: 0%;"></div>
                         </div>
                     </div>
                 </div>
 
-                <h4 style="margin: 0 0 10px 0; border-bottom: 1px solid #eee; padding-bottom: 5px; color: #e67e22;">📊
+                <h4 style="margin: 0 0 10px 0; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; color: #f39c12;">📊
                     Status de Combate</h4>
 
                 <div id="detail-stats-grid"
                     style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.85rem; margin-bottom: 15px;">
                 </div>
 
-                <h4 style="margin: 0 0 10px 0; border-bottom: 1px solid #eee; padding-bottom: 5px; color: #8e44ad;">🧬
+                <h4 style="margin: 0 0 10px 0; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; color: #9b59b6;">🧬
                     Genética & Maestria (Dex)</h4>
-                <div style="background: #f4f6f7; padding: 10px; border-radius: 6px; font-size: 0.85rem;">
+                <div style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); padding: 10px; border-radius: 6px; font-size: 0.85rem; color: #fff;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
                         <span>🧬 Ressonância (Capturas):</span>
-                        <b id="detail-reso" style="color: #27ae60;">+0% Status</b>
+                        <b id="detail-reso" style="color: #2ecc71;">+0% Status</b>
                     </div>
                     <div style="display: flex; justify-content: space-between;">
                         <span>⚔️ Maestria de Tipo (Kills):</span>
-                        <b id="detail-mastery" style="color: #c0392b;">+0% Dano</b>
+                        <b id="detail-mastery" style="color: #e74c3c;">+0% Dano</b>
                     </div>
-                    <div style="margin-top: 8px; font-size: 0.75rem; color: #7f8c8d; font-style: italic;">
+                    <div style="margin-top: 8px; font-size: 0.75rem; color: #aaa; font-style: italic;">
                         *Buffs baseados no seu progresso na Pokédex.
                     </div>
                 </div>
 
+                <div style="display: flex; justify-content: center; margin-top: 20px;">
+                    <button class="btn btn-secondary" style="width: 100%; padding: 12px; font-size: 1rem; border-radius: 8px;"
+                        onclick="document.getElementById('detail-modal').style.display='none'">Fechar</button>
+                </div>
             </div>
-
-            <button onclick="document.getElementById('detail-modal').style.display='none'"
-                style="width: 100%; padding: 15px; border: none; background: #bdc3c7; color: #333; font-weight: bold; cursor: pointer;">FECHAR</button>
         </div>
     </div>
+
     <div id="battle-modal" class="modal-overlay">
         <div class="modal-box battle-box">
             <h2 id="battle-title">⚔️ Batalha!</h2>

@@ -99,6 +99,7 @@ export class Game {
     static openPlayerStats() { (GameUI as any).openPlayerStats(); }
     static showEventDetails() { (GameUI as any).showEventDetails(); }
     static openInventoryModal(pId: number, readOnly: boolean = false) { (GameUI as any).openInventoryModal(pId, readOnly); }
+    static openPlayerBadgesModal(pId: number) { (GameUI as any).openPlayerBadgesModal(pId); }
     static openCardLibrary() { (GameUI as any).openCardLibrary(); }
     static openItemLibrary() { (GameUI as any).openItemLibrary(); }
     static openBoardCards(pId: number) { (GameUI as any).openBoardCards(pId); }
