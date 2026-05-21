@@ -501,15 +501,13 @@
     </div>
 
     <div id="board-inventory-modal" class="modal-overlay" style="z-index: 2500;">
-        <div
-            style="width: 500px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: rgba(20, 20, 20, 0.95); border: 2px solid #f1c40f; color: #fff; border-radius: 16px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box;">
-            <h3
-                style="color: #f1c40f; margin-top: 0; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px; display: flex; align-items: center; gap: 8px; font-family: 'Outfit', sans-serif;">
+        <div class="modal-box stats-modal-box" style="width: 500px; max-width: 95%; max-height: 90vh; text-align: center;">
+            <h3 style="color: #f1c40f; text-shadow: 0 0 10px rgba(241,196,15,0.5); margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 8px;">
                 🎒 Mochila</h3>
             <div id="board-inventory-list" class="scroll-list"
                 style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 5px;">
             </div>
-            <button class="btn btn-secondary mt-15"
+            <button class="btn btn-secondary stats-close-btn"
                 onclick="document.getElementById('board-inventory-modal').style.display='none'">Fechar</button>
         </div>
     </div>
@@ -591,11 +589,9 @@
                 onclick="document.getElementById('pokedex-modal').style.display='none'">Fechar</button>
         </div>
     </div>
-    <div id="board-cards-modal" class="modal-overlay">
-        <div
-            style="width: 850px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: rgba(20, 20, 20, 0.95); border: 2px solid #f1c40f; color: #fff; border-radius: 16px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box;">
-            <h3
-                style="color: #f1c40f; margin-top: 0; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px; display: flex; align-items: center; gap: 8px; font-family: 'Outfit', sans-serif;">
+    <div id="board-cards-modal" class="modal-overlay" style="z-index: 2500;">
+        <div class="modal-box stats-modal-box" style="width: 850px; max-width: 95%; max-height: 90vh; text-align: center;">
+            <h3 style="color: #f1c40f; text-shadow: 0 0 10px rgba(241,196,15,0.5); margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 8px;">
                 🃏 Minhas Cartas (Tabuleiro)</h3>
             <p style="font-size:0.8rem; color:#aaa; margin-bottom: 12px; margin-top: 5px;">Apenas cartas do tipo
                 <b>Move</b> podem ser usadas aqui.
@@ -622,7 +618,7 @@
                 </select>
             </div>
             <div id="board-cards-list" class="scroll-list" style="flex: 1; overflow-y: auto;"></div>
-            <button class="btn btn-secondary mt-15"
+            <button class="btn btn-secondary stats-close-btn"
                 onclick="document.getElementById('board-cards-modal').style.display='none'">Fechar</button>
         </div>
     </div>

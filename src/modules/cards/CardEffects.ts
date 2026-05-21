@@ -1138,6 +1138,36 @@ export class CardEffects {
                     Game.currentGlobalEvent = chosenEvent;
                     effectLog = `🌍 MUDANÇA GLOBAL! O evento global foi alterado para: ${chosenEvent.icon} ${chosenEvent.name}!`;
                     requiresGlobalSync = true;
+                    
+                    if (chosenEvent.id === 'TAX_SEASON') {
+                        Game.players.forEach((p: any) => {
+                            const lostCards: string[] = [];
+                            if (p.cards && p.cards.length > 0) {
+                                const legendaryCards = p.cards.filter((c: any) => c.rarity === 'Lendária' || c.isProtected);
+                                const nonLegendaryCards = p.cards.filter((c: any) => c.rarity !== 'Lendária' && !c.isProtected);
+
+                                const totalToLose = Math.floor(p.cards.length / 2);
+                                const actuallyLost: any[] = [];
+
+                                if (totalToLose > 0 && nonLegendaryCards.length > 0) {
+                                    const amountToLose = Math.min(totalToLose, nonLegendaryCards.length);
+                                    for (let i = 0; i < amountToLose; i++) {
+                                        const randIdx = Math.floor(Math.random() * nonLegendaryCards.length);
+                                        actuallyLost.push(nonLegendaryCards.splice(randIdx, 1)[0]);
+                                    }
+                                }
+
+                                p.cards = [...legendaryCards, ...nonLegendaryCards];
+                                actuallyLost.forEach((c: any) => lostCards.push(`${c.icon} ${c.name}`));
+                            }
+                            if (p.items) {
+                                for (const k in p.items) if (p.items[k] > 0) p.items[k] = Math.ceil(p.items[k] / 2);
+                            }
+                            const lostNames = lostCards.length > 0 ? `: ${lostCards.join(', ')}` : "";
+                            Game.sendGlobalLog(`🃏 [Extrato] ${p.name} pagou impostos${lostNames}. Cartas restantes: ${p.cards ? p.cards.length : 0}`);
+                        });
+                        effectLog += `\n\n📜 IMPOSTO DE RENDA: Todos os jogadores perderam metade de suas cartas e itens!`;
+                    }
                 } else {
                     CardUI.openEventSelection(cardId);
                     consumed = false;
