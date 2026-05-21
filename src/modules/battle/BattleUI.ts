@@ -21,6 +21,9 @@ export class BattleUI {
             div.className = `mon-select-item ${mon.isFainted() ? 'disabled' : ''}`;
             
             const isShiny = mon.isShiny;
+            const heldItemData = mon.heldItem ? SHOP_ITEMS.find(i => i.id === mon.heldItem) : null;
+            const heldItemHTML = heldItemData ? `<img src="/assets/img/Itens/${heldItemData.icon}" style="width:20px; height:20px; margin-left:8px; vertical-align: middle; filter: drop-shadow(0 0 2px rgba(255,255,255,0.8));" title="Segurando: ${heldItemData.name}">` : '';
+
             div.style.cssText = `
                 display: flex; 
                 align-items: center; 
@@ -39,7 +42,7 @@ export class BattleUI {
                 <img src="${mon.getSprite()}" width="50" style="object-fit:contain; filter: drop-shadow(0 0 3px ${isShiny ? '#f1c40f' : 'transparent'});">
                 <div style="display:flex; flex-direction:column; gap:4px; flex:1;">
                     <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
-                        <b style="font-size:1.1rem; color:${isShiny ? '#f1c40f' : '#fff'};">${mon.name} ${isShiny ? '✨' : ''}</b>
+                        <b style="font-size:1.1rem; color:${isShiny ? '#f1c40f' : '#fff'}; display:flex; align-items:center;">${mon.name} ${isShiny ? '✨' : ''}${heldItemHTML}</b>
                         <span style="font-size:0.9rem; font-weight:bold; color:#f1c40f; background:rgba(0,0,0,0.5); padding:2px 6px; border-radius:4px;">Lv.${mon.level}</span>
                     </div>
                     <div style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap:4px; font-size:0.8rem; color:#ecf0f1; background:rgba(0,0,0,0.3); padding:4px; border-radius:4px; text-align:center;">

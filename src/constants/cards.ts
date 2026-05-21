@@ -32,7 +32,6 @@ export const CARDS_DB: CardData[] = [
     { id: 'adotar_lixeira', name: "Segunda Chance", icon: "💚", desc: "Escolha um Pokémon da Lixeira para resgatar e adicionar ao seu time.", type: 'move', rarity: 'Rara' },
 
     // Cartas contra jogadores
-    //{ id: 'trap', name: "Armadilha", icon: "🪤", desc: "Coloque em uma casa. Quem passar nela vai parar na armadilha e perde o próximo turno. Você vai receber 20% de gold de quem passou.", type: 'move', probability: 100 },
     { id: 'slow', name: "Campo Grudento", icon: "🕸️", desc: "Escolha um jogador: ele rola apenas 1d1 nos próximos 3 turnos.", type: 'move', rarity: 'Comum' },
     { id: 'swap', name: "Troca Rápida", icon: "🔀", desc: "Troque de posição com qualquer jogador.", type: 'move', rarity: 'Incomum' },
     { id: 'rocket', name: "Equipe Rocket", icon: "🚀", desc: "Roube uma carta aleatória de outro jogador.", type: 'move', rarity: 'Incomum' },
@@ -66,7 +65,6 @@ export const CARDS_DB: CardData[] = [
     { id: 'imposto', name: "Imposto de Renda", icon: "📜", desc: "A Receita Federal te achou! TODOS os jogadores perdem exatamente a metade (espalhada aleatoriamente) de suas cartas e metade de todos os seus itens.", type: 'global', rarity: 'Épica' },
 
     // Cartas Troll
-    //{ id: 'rodada180', name: "Rodada 180", icon: "🔞", desc: "Se o Alan jogar essa carta, a partida vai para a rodada 180, tornando ele um Deus e ele vence.", type: 'move', rarity: 'Troll' }
     { id: 'michael', name: "Moon Walker", icon: "💃", desc: "Escolha um jogador. Nos próximos 3 rolagens de dados para andar, ele vai andar o número para trás.", type: 'move', rarity: 'Incomum' },
     { id: 'spy', name: "Espião", icon: "🕵️", desc: "Escolha um jogador e veja 3 cartas aleatórias da mão dele (mesmo as protegidas ou lendárias).", type: 'move', rarity: 'Incomum' },
     { id: 'katrina', name: "Furacão Katrina", icon: "🌪️", desc: "Todos os jogadores são movidos para casas aleatórias no tabuleiro.", type: 'global', rarity: 'Rara' },
