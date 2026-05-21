@@ -81,7 +81,7 @@ export class Player {
             }
 
             // remover depois, começar con todas as cartas.
-            this.cards = JSON.parse(JSON.stringify(CARDS_DB));
+            // this.cards = JSON.parse(JSON.stringify(CARDS_DB));
 
             // 3. Pokemon Inicial (com chance de Shiny)
             // O Starter é inicializado como um Bulbasaur genérico aqui. 
