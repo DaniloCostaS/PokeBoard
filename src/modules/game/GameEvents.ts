@@ -230,6 +230,17 @@ export class GameEvents {
                 return;
             }
 
+            const questRoll = Math.random();
+            if (questRoll < 0.20) {
+                const QuestManagerObj = (window as any).QuestManager || (window as any).modules?.QuestManager;
+                if (QuestManagerObj) {
+                    QuestManagerObj.addQuest(p, undefined, true);
+                } else {
+                    this.nextTurn();
+                }
+                return;
+            }
+
             if (Math.random() < 0.5) {
                 const CardsObj = (window as any).Cards || Cards;
                 const card = CardsObj.draw(p, true);
@@ -412,6 +423,33 @@ export class GameEvents {
                 alert("Ouro insuficiente! Você precisa de 500G para comprar uma carta.");
             }
         }
+        else if (c === 'quest') {
+            if (player.boughtQuestThisTurn) {
+                return alert("Você já comprou uma missão nesta visita à cidade!");
+            }
+            if (player.gold >= 300) {
+                player.gold -= 300;
+                player.boughtQuestThisTurn = true;
+                
+                const QuestManagerObj = (window as any).QuestManager || (window as any).modules?.QuestManager;
+                if (QuestManagerObj) {
+                    QuestManagerObj.addQuest(player);
+                }
+                
+                GameUI.sendGlobalLog(`💰 [Extrato] ${player.name} gastou -300G (Compra de Missão).`);
+                
+                const goldDisplay = document.getElementById('city-gold-display');
+                if (goldDisplay) goldDisplay.innerText = `Saldo: ${player.gold}G`;
+
+                GameUI.updateHUD();
+                
+                if (NetworkObj.isOnline) {
+                    NetworkObj.syncPlayerState();
+                }
+            } else {
+                alert("Ouro insuficiente! Você precisa de 300G para comprar uma missão.");
+            }
+        }
         else if (c === 'shop') {
             document.getElementById('city-modal')!.style.display = 'none';
             Shop.open();
@@ -476,6 +514,18 @@ export class GameEvents {
         }
 
         GameUI.sendGlobalLog(`🛑 Fim do turno de ${currentP.name} 🛑`);
+
+        const QuestManagerObj = (window as any).QuestManager || (window as any).modules?.QuestManager;
+        if (QuestManagerObj) {
+            if (currentP.gold >= 1500) {
+                QuestManagerObj.checkProgress(currentP, 'END_TURN_GOLD_1500', 1);
+            }
+            if (currentP.gold >= 2500) {
+                QuestManagerObj.checkProgress(currentP, 'TURN_GOLD_2500_STREAK', 1);
+            } else {
+                QuestManagerObj.resetProgress(currentP, 'TURN_GOLD_2500_STREAK');
+            }
+        }
 
         const nextTurnIdx = (GameState.turn + 1) % GameState.players.length;
         const roomUpdates: any = {};
@@ -739,6 +789,10 @@ export class GameEvents {
                 currP.skipTurns = Math.max(0, currP.skipTurns - 1);
                 if (!currP.stats) currP.stats = { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
                 currP.stats.turnsLost = (currP.stats.turnsLost || 0) + 1;
+                
+                const QuestManagerObj = (window as any).QuestManager || (window as any).modules?.QuestManager;
+                if (QuestManagerObj) QuestManagerObj.checkProgress(currP, 'LOSE_TURN', 1);
+
                 GameUI.sendGlobalLog(`${currP.name} perdeu a vez! (Restam: ${currP.skipTurns})`);
                 if (NetworkObj.isOnline) NetworkObj.syncPlayerState();
                 setTimeout(() => {

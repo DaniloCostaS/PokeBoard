@@ -14,6 +14,17 @@ export class Player {
     cards: CardData[] = [];
     team: Pokemon[] = [];
 
+    // Quests
+    activeQuests: any[] = [];
+    questTrackers: {
+        tilesMovedNoReturn: number;
+        biomesVisited: string[];
+        turnsLostAccumulated: number;
+        pvpWinsStreak: number;
+        gymWinsStreak: number;
+    } = { tilesMovedNoReturn: 0, biomesVisited: [], turnsLostAccumulated: 0, pvpWinsStreak: 0, gymWinsStreak: 0 };
+    boughtQuestThisTurn: boolean = false;
+
     skipTurns: number = 0;
     isProcessingSkip: boolean = false; // Flag local para evitar múltiplos timers
     badges: boolean[] = [false, false, false, false, false, false, false, false];
@@ -139,5 +150,8 @@ export class Player {
     }
 
     // CORREÇÃO: Reseta a flag de nível para permitir upar no próximo turno
-    resetTurnFlags() { this.team.forEach(p => p.leveledUpThisTurn = false); }
+    resetTurnFlags() {
+        this.team.forEach(p => p.leveledUpThisTurn = false);
+        this.boughtQuestThisTurn = false;
+    }
 }

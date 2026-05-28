@@ -219,6 +219,7 @@ export class GameMovement {
         }
 
         let hitTrap = false;
+        let stepsWalked = 0;
 
         for (let i = 0; i < steps; i++) {
             let currentIdx = MapSystem.getIndex(p.x, p.y);
@@ -229,6 +230,7 @@ export class GameMovement {
                 if (currentIdx < 0) currentIdx = totalTiles - 1;
             } else {
                 currentIdx++;
+                stepsWalked++;
                 if (currentIdx >= totalTiles) {
                     currentIdx = 0;
 
@@ -261,6 +263,16 @@ export class GameMovement {
             p.x = nextCoord.x;
             p.y = nextCoord.y;
             this.performVisualStep(pId, p.x, p.y);
+            
+            if (p.questTrackers && p.questTrackers.biomesVisited) {
+                const currentTileType = MapSystem.grid[p.y][p.x].toString();
+                if (!p.questTrackers.biomesVisited.includes(currentTileType)) {
+                    p.questTrackers.biomesVisited.push(currentTileType);
+                    const QuestManagerObj = (window as any).QuestManager || (window as any).modules?.QuestManager;
+                    if (QuestManagerObj) QuestManagerObj.checkProgress(p, 'VISIT_BIOMES', 1);
+                }
+            }
+
             await new Promise(r => setTimeout(r, 150));
 
             const trapIdx = GameState.traps.findIndex(t => t.x === p.x && t.y === p.y && t.ownerId !== p.id);
@@ -320,6 +332,11 @@ export class GameMovement {
                 }
                 break;
             }
+        }
+
+        if (stepsWalked > 0) {
+            const QuestManagerObj = (window as any).QuestManager || (window as any).modules?.QuestManager;
+            if (QuestManagerObj) QuestManagerObj.checkProgress(p, 'WALK_STEPS', stepsWalked);
         }
 
         if (!NetworkObj.isOnline || pId === NetworkObj.myPlayerId) {

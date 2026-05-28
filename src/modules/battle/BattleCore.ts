@@ -31,6 +31,7 @@ export class BattleCore {
     static activeEffects: any = {};
     static itemsUsedThisBattle: number = 0;
     static cardsUsedThisBattle: number = 0;
+    static pokeballsThrownThisBattle: number = 0;
     static currentTerrain: number = 0;
     static isAutoPvE: boolean = false;
     static isChampion: boolean = false;
@@ -44,6 +45,7 @@ export class BattleCore {
         this.activeEffects = {};
         this.itemsUsedThisBattle = 0;
         this.cardsUsedThisBattle = 0;
+        this.pokeballsThrownThisBattle = 0;
 
         if (pendingSteal !== undefined && pendingSteal !== null) {
             this.activeEffects.stealBadgeFrom = pendingSteal;
@@ -819,6 +821,24 @@ export class BattleCore {
 
         if (this.isGym || this.isChampion) this.player!.effects.curse = false;
         this.revertMew();
+        
+        const QuestManagerObj = (window as any).QuestManager || (window as any).modules?.QuestManager;
+        if (QuestManagerObj && this.player) {
+            QuestManagerObj.checkProgress(this.player, 'WIN_STREAK', 1);
+            if (!this.isPvP && !this.isGym && !this.isNPC) QuestManagerObj.checkProgress(this.player, 'DEFEAT_WILD', 1);
+            if (this.isPvP) {
+                QuestManagerObj.checkProgress(this.player, 'WIN_PVP', 1);
+                QuestManagerObj.checkProgress(this.player, 'WIN_PVP_STREAK', 1);
+            } else {
+                QuestManagerObj.resetProgress(this.player, 'WIN_PVP_STREAK');
+            }
+            if (this.isGym) {
+                QuestManagerObj.checkProgress(this.player, 'WIN_GYM_STREAK', 1);
+            } else {
+                QuestManagerObj.resetProgress(this.player, 'WIN_GYM_STREAK');
+            }
+        }
+
         let gain = 0; let msg = "VITÓRIA! ";
 
         const stealTargetId = (this.activeEffects.stealBadgeFrom !== undefined && this.activeEffects.stealBadgeFrom !== null) ? Number(this.activeEffects.stealBadgeFrom) : -1;
@@ -943,6 +963,13 @@ export class BattleCore {
         if (this.isGym || this.isChampion) this.player!.effects.curse = false;
         this.revertMew();
         let msg = "DERROTA... ";
+
+        const QuestManagerObj = (window as any).QuestManager || (window as any).modules?.QuestManager;
+        if (QuestManagerObj && this.player) {
+            QuestManagerObj.resetProgress(this.player, 'WIN_STREAK');
+            QuestManagerObj.resetProgress(this.player, 'WIN_PVP_STREAK');
+            QuestManagerObj.resetProgress(this.player, 'WIN_GYM_STREAK');
+        }
 
         if (!this.isPvP && !this.isGym && !this.isNPC && this.opponent) {
             const oppId = this.opponent.id;
@@ -1084,6 +1111,10 @@ export class BattleCore {
             const roll = Math.floor(Math.random() * 100) + 1;
             if (roll <= finalChance) {
                 BattleUI.logBattle("🏃 Escapou com sucesso!", true);
+                
+                const QuestManagerObj = (window as any).QuestManager || (window as any).modules?.QuestManager;
+                if (QuestManagerObj && this.player) QuestManagerObj.resetProgress(this.player, 'WIN_STREAK');
+
                 this.activeMon!.gainXp(5, this.player!);
 
                 if (this.opponent) {
@@ -1220,6 +1251,7 @@ export class BattleCore {
     static async attemptCapture(item: ItemData) {
         if (!this.opponent || !this.activeMon) return;
         this.processingAction = true;
+        this.pokeballsThrownThisBattle++;
         BattleUI.updateButtons();
         const opponent = this.opponent;
 
@@ -1285,6 +1317,21 @@ export class BattleCore {
 
         Game.sendGlobalLog(`✨ ${this.player?.name} capturou um ${this.opponent!.name}!`);
         this.revertMew();
+        
+        const QuestManagerObj = (window as any).QuestManager || (window as any).modules?.QuestManager;
+        if (QuestManagerObj && this.player) {
+            QuestManagerObj.checkProgress(this.player, 'CAPTURE_WILD', 1);
+            if (this.pokeballsThrownThisBattle === 1) {
+                QuestManagerObj.checkProgress(this.player, 'FIRST_BALL_CAPTURE', 1);
+            }
+            if (this.opponent) {
+                if (this.opponent.baseTotal >= 280 && this.opponent.baseTotal <= 329) QuestManagerObj.checkProgress(this.player, 'CAPTURE_RARE', 1);
+                if (this.opponent.type === 'Água' || this.opponent.secondType === 'Água') QuestManagerObj.checkProgress(this.player, 'CAPTURE_WATER', 1);
+                if (this.opponent.isLegendary) QuestManagerObj.checkProgress(this.player, 'CAPTURE_LEGENDARY', 1);
+                QuestManagerObj.checkProgress(this.player, 'CAPTURE_TYPE_SPECIFIC', 1, {type: this.opponent.type});
+            }
+        }
+
         BattleUI.updateUI();
 
         if (this.opponent) {

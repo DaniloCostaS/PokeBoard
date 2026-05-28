@@ -56,6 +56,13 @@ export class BattleCalc {
         const ignoreDodge = (isPlayerAttacking && BattleCore.activeEffects.sniper);
 
         if (!ignoreDodge && Math.random() * 100 <= dodgeChance) {
+            if (defenderPlayer) {
+                const QuestManagerObj = (window as any).QuestManager || (window as any).modules?.QuestManager;
+                if (QuestManagerObj) {
+                    QuestManagerObj.checkProgress(defenderPlayer, 'DODGE_ATTACK', 1);
+                    QuestManagerObj.checkProgress(defenderPlayer, 'DEFEND_ATTACK', 1);
+                }
+            }
             return { damage: 0, msg: "💨 ESQUIVOU!", avoided: true, reflected: 0 };
         }
 
@@ -63,6 +70,13 @@ export class BattleCalc {
         blockChance = Math.max(0, Math.min(90, blockChance));
 
         if (Math.random() * 100 <= blockChance) {
+            if (defenderPlayer) {
+                const QuestManagerObj = (window as any).QuestManager || (window as any).modules?.QuestManager;
+                if (QuestManagerObj) {
+                    QuestManagerObj.checkProgress(defenderPlayer, 'BLOCK_ATTACK', 1);
+                    QuestManagerObj.checkProgress(defenderPlayer, 'DEFEND_ATTACK', 1);
+                }
+            }
             return { damage: 0, msg: "🛡️ BLOQUEIO TOTAL!", avoided: true, reflected: 0 };
         }
 

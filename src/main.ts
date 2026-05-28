@@ -5,6 +5,7 @@ import { Shop } from './systems/Shop';
 import { Battle } from './systems/Battle';
 import { Network } from './systems/Network';
 import { Cards } from './systems/Cards';
+import { QuestManager } from './modules/quests/QuestManager';
 
 declare global {
     interface Window {
@@ -14,6 +15,7 @@ declare global {
         Battle: typeof Battle;
         Network: typeof Network;
         Cards: typeof Cards; // Adicionado aqui
+        QuestManager: typeof QuestManager;
         openInventory: (playerId: number, readOnly?: boolean) => void;
         openPlayerBadges: (playerId: number) => void;
         openCards: (playerId: number) => void;
@@ -89,6 +91,7 @@ window.Shop = Shop;
 window.Battle = Battle;
 window.Network = Network;
 window.Cards = Cards; // Agora Pokemon.ts pode usar window.Cards
+window.QuestManager = QuestManager;
 
 // Funções de atalho do HTML
 window.openInventory = (id, readOnly = false) => Game.openInventoryModal(id, readOnly);

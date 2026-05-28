@@ -140,6 +140,7 @@ export class GameUI {
             <div class="hud-team">${th}</div> 
             <div class="hud-actions">
                 <button class="btn btn-secondary btn-mini" onclick="window.Game.openInventoryModal(${i})">🎒 ${totalItems}</button>
+                <button class="btn btn-secondary btn-mini" onclick="window.QuestManager.openQuestsModal(window.Game.players[${i}])">📜 ${p.activeQuests ? p.activeQuests.length : 0}</button>
                 <button class="btn btn-secondary btn-mini" onclick="window.Game.openBoardCards(${i})">🃏 ${totalCards}</button>
                 <button class="btn btn-mini" style="background:#e74c3c; color:white; border:1px solid #c0392b;" onclick="window.Game.openPokedex(${i})">📖 Dex</button>
             </div>`;

@@ -110,6 +110,12 @@ export class CardManager {
         const newCard = finalPool[Math.floor(Math.random() * finalPool.length)];
         player.cards.push(newCard);
 
+        const QuestManagerObj = (window as any).QuestManager || (window as any).modules?.QuestManager;
+        if (QuestManagerObj) {
+            QuestManagerObj.checkProgress(player, 'USE_SACRIFICE_CARDS', 1);
+            QuestManagerObj.checkProgress(player, 'FUSION_AND_SACRIFICE', 1, { action: 'sacrifice' });
+        }
+
         const modal = document.getElementById('board-inventory-modal') || document.getElementById('board-cards-modal');
         if (modal) modal.style.display = 'none';
         Game.updateHUD();
@@ -175,6 +181,12 @@ export class CardManager {
 
         const newCard = finalFinalPool[Math.floor(Math.random() * finalFinalPool.length)];
         player.cards.push(newCard);
+
+        const QuestManagerObj = (window as any).QuestManager || (window as any).modules?.QuestManager;
+        if (QuestManagerObj) {
+            QuestManagerObj.checkProgress(player, 'USE_FUSION_CARDS', 1);
+            QuestManagerObj.checkProgress(player, 'FUSION_AND_SACRIFICE', 1, { action: 'fusion' });
+        }
 
         const modal = document.getElementById('board-inventory-modal') || document.getElementById('board-cards-modal');
         if (modal) modal.style.display = 'none';

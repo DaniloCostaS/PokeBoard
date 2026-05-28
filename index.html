@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PokéBoard V94c</title>
+    <title>PokéBoard V95</title>
     <link rel="stylesheet" href="style.css">
 
     <script type="importmap">
@@ -20,8 +20,8 @@
 <body>
 
     <div id="setup-screen">
-        <h1 class="title-highlight">PokéBoard V94c</h1>
-        <p class="subtitle">Melhoria de UX mapa e logs.</p>
+        <h1 class="title-highlight">PokéBoard V95</h1>
+        <p class="subtitle">Nova funcionalidade: Missões secundárias.</p>
 
         <div id="menu-phase-1">
             <button class="btn" onclick="window.Setup.showOfflineSetup()">🏠 JOGAR OFFLINE</button>
@@ -251,6 +251,8 @@
                 <button class="btn btn-secondary" onclick="window.Game.openCardLibrary()">📖 Ver Todas as
                     Cartas</button>
                 <button class="btn btn-secondary" onclick="window.Game.openItemLibrary()">🎒 Ver Todos os Itens</button>
+                <button class="btn btn-secondary" onclick="window.QuestManager.openQuestLibrary()">📜 Ver Todas as
+                    Missões</button>
                 <button class="btn btn-secondary btn-rules-capture" onclick="window.Game.openCaptureRules()">🦅 Regras
                     de Captura</button>
                 <button class="btn btn-secondary btn-rules-combat" onclick="window.Game.openCombatRules()">⚔️
@@ -465,6 +467,14 @@
                         style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 0.95rem; height: 50px; flex: 1; margin: 0; box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3); transition: transform 0.2s, filter 0.2s;"
                         onclick="window.openInventory(window.Game.getCurrentPlayer().id, true)">
                         🎒 Ver Mochila
+                    </button>
+                </div>
+
+                <div style="display:flex; gap:14px;">
+                    <button class="btn"
+                        style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 0.95rem; height: 50px; flex: 1; margin: 0; box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3); transition: transform 0.2s, filter 0.2s;"
+                        onclick="window.Game.handleCityChoice('quest')">
+                        📜 Comprar Missão (300G)
                     </button>
                 </div>
             </div>

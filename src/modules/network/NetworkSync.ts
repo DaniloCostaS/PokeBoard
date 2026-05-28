@@ -110,7 +110,9 @@ export class NetworkSync {
             cards: p.cards && p.cards.length > 0 ? p.cards : null,
             effects: p.effects,
             pokedexData: p.pokedexData || {},
-            stats: p.stats || { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 }
+            stats: p.stats || { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 },
+            activeQuests: p.activeQuests || [],
+            questTrackers: p.questTrackers || { tilesMovedNoReturn: 0, biomesVisited: [], turnsLostAccumulated: 0, pvpWinsStreak: 0, gymWinsStreak: 0 }
         });
     }
 
@@ -139,7 +141,9 @@ export class NetworkSync {
             skipTurns: p.skipTurns,
             effects: p.effects,
             pokedexData: p.pokedexData || {},
-            stats: p.stats || { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 }
+            stats: p.stats || { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 },
+            activeQuests: p.activeQuests || [],
+            questTrackers: p.questTrackers || { tilesMovedNoReturn: 0, biomesVisited: [], turnsLostAccumulated: 0, pvpWinsStreak: 0, gymWinsStreak: 0 }
         });
     }
 
@@ -165,7 +169,9 @@ export class NetworkSync {
                     cards: p.cards && p.cards.length > 0 ? p.cards : null,
                     effects: p.effects,
                     pokedexData: p.pokedexData || {},
-                    stats: p.stats || { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 }
+                    stats: p.stats || { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 },
+                    activeQuests: p.activeQuests || [],
+                    questTrackers: p.questTrackers || { tilesMovedNoReturn: 0, biomesVisited: [], turnsLostAccumulated: 0, pvpWinsStreak: 0, gymWinsStreak: 0 }
                 };
             }
         });
