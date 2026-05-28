@@ -7,9 +7,10 @@ import { Battle } from '../../systems/Battle';
 import { Shop } from '../../systems/Shop';
 import { Cards } from '../../systems/Cards';
 import { Network, db } from '../../systems/Network';
-import { ref, update } from 'firebase/database';
+import { ref, update, getDatabase } from 'firebase/database';
 import { TILE, NPC_DATA, SHOP_ITEMS } from '../../constants';
 import { GLOBAL_EVENTS } from '../../constants/globalEvents';
+import { MAPA_MEGAS } from '../../constants/mapaMegas';
 import { GYM_DATA } from '../../constants/gyms';
 import { GameSpawns } from './GameSpawns';
 import { NotificationSystem } from './NotificationSystem';
@@ -50,6 +51,19 @@ export class GameEvents {
 
         document.getElementById('victory-modal')!.style.display = 'flex';
         console.log("GAME OVER - VITORIA!");
+
+        const NetworkObj = (window as any).Network;
+        if (NetworkObj && NetworkObj.isOnline && winnerId === NetworkObj.myPlayerId) {
+            try {
+                const db = (window as any).db || getDatabase();
+                const updates: any = {};
+                updates[`rooms/${NetworkObj.currentRoomId}/status`] = "FINISHED";
+                updates[`rooms/${NetworkObj.currentRoomId}/winnerId`] = winnerId;
+                update(ref(db), updates);
+            } catch (e) {
+                console.error("Erro ao salvar vitória:", e);
+            }
+        }
     }
 
     static getLastCityCoord(p: Player): { x: number, y: number } {
@@ -869,7 +883,7 @@ export class GameEvents {
         } else if (item.type === 'mega') {
             const targetMon = p.team[targetIdx];
             if (targetMon) {
-                const { MAPA_MEGAS } = await import('../../constants/mapaMegas');
+                // MAPA_MEGAS is imported statically
                 if (!MAPA_MEGAS[targetMon.id]) {
                     alert(`O Pokémon ${targetMon.name} não reage a esta Mega Pedra!`);
                     return;

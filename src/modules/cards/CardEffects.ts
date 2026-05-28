@@ -4,6 +4,9 @@ import { CardManager } from './CardManager';
 import { MapSystem } from '../../systems/MapSystem';
 import { CardUI } from './CardUI';
 import { GLOBAL_EVENTS } from '../../constants/globalEvents';
+import { MAPA_MEGAS } from '../../constants/mapaMegas';
+import { POKEDEX } from '../../constants/pokedex';
+import { ref, update, getDatabase, get } from 'firebase/database';
 
 export class CardEffects {
     static async checkAutoDefense(attacker: Player, target: Player, incomingCardId: string, incomingCardName: string): Promise<boolean> {
@@ -84,7 +87,7 @@ export class CardEffects {
 
                 if (Network.isOnline) {
                     try {
-                        const { ref, update, getDatabase } = await import('firebase/database');
+
                         const db = getDatabase();
                         const roomPath = `rooms/${Network.currentRoomId}`;
 
@@ -598,7 +601,7 @@ export class CardEffects {
                 if (targetId !== null) {
                     const targetMon = player.team[targetId];
                     if (!targetMon) { consumed = false; break; }
-                    const { MAPA_MEGAS } = await import('../../constants/mapaMegas');
+                    // MAPA_MEGAS is statically imported
                     if (!MAPA_MEGAS[targetMon.id]) { alert(`O Pokémon não reage a esta Mega Pedra!`); consumed = false; break; }
                     if (targetMon.megaStone || targetMon.heldItem) { alert(`${targetMon.name} já está segurando um item! Remova-o antes de equipar outro.`); consumed = false; break; }
                     targetMon.megaStone = true;
@@ -676,7 +679,7 @@ export class CardEffects {
                     targetMon.vinculoSupremo = true;
 
                     let megaMsg = "";
-                    const { MAPA_MEGAS } = await import('../../constants/mapaMegas');
+                    // MAPA_MEGAS is statically imported
                     if (MAPA_MEGAS[targetMon.id] && !targetMon.megaStone && !targetMon.heldItem) {
                         targetMon.megaStone = true;
                         megaMsg = " Além disso, uma Mega Pedra reagiu ao forte laço e foi equipada automaticamente!";
@@ -825,7 +828,7 @@ export class CardEffects {
             }
 
             case 'legendary_encounter':
-                const _POKEDEX = (await import('../../constants/pokedex')).POKEDEX;
+                const _POKEDEX = POKEDEX;
                 const legendaries = _POKEDEX.filter((p: any) => p.isLegendary);
                 const shuffled = legendaries.sort(() => 0.5 - Math.random());
                 CardUI.openLegendaryEncounterSelection(shuffled.slice(0, 3));
@@ -874,7 +877,7 @@ export class CardEffects {
                 skipBottomSync = true;
                 if (Network.isOnline) {
                     try {
-                        const { ref, update, getDatabase, get } = await import('firebase/database');
+
                         const db = (window as any).db || getDatabase();
                         const roomPath = `rooms/${Network.currentRoomId}`;
                         const roomSnap = await get(ref(db, roomPath));
@@ -960,7 +963,7 @@ export class CardEffects {
                 skipBottomSync = true;
                 if (Network.isOnline) {
                     try {
-                        const { ref, update, getDatabase, get } = await import('firebase/database');
+
                         const db = (window as any).db || getDatabase();
                         const roomPath = `rooms/${Network.currentRoomId}`;
                         const roomSnap = await get(ref(db, roomPath));
@@ -1259,7 +1262,6 @@ export class CardEffects {
 
             if (Network.isOnline && !skipBottomSync) {
                 try {
-                    const { ref, update, getDatabase } = await import('firebase/database');
                     const db = getDatabase();
                     const roomPath = `rooms/${Network.currentRoomId}`;
                     const atomicUpd: any = {};

@@ -847,7 +847,7 @@ export class GameUI {
         if (!mon) return console.error("Pokémon não encontrado no slot:", slotIndex);
 
         const POKEDEX_GLOBAL = (window as any).POKEDEX || POKEDEX;
-        const { MAPA_MEGAS } = await import('../../constants/mapaMegas');
+        // MAPA_MEGAS is already imported at the top
 
         document.getElementById('detail-id')!.innerText = `#${mon.id.toString().padStart(3, '0')}`;
         document.getElementById('detail-name')!.innerText = mon.name;
@@ -1647,7 +1647,7 @@ export class GameUI {
 
         let MAPA_MEGAS: any = null;
         if (item.type === 'mega') {
-            const module = await import('../../constants/mapaMegas');
+            const module = { MAPA_MEGAS };
             MAPA_MEGAS = module.MAPA_MEGAS;
         }
 

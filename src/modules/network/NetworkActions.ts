@@ -24,19 +24,34 @@ export class NetworkActions {
         const stored = localStorage.getItem('pkbd_session');
         if (stored) {
             const sess = JSON.parse(stored);
-            get(ref(db, `rooms/${sess.roomId}/players/${sess.id}`)).then((snapshot) => {
-                const playerData = snapshot.val();
-                if (playerData) {
+            get(ref(db, `rooms/${sess.roomId}`)).then((snapshot) => {
+                const roomData = snapshot.val();
+                if (roomData && roomData.players && roomData.players[sess.id]) {
+                    const playerData = roomData.players[sess.id];
                     NetworkState.currentRoomId = sess.roomId;
                     NetworkState.myPlayerId = sess.id;
                     NetworkState.isHost = (sess.id === 0);
                     NetworkState.isOnline = true;
                     NetworkState.localName = playerData.name;
                     NetworkState.localAvatar = playerData.avatar;
-                    document.getElementById('setup-screen')!.style.display = 'none';
-                    document.getElementById('game-container')!.style.display = 'flex';
-                    this.setupLobbyListener();
-                    this.initializeGameFromFirebase();
+
+                    if (roomData.status === "LOBBY") {
+                        document.getElementById('setup-screen')!.style.display = 'block';
+                        document.getElementById('menu-phase-1')!.style.display = 'none';
+                        document.getElementById('online-login')!.style.display = 'none';
+                        document.getElementById('menu-phase-online')!.style.display = 'block';
+                        
+                        document.getElementById('lobby-status')!.style.display = 'block';
+                        document.getElementById('lobby-status')!.innerHTML = `Conectado à sala: <b>${sess.roomId}</b> ${NetworkState.isHost ? '<br>Você é o HOST' : ''}`;
+                        
+                        Setup.showLobbyUIOnly();
+                        this.setupLobbyListener();
+                    } else {
+                        document.getElementById('setup-screen')!.style.display = 'none';
+                        document.getElementById('game-container')!.style.display = 'flex';
+                        this.setupLobbyListener();
+                        this.initializeGameFromFirebase();
+                    }
                 } else {
                     alert("Sessão inválida ou jogo encerrado.");
                     localStorage.removeItem('pkbd_session');
@@ -220,7 +235,7 @@ export class NetworkActions {
         this.setupLobbyListener();
 
         document.getElementById('lobby-status')!.style.display = 'block';
-        document.getElementById('lobby-status')!.innerHTML = `Conectado à sala: <b>${code}</b>`;
+        document.getElementById('lobby-status')!.innerHTML = `Conectado à sala: <b>${code}</b> ${NetworkState.isHost ? '<br>Você é o HOST' : ''}`;
         Setup.showLobbyUIOnly();
     }
 
@@ -371,6 +386,12 @@ export class NetworkActions {
         document.getElementById('game-container')!.style.display = 'flex';
         Game.init(playerArray, MapSystem.size, data.settings);
         this.setupGameLoopListener();
+
+        if (data.status === "FINISHED" && data.winnerId !== undefined) {
+            setTimeout(() => {
+                Game.triggerVictory(data.winnerId);
+            }, 500);
+        }
     }
 
 

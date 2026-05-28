@@ -1,5 +1,6 @@
 import { CardEffects } from './CardEffects';
 import { CARD_RARITIES } from '../../constants';
+import { MAPA_MEGAS } from '../../constants/mapaMegas';
 import { GLOBAL_EVENTS } from '../../constants/globalEvents';
 
 export class CardUI {
@@ -172,7 +173,7 @@ export class CardUI {
         const player = Game.getCurrentPlayer();
         const modal = document.getElementById('pkmn-select-modal')!;
         const list = document.getElementById('pkmn-select-list')!;
-        const { MAPA_MEGAS } = await import('../../constants/mapaMegas');
+        // MAPA_MEGAS imported statically
 
         const boardCardsModal = document.getElementById('board-cards-modal');
         if (boardCardsModal) boardCardsModal.style.display = 'none';

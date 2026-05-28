@@ -1,4 +1,5 @@
 import { CARDS_DB } from '../../constants';
+import { ref, update, getDatabase } from 'firebase/database';
 import type { Player } from '../../models/Player';
 import { GameState } from '../game/GameState';
 
@@ -128,7 +129,7 @@ export class CardManager {
         Game.showGlobalAlert(logMsg, player.name, true, false);
 
         if (Network.isOnline) {
-            const { ref, update, getDatabase } = await import('firebase/database');
+
             const db = getDatabase();
             const updates: any = {};
             updates[`rooms/${Network.currentRoomId}/players/${player.id}/cards`] = player.cards;
@@ -200,7 +201,7 @@ export class CardManager {
         Game.showGlobalAlert(logMsg, player.name, true, false);
 
         if (Network.isOnline) {
-            const { ref, update, getDatabase } = await import('firebase/database');
+
             const db = getDatabase();
             const updates: any = {};
             updates[`rooms/${Network.currentRoomId}/players/${player.id}/cards`] = player.cards;
