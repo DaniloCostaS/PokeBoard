@@ -1346,7 +1346,7 @@ export class GameUI {
             if (isMobile) {
                 d.style.cssText = `display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; border-left: 5px solid ${borderColor}; width: 100%; box-sizing: border-box; margin-bottom: 2px;`;
                 d.innerHTML = `
-                    <div style="text-align: left; flex: 1; padding-right: 10px;">
+                    <div class="mobile-card-info" style="text-align: left; flex: 1; padding-right: 10px; cursor: zoom-in;">
                         <div style="font-weight: bold; color: #fff; font-size: 0.9rem;">${c.icon} ${c.name}</div>
                         <div style="font-size: 0.7rem; color: ${borderColor}; font-weight: bold;">${c.rarity.toUpperCase()} | ${c.type.toUpperCase()}</div>
                         ${isProtectedTag}
@@ -1365,11 +1365,17 @@ export class GameUI {
                     <div style="position: absolute; top: -5px; right: -5px; background: ${borderColor}; color: #fff; padding: 2px 6px; font-size: 0.7rem; border-radius: 10px; font-weight: bold; border: 1px solid #222; text-shadow: 1px 1px 0 #000; box-shadow: 0 2px 4px rgba(0,0,0,0.5); z-index: 10;">
                         ${c.rarity.toUpperCase()}
                     </div>
-                    <img src="/assets/img/Cartas/${c.id}.jpg" alt="${c.name}" title="${c.desc}" style="width: 100%; aspect-ratio: 2.5/3.5; object-fit: fill; border-radius: 6px; border: 3px solid ${borderColor};">
+                    <img class="desktop-card-img" src="/assets/img/Cartas/${c.id}.jpg" alt="${c.name}" title="${c.desc}" style="width: 100%; aspect-ratio: 2.5/3.5; object-fit: fill; border-radius: 6px; border: 3px solid ${borderColor}; cursor: zoom-in;">
                     <div style="margin-top: 8px; width: 100%;">${actionBtn}</div>
                 `;
             }
             list.appendChild(d);
+            
+            const mobileInfo = d.querySelector('.mobile-card-info') as HTMLElement;
+            if (mobileInfo) mobileInfo.onclick = () => GameUI.showCardZoom(c.id);
+            
+            const desktopImg = d.querySelector('.desktop-card-img') as HTMLElement;
+            if (desktopImg) desktopImg.onclick = () => GameUI.showCardZoom(c.id);
         });
 
         document.getElementById('board-cards-modal')!.style.display = 'flex';

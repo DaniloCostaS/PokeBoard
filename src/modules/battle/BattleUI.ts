@@ -4,6 +4,7 @@ import { Network } from '../../systems/Network';
 import { GYM_DATA } from '../../constants/gyms';
 import { SHOP_ITEMS, CARD_RARITIES } from '../../constants';
 import { GameState } from '../game/GameState';
+import { GameUI } from '../game/GameUI';
 
 export class BattleUI {
     static currentBattleId: string | null = null;
@@ -447,7 +448,7 @@ export class BattleUI {
                         ${c.rarity.toUpperCase()}
                     </div>
                     ${lockIcon}
-                    <img src="/assets/img/Cartas/${c.id}.jpg" alt="${c.name}" title="${c.desc}" style="width: 100%; aspect-ratio: 2.5/3.5; object-fit: fill; border-radius: 6px; ${style}">
+                    <img class="battle-card-img" src="/assets/img/Cartas/${c.id}.jpg" alt="${c.name}" title="${c.desc}" style="width: 100%; aspect-ratio: 2.5/3.5; object-fit: fill; border-radius: 6px; ${style}; cursor: zoom-in;">
                 `;
 
                 const btn = document.createElement('button');
@@ -470,6 +471,9 @@ export class BattleUI {
                     };
                 }
                 d.appendChild(btn);
+                
+                const imgEl = d.querySelector('.battle-card-img') as HTMLElement;
+                if (imgEl) imgEl.onclick = () => GameUI.showCardZoom(c.id);
 
                 list.appendChild(d);
             });

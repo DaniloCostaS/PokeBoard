@@ -32,8 +32,8 @@ export class Setup {
                 const me = players.find((p: any) => p.id === Network.myPlayerId);
                 if (me && me.avatar) {
                     const avFile = me.avatar.split('/').pop();
-                    sel.value = avFile || "Ash.png";
-                    img.src = `/assets/img/Treinadores/${avFile || "Ash.png"}`;
+                    sel.value = avFile || "Red.png";
+                    img.src = `/assets/img/Treinadores/${avFile || "Red.png"}`;
                 }
                 return;
             }
@@ -109,7 +109,7 @@ export class Setup {
         if (snap.exists()) {
             const rooms = snap.val();
             const roomCodes = Object.keys(rooms);
-            
+
             const validRooms = [];
             for (const code of roomCodes) {
                 const roomSnap = await get(ref(db, `rooms/${code}`));
@@ -130,7 +130,7 @@ export class Setup {
                     const hostName = room.data.players && room.data.players[0] ? room.data.players[0].name : "Desconhecido";
                     const round = room.data.round || 1;
                     const playerCount = Object.keys(room.data.players || {}).length;
-                    
+
                     return `
                     <div style="background: #34495e; padding: 15px; border-radius: 8px; border: 1px solid #7f8c8d; text-align: left; position: relative;">
                         <h4 style="margin: 0 0 5px 0; color: #f1c40f;">Sala: [${room.code}]</h4>
@@ -159,11 +159,11 @@ export class Setup {
 
         const roomsRef = ref(db, 'rooms');
         const snap = await get(roomsRef);
-        
+
         if (snap.exists()) {
             const rooms = snap.val();
             const openRooms = [];
-            
+
             for (const code in rooms) {
                 const room = rooms[code];
                 if (room.status === 'LOBBY') {
@@ -206,10 +206,10 @@ export class Setup {
         const leg = (document.getElementById('offline-legendary-rule') as HTMLSelectElement).value as any;
         const mega = (document.getElementById('offline-mega-rule') as HTMLSelectElement).value === 'yes';
 
-        const settings = { 
-            generations: gens.length > 0 ? gens : [1, 2, 3, 4, 5, 6, 7, 8, 9], 
-            legendaries: leg, 
-            megas: mega 
+        const settings = {
+            generations: gens.length > 0 ? gens : [1, 2, 3, 4, 5, 6, 7, 8, 9],
+            legendaries: leg,
+            megas: mega
         };
 
         ps.forEach(p => p.assignStarter(settings));
@@ -231,10 +231,10 @@ export class Setup {
         const leg = (document.getElementById('online-legendary-rule') as HTMLSelectElement).value as any;
         const mega = (document.getElementById('online-mega-rule') as HTMLSelectElement).value === 'yes';
 
-        const settings = { 
-            generations: gens.length > 0 ? gens : [1, 2, 3, 4, 5, 6, 7, 8, 9], 
-            legendaries: leg, 
-            megas: mega 
+        const settings = {
+            generations: gens.length > 0 ? gens : [1, 2, 3, 4, 5, 6, 7, 8, 9],
+            legendaries: leg,
+            megas: mega
         };
 
         // Ordem original do lobby mantida
@@ -246,30 +246,30 @@ export class Setup {
         };
 
         // Let's just update the teams in db
-        if (db) { 
+        if (db) {
             const snap = await get(ref(db, `rooms/${Network.currentRoomId}/players`));
             if (snap.exists()) {
                 const playersData = snap.val();
                 const validPlayers = Object.values(playersData).filter((pd: any) => pd !== null && pd !== undefined);
-                
+
                 const playOrder: number[] = [];
                 const updatedPlayers: any = {};
-                
+
                 validPlayers.forEach((pd: any, index: number) => {
                     pd.id = index; // Re-index sequentially to avoid gaps
                     const tempPlayer = new Player(index, pd.name, pd.avatar, true); // true = no starter logic
                     tempPlayer.assignStarter(settings);
                     pd.team = tempPlayer.team;
                     pd.pokedexData = Object.assign({}, pd.pokedexData, tempPlayer.pokedexData);
-                    
+
                     updatedPlayers[index] = pd;
                     playOrder.push(index);
                 });
-                
+
                 updateData.players = updatedPlayers;
                 updateData.playOrder = playOrder;
             }
-            await update(ref(db, `rooms/${Network.currentRoomId}`), updateData); 
+            await update(ref(db, `rooms/${Network.currentRoomId}`), updateData);
         }
     }
 }
