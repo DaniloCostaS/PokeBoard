@@ -1,4 +1,5 @@
 import { QUESTS_DB, type QuestData } from '../../constants/quests';
+import { GameState } from '../game/GameState';
 import { Player } from '../../models/Player';
 import { GameUI } from '../game/GameUI';
 import { Network } from '../../systems/Network';
@@ -173,7 +174,13 @@ export class QuestManager {
                 if (q) {
                     let completeBtn = '';
                     if (aq.progress >= q.target) {
-                        completeBtn = `<button class="btn" style="margin-top: 15px; width: 100%; background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%); color: white; font-weight: bold; font-size: 0.9rem; border: none; box-shadow: 0 4px 10px rgba(46, 204, 113, 0.3);" onclick="window.QuestManager.claimReward(${player.id}, ${q.id})">✅ REIVINDICAR RECOMPENSA</button>`;
+                        const NetworkObj = (window as any).Network;
+                        const isMyPlayer = !NetworkObj?.isOnline || NetworkObj.myPlayerId === player.id;
+                        if (isMyPlayer) {
+                            completeBtn = `<button class="btn" style="margin-top: 15px; width: 100%; background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%); color: white; font-weight: bold; font-size: 0.9rem; border: none; box-shadow: 0 4px 10px rgba(46, 204, 113, 0.3);" onclick="window.QuestManager.claimReward(${player.id}, ${q.id})">✅ REIVINDICAR RECOMPENSA</button>`;
+                        } else {
+                            completeBtn = `<button class="btn" disabled style="margin-top: 15px; width: 100%; background: #555; color: #aaa; font-weight: bold; font-size: 0.9rem; border: none; cursor: not-allowed;">✅ CONCLUÍDA (AGUARDANDO)</button>`;
+                        }
                     }
 
                     const borderColors: Record<string, string> = { 'Comum': '#bdc3c7', 'Incomum': '#2ecc71', 'Rara': '#3498db', 'Épica': '#9b59b6', 'Lendária': '#f1c40f' };
@@ -191,7 +198,7 @@ export class QuestManager {
                                         <span style="color: ${tPct === 100 ? '#2ecc71' : '#bdc3c7'}; font-weight: bold;">${val} / ${mt.target}</span>
                                     </div>
                                     <div style="background: rgba(0,0,0,0.4); height: 8px; border-radius: 4px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05);">
-                                        <div style="width: ${tPct}%; background: ${bColor}; height: 100%; box-shadow: 0 0 10px ${bColor}; transition: width 0.3s ease;"></div>
+                                        <div style="width: ${tPct}%; background: ${tPct === 100 ? '#2ecc71' : '#3498db'}; height: 100%; box-shadow: 0 0 10px ${tPct === 100 ? '#2ecc71' : '#3498db'}; transition: width 0.3s ease;"></div>
                                     </div>
                                 </div>
                             `;
@@ -205,7 +212,7 @@ export class QuestManager {
                                     <span style="color: ${pct === 100 ? '#2ecc71' : '#bdc3c7'}; font-weight: bold;">${aq.progress} / ${q.target}</span>
                                 </div>
                                 <div style="background: rgba(0,0,0,0.4); height: 8px; border-radius: 4px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05);">
-                                    <div style="width: ${pct}%; background: ${bColor}; height: 100%; box-shadow: 0 0 10px ${bColor}; transition: width 0.3s ease;"></div>
+                                    <div style="width: ${pct}%; background: ${pct === 100 ? '#2ecc71' : '#3498db'}; height: 100%; box-shadow: 0 0 10px ${pct === 100 ? '#2ecc71' : '#3498db'}; transition: width 0.3s ease;"></div>
                                 </div>
                             </div>
                         `;
@@ -316,16 +323,14 @@ export class QuestManager {
         const Game = (window as any).Game;
         const NetworkObj = (window as any).Network || Network;
         
-        const GameState = (window as any).GameState;
-
         // Check if it's player's turn
         const currentPlayer = Game.getCurrentPlayer();
         if (!currentPlayer || currentPlayer.id !== playerId) {
             return alert("Você só pode concluir missões durante o seu próprio turno!");
         }
 
-        if (GameState && !GameState.turnStarted) {
-            return alert("Você só pode concluir missões após iniciar o seu turno!");
+        if (!GameState.turnStarted) {
+            return alert("Você só pode concluir missões após iniciar o seu turno! Cuidado para não queimar etapas.");
         }
 
         if (NetworkObj && NetworkObj.isOnline && NetworkObj.myPlayerId !== playerId) {

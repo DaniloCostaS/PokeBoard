@@ -3,6 +3,7 @@ import { GameEvents } from './GameEvents';
 import { Pokemon } from '../../models/Pokemon';
 import { MapSystem } from '../../systems/MapSystem';
 import { Network } from '../../systems/Network';
+import { QUESTS_DB } from '../../constants/quests';
 import {
     TILE,
     SHOP_ITEMS,
@@ -388,11 +389,31 @@ export class GameUI {
         const pSelect = document.getElementById('admin-player-select') as HTMLSelectElement;
         const tSelect = document.getElementById('admin-turn-select') as HTMLSelectElement;
         const rInput = document.getElementById('admin-round-val') as HTMLInputElement;
+        const qSelect = document.getElementById('admin-quest-select') as HTMLSelectElement;
+        const cSelect = document.getElementById('admin-specific-card-select') as HTMLSelectElement;
 
         if (!modal || !pSelect || !tSelect || !rInput) return;
 
         pSelect.innerHTML = '';
         tSelect.innerHTML = '';
+        if (qSelect) {
+            qSelect.innerHTML = '';
+            QUESTS_DB.forEach(q => {
+                const opt = document.createElement('option');
+                opt.value = q.id.toString();
+                opt.innerText = `[${q.rarity}] ${q.name}`;
+                qSelect.appendChild(opt);
+            });
+        }
+        if (cSelect) {
+            cSelect.innerHTML = '';
+            CARDS_DB.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.innerText = `[${c.rarity}] ${c.name}`;
+                cSelect.appendChild(opt);
+            });
+        }
 
         GameState.players.forEach((p, idx) => {
             const opt = document.createElement('option');
@@ -1275,7 +1296,7 @@ export class GameUI {
                 const mergeBtn = document.createElement('button');
                 mergeBtn.className = 'btn btn-merge';
                 mergeBtn.style.flex = '1';
-                mergeBtn.innerHTML = isMobile ? `<span>💎 FUNDIR</span>` : `<span>💎 FUNDIR (4 ➡ Raridade +1)</span>`;
+                mergeBtn.innerHTML = isMobile ? `<span>💎 FUNDIR</span>` : `<span>💎 FUNDIR (Raridade +1)</span>`;
                 mergeBtn.onclick = () => {
                     document.getElementById('board-cards-modal')!.style.display = 'none';
                     (window as any).Cards.openMergeModal();

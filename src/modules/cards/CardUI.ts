@@ -792,9 +792,9 @@ export class CardUI {
         const modal = document.getElementById('board-inventory-modal') || document.getElementById('board-cards-modal');
 
         if (modal) modal.style.display = 'flex';
-        list.innerHTML = `<h3 style="width:100%; text-align:center; color:#2ecc71;">Selecione 4 Cartas da MESMA raridade</h3>
-                          <p style="width:100%; text-align:center; font-size:0.8rem; color:#7f8c8d; margin-top:-10px;">Fundir 4 cartas aumenta a raridade em +1 nível.</p>
-                          <div id="merge-counter" style="width:100%; text-align:center; margin-bottom:10px;">Selecionado: 0/4</div>`;
+        list.innerHTML = `<h3 style="width:100%; text-align:center; color:#2ecc71;">Selecione Cartas da MESMA raridade</h3>
+                          <p style="width:100%; text-align:center; font-size:0.8rem; color:#7f8c8d; margin-top:-10px;">Comum: 2 ➡ Inc | Incomum: 3 ➡ Rara | Rara: 4 ➡ Épica | Épica: 4 ➡ Lendária</p>
+                          <div id="merge-counter" style="width:100%; text-align:center; margin-bottom:10px;">Selecionado: 0/-</div>`;
 
         player.cards.forEach((c: any, index: number) => {
             if (c.isProtected) return;
@@ -828,11 +828,24 @@ export class CardUI {
         (window as any).Cards.updateMergeCount = () => {
             const checks = document.querySelectorAll('.merge-checkbox:checked');
             const counter = document.getElementById('merge-counter');
-            if (counter) counter.innerText = `Selecionado: ${checks.length}/4`;
-            if (checks.length > 4) {
-                alert("Selecione apenas 4 cartas!");
+            
+            let reqAmount = 4;
+            if (checks.length > 0) {
+                const firstIdx = (checks[0] as HTMLInputElement).getAttribute('data-index');
+                const playerObj = (window as any).Game.getCurrentPlayer();
+                const baseRarity = playerObj.cards[firstIdx!].rarity;
+                
+                if (baseRarity === 'Comum') reqAmount = 2;
+                else if (baseRarity === 'Incomum') reqAmount = 3;
+                else if (baseRarity === 'Rara') reqAmount = 4;
+                else if (baseRarity === 'Épica') reqAmount = 4;
+            }
+
+            if (counter) counter.innerText = `Selecionado: ${checks.length}/${checks.length > 0 ? reqAmount : '-'}`;
+            if (checks.length > reqAmount) {
+                alert(`Para a raridade selecionada, selecione apenas ${reqAmount} cartas!`);
                 (window.event?.target as HTMLInputElement).checked = false;
-                if (counter) counter.innerText = `Selecionado: 4/4`;
+                if (counter) counter.innerText = `Selecionado: ${reqAmount}/${reqAmount}`;
             }
         };
     }

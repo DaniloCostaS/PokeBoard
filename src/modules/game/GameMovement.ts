@@ -228,6 +228,9 @@ export class GameMovement {
             if (isMoonwalking) {
                 currentIdx--;
                 if (currentIdx < 0) currentIdx = totalTiles - 1;
+                
+                const QuestManagerObj = (window as any).QuestManager || (window as any).Game?.QuestManager || window.QuestManager;
+                if (QuestManagerObj) QuestManagerObj.resetProgress(p, 'WALK_STEPS');
             } else {
                 currentIdx++;
                 stepsWalked++;

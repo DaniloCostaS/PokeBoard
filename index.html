@@ -931,72 +931,89 @@
         </div>
     </div>
     <div id="admin-modal" class="modal-overlay" style="z-index: 3000;">
-        <div class="modal-box" style="text-align: left; max-width: 500px; width: 95%;">
-            <h3 style="color: #e74c3c; border-bottom: 1px solid #7f8c8d; padding-bottom: 10px; margin-top:0;">🛠️ Painel
-                de Controle (Host)</h3>
+        <div class="modal-content" style="width: 500px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: rgba(20, 20, 20, 0.95); border: 2px solid #e74c3c; border-radius: 12px; box-shadow: 0 0 20px rgba(231, 76, 60, 0.4); padding: 20px; overflow-y: auto;">
+            <h2 style="text-align: center; color: #e74c3c; margin: 0 0 20px 0; text-shadow: 0 0 10px rgba(231, 76, 60, 0.5); border-bottom: 1px solid rgba(231, 76, 60, 0.3); padding-bottom: 10px;">
+                <span style="font-size: 1.2em; vertical-align: middle;">🛠️</span> Painel Host
+            </h2>
 
-            <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; margin-bottom: 15px;">
-                <label style="font-weight: bold; color: #f1c40f;">Selecionar Jogador:</label>
+            <div style="background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1);">
+                <label style="font-weight: bold; color: #f1c40f; display: block; margin-bottom: 8px;">👤 Selecionar Jogador:</label>
                 <select id="admin-player-select"
-                    style="width: 100%; padding: 8px; margin-top: 5px; background: #34495e; color: #fff; border: 1px solid #7f8c8d; border-radius: 4px;"></select>
+                    style="width: 100%; padding: 10px; background: #2c3e50; color: #fff; border: 1px solid #7f8c8d; border-radius: 6px; outline: none;"></select>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                <button class="btn btn-cards" style="margin:0; font-size: 0.85rem;"
-                    onclick="window.Game.adminGiveCard()">🃏 Dar Carta Aleatória</button>
-                <button class="btn btn-secondary" style="margin:0; font-size: 0.85rem;"
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+                <button class="btn btn-cards" style="margin:0; font-size: 0.9rem; padding: 10px;"
+                    onclick="window.Game.adminGiveCard()">🃏 Carta Aleatória</button>
+                <button class="btn btn-secondary" style="margin:0; font-size: 0.9rem; padding: 10px;"
                     onclick="window.Game.adminClearDebuffs()">✨ Remover Debuffs</button>
 
                 <div style="display: flex; gap: 5px;">
                     <input type="number" id="admin-skip-val" value="1"
-                        style="width: 40px; text-align:center; background:#34495e; color:#fff; border:1px solid #7f8c8d; border-radius:4px;">
+                        style="width: 45px; text-align:center; background:#2c3e50; color:#fff; border:1px solid #7f8c8d; border-radius:6px; outline:none;">
                     <button class="btn" style="flex:1; margin:0; font-size: 0.85rem; background:#c0392b;"
-                        onclick="window.Game.adminSetSkipTurns()">⏳ Ajustar SkipTurns</button>
+                        onclick="window.Game.adminSetSkipTurns()">⏳ Add Skip</button>
                 </div>
 
                 <div style="display: flex; gap: 5px;">
                     <input type="number" id="admin-gold-val" value="500" step="100"
-                        style="width: 60px; text-align:center; background:#34495e; color:#fff; border:1px solid #7f8c8d; border-radius:4px;">
+                        style="width: 65px; text-align:center; background:#2c3e50; color:#fff; border:1px solid #7f8c8d; border-radius:6px; outline:none;">
                     <button class="btn"
-                        style="flex:1; margin:0; font-size: 0.85rem; background:var(--gold); color:black;"
+                        style="flex:1; margin:0; font-size: 0.85rem; background:var(--gold); color:black; font-weight:bold;"
                         onclick="window.Game.adminGiveGold()">💰 Dar Moedas</button>
+                </div>
+                
+                <div style="display: flex; gap: 5px; grid-column: span 2; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; border: 1px dashed rgba(52,152,219,0.4);">
+                    <select id="admin-specific-card-select"
+                        style="flex: 1; padding: 8px; background: #2c3e50; color: #fff; border: 1px solid #7f8c8d; border-radius: 6px; outline: none;">
+                    </select>
+                    <button class="btn btn-cards"
+                        style="margin:0; font-size: 0.9rem; padding: 8px 15px; border: none;"
+                        onclick="window.Game.adminGiveSpecificCard()">🃏 Dar Carta Escolhida</button>
+                </div>
+
+                <div style="display: flex; gap: 5px; grid-column: span 2; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; border: 1px dashed rgba(241,196,15,0.4);">
+                    <select id="admin-quest-select"
+                        style="flex: 1; padding: 8px; background: #2c3e50; color: #fff; border: 1px solid #7f8c8d; border-radius: 6px; outline: none;">
+                    </select>
+                    <button class="btn btn-secondary"
+                        style="margin:0; font-size: 0.9rem; padding: 8px 15px; background: #8e44ad; border: none;"
+                        onclick="window.Game.adminGiveQuest()">📜 Dar Missão</button>
                 </div>
             </div>
 
-            <h4 style="color: #3498db; margin: 20px 0 10px 0; border-bottom: 1px solid #7f8c8d; padding-bottom: 5px;">🌍
-                Controle Global</h4>
+            <h4 style="color: #3498db; margin: 0 0 15px 0; border-bottom: 1px solid rgba(52, 152, 219, 0.3); padding-bottom: 8px; text-shadow: 0 0 8px rgba(52, 152, 219, 0.4);">
+                🌍 Controle Global
+            </h4>
 
-            <div style="display: flex; gap: 10px; flex-direction: column;">
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    <label style="width: 70px;">Rodada:</label>
+            <div style="display: flex; gap: 12px; flex-direction: column;">
+                <div style="display: flex; gap: 10px; align-items: center; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;">
+                    <label style="width: 70px; color: #bdc3c7;">Rodada:</label>
                     <input type="number" id="admin-round-val" value="1" min="1"
-                        style="width: 60px; text-align:center; background:#34495e; color:#fff; border:1px solid #7f8c8d; border-radius:4px; padding: 5px;">
-                    <button class="btn btn-secondary" style="flex:1; margin:0; padding: 5px;"
+                        style="width: 60px; text-align:center; background:#2c3e50; color:#fff; border:1px solid #7f8c8d; border-radius:6px; padding: 8px; outline:none;">
+                    <button class="btn btn-secondary" style="flex:1; margin:0; padding: 8px;"
                         onclick="window.Game.adminSetRound()">Definir Rodada</button>
                 </div>
 
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    <label style="width: 70px;">Turno:</label>
+                <div style="display: flex; gap: 10px; align-items: center; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;">
+                    <label style="width: 70px; color: #bdc3c7;">Turno:</label>
                     <select id="admin-turn-select"
-                        style="flex: 1; padding: 5px; background: #34495e; color: #fff; border: 1px solid #7f8c8d; border-radius: 4px;"></select>
-                    <button class="btn btn-secondary" style="margin:0; padding: 5px 15px;"
+                        style="flex: 1; padding: 8px; background: #2c3e50; color: #fff; border: 1px solid #7f8c8d; border-radius: 6px; outline:none;"></select>
+                    <button class="btn btn-secondary" style="margin:0; padding: 8px 15px;"
                         onclick="window.Game.adminSetTurn()">Forçar Vez</button>
                 </div>
 
-                <div
-                    style="display: flex; gap: 10px; align-items: center; border-top: 1px dashed #7f8c8d; padding-top: 10px; margin-top: 5px;">
-                    <label style="width: 70px; color: #e74c3c; font-weight: bold; font-size:0.8rem;">Andar
-                        (Debug):</label>
+                <div style="display: flex; gap: 10px; align-items: center; background: rgba(231, 76, 60, 0.1); padding: 10px; border-radius: 8px; border: 1px dashed rgba(231, 76, 60, 0.3);">
+                    <label style="width: 70px; color: #e74c3c; font-weight: bold; font-size:0.85rem;">Andar (Debug):</label>
                     <input type="number" id="debug-input" value="1" min="1" max="50"
-                        style="flex: 1; text-align:center; background:#34495e; color:#fff; border:1px solid #7f8c8d; border-radius:4px; padding: 5px;">
-                    <button class="btn" style="margin:0; padding: 5px 15px; background: #c0392b; font-weight:bold;"
-                        onclick="window.Game.debugMove(); document.getElementById('admin-modal').style.display='none'">Mover
-                        VIP</button>
+                        style="flex: 1; text-align:center; background:#2c3e50; color:#fff; border:1px solid #e74c3c; border-radius:6px; padding: 8px; outline:none;">
+                    <button class="btn" style="margin:0; padding: 8px 15px; background: #c0392b; font-weight:bold; box-shadow: 0 0 10px rgba(192, 57, 43, 0.4);"
+                        onclick="window.Game.debugMove(); document.getElementById('admin-modal').style.display='none'">Mover VIP</button>
                 </div>
             </div>
 
-            <button class="btn mt-15"
-                style="width: 100%; background: #95a5a6; border: none; padding: 12px; font-weight: bold;"
+            <button class="btn"
+                style="margin-top: 20px; width: 100%; background: #7f8c8d; border: none; padding: 12px; font-weight: bold; font-size: 1rem; border-radius: 8px;"
                 onclick="document.getElementById('admin-modal').style.display='none'">Fechar Painel</button>
         </div>
     </div>

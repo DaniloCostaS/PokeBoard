@@ -10,6 +10,10 @@ export class Cards {
         return CardManager.draw(player, silentLog);
     }
 
+    static drawSpecificCard(player: Player, cardId: string, silentLog: boolean = false) {
+        return CardManager.drawSpecificCard(player, cardId, silentLog);
+    }
+
     static openSacrificeModal() {
         CardUI.openSacrificeModal();
     }

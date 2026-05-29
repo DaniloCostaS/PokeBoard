@@ -14,6 +14,7 @@ import { MAPA_MEGAS } from '../../constants/mapaMegas';
 import { GYM_DATA } from '../../constants/gyms';
 import { GameSpawns } from './GameSpawns';
 import { NotificationSystem } from './NotificationSystem';
+import { QuestManager } from '../quests/QuestManager';
 import type { ItemData } from '../../constants';
 
 export class GameEvents {
@@ -82,6 +83,9 @@ export class GameEvents {
         p.x = city.x;
         p.y = city.y;
 
+        const QuestManagerObj = (window as any).QuestManager || (window as any).Game?.QuestManager || window.QuestManager;
+        if (QuestManagerObj) QuestManagerObj.resetProgress(p, 'WALK_STEPS');
+
         if (p.effects && p.effects.tremembeUserTurns && p.effects.tremembeUserTurns > 0) {
             GameUI.sendGlobalLog(`⚖️ DECRETO DE TREMEMBÉ! ${p.name} está sob o privilégio do decreto e foi resgatado sem perder turnos!`);
         } else {
@@ -119,6 +123,7 @@ export class GameEvents {
                 const randomGym = undefeatedGyms[Math.floor(Math.random() * undefeatedGyms.length)];
                 p.x = randomGym.x;
                 p.y = randomGym.y;
+                p.effects.escapedGym = false; // Garante que a fuga não o salve do vortex
                 GameUI.moveVisuals();
                 GameState.hasRolled = true;
 
@@ -1016,6 +1021,44 @@ export class GameEvents {
             if (NetworkObj && NetworkObj.isOnline) NetworkObj.syncSpecificPlayer(p.id);
             GameUI.updateHUD();
         }
+    }
+
+    static adminGiveSpecificCard() {
+        const pSelect = document.getElementById('admin-player-select') as HTMLSelectElement;
+        const cSelect = document.getElementById('admin-specific-card-select') as HTMLSelectElement;
+        if (!pSelect || !cSelect) return;
+        
+        const pIdx = parseInt(pSelect.value, 10);
+        const cardId = cSelect.value;
+        const p = GameState.players[pIdx];
+        if (!p) return;
+
+        const CardsObj = (window as any).Cards;
+        if (CardsObj) {
+            CardsObj.drawSpecificCard(p, cardId);
+            GameUI.sendGlobalLog(`🛠️ ADMIN HOST: Concedeu uma Carta Específica para ${p.name}!`);
+            const NetworkObj = (window as any).Network;
+            if (NetworkObj && NetworkObj.isOnline) NetworkObj.syncSpecificPlayer(p.id);
+            GameUI.updateHUD();
+        }
+    }
+
+    static adminGiveQuest() {
+        const pSelect = document.getElementById('admin-player-select') as HTMLSelectElement;
+        const qSelect = document.getElementById('admin-quest-select') as HTMLSelectElement;
+        if (!pSelect || !qSelect) return;
+        
+        const pIdx = parseInt(pSelect.value, 10);
+        const qId = parseInt(qSelect.value, 10);
+        
+        const p = GameState.players[pIdx];
+        if (!p) return;
+
+        QuestManager.addQuest(p, qId, false);
+        GameUI.sendGlobalLog(`🛠️ ADMIN HOST: Concedeu uma Missão específica para ${p.name}!`);
+        const NetworkObj = (window as any).Network;
+        if (NetworkObj && NetworkObj.isOnline) NetworkObj.syncSpecificPlayer(p.id);
+        GameUI.updateHUD();
     }
 
     static adminClearDebuffs() {

@@ -63,6 +63,36 @@ export class CardManager {
         return card;
     }
 
+    static drawSpecificCard(player: Player, cardId: string, silentLog: boolean = false) {
+        const Game = (window as any).Game;
+        const Network = (window as any).Network;
+
+        const validDb = CARDS_DB;
+        const card = validDb.find((c: any) => c.id === cardId);
+        
+        if (!card) return null;
+
+        player.cards.push(card);
+
+        // Registro de Extrato de Cartas (Global)
+        Game.sendGlobalLog(`🃏 [Extrato] ${player.name} obteve uma carta específica. Total: ${player.cards.length}`);
+
+        if (!silentLog) {
+            const isMe = !Network.isOnline || player.id === Network.myPlayerId;
+            if (isMe) {
+                Game.log(`🃏 Você obteve a carta: ${card.icon} ${card.name} (Total: ${player.cards.length})`);
+                if (Network.isOnline) {
+                    Network.sendAction('LOG', { msg: `🃏 ${player.name} obteve uma carta do Host!` });
+                }
+            }
+        }
+
+        Game.updateHUD();
+        if (Network.isOnline) Network.syncPlayerState();
+
+        return card;
+    }
+
     static async confirmSacrifice() {
         const Game = (window as any).Game;
         const Network = (window as any).Network;
@@ -91,8 +121,10 @@ export class CardManager {
         const validPool = this.getValidCardsDb().filter((c: any) => c.id !== 'master');
         let targetRarity: string | undefined = undefined;
 
-        if (removedRarities.length === 2 && removedRarities[0] === 'Épica' && removedRarities[1] === 'Épica') {
-            targetRarity = 'Épica';
+        if (removedRarities.length === 2 && 
+            ((removedRarities[0] === 'Épica' && removedRarities[1] === 'Épica') || 
+             (removedRarities[0] === 'Rara' && removedRarities[1] === 'Rara'))) {
+            targetRarity = removedRarities[0];
         }
 
         if (!targetRarity) {
@@ -147,22 +179,27 @@ export class CardManager {
         const player = Game.getCurrentPlayer();
 
         const checkboxes = document.querySelectorAll('.merge-checkbox:checked');
-        if (checkboxes.length !== 4) return alert("Você deve selecionar EXATAMENTE 4 cartas.");
+        if (checkboxes.length === 0) return alert("Você deve selecionar cartas para fundir.");
 
         const indicesToRemove: number[] = [];
         checkboxes.forEach((cb: any) => indicesToRemove.push(parseInt(cb.getAttribute('data-index'))));
 
         const rarities = indicesToRemove.map(idx => player.cards[idx].rarity);
-        if (rarities.some((r: string) => r !== rarities[0])) return alert("As 4 cartas selecionadas devem ter a mesma raridade para serem fundidas!");
+        if (rarities.some((r: string) => r !== rarities[0])) return alert("As cartas selecionadas devem ter a mesma raridade para serem fundidas!");
 
         const baseRarity = rarities[0];
+        let reqAmount = 4;
         let targetRarity = "";
 
-        if (baseRarity === 'Comum') targetRarity = 'Incomum';
-        else if (baseRarity === 'Incomum') targetRarity = 'Rara';
-        else if (baseRarity === 'Rara') targetRarity = 'Épica';
-        else if (baseRarity === 'Épica') targetRarity = 'Lendária';
-        else if (baseRarity === 'Lendária') return alert("Cartas Lendárias já estão no nível máximo e não podem ser fundidas para uma raridade superior.");
+        if (baseRarity === 'Comum') { reqAmount = 2; targetRarity = 'Incomum'; }
+        else if (baseRarity === 'Incomum') { reqAmount = 3; targetRarity = 'Rara'; }
+        else if (baseRarity === 'Rara') { reqAmount = 4; targetRarity = 'Épica'; }
+        else if (baseRarity === 'Épica') { reqAmount = 4; targetRarity = 'Lendária'; }
+        else if (baseRarity === 'Lendária') return alert("Cartas Lendárias já estão no nível máximo e não podem ser fundidas.");
+
+        if (checkboxes.length !== reqAmount) {
+            return alert(`Para fundir cartas do tipo ${baseRarity}, você precisa selecionar EXATAMENTE ${reqAmount} cartas.`);
+        }
 
         indicesToRemove.sort((a, b) => b - a);
 

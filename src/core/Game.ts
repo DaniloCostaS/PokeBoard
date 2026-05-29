@@ -120,6 +120,8 @@ export class Game {
     // ==========================================
     static openAdminPanel() { (GameUI as any).openAdminPanel(); }
     static adminGiveCard() { (GameEvents as any).adminGiveCard(); }
+    static adminGiveSpecificCard() { (GameEvents as any).adminGiveSpecificCard(); }
+    static adminGiveQuest() { (GameEvents as any).adminGiveQuest(); }
     static adminClearDebuffs() { (GameEvents as any).adminClearDebuffs(); }
     static adminSetSkipTurns() { (GameEvents as any).adminSetSkipTurns(); }
     static adminGiveGold() { (GameEvents as any).adminGiveGold(); }

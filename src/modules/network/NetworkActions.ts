@@ -356,6 +356,8 @@ export class NetworkActions {
                 pl.effects = pd.effects || {};
                 pl.pokedexData = pd.pokedexData || {};
                 pl.stats = pd.stats || { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
+                pl.activeQuests = pd.activeQuests || [];
+                pl.questTrackers = pd.questTrackers || { tilesMovedNoReturn: 0, biomesVisited: [], turnsLostAccumulated: 0, pvpWinsStreak: 0, gymWinsStreak: 0 };
 
                 if (pd.team && pd.team.length > 0) {
                     pl.team = pd.team.map((td: any) => {
@@ -483,6 +485,8 @@ export class NetworkActions {
                     localPlayer.effects = pd.effects || {};
                     localPlayer.pokedexData = pd.pokedexData || {};
                     localPlayer.stats = pd.stats || { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
+                    localPlayer.activeQuests = pd.activeQuests || [];
+                    localPlayer.questTrackers = pd.questTrackers || { tilesMovedNoReturn: 0, biomesVisited: [], turnsLostAccumulated: 0, pvpWinsStreak: 0, gymWinsStreak: 0 };
 
                     if (pd.items) localPlayer.items = pd.items;
 

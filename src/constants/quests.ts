@@ -1,3 +1,5 @@
+import { CARDS_DB } from './cards';
+
 export interface QuestData {
     id: number;
     name: string;
@@ -48,13 +50,15 @@ export const QUESTS_DB: QuestData[] = [
         name: "Mochileiro",
         desc: "Ande 18 casas no mapa sem voltar nenhuma casa (Moonwalker reseta).",
         target: 18,
-        rewardDesc: "1 Item de Movimento - Boost",
+        rewardDesc: "1 Carta MOVE (Comum)",
         rarity: "Comum",
         triggerType: "WALK_STEPS",
         onComplete: (player: any) => {
-            const GameEvents = (window as any).GameEvents;
-            if (GameEvents) GameEvents.addItem(player, 'boost', 1);
-            else { player.items['boost'] = (player.items['boost'] || 0) + 1; }
+            const moveCards = CARDS_DB.filter(c => c.type === 'move' && c.rarity === 'Comum');
+            if (moveCards.length > 0) {
+                const card = moveCards[Math.floor(Math.random() * moveCards.length)];
+                player.cards.push(card);
+            }
         }
     },
     {
