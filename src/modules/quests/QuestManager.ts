@@ -135,6 +135,7 @@ export class QuestManager {
         // Remove the completed quest
         player.activeQuests = player.activeQuests.filter(q => q.questId !== activeQuest.questId);
 
+        GameUI.sendGlobalLog(`🎉 ${player.name} completou a missão [${questDef.name}] e recebeu: ${questDef.rewardDesc}!`);
         GameUI.showGlobalAlert(`🎉 MISSÃO CONCLUÍDA!\n\n${questDef.name}\nVocê recebeu: ${questDef.rewardDesc}`, player.name, true, false);
         GameUI.updateHUD();
     }
