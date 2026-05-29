@@ -20,14 +20,14 @@ export const QUESTS_DB: QuestData[] = [
         name: "Pesquisador Iniciante",
         desc: "Capture 2 Pokémon selvagens.",
         target: 2,
-        rewardDesc: "300G + 1 Pokébola",
+        rewardDesc: "300G + 1 Great Ball",
         rarity: "Comum",
         triggerType: "CAPTURE_WILD",
         onComplete: (player: any) => {
             player.gold += 300;
             const GameEvents = (window as any).GameEvents;
-            if (GameEvents) GameEvents.addItem(player, 'pokeball', 1);
-            else { player.items['pokeball'] = (player.items['pokeball'] || 0) + 1; }
+            if (GameEvents) GameEvents.addItem(player, 'greatball', 1);
+            else { player.items['greatball'] = (player.items['greatball'] || 0) + 1; }
         }
     },
     {
@@ -73,7 +73,7 @@ export const QUESTS_DB: QuestData[] = [
             const GameEvents = (window as any).GameEvents;
             if (GameEvents) GameEvents.addItem(player, 'greatball', 3);
             else { player.items['greatball'] = (player.items['greatball'] || 0) + 3; }
-            
+
             const Cards = (window as any).Cards;
             if (Cards) Cards.draw(player, true);
         }
@@ -143,7 +143,7 @@ export const QUESTS_DB: QuestData[] = [
         onComplete: (player: any) => {
             const Cards = (window as any).Cards;
             if (Cards) Cards.drawSpecificRarity(player, 'Comum');
-            
+
             const GameEvents = (window as any).GameEvents;
             if (GameEvents) GameEvents.addItem(player, 'super_potion', 1);
             else { player.items['super_potion'] = (player.items['super_potion'] || 0) + 1; }
@@ -301,8 +301,8 @@ export const QUESTS_DB: QuestData[] = [
             if (CardsDB) {
                 const rareCandyCard = CardsDB.find((c: any) => c.id === 'rarecandy');
                 if (rareCandyCard) {
-                    player.cards.push({...rareCandyCard});
-                    player.cards.push({...rareCandyCard});
+                    player.cards.push({ ...rareCandyCard });
+                    player.cards.push({ ...rareCandyCard });
                 }
             }
         }
@@ -407,7 +407,7 @@ export const QUESTS_DB: QuestData[] = [
             const GameEvents = (window as any).GameEvents;
             if (GameEvents) GameEvents.addItem(player, 'masterball', 1);
             else { player.items['masterball'] = (player.items['masterball'] || 0) + 1; }
-            
+
             const Cards = (window as any).Cards;
             if (Cards) Cards.drawSpecificRarity(player, 'Rara');
         }

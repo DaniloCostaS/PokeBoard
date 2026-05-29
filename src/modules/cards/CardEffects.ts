@@ -1274,7 +1274,9 @@ export class CardEffects {
                         items: p.items || {}, skipTurns: p.skipTurns || 0, badges: p.badges || [],
                         cards: p.cards && p.cards.length > 0 ? p.cards : null,
                         effects: p.effects || {}, pokedexData: p.pokedexData || {},
-                        stats: p.stats || { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 }
+                        stats: p.stats || { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 },
+                        activeQuests: p.activeQuests || [],
+                        questTrackers: p.questTrackers || { tilesMovedNoReturn: 0, biomesVisited: [], turnsLostAccumulated: 0, pvpWinsStreak: 0, gymWinsStreak: 0 }
                     });
 
                     if (requiresGlobalSync) {

@@ -117,7 +117,9 @@ export class NetworkActions {
                     skipTurns: 0,
                     badges: myPlayerObj.badges,
                     effects: {},
-                    pokedexData: myPlayerObj.pokedexData || {}
+                    pokedexData: myPlayerObj.pokedexData || {},
+                    activeQuests: [],
+                    questTrackers: { tilesMovedNoReturn: 0, biomesVisited: [], turnsLostAccumulated: 0, pvpWinsStreak: 0, gymWinsStreak: 0 }
                 }
             },
             lastAction: { type: "INIT", timestamp: Date.now() }
@@ -217,7 +219,9 @@ export class NetworkActions {
             skipTurns: 0,
             badges: myPlayerObj.badges,
             effects: {},
-            pokedexData: myPlayerObj.pokedexData || {}
+            pokedexData: myPlayerObj.pokedexData || {},
+            activeQuests: [],
+            questTrackers: { tilesMovedNoReturn: 0, biomesVisited: [], turnsLostAccumulated: 0, pvpWinsStreak: 0, gymWinsStreak: 0 }
         };
 
         const updates: any = {};
