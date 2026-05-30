@@ -1516,6 +1516,7 @@
                 <button class="tab-btn" onclick="switchTab(event, 'tabuleiro')">🗺️ O Tabuleiro</button>
                 <button class="tab-btn" onclick="switchTab(event, 'combate')">⚔️ Combate 2.1</button>
                 <button class="tab-btn" onclick="switchTab(event, 'cartas-progresso')">🃏 Cartas & Progressão</button>
+                <button class="tab-btn" onclick="switchTab(event, 'missoes')">📜 Missões (Quests)</button>
                 <button class="tab-btn" onclick="switchTab(event, 'eventos')">⛈️ Eventos & Climas</button>
                 <button class="tab-btn" onclick="switchTab(event, 'estrategias')">💡 Dicas & Estratégias</button>
                 <button class="tab-btn" onclick="switchTab(event, 'glossario')">📖 Glossário</button>
@@ -2132,6 +2133,33 @@
                             <li>Se a evolução ocorre no <strong>Nível 8</strong>, você compra incríveis <strong>+2
                                     Cartas Estratégicas</strong> grátis!</li>
                         </ul>
+                    </div>
+                </div>
+
+                <!-- MISSÕES (QUESTS) -->
+                <div id="missoes" class="tab-content">
+                    <h2>Missões (Quests) <span class="section-badge">Desafios</span></h2>
+                    <p>
+                        O PokéBoard conta com um dinâmico sistema de missões! Ao longo da partida, você receberá objetivos que variam desde simples caminhadas pelo mapa e batalhas até caçadas a lendários. Completar esses desafios garante grandes recompensas.
+                    </p>
+
+                    <h3>Como obter e limites</h3>
+                    <ul>
+                        <li>Você pode ter no máximo <strong>3 missões ativas</strong> simultaneamente. Se receber uma quarta missão, o jogo abrirá uma janela permitindo que você escolha qual missão antiga descartar para aceitar a nova.</li>
+                        <li><strong>Por Eventos do Mapa:</strong> Sempre que você cair em uma casa de "Evento" (Tile Azul), há 20% de chance de receber uma missão aleatória grátis!</li>
+                        <li><strong>Nas Cidades (City):</strong> Ao parar em uma casa de Cidade, você tem a opção de comprar uma nova missão no painel da cidade por <strong>300G</strong> (limite de 1 compra de missão por visita).</li>
+                    </ul>
+
+                    <h3>Raridades das Missões</h3>
+                    <ul>
+                        <li><strong>Comum (50% de chance):</strong> Objetivos fáceis, geralmente rendem Ouro e Itens básicos.</li>
+                        <li><strong>Incomum (30% de chance):</strong> Desafios moderados, rendem mais Ouro, Itens melhores e Cartas Incomuns.</li>
+                        <li><strong>Rara (15% de chance):</strong> Metas que exigem mais dedicação. Podem entregar Cartas Raras, Itens preciosos (como Leftovers) ou bastante Ouro.</li>
+                        <li><strong>Épica (5% de chance):</strong> Objetivos dificílimos. Entregam recompensas incríveis, como Cartas Épicas ou Lendárias, e Master Balls.</li>
+                    </ul>
+
+                    <div style="background: rgba(42, 117, 187, 0.2); border-left: 4px solid var(--secondary); padding: 15px; border-radius: 4px; margin-top: 20px;">
+                        <strong>💡 Lembrete:</strong> A barra cinza no botão de Quests indica o seu progresso. Ao concluir a meta (barra verde), você precisa abrir o painel clicando nesse botão no HUD e clicar em "Reivindicar" para receber sua recompensa e abrir espaço para a próxima missão!
                     </div>
                 </div>
 

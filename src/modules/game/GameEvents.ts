@@ -836,6 +836,16 @@ export class GameEvents {
         if (NetworkObj.isOnline) NetworkObj.syncPlayerState();
     }
 
+    static giveRandomItem(player: Player, amount: number = 1) {
+        // Sem filtro: Sorteia literalmente qualquer item do jogo (do mais fraco ao mais apelão)
+        const pool = SHOP_ITEMS;
+
+        for (let j = 0; j < amount; j++) {
+            const randomItem = pool[Math.floor(Math.random() * pool.length)];
+            this.addItem(player, randomItem.id, 1);
+        }
+    }
+
     static useItemBoard(key: string, pId: number) {
         const p = GameState.players[pId];
         const item = SHOP_ITEMS.find(i => i.id === key);

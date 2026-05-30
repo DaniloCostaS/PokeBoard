@@ -14,6 +14,10 @@ export class Cards {
         return CardManager.drawSpecificCard(player, cardId, silentLog);
     }
 
+    static drawSpecificRarity(player: Player, rarity: string, silentLog: boolean = false) {
+        return CardManager.drawSpecificRarity(player, rarity, silentLog);
+    }
+
     static openSacrificeModal() {
         CardUI.openSacrificeModal();
     }

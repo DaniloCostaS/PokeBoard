@@ -63,6 +63,36 @@ export class CardManager {
         return card;
     }
 
+    static drawSpecificRarity(player: Player, rarity: string, silentLog: boolean = false) {
+        const Game = (window as any).Game;
+        const Network = (window as any).Network;
+
+        const validDb = this.getValidCardsDb();
+        const possibleCards = validDb.filter((c: any) => c.rarity === rarity);
+        const finalPool = possibleCards.length > 0 ? possibleCards : validDb;
+        const card = finalPool[Math.floor(Math.random() * finalPool.length)];
+
+        player.cards.push(card);
+
+        // Registro de Extrato de Cartas (Global)
+        Game.sendGlobalLog(`🃏 [Extrato] ${player.name} obteve uma carta. Total: ${player.cards.length}`);
+
+        if (!silentLog) {
+            const isMe = !Network.isOnline || player.id === Network.myPlayerId;
+            if (isMe) {
+                Game.log(`🃏 Você obteve a carta: ${card.icon} ${card.name} (Total: ${player.cards.length})`);
+                if (Network.isOnline) {
+                    Network.sendAction('LOG', { msg: `🃏 ${player.name} obteve uma Carta Misteriosa!` });
+                }
+            }
+        }
+
+        Game.updateHUD();
+        if (Network.isOnline) Network.syncPlayerState();
+
+        return card;
+    }
+
     static drawSpecificCard(player: Player, cardId: string, silentLog: boolean = false) {
         const Game = (window as any).Game;
         const Network = (window as any).Network;

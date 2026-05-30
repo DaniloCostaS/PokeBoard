@@ -10,6 +10,7 @@ O PokéBoard coloca você no papel de um treinador competindo em uma jornada emo
 - **Modos de Jogo:** Offline (Hotseat) e Online (Firebase com gerenciamento de Salas).
 - **Mecânicas de Batalha (V2.1):** Sistema robusto onde os ataques e defesas são híbridos, trazendo cálculos de bloqueio, esquiva, acertos críticos baseados em velocidade, além de vantagens de tipo e bônus pelo lance de dados 🎲 (`D20` e `D6`).
 - **Sistema de Progressão:** Level up ilimitado para sua equipe, com o recebimento de Ouro (G) e XP escalonados em vitórias, derrotas ou completando uma volta inteira no tabuleiro.
+- **Missões (Quests):** Sistema dinâmico de missões e objetivos variados (comuns a épicos) que garantem valiosas recompensas como Cartas, Itens e Ouro ao serem cumpridos durante o jogo.
 - **Centro Pokémon e PokéMart:** Cure sua equipe e expanda seu deck na loja de itens com Ouro arrecadado.
 - **Cartas (Cards):** Funcionalidade estratégica de cartas utilizáveis no tabuleiro ou durante a batalha.
 - **Pokédex Regional Dinâmica:** Base de dados contendo detalhes táticos, genética e maestrias de tipo conforme suas interações globais.
@@ -41,6 +42,8 @@ Esta é a nova camada central onde reside toda a inteligência do jogo, separada
     - `GameMovement.ts`: Lógica de movimentação dos jogadores no tabuleiro.
     - `GameSpawns.ts`: Geração de encontros selvagens e NPCs.
     - `GameUI.ts`: Atualização de elementos da UI principal (HUD, Logs).
+- **`quests/`**: Sistema de desafios e missões.
+    - `QuestManager.ts`: Controle e rastreamento de missões, progresso e entrega de recompensas.
 - **`map/`**: Geração do mundo.
     - `MapGenerator.ts`: Algoritmo procedural para criação da grade do tabuleiro.
     - `MapRender.ts`: Renderização visual e cálculo de coordenadas (Isometric/Grid).

@@ -58,7 +58,7 @@
             "descricao": "Lógica principal responsável pelo andamento global do Game."
           },
           {
-            "nome": "modules (battle, cards, game, map, network, shop)",
+            "nome": "modules (battle, cards, game, map, network, shop, quests)",
             "descricao": "Nova arquitetura modular com lógica de domínio isolada para cada sistema do jogo."
           },
           {
@@ -98,7 +98,7 @@
     "preview": "Testa o build final de produção simulando um servidor local"
   },
   "informacoesAdicionais": {
-    "mecanicasAtuais": "Batalhas contam com mitigação, chance de crítico, esquiva e bloqueio. Ambiente multiplayer online sincronizando estados pelo Firebase em Salas. Geração inteligente e procedural da grade de mapa na tela",
+    "mecanicasAtuais": "Batalhas contam com mitigação, chance de crítico, esquiva e bloqueio. Ambiente multiplayer online sincronizando estados pelo Firebase em Salas. Geração inteligente e procedural da grade de mapa na tela. Sistema dinâmico de Missões (Quests) para conceder objetivos e recompensas ao jogador.",
     "autor": "Danilo Costa S"
   }
 }

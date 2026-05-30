@@ -145,8 +145,8 @@ export const QUESTS_DB: QuestData[] = [
             if (Cards) Cards.drawSpecificRarity(player, 'Comum');
 
             const GameEvents = (window as any).GameEvents;
-            if (GameEvents) GameEvents.addItem(player, 'super_potion', 1);
-            else { player.items['super_potion'] = (player.items['super_potion'] || 0) + 1; }
+            if (GameEvents) GameEvents.addItem(player, 'superpotion', 1);
+            else { player.items['superpotion'] = (player.items['superpotion'] || 0) + 1; }
         }
     },
 
@@ -192,10 +192,10 @@ export const QUESTS_DB: QuestData[] = [
             const GameEvents = (window as any).GameEvents;
             if (GameEvents) {
                 GameEvents.addItem(player, 'leftovers', 1);
-                GameEvents.addItem(player, 'hyper_potion', 1);
+                GameEvents.addItem(player, 'hyperpotion', 1);
             } else {
                 player.items['leftovers'] = (player.items['leftovers'] || 0) + 1;
-                player.items['hyper_potion'] = (player.items['hyper_potion'] || 0) + 1;
+                player.items['hyperpotion'] = (player.items['hyperpotion'] || 0) + 1;
             }
         }
     },
@@ -284,8 +284,8 @@ export const QUESTS_DB: QuestData[] = [
         rarity: "Rara",
         triggerType: "FUSION_AND_SACRIFICE",
         onComplete: (player: any) => {
-            const GameEvents = (window as any).GameEvents;
-            if (GameEvents) GameEvents.addItem(player, 'cadeado', 1);
+            const Cards = (window as any).Cards;
+            if (Cards) Cards.drawSpecificCard(player, 'card_protector');
         }
     },
     {
@@ -299,7 +299,7 @@ export const QUESTS_DB: QuestData[] = [
         onComplete: (player: any) => {
             const CardsDB = (window as any).CARDS_DB;
             if (CardsDB) {
-                const rareCandyCard = CardsDB.find((c: any) => c.id === 'rarecandy');
+                const rareCandyCard = CardsDB.find((c: any) => c.id === 'rare_candy');
                 if (rareCandyCard) {
                     player.cards.push({ ...rareCandyCard });
                     player.cards.push({ ...rareCandyCard });
@@ -422,8 +422,8 @@ export const QUESTS_DB: QuestData[] = [
         triggerType: "RESONANCE_30",
         onComplete: (player: any) => {
             const GameEvents = (window as any).GameEvents;
-            if (GameEvents) GameEvents.addItem(player, 'vitamina', 10);
-            else { player.items['vitamina'] = (player.items['vitamina'] || 0) + 10; }
+            if (GameEvents) GameEvents.addItem(player, 'vitamin', 10);
+            else { player.items['vitamin'] = (player.items['vitamin'] || 0) + 10; }
         }
     },
     {
