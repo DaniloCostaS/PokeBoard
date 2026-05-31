@@ -510,6 +510,7 @@ export class BattleCore {
             const oppStats = this.opponent.maxHp + this.opponent.atk + this.opponent.def + this.opponent.speed;
             const xpGain = Math.max(1, Math.floor(oppStats / 9));
             this.activeMon.gainXp(xpGain, this.player!);
+            this.activeMon.addHappiness(5);
 
             // amulet_coin: +100G ao derrotar um pokémon
             if ((this.activeMon as any).heldItem === 'amulet_coin' && this.player) {
@@ -645,6 +646,7 @@ export class BattleCore {
             const oppStats = this.opponent.maxHp + this.opponent.atk + this.opponent.def + this.opponent.speed;
             const xpGain = Math.max(1, Math.floor(oppStats / 9));
             this.activeMon.gainXp(xpGain, this.player!);
+            this.activeMon.addHappiness(5);
             BattleUI.updateUI();
             if (NetworkObj.isOnline) NetworkObj.syncPlayerState();
             setTimeout(() => { this.checkWinCondition(); }, 1000);
@@ -780,6 +782,7 @@ export class BattleCore {
         }
         const nextPly = this.plyTeamList.find(p => !p.isFainted());
         if (nextPly) {
+            this.activeMon!.removeHappiness(10);
             BattleUI.logBattle(`${this.activeMon!.name} desmaiou!`, true);
 
             if (this.isPvP) {
@@ -798,7 +801,10 @@ export class BattleCore {
                 BattleUI.openSelectionModal("Escolha o próximo!");
             }
         }
-        else { this.lose(); }
+        else { 
+            this.activeMon!.removeHappiness(10);
+            this.lose(); 
+        }
     }
 
     static win() {
@@ -1012,11 +1018,15 @@ export class BattleCore {
 
         } else {
             if (!this.isGym && Game.currentGlobalEvent?.id === 'ROCKET') {
-                if (this.player!.team.length > 3) {
-                    const stolenIdx = Math.floor(Math.random() * this.player!.team.length);
+                const stealableTeam = this.player!.team.filter(p => !p.vinculoSupremo && p.happiness < 100);
+                if (this.player!.team.length > 3 && stealableTeam.length > 0) {
+                    const stolenMonObj = stealableTeam[Math.floor(Math.random() * stealableTeam.length)];
+                    const stolenIdx = this.player!.team.indexOf(stolenMonObj);
                     const stolenMon = this.player!.team.splice(stolenIdx, 1)[0];
                     Game.sendGlobalLog(`🚀 INVASÃO ROCKET! Eles emboscaram e roubararam o ${stolenMon.name} de ${this.player!.name}!!`);
                     msg += ` e a Rocket te roubou!`;
+                } else if (this.player!.team.length > 3 && stealableTeam.length === 0) {
+                    Game.sendGlobalLog(`🚀 A Equipe Rocket tentou roubar os Pokémon de ${this.player!.name}, mas o forte vínculo afetivo deles impediu o roubo!`);
                 } else {
                     Game.sendGlobalLog(`🚀 A Equipe Rocket tentou roubar o único Pokémon de ${this.player!.name}, mas ele sobreviveu por pouco!`);
                 }
@@ -1224,6 +1234,7 @@ export class BattleCore {
             BattleUI.updateButtons();
 
             this.activeMon!.heal(data.val!);
+            this.activeMon!.addHappiness(3);
             BattleUI.logBattle(`💊 Usou ${data.name}! Recuperou HP.`, true);
             BattleUI.updateUI();
 

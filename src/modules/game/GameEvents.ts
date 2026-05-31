@@ -874,6 +874,7 @@ export class GameEvents {
             } else {
                 const target = p.team[targetIdx]; if (target.isFainted()) return alert("Não funciona em Pokémon desmaiado!");
                 if (target.currentHp >= target.maxHp) return alert("HP já está cheio!"); target.heal(item.val || 20);
+                target.addHappiness(3);
                 alert(`Usou ${item.name} em ${target.name}.`); used = true;
             }
         } else if (item.type === 'revive') {
@@ -919,6 +920,7 @@ export class GameEvents {
                     return;
                 }
                 targetMon.heldItem = item.id;
+                targetMon.addHappiness(5);
                 alert(`📦 ${targetMon.name} agora está segurando: ${item.name}!`);
                 used = true;
             }
@@ -1001,6 +1003,7 @@ export class GameEvents {
             const itemKey = mon.heldItem;
             const itemData = SHOP_ITEMS.find(i => i.id === itemKey);
             mon.heldItem = null;
+            mon.removeHappiness(2);
             // Held items são perdidos ao serem removidos (não voltam para a bolsa)
 
             GameUI.sendGlobalLog(`📦 ${p.name} removeu o item ${itemData?.name || itemKey} de ${mon.name}. O item foi perdido.`);

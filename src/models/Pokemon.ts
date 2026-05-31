@@ -17,6 +17,7 @@ export class Pokemon {
     vinculoSupremo: boolean = false;
     heldItem: string | null = null;
     masteryBonus: number = 0;
+    happiness: number = 0;
 
     ivs: { hp: number, atk: number, def: number, spd: number };
     baseStats: { hp: number, atk: number, def: number, spd: number };
@@ -187,8 +188,9 @@ export class Pokemon {
         const shinyBonus = this.isShiny ? 1.20 : 1.0;       
         const legendaryBonus = this.isLegendary ? 1.20 : 1.0; 
         const megaBonus = this.isMegaEvolution ? 1.20 : 1.0; 
+        const happinessBonus = this.happiness === 100 ? 1.05 : 1.0;
         
-        const totalMultiplier = shinyBonus * legendaryBonus * megaBonus;
+        const totalMultiplier = shinyBonus * legendaryBonus * megaBonus * happinessBonus;
         
         const calc = (base: number, iv: number, bonus: number) => Math.floor((base + iv + bonus) * totalMultiplier);
 
@@ -206,6 +208,40 @@ export class Pokemon {
         } else {
             const diff = this.maxHp - oldMaxHp;
             this.currentHp = Math.min(this.maxHp, Math.max(0, this.currentHp + diff));
+        }
+    }
+
+    addHappiness(amt: number) {
+        if (this.vinculoSupremo) {
+            this.happiness = 100;
+            return;
+        }
+        
+        const oldHappiness = this.happiness;
+        this.happiness = Math.min(100, this.happiness + amt);
+        
+        if (oldHappiness !== this.happiness) {
+            if (this.happiness === 100) {
+                this.recalculateStats(false);
+                const Game = (window as any).Game;
+                if (Game) Game.sendGlobalLog(`💖 Vínculo Afetivo! ${this.name} atingiu 100% de felicidade e recebeu +5% de status extras!`);
+            }
+        }
+    }
+
+    removeHappiness(amt: number) {
+        if (this.vinculoSupremo) {
+            this.happiness = 100;
+            return;
+        }
+
+        const wasMax = this.happiness === 100;
+        this.happiness = Math.max(0, this.happiness - amt);
+        
+        if (wasMax && this.happiness < 100) {
+            this.recalculateStats(false);
+            const Game = (window as any).Game;
+            if (Game) Game.sendGlobalLog(`💔 Vínculo Quebrado... A felicidade de ${this.name} caiu abaixo de 100% e perdeu o bônus de status.`);
         }
     }
 
@@ -295,6 +331,8 @@ export class Pokemon {
         if(player && Game) {
              Game.sendGlobalLog(`🎉 ${this.name} subiu para o Nível ${this.level}! (+${gains.hp} HP | +${gains.atk} ATK | +${gains.def} DEF | +${gains.spd} SPD)`); 
         }
+        
+        this.addHappiness(5);
         this.checkEvolution(player); 
     }
 

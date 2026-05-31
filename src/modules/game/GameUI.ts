@@ -874,8 +874,17 @@ export class GameUI {
         document.getElementById('detail-name')!.innerText = mon.name;
         document.getElementById('detail-img')!.setAttribute('src', mon.getSprite());
         document.getElementById('detail-level')!.innerText = mon.level.toString();
+        
+        document.getElementById('detail-hp')!.innerText = `${Math.floor(mon.currentHp)} / ${mon.maxHp}`;
+        document.getElementById('detail-hp-bar')!.style.width = `${Math.min(100, (mon.currentHp / mon.maxHp) * 100)}%`;
+        
         document.getElementById('detail-xp')!.innerText = `${Math.floor(mon.currentXp)} / ${mon.maxXp}`;
         document.getElementById('detail-xp-bar')!.style.width = `${Math.min(100, (mon.currentXp / mon.maxXp) * 100)}%`;
+        
+        const hap = mon.happiness || 0;
+        document.getElementById('detail-happiness')!.innerText = `${hap}%`;
+        document.getElementById('detail-happiness-bar')!.style.width = `${hap}%`;
+        
         document.getElementById('detail-shiny')!.style.display = mon.isShiny ? 'block' : 'none';
 
         const colors: any = { "Normal": "#A8A77A", "Fogo": "#EE8130", "Água": "#6390F0", "Elétrico": "#F7D02C", "Grama": "#7AC74C", "Gelo": "#96D9D6", "Lutador": "#C22E28", "Veneno": "#A33EA1", "Terra": "#E2BF65", "Voador": "#A98FF3", "Psíquico": "#F95587", "Inseto": "#A6B91A", "Pedra": "#B6A136", "Fantasma": "#735797", "Dragão": "#6F35FC", "Noturno": "#705746", "Aço": "#B7B7CE", "Fada": "#D685AD" };
@@ -1099,7 +1108,23 @@ export class GameUI {
             modalContent.style.overflowY = "auto";
         }
 
-        document.getElementById('detail-modal')!.style.display = 'flex';
+        const detailModal = document.getElementById('detail-modal')!;
+        detailModal.dataset.playerIndex = String(playerIndex);
+        detailModal.dataset.slotIndex = String(slotIndex);
+        detailModal.dataset.isChampion = championData ? 'true' : 'false';
+        detailModal.style.display = 'flex';
+    }
+
+    static refreshOpenPokemonDetail() {
+        const detailModal = document.getElementById('detail-modal');
+        if (!detailModal || detailModal.style.display === 'none' || detailModal.dataset.isChampion === 'true') return;
+
+        const playerIndex = Number(detailModal.dataset.playerIndex);
+        const slotIndex = Number(detailModal.dataset.slotIndex);
+        if (!Number.isInteger(playerIndex) || !Number.isInteger(slotIndex)) return;
+        if (!GameState.players[playerIndex] || !GameState.players[playerIndex].team[slotIndex]) return;
+
+        this.openPokemonDetail(playerIndex, slotIndex);
     }
 
     static openCardLibrary() {

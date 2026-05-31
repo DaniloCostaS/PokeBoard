@@ -310,7 +310,7 @@ export class CardUI {
         const currentPlayer = Game.getCurrentPlayer();
 
         const targets = Game.players.filter((p: any) =>
-            p.id !== currentPlayer.id && p.team.some((mon: any) => mon.megaStone && !mon.vinculoSupremo)
+            p.id !== currentPlayer.id && p.team.some((mon: any) => mon.megaStone && !mon.vinculoSupremo && mon.happiness < 100)
         );
 
         if (targets.length === 0) {
@@ -367,9 +367,9 @@ export class CardUI {
             const div = document.createElement('div');
 
             if (mon.megaStone) {
-                if (mon.vinculoSupremo) {
+                if (mon.vinculoSupremo || mon.happiness === 100) {
                     div.className = `mon-select-item disabled`;
-                    div.innerHTML = `<img src="${mon.getSprite()}" width="40" style="filter: grayscale(100%);"><b>${mon.name}</b> <small>Lv.${mon.level}</small><br><small style="color:#f1c40f">🤝 Vínculo Supremo (Protegido)</small>`;
+                    div.innerHTML = `<img src="${mon.getSprite()}" width="40" style="filter: grayscale(100%);"><b>${mon.name}</b> <small>Lv.${mon.level}</small><br><small style="color:#f1c40f">🤝 Vínculo Afetivo (Protegido)</small>`;
                 } else {
                     div.className = `mon-select-item`;
                     div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>Lv.${mon.level}</small><br><small style="color:#e74c3c">💎 Mega Pedra Alvo</small>`;

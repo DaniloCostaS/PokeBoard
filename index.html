@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PokéBoard V95</title>
+    <title>PokéBoard V95a</title>
     <link rel="icon" type="image/png" href="/favicon.png">
     <link rel="stylesheet" href="style.css">
 
@@ -21,7 +21,7 @@
 <body>
 
     <div id="setup-screen">
-        <h1 class="title-highlight">PokéBoard V95</h1>
+        <h1 class="title-highlight">PokéBoard V95a</h1>
         <p class="subtitle">Nova funcionalidade: Missões secundárias.</p>
 
         <div id="menu-phase-1">
@@ -755,14 +755,38 @@
                             style="width: 100px; height: 100px; image-rendering: pixelated; border: 2px solid rgba(255,255,255,0.1); border-radius: 8px; background: rgba(0,0,0,0.3);">
                         <div id="detail-shiny" style="display:none; position:absolute; top:-5px; right:-5px;">✨</div>
                     </div>
-                    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 5px;">
-                        <div style="font-size: 0.9rem; color: #eee;">Nível <b id="detail-level"
-                                style="color: white;">5</b></div>
-                        <div style="font-size: 0.9rem; color: #eee;">XP: <span id="detail-xp" style="color: white;">0 /
-                                100</span></div>
+                    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 4px;">
+                        <div style="font-size: 0.9rem; color: #eee; display: flex; justify-content: space-between;">
+                            <span>Nível <b id="detail-level" style="color: white;">5</b></span>
+                        </div>
+
+                        <div
+                            style="font-size: 0.8rem; color: #eee; display: flex; justify-content: space-between; margin-top: 2px;">
+                            <span>❤️ HP:</span> <span id="detail-hp" style="color: white; font-weight: bold;">0 /
+                                100</span>
+                        </div>
+                        <div
+                            style="height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; width: 100%; overflow: hidden;">
+                            <div id="detail-hp-bar" style="height: 100%; background: #2ecc71; width: 100%;"></div>
+                        </div>
+
+                        <div style="font-size: 0.8rem; color: #eee; display: flex; justify-content: space-between;">
+                            <span>⭐ XP:</span> <span id="detail-xp" style="color: white;">0 / 100</span>
+                        </div>
                         <div class="xp-bar-bg"
                             style="height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; width: 100%; overflow: hidden;">
                             <div id="detail-xp-bar" style="height: 100%; background: #3498db; width: 0%;"></div>
+                        </div>
+
+                        <div style="font-size: 0.8rem; color: #eee; display: flex; justify-content: space-between;">
+                            <span title="Vínculo Afetivo">💖 Felicidade:</span> <span id="detail-happiness"
+                                style="color: #ff9ff3; font-weight: bold;">0%</span>
+                        </div>
+                        <div
+                            style="height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; width: 100%; overflow: hidden;">
+                            <div id="detail-happiness-bar"
+                                style="height: 100%; background: linear-gradient(90deg, #ff9ff3, #f368e0); width: 0%;">
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -932,13 +956,17 @@
         </div>
     </div>
     <div id="admin-modal" class="modal-overlay" style="z-index: 3000;">
-        <div class="modal-content" style="width: 500px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: rgba(20, 20, 20, 0.95); border: 2px solid #e74c3c; border-radius: 12px; box-shadow: 0 0 20px rgba(231, 76, 60, 0.4); padding: 20px; overflow-y: auto;">
-            <h2 style="text-align: center; color: #e74c3c; margin: 0 0 20px 0; text-shadow: 0 0 10px rgba(231, 76, 60, 0.5); border-bottom: 1px solid rgba(231, 76, 60, 0.3); padding-bottom: 10px;">
+        <div class="modal-content"
+            style="width: 500px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: rgba(20, 20, 20, 0.95); border: 2px solid #e74c3c; border-radius: 12px; box-shadow: 0 0 20px rgba(231, 76, 60, 0.4); padding: 20px; overflow-y: auto;">
+            <h2
+                style="text-align: center; color: #e74c3c; margin: 0 0 20px 0; text-shadow: 0 0 10px rgba(231, 76, 60, 0.5); border-bottom: 1px solid rgba(231, 76, 60, 0.3); padding-bottom: 10px;">
                 <span style="font-size: 1.2em; vertical-align: middle;">🛠️</span> Painel Host
             </h2>
 
-            <div style="background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1);">
-                <label style="font-weight: bold; color: #f1c40f; display: block; margin-bottom: 8px;">👤 Selecionar Jogador:</label>
+            <div
+                style="background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1);">
+                <label style="font-weight: bold; color: #f1c40f; display: block; margin-bottom: 8px;">👤 Selecionar
+                    Jogador:</label>
                 <select id="admin-player-select"
                     style="width: 100%; padding: 10px; background: #2c3e50; color: #fff; border: 1px solid #7f8c8d; border-radius: 6px; outline: none;"></select>
             </div>
@@ -963,17 +991,18 @@
                         style="flex:1; margin:0; font-size: 0.85rem; background:var(--gold); color:black; font-weight:bold;"
                         onclick="window.Game.adminGiveGold()">💰 Dar Moedas</button>
                 </div>
-                
-                <div style="display: flex; gap: 5px; grid-column: span 2; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; border: 1px dashed rgba(52,152,219,0.4);">
+
+                <div
+                    style="display: flex; gap: 5px; grid-column: span 2; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; border: 1px dashed rgba(52,152,219,0.4);">
                     <select id="admin-specific-card-select"
                         style="flex: 1; padding: 8px; background: #2c3e50; color: #fff; border: 1px solid #7f8c8d; border-radius: 6px; outline: none;">
                     </select>
-                    <button class="btn btn-cards"
-                        style="margin:0; font-size: 0.9rem; padding: 8px 15px; border: none;"
+                    <button class="btn btn-cards" style="margin:0; font-size: 0.9rem; padding: 8px 15px; border: none;"
                         onclick="window.Game.adminGiveSpecificCard()">🃏 Dar Carta Escolhida</button>
                 </div>
 
-                <div style="display: flex; gap: 5px; grid-column: span 2; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; border: 1px dashed rgba(241,196,15,0.4);">
+                <div
+                    style="display: flex; gap: 5px; grid-column: span 2; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; border: 1px dashed rgba(241,196,15,0.4);">
                     <select id="admin-quest-select"
                         style="flex: 1; padding: 8px; background: #2c3e50; color: #fff; border: 1px solid #7f8c8d; border-radius: 6px; outline: none;">
                     </select>
@@ -983,12 +1012,14 @@
                 </div>
             </div>
 
-            <h4 style="color: #3498db; margin: 0 0 15px 0; border-bottom: 1px solid rgba(52, 152, 219, 0.3); padding-bottom: 8px; text-shadow: 0 0 8px rgba(52, 152, 219, 0.4);">
+            <h4
+                style="color: #3498db; margin: 0 0 15px 0; border-bottom: 1px solid rgba(52, 152, 219, 0.3); padding-bottom: 8px; text-shadow: 0 0 8px rgba(52, 152, 219, 0.4);">
                 🌍 Controle Global
             </h4>
 
             <div style="display: flex; gap: 12px; flex-direction: column;">
-                <div style="display: flex; gap: 10px; align-items: center; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;">
+                <div
+                    style="display: flex; gap: 10px; align-items: center; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;">
                     <label style="width: 70px; color: #bdc3c7;">Rodada:</label>
                     <input type="number" id="admin-round-val" value="1" min="1"
                         style="width: 60px; text-align:center; background:#2c3e50; color:#fff; border:1px solid #7f8c8d; border-radius:6px; padding: 8px; outline:none;">
@@ -996,7 +1027,8 @@
                         onclick="window.Game.adminSetRound()">Definir Rodada</button>
                 </div>
 
-                <div style="display: flex; gap: 10px; align-items: center; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;">
+                <div
+                    style="display: flex; gap: 10px; align-items: center; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;">
                     <label style="width: 70px; color: #bdc3c7;">Turno:</label>
                     <select id="admin-turn-select"
                         style="flex: 1; padding: 8px; background: #2c3e50; color: #fff; border: 1px solid #7f8c8d; border-radius: 6px; outline:none;"></select>
@@ -1004,12 +1036,16 @@
                         onclick="window.Game.adminSetTurn()">Forçar Vez</button>
                 </div>
 
-                <div style="display: flex; gap: 10px; align-items: center; background: rgba(231, 76, 60, 0.1); padding: 10px; border-radius: 8px; border: 1px dashed rgba(231, 76, 60, 0.3);">
-                    <label style="width: 70px; color: #e74c3c; font-weight: bold; font-size:0.85rem;">Andar (Debug):</label>
+                <div
+                    style="display: flex; gap: 10px; align-items: center; background: rgba(231, 76, 60, 0.1); padding: 10px; border-radius: 8px; border: 1px dashed rgba(231, 76, 60, 0.3);">
+                    <label style="width: 70px; color: #e74c3c; font-weight: bold; font-size:0.85rem;">Andar
+                        (Debug):</label>
                     <input type="number" id="debug-input" value="1" min="1" max="50"
                         style="flex: 1; text-align:center; background:#2c3e50; color:#fff; border:1px solid #e74c3c; border-radius:6px; padding: 8px; outline:none;">
-                    <button class="btn" style="margin:0; padding: 8px 15px; background: #c0392b; font-weight:bold; box-shadow: 0 0 10px rgba(192, 57, 43, 0.4);"
-                        onclick="window.Game.debugMove(); document.getElementById('admin-modal').style.display='none'">Mover VIP</button>
+                    <button class="btn"
+                        style="margin:0; padding: 8px 15px; background: #c0392b; font-weight:bold; box-shadow: 0 0 10px rgba(192, 57, 43, 0.4);"
+                        onclick="window.Game.debugMove(); document.getElementById('admin-modal').style.display='none'">Mover
+                        VIP</button>
                 </div>
             </div>
 

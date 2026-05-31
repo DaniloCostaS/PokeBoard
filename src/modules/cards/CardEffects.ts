@@ -654,8 +654,8 @@ export class CardEffects {
                     if (!target) { consumed = false; break; }
                     const targetMon = target.team[pIdx];
                     if (!targetMon || !targetMon.megaStone) { consumed = false; break; }
-                    if (targetMon.vinculoSupremo) {
-                        alert("Este Pokémon possui Vínculo Supremo! A Mega Pedra dele não pode ser destruída.");
+                    if (targetMon.vinculoSupremo || targetMon.happiness === 100) {
+                        alert("Este Pokémon possui Vínculo Supremo/Afetivo! A Mega Pedra dele não pode ser destruída.");
                         consumed = false;
                         break;
                     }
@@ -716,8 +716,8 @@ export class CardEffects {
                         break;
                     }
 
-                    if (targetMon.vinculoSupremo) {
-                        effectLog = `🤝 O ADEUS DE ASH FALHOU! ${targetMon.name} se recusa a ir embora devido ao Vínculo Supremo!`;
+                    if (targetMon.vinculoSupremo || targetMon.happiness === 100) {
+                        effectLog = `🤝 O ADEUS DE ASH FALHOU! ${targetMon.name} se recusa a ir embora devido ao Vínculo Supremo/Afetivo!`;
                         // Não remove, mas conta a tentativa
                     } else {
                         target.team.splice(pIdx, 1);

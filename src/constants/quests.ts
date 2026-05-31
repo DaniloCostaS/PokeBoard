@@ -20,14 +20,14 @@ export const QUESTS_DB: QuestData[] = [
         name: "Pesquisador Iniciante",
         desc: "Capture 2 Pokémon selvagens.",
         target: 2,
-        rewardDesc: "300G + 1 Great Ball",
+        rewardDesc: "300G + 2 Pokébolas",
         rarity: "Comum",
         triggerType: "CAPTURE_WILD",
         onComplete: (player: any) => {
             player.gold += 300;
             const GameEvents = (window as any).GameEvents;
-            if (GameEvents) GameEvents.addItem(player, 'greatball', 1);
-            else { player.items['greatball'] = (player.items['greatball'] || 0) + 1; }
+            if (GameEvents) GameEvents.addItem(player, 'pokeball', 2);
+            else { player.items['pokeball'] = (player.items['pokeball'] || 0) + 2; }
         }
     },
     {
@@ -35,11 +35,11 @@ export const QUESTS_DB: QuestData[] = [
         name: "Assistente do Professor",
         desc: "Capture 1 Pokémon de um tipo específico (Sorteado ao obter a quest).",
         target: 1,
-        rewardDesc: "500G + 1 Great Ball",
+        rewardDesc: "400G + 1 Great Ball",
         rarity: "Comum",
         triggerType: "CAPTURE_TYPE_SPECIFIC",
         onComplete: (player: any) => {
-            player.gold += 500;
+            player.gold += 400;
             const GameEvents = (window as any).GameEvents;
             if (GameEvents) GameEvents.addItem(player, 'greatball', 1);
             else { player.items['greatball'] = (player.items['greatball'] || 0) + 1; }
@@ -68,7 +68,7 @@ export const QUESTS_DB: QuestData[] = [
         target: 3,
         rewardDesc: "3 Great Balls + Carta Aleatória",
         rarity: "Comum",
-        triggerType: "BIOME_VISIT",
+        triggerType: "VISIT_BIOMES",
         onComplete: (player: any) => {
             const GameEvents = (window as any).GameEvents;
             if (GameEvents) GameEvents.addItem(player, 'greatball', 3);
@@ -203,11 +203,12 @@ export const QUESTS_DB: QuestData[] = [
         id: 14,
         name: "Investidor",
         desc: "Inicie e termine 5 turnos consecutivos mantendo 2500G ou mais.",
-        target: 5,
-        rewardDesc: "Carta Incomum",
+        target: 3,
+        rewardDesc: "Carta Incomum + 500G",
         rarity: "Incomum",
         triggerType: "TURN_GOLD_2500_STREAK",
         onComplete: (player: any) => {
+            player.gold += 500;
             const Cards = (window as any).Cards;
             if (Cards) Cards.drawSpecificRarity(player, 'Incomum');
         }
@@ -217,10 +218,11 @@ export const QUESTS_DB: QuestData[] = [
         name: "Precisão Máxima",
         desc: "Capture 1 Pokémon na primeira Pokébola lançada no combate.",
         target: 1,
-        rewardDesc: "1 Ultra Ball",
+        rewardDesc: "1 Ultra Ball + 300G",
         rarity: "Incomum",
         triggerType: "FIRST_BALL_CAPTURE",
         onComplete: (player: any) => {
+            player.gold += 300;
             const GameEvents = (window as any).GameEvents;
             if (GameEvents) GameEvents.addItem(player, 'ultraball', 1);
             else { player.items['ultraball'] = (player.items['ultraball'] || 0) + 1; }
@@ -261,8 +263,8 @@ export const QUESTS_DB: QuestData[] = [
     {
         id: 18,
         name: "Sobrevivente",
-        desc: "Vença 3 NPCs sem perder nenhum Pokémon do time na batalha.",
-        target: 3,
+        desc: "Vença 2 NPCs/Líderes sem perder nenhum Pokémon do time na batalha.",
+        target: 2,
         rewardDesc: "Carta Épica",
         rarity: "Rara",
         triggerType: "WIN_NPC_NO_FAINT",
@@ -312,15 +314,18 @@ export const QUESTS_DB: QuestData[] = [
         name: "Mestre da Pesca",
         desc: "Capture 3 Pokémon do tipo Água.",
         target: 3,
-        rewardDesc: "1 Amulet Coin ou Leftovers",
+        rewardDesc: "1200G + 1 Amulet Coin ou Leftovers + 1 Carta Rara",
         rarity: "Rara",
         triggerType: "CAPTURE_WATER",
         onComplete: (player: any) => {
+            player.gold += 1200;
             const GameEvents = (window as any).GameEvents;
             if (GameEvents) {
                 const item = Math.random() > 0.5 ? 'amulet_coin' : 'leftovers';
                 GameEvents.addItem(player, item, 1);
             }
+            const Cards = (window as any).Cards;
+            if (Cards) Cards.drawSpecificRarity(player, 'Rara');
         }
     },
     {
@@ -328,12 +333,15 @@ export const QUESTS_DB: QuestData[] = [
         name: "Distúrbio Espacial",
         desc: "Seja sugado para outro local do mapa (Evento Vórtice/Katrina).",
         target: 1,
-        rewardDesc: "Carta Rara",
+        rewardDesc: "Carta Rara + 1 Ultra Ball",
         rarity: "Rara",
         triggerType: "VORTEX_TELEPORT",
         onComplete: (player: any) => {
             const Cards = (window as any).Cards;
             if (Cards) Cards.drawSpecificRarity(player, 'Rara');
+            const GameEvents = (window as any).GameEvents;
+            if (GameEvents) GameEvents.addItem(player, 'ultraball', 1);
+            else { player.items['ultraball'] = (player.items['ultraball'] || 0) + 1; }
         }
     },
     {
@@ -341,19 +349,22 @@ export const QUESTS_DB: QuestData[] = [
         name: "Defesa Perfeita",
         desc: "Vença uma batalha inteira sem tomar nenhum ponto de dano.",
         target: 1,
-        rewardDesc: "Carta Épica",
+        rewardDesc: "Carta Épica + 1 Max Revive",
         rarity: "Rara",
         triggerType: "WIN_NO_DAMAGE",
         onComplete: (player: any) => {
             const Cards = (window as any).Cards;
             if (Cards) Cards.drawSpecificRarity(player, 'Épica');
+            const GameEvents = (window as any).GameEvents;
+            if (GameEvents) GameEvents.addItem(player, 'maxrevive', 1);
+            else { player.items['maxrevive'] = (player.items['maxrevive'] || 0) + 1; }
         }
     },
     {
         id: 24,
         name: "Caçador de Tesouros",
-        desc: "Caia em 5 casas de eventos.",
-        target: 5,
+        desc: "Caia em 4 casas de eventos.",
+        target: 4,
         rewardDesc: "1500G + Carta Rara",
         rarity: "Rara",
         triggerType: "TILE_EVENT",
@@ -417,13 +428,15 @@ export const QUESTS_DB: QuestData[] = [
         name: "Ressonância Suprema",
         desc: "Obtenha 30%+ de Ressonância (4 capturas iguais) com um Pokémon.",
         target: 1,
-        rewardDesc: "10 Vitaminas",
+        rewardDesc: "10 Vitaminas + Carta Épica",
         rarity: "Épica",
         triggerType: "RESONANCE_30",
         onComplete: (player: any) => {
             const GameEvents = (window as any).GameEvents;
             if (GameEvents) GameEvents.addItem(player, 'vitamin', 10);
             else { player.items['vitamin'] = (player.items['vitamin'] || 0) + 10; }
+            const Cards = (window as any).Cards;
+            if (Cards) Cards.drawSpecificRarity(player, 'Épica');
         }
     },
     {
@@ -475,12 +488,13 @@ export const QUESTS_DB: QuestData[] = [
     {
         id: 32,
         name: "Magnata",
-        desc: "Acumule 10000G na partida.",
-        target: 10000,
-        rewardDesc: "Carta Épica + Item Aleatório",
+        desc: "Termine um turno com 8000G ou mais em caixa.",
+        target: 1,
+        rewardDesc: "Carta Épica + 2500G + Item Aleatório",
         rarity: "Épica",
         triggerType: "GOLD_ACCUMULATED",
         onComplete: (player: any) => {
+            player.gold += 2500;
             const Cards = (window as any).Cards;
             if (Cards) Cards.drawSpecificRarity(player, 'Épica');
             const GameEvents = (window as any).GameEvents;

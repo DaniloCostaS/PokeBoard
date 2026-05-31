@@ -108,7 +108,7 @@ export class Battle {
     static startFromNetwork(payload: any) {
         const Game = (window as any).Game;
         const Network = (window as any).Network;
-        const p = Game.players[payload.pId];
+        const p = Game.players.find((pl: any) => pl.id === payload.pId) || Game.players[payload.pId];
         if (!p) return;
 
         BattleCore.active = true;
@@ -118,7 +118,9 @@ export class Battle {
         BattleCore.isGym = payload.isGym;
         BattleCore.gymId = payload.gymId;
         BattleCore.isNPC = (!payload.isPvP && payload.reward > 0);
-        if (payload.enemyId >= 0) BattleCore.enemyPlayer = Game.players[payload.enemyId];
+        if (payload.enemyId >= 0) {
+            BattleCore.enemyPlayer = Game.players.find((pl: any) => pl.id === payload.enemyId) || Game.players[payload.enemyId];
+        }
 
         if (payload.plyTeam) {
             const PokemonClass = (window as any).Pokemon || p.team[0].constructor;
@@ -167,10 +169,16 @@ export class Battle {
         BattleUI.renderBattleScreen();
     }
 
-    static updateFromNetwork(payload: any) {
+    static updateFromNetwork(payload: any, senderId?: number) {
         if (!BattleCore.activeMon || !BattleCore.opponent) return;
         
-        if (BattleCore.isPvP) {
+        const senderIsOpponent = BattleCore.isPvP
+            && senderId !== undefined
+            && BattleCore.enemyPlayer
+            && senderId === BattleCore.enemyPlayer.id
+            && senderId !== BattleCore.player?.id;
+
+        if (senderIsOpponent) {
             // Se for PvP, do ponto de vista do receptor:
             // O 'plyHp' do remetente é o HP do oponente.
             // O 'oppHp' do remetente é o nosso HP (activeMon).

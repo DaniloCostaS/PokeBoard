@@ -8,6 +8,7 @@ export interface ActiveQuest {
     questId: number;
     progress: number;
     completed: boolean;
+    data?: any;
 }
 
 export class QuestManager {
@@ -46,13 +47,21 @@ export class QuestManager {
             return;
         }
 
-        player.activeQuests.push({
+        const questState: ActiveQuest = {
             questId: quest.id,
             progress: 0,
             completed: false
-        });
+        };
 
-        GameUI.showGlobalAlert(`📜 NOVA MISSÃO ADQUIRIDA!\n\n${quest.name}\n${quest.desc}\nRecompensa: ${quest.rewardDesc}`, player.name, true, endsTurn);
+        if (quest.triggerType === 'CAPTURE_TYPE_SPECIFIC') {
+            const types = ['Normal', 'Fogo', 'Água', 'Elétrico', 'Grama', 'Gelo', 'Lutador', 'Veneno', 'Terra', 'Voador', 'Psíquico', 'Inseto', 'Pedra', 'Fantasma', 'Dragão', 'Noturno', 'Aço', 'Fada'];
+            questState.data = { specificType: types[Math.floor(Math.random() * types.length)] };
+        }
+
+        player.activeQuests.push(questState);
+
+        const extraDesc = questState.data?.specificType ? `\nTipo sorteado: ${questState.data.specificType}` : '';
+        GameUI.showGlobalAlert(`📜 NOVA MISSÃO ADQUIRIDA!\n\n${quest.name}\n${quest.desc}${extraDesc}\nRecompensa: ${quest.rewardDesc}`, player.name, true, endsTurn);
         
         const NetworkObj = (window as any).Network || Network;
         if (NetworkObj.isOnline) NetworkObj.syncSpecificPlayer(player.id);
@@ -74,8 +83,8 @@ export class QuestManager {
 
                 // Specific validations
                 if (triggerType === 'CAPTURE_TYPE_SPECIFIC' && data?.type) {
-                    // For simplicity, any capture counts for now, but we could assign a random type to the quest on generation
-                    // Validations should go here if we expand the quest state
+                    const specificType = aq.data?.specificType;
+                    if (specificType && data.type !== specificType && data.secondType !== specificType) valid = false;
                 } else if (triggerType === 'CAPTURE_RARE' && data?.baseTotal) {
                     if (data.baseTotal < 280 || data.baseTotal > 329) valid = false;
                 } else if (triggerType === 'CAPTURE_WATER' && data?.type) {
@@ -226,7 +235,7 @@ export class QuestManager {
                                 <span style="font-size: 0.65rem; background: rgba(0,0,0,0.4); padding: 3px 8px; border-radius: 12px; letter-spacing: 0.5px;">${q.rarity.toUpperCase()}</span>
                             </div>
                             <div style="padding: 15px; display: flex; flex-direction: column;">
-                                <p style="font-size: 0.9rem; color: #ddd; margin: 0 0 12px 0; line-height: 1.5;">${q.desc}</p>
+                                <p style="font-size: 0.9rem; color: #ddd; margin: 0 0 12px 0; line-height: 1.5;">${q.desc}${aq.data?.specificType ? `<br><b style="color:#f1c40f;">Tipo sorteado: ${aq.data.specificType}</b>` : ''}</p>
                                 <div style="background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 6px; border: 1px dashed rgba(255,255,255,0.1); margin-bottom: 4px;">
                                     <div style="font-size: 0.85rem; color: #2ecc71; font-weight: bold; display: flex; align-items: center; gap: 5px;">
                                         <span>🎁</span> <span>${q.rewardDesc}</span>
@@ -306,12 +315,18 @@ export class QuestManager {
         
         const newQuest = QUESTS_DB.find(q => q.id === newQuestId);
         if(newQuest) {
-            player.activeQuests.push({
+            const questState: ActiveQuest = {
                 questId: newQuest.id,
                 progress: 0,
                 completed: false
-            });
-            GameUI.showGlobalAlert(`Missão trocada com sucesso! Você assumiu: ${newQuest.name}`, player.name, true, false);
+            };
+            if (newQuest.triggerType === 'CAPTURE_TYPE_SPECIFIC') {
+                const types = ['Normal', 'Fogo', 'Água', 'Elétrico', 'Grama', 'Gelo', 'Lutador', 'Veneno', 'Terra', 'Voador', 'Psíquico', 'Inseto', 'Pedra', 'Fantasma', 'Dragão', 'Noturno', 'Aço', 'Fada'];
+                questState.data = { specificType: types[Math.floor(Math.random() * types.length)] };
+            }
+            player.activeQuests.push(questState);
+            const extraDesc = questState.data?.specificType ? ` Tipo sorteado: ${questState.data.specificType}.` : '';
+            GameUI.showGlobalAlert(`Missão trocada com sucesso! Você assumiu: ${newQuest.name}.${extraDesc}`, player.name, true, false);
         }
         
         document.getElementById('quests-swap-modal')!.style.display = 'none';
@@ -417,4 +432,3 @@ export class QuestManager {
         modal.style.display = 'flex';
     }
 }
-

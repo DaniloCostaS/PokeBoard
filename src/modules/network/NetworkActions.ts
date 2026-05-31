@@ -545,6 +545,9 @@ export class NetworkActions {
                 }
             });
             Game.updateHUD();
+            if (typeof (GameUI as any).refreshOpenPokemonDetail === 'function') {
+                (GameUI as any).refreshOpenPokemonDetail();
+            }
             Game.moveVisuals();
         });
 
@@ -641,7 +644,9 @@ export class NetworkActions {
                     }
 
                     if (targetP.id === NetworkState.myPlayerId) {
-                        if (!action.payload.resetPos) NetworkSync.syncPlayerState();
+                        // O jogador da rodada e autor da batalha e a fonte de verdade deste ajuste.
+                        // Regravar aqui pode sobrescrever a perda de gold com um estado local atrasado.
+                        Game.updateHUD();
                     }
                 }
                 break;
