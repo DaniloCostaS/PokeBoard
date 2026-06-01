@@ -1691,12 +1691,6 @@ export class GameUI {
                           item.type === 'hold' ? "Escolha quem vai segurar este item:" : "Usar em qual Pokémon?";
         list.innerHTML = '';
 
-        let MAPA_MEGAS: any = null;
-        if (item.type === 'mega') {
-            const module = { MAPA_MEGAS };
-            MAPA_MEGAS = module.MAPA_MEGAS;
-        }
-
         p.team.forEach((mon, idx) => {
             const div = document.createElement('div');
 
