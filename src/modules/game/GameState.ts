@@ -182,6 +182,7 @@ export class GameState {
             pl.team = pd.team.map((td: any) => {
                 const po = new Pokemon(td.id, td.level, td.isShiny);
                 Object.assign(po, td);
+                if (td.happiness !== undefined) po.happiness = Number(td.happiness);
                 return po;
             });
             return pl;

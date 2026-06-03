@@ -367,6 +367,7 @@ export class NetworkActions {
                     pl.team = pd.team.map((td: any) => {
                         const po = new Pokemon(td.id, td.level, td.isShiny);
                         Object.assign(po, td);
+                        if (td.happiness !== undefined) po.happiness = Number(td.happiness);
                         return po;
                     });
                 }
@@ -520,6 +521,7 @@ export class NetworkActions {
 
                                         Object.assign(localPlayer.team[idx], remoteMon);
                                         if (newHp !== undefined) localPlayer.team[idx].currentHp = Number(newHp);
+                                        if (remoteMon.happiness !== undefined) localPlayer.team[idx].happiness = Number(remoteMon.happiness);
                                     }
                                 }
                             });
@@ -588,6 +590,7 @@ export class NetworkActions {
                     const PokemonClass = (window as any).Pokemon || Game.players[0].team[0].constructor;
                     const newOpp = new PokemonClass(action.payload.nextOpp.id, action.payload.nextOpp.level, action.payload.nextOpp.isShiny);
                     Object.assign(newOpp, action.payload.nextOpp);
+                    if (action.payload.nextOpp.happiness !== undefined) newOpp.happiness = Number(action.payload.nextOpp.happiness);
                     Battle.opponent = newOpp;
                 }
 
@@ -606,6 +609,7 @@ export class NetworkActions {
                     const PokemonClass = (window as any).Pokemon || Game.players[0].team[0].constructor;
                     const newPly = new PokemonClass(action.payload.nextPly.id, action.payload.nextPly.level, action.payload.nextPly.isShiny);
                     Object.assign(newPly, action.payload.nextPly);
+                    if (action.payload.nextPly.happiness !== undefined) newPly.happiness = Number(action.payload.nextPly.happiness);
                     Battle.activeMon = newPly;
                 }
                 Battle.updateUI();
