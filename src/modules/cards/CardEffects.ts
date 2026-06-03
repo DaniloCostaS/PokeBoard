@@ -567,7 +567,13 @@ export class CardEffects {
                 CardUI.showBallChoice(balls); consumed = false;
                 break;
 
-            case 'run': player.effects.escapedGym = true; Battle.logBattle("💨 Fugiu com estilo!"); Battle.end(false); break;
+            case 'run': 
+                player.effects.escapedGym = true; 
+                Battle.logBattle("💨 Fugiu com estilo!"); 
+                const QuestManagerObj = (window as any).QuestManager || (window as any).modules?.QuestManager;
+                if (QuestManagerObj) QuestManagerObj.resetProgress(player, 'WIN_STREAK');
+                Battle.end(false); 
+                break;
             case 'guard': Battle.activeEffects.guard = true; Battle.logBattle("🛡️ Escudo ativado! (-50% dano recebido)"); break;
             case 'focus': Battle.activeEffects.focus = true; Battle.logBattle("🎯 Foco Total! Próximo ataque 4x dano."); break;
             case 'status': Battle.activeEffects.stunOpponent = 2; Battle.logBattle("⚡ Inimigo atordoado por 2 turnos!"); break;
@@ -1066,7 +1072,14 @@ export class CardEffects {
 
             case 'katrina':
                 const mapSize = MapSystem.size; const totalTilesK = mapSize * mapSize;
-                Game.players.forEach((p: any) => { const randomIdx = Math.floor(Math.random() * totalTilesK); const coord = MapSystem.getCoord(randomIdx); p.x = coord.x; p.y = coord.y; });
+                const QuestManagerObjK = (window as any).QuestManager || (window as any).modules?.QuestManager;
+                Game.players.forEach((p: any) => { 
+                    const randomIdx = Math.floor(Math.random() * totalTilesK); 
+                    const coord = MapSystem.getCoord(randomIdx); 
+                    p.x = coord.x; 
+                    p.y = coord.y; 
+                    if (QuestManagerObjK) QuestManagerObjK.checkProgress(p, 'VORTEX_TELEPORT', 1);
+                });
                 Game.moveVisuals(); effectLog = "O FURACAO KATRINA PASSOU! Todos foram soprados para casas aleatorias!"; requiresGlobalSync = true;
                 break;
 

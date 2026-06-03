@@ -43,7 +43,7 @@ export class QuestManager {
         }
 
         if (player.activeQuests.length >= 3) {
-            this.openSwapModal(player, quest);
+            this.openSwapModal(player, quest, endsTurn);
             return;
         }
 
@@ -65,6 +65,13 @@ export class QuestManager {
         
         const NetworkObj = (window as any).Network || Network;
         if (NetworkObj.isOnline) NetworkObj.syncSpecificPlayer(player.id);
+        
+        if (quest.triggerType === 'RESONANCE_30') {
+            const hasResonance30 = player.pokedexData && Object.values(player.pokedexData).some((d: any) => (d.caught || 0) >= 4);
+            if (hasResonance30) {
+                setTimeout(() => { this.checkProgress(player, 'RESONANCE_30', 1); }, 500);
+            }
+        }
     }
 
     static checkProgress(player: Player, triggerType: string, amount: number = 1, data?: any) {
@@ -97,6 +104,20 @@ export class QuestManager {
                     aq.progress = (aq.data.fusion || 0) + (aq.data.sacrifice || 0);
                     syncNeeded = true;
                     if (aq.progress > questDef.target) aq.progress = questDef.target;
+                    valid = false;
+                } else if (triggerType === 'VISIT_BIOMES') {
+                    if (data?.tileType !== undefined) {
+                        const tileStr = data.tileType.toString();
+                        if (['1', '2', '3'].includes(tileStr)) {
+                            if (!aq.data) aq.data = {};
+                            if (!aq.data[tileStr]) {
+                                aq.data[tileStr] = 1;
+                                aq.progress = (aq.data['1'] || 0) + (aq.data['2'] || 0) + (aq.data['3'] || 0);
+                                syncNeeded = true;
+                                if (aq.progress > questDef.target) aq.progress = questDef.target;
+                            }
+                        }
+                    }
                     valid = false;
                 }
 
@@ -253,7 +274,7 @@ export class QuestManager {
         modal.style.display = 'flex';
     }
 
-    static openSwapModal(player: Player, newQuest: QuestData) {
+    static openSwapModal(player: Player, newQuest: QuestData, endsTurn: boolean = false) {
         let modal = document.getElementById('quests-swap-modal');
         if (!modal) {
             modal = document.createElement('div');
@@ -287,7 +308,7 @@ export class QuestManager {
                             <span style="font-size:0.85rem">${q.desc}</span><br>
                             <span style="font-size:0.8rem; color:#bdc3c7">Progresso: ${aq.progress}/${q.target}</span>
                         </div>
-                        <button class="btn btn-danger btn-sm" onclick="window.QuestManager.swapQuest(${player.id}, ${q.id}, ${newQuest.id})">Abandonar</button>
+                        <button class="btn btn-danger btn-sm" onclick="window.QuestManager.swapQuest(${player.id}, ${q.id}, ${newQuest.id}, ${endsTurn})">Abandonar</button>
                     </div>
                 `;
             }
@@ -295,7 +316,7 @@ export class QuestManager {
 
         html += `
                 </div>
-                <button class="btn btn-secondary" style="margin-top: 10px; width: 100%;" onclick="document.getElementById('quests-swap-modal').style.display='none'">Manter Missões Atuais</button>
+                <button class="btn btn-secondary" style="margin-top: 10px; width: 100%;" onclick="window.QuestManager.cancelSwap(${endsTurn})">Manter Missões Atuais</button>
             </div>
         `;
         
@@ -306,7 +327,15 @@ export class QuestManager {
         (window as any).QuestManager = this;
     }
 
-    static swapQuest(playerId: number, oldQuestId: number, newQuestId: number) {
+    static cancelSwap(endsTurn: boolean = false) {
+        document.getElementById('quests-swap-modal')!.style.display = 'none';
+        if (endsTurn) {
+            const Game = (window as any).Game;
+            if (Game) Game.nextTurn();
+        }
+    }
+
+    static swapQuest(playerId: number, oldQuestId: number, newQuestId: number, endsTurn: boolean = false) {
         const Game = (window as any).Game;
         const player = Game.players.find((p:any) => p.id === playerId);
         if(!player) return;
@@ -326,13 +355,20 @@ export class QuestManager {
             }
             player.activeQuests.push(questState);
             const extraDesc = questState.data?.specificType ? ` Tipo sorteado: ${questState.data.specificType}.` : '';
-            GameUI.showGlobalAlert(`Missão trocada com sucesso! Você assumiu: ${newQuest.name}.${extraDesc}`, player.name, true, false);
+            GameUI.showGlobalAlert(`Missão trocada com sucesso! Você assumiu: ${newQuest.name}.${extraDesc}`, player.name, true, endsTurn);
         }
         
         document.getElementById('quests-swap-modal')!.style.display = 'none';
         
         const NetworkObj = (window as any).Network || Network;
         if (NetworkObj.isOnline) NetworkObj.syncSpecificPlayer(player.id);
+
+        if (newQuest?.triggerType === 'RESONANCE_30') {
+            const hasResonance30 = player.pokedexData && Object.values(player.pokedexData).some((d: any) => (d.caught || 0) >= 4);
+            if (hasResonance30) {
+                setTimeout(() => { this.checkProgress(player, 'RESONANCE_30', 1); }, 500);
+            }
+        }
     }
 
     static claimReward(playerId: number, questId: number) {

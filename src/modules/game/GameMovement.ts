@@ -266,16 +266,6 @@ export class GameMovement {
             p.x = nextCoord.x;
             p.y = nextCoord.y;
             this.performVisualStep(pId, p.x, p.y);
-            
-            if (p.questTrackers && p.questTrackers.biomesVisited) {
-                const currentTileType = MapSystem.grid[p.y][p.x].toString();
-                if (!p.questTrackers.biomesVisited.includes(currentTileType)) {
-                    p.questTrackers.biomesVisited.push(currentTileType);
-                    const QuestManagerObj = (window as any).QuestManager || (window as any).modules?.QuestManager;
-                    if (QuestManagerObj) QuestManagerObj.checkProgress(p, 'VISIT_BIOMES', 1);
-                }
-            }
-
             await new Promise(r => setTimeout(r, 150));
 
             const trapIdx = GameState.traps.findIndex(t => t.x === p.x && t.y === p.y && t.ownerId !== p.id);

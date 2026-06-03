@@ -84,7 +84,10 @@ export class GameEvents {
         p.y = city.y;
 
         const QuestManagerObj = (window as any).QuestManager || (window as any).Game?.QuestManager || window.QuestManager;
-        if (QuestManagerObj) QuestManagerObj.resetProgress(p, 'WALK_STEPS');
+        if (QuestManagerObj) {
+            QuestManagerObj.resetProgress(p, 'WALK_STEPS');
+            QuestManagerObj.resetProgress(p, 'WIN_STREAK');
+        }
 
         if (p.effects && p.effects.tremembeUserTurns && p.effects.tremembeUserTurns > 0) {
             GameUI.sendGlobalLog(`⚖️ DECRETO DE TREMEMBÉ! ${p.name} está sob o privilégio do decreto e foi resgatado sem perder turnos!`);
@@ -124,6 +127,8 @@ export class GameEvents {
                 p.x = randomGym.x;
                 p.y = randomGym.y;
                 p.effects.escapedGym = false; // Garante que a fuga não o salve do vortex
+                const QuestManagerObj = (window as any).QuestManager || (window as any).modules?.QuestManager;
+                if (QuestManagerObj) QuestManagerObj.checkProgress(p, 'VORTEX_TELEPORT', 1);
                 GameUI.moveVisuals();
                 GameState.hasRolled = true;
 
@@ -202,6 +207,9 @@ export class GameEvents {
             document.getElementById('city-modal')!.style.display = 'flex';
         }
         else if (type === TILE.EVENT) {
+            const QuestManagerObj = (window as any).QuestManager || (window as any).modules?.QuestManager;
+            if (QuestManagerObj) QuestManagerObj.checkProgress(p, 'TILE_EVENT', 1);
+
             if (GameState.currentGlobalEvent?.id === 'LOTTERY_DAY') {
                 p.gold += 500;
                 const CardsObj = (window as any).Cards || Cards;
@@ -282,6 +290,10 @@ export class GameEvents {
                 const itemName = itemData ? itemData.name : giftId;
 
                 this.addItem(p, giftId, 1);
+
+                const QuestManagerObj = (window as any).QuestManager || (window as any).modules?.QuestManager;
+                if (QuestManagerObj) QuestManagerObj.checkProgress(p, 'GET_ITEM_MAP', 1);
+
                 localMsg = `Você explorou o evento e encontrou um item:\n\n🎒 ${itemName}`;
                 remoteMsg = `🌟 ${p.name} explorou o evento e encontrou: ${itemName}!`;
             }
@@ -357,6 +369,9 @@ export class GameEvents {
             }
         }
         else if ([TILE.GRASS, TILE.WATER, TILE.GROUND].includes(type)) {
+            const QuestManagerObj = (window as any).QuestManager || (window as any).modules?.QuestManager;
+            if (QuestManagerObj) QuestManagerObj.checkProgress(p, 'VISIT_BIOMES', 1, { tileType: type });
+
             if (Math.random() < 0.8) {
 
                 const wildMon = GameSpawns.generateWildPokemon(type);
@@ -449,19 +464,19 @@ export class GameEvents {
             if (player.gold >= 300) {
                 player.gold -= 300;
                 player.boughtQuestThisTurn = true;
-                
+
                 const QuestManagerObj = (window as any).QuestManager || (window as any).modules?.QuestManager;
                 if (QuestManagerObj) {
                     QuestManagerObj.addQuest(player);
                 }
-                
+
                 GameUI.sendGlobalLog(`💰 [Extrato] ${player.name} gastou -300G (Compra de Missão).`);
-                
+
                 const goldDisplay = document.getElementById('city-gold-display');
                 if (goldDisplay) goldDisplay.innerText = `Saldo: ${player.gold}G`;
 
                 GameUI.updateHUD();
-                
+
                 if (NetworkObj.isOnline) {
                     NetworkObj.syncPlayerState();
                 }
@@ -544,6 +559,9 @@ export class GameEvents {
             } else {
                 QuestManagerObj.resetProgress(currentP, 'TURN_GOLD_2500_STREAK');
             }
+            if (currentP.gold >= 8000) {
+                QuestManagerObj.checkProgress(currentP, 'GOLD_ACCUMULATED', 1);
+            }
         }
 
         const nextTurnIdx = (GameState.turn + 1) % GameState.players.length;
@@ -598,7 +616,7 @@ export class GameEvents {
                             actuallyLost.forEach(c => lostCards.push(`${c.icon} ${c.name}`));
                         }
                         for (const k in p.items) if (p.items[k] > 0) p.items[k] = Math.ceil(p.items[k] / 2);
-                        
+
                         const lostNames = lostCards.length > 0 ? `: ${lostCards.join(', ')}` : "";
                         GameUI.sendGlobalLog(`🃏 [Extrato] ${p.name} pagou impostos${lostNames}. Cartas restantes: ${p.cards.length}`);
                         roomUpdates[`players/${p.id}/cards`] = p.cards;
@@ -808,7 +826,7 @@ export class GameEvents {
                 currP.skipTurns = Math.max(0, currP.skipTurns - 1);
                 if (!currP.stats) currP.stats = { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
                 currP.stats.turnsLost = (currP.stats.turnsLost || 0) + 1;
-                
+
                 const QuestManagerObj = (window as any).QuestManager || (window as any).modules?.QuestManager;
                 if (QuestManagerObj) QuestManagerObj.checkProgress(currP, 'LOSE_TURN', 1);
 
@@ -843,6 +861,7 @@ export class GameEvents {
         for (let j = 0; j < amount; j++) {
             const randomItem = pool[Math.floor(Math.random() * pool.length)];
             this.addItem(player, randomItem.id, 1);
+            GameUI.sendGlobalLog(`🎁 ${player.name} recebeu um item aleatório: ${randomItem.name}!`);
         }
     }
 
@@ -874,7 +893,7 @@ export class GameEvents {
             } else {
                 const target = p.team[targetIdx]; if (target.isFainted()) return alert("Não funciona em Pokémon desmaiado!");
                 if (target.currentHp >= target.maxHp) return alert("HP já está cheio!"); target.heal(item.val || 20);
-                target.addHappiness(3);
+                target.addHappiness(1);
                 alert(`Usou ${item.name} em ${target.name}.`); used = true;
             }
         } else if (item.type === 'revive') {
@@ -1003,7 +1022,7 @@ export class GameEvents {
             const itemKey = mon.heldItem;
             const itemData = SHOP_ITEMS.find(i => i.id === itemKey);
             mon.heldItem = null;
-            mon.removeHappiness(2);
+            mon.removeHappiness(5);
             // Held items são perdidos ao serem removidos (não voltam para a bolsa)
 
             GameUI.sendGlobalLog(`📦 ${p.name} removeu o item ${itemData?.name || itemKey} de ${mon.name}. O item foi perdido.`);
@@ -1040,7 +1059,7 @@ export class GameEvents {
         const pSelect = document.getElementById('admin-player-select') as HTMLSelectElement;
         const cSelect = document.getElementById('admin-specific-card-select') as HTMLSelectElement;
         if (!pSelect || !cSelect) return;
-        
+
         const pIdx = parseInt(pSelect.value, 10);
         const cardId = cSelect.value;
         const p = GameState.players[pIdx];
@@ -1060,10 +1079,10 @@ export class GameEvents {
         const pSelect = document.getElementById('admin-player-select') as HTMLSelectElement;
         const qSelect = document.getElementById('admin-quest-select') as HTMLSelectElement;
         if (!pSelect || !qSelect) return;
-        
+
         const pIdx = parseInt(pSelect.value, 10);
         const qId = parseInt(qSelect.value, 10);
-        
+
         const p = GameState.players[pIdx];
         if (!p) return;
 

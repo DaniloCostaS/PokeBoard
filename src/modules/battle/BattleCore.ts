@@ -35,6 +35,7 @@ export class BattleCore {
     static currentTerrain: number = 0;
     static isAutoPvE: boolean = false;
     static isChampion: boolean = false;
+    static playerTookDamageThisBattle: boolean = false;
 
     static setup(player: Player, enemyMon: any, isPvP: boolean = false, _label: string = "", reward: number = 0, enemyPlayer: Player | null = null, isGym: boolean = false, gymId: number = 0, npcImage: string = "", terrainTile: number = 1) {
         const Game = (window as any).Game;
@@ -46,6 +47,9 @@ export class BattleCore {
         this.itemsUsedThisBattle = 0;
         this.cardsUsedThisBattle = 0;
         this.pokeballsThrownThisBattle = 0;
+        this.playerTookDamageThisBattle = false;
+        (this as any).finalPlayerLevelForQuests = null;
+        (this as any).pokemonFaintedThisBattle = false;
 
         if (pendingSteal !== undefined && pendingSteal !== null) {
             this.activeEffects.stealBadgeFrom = pendingSteal;
@@ -481,6 +485,7 @@ export class BattleCore {
 
         if (totalReflected > 0) {
             this.activeMon.currentHp = Math.max(0, this.activeMon.currentHp - totalReflected);
+            this.playerTookDamageThisBattle = true;
             logMsg += ` (Sofreu ${totalReflected} de volta!)`;
         }
 
@@ -507,10 +512,11 @@ export class BattleCore {
         }
 
         if (this.opponent.currentHp <= 0) {
+            (this as any).finalPlayerLevelForQuests = this.activeMon.level;
             const oppStats = this.opponent.maxHp + this.opponent.atk + this.opponent.def + this.opponent.speed;
             const xpGain = Math.max(1, Math.floor(oppStats / 9));
             this.activeMon.gainXp(xpGain, this.player!);
-            this.activeMon.addHappiness(5);
+            this.activeMon.addHappiness(3);
 
             // amulet_coin: +100G ao derrotar um pokémon
             if ((this.activeMon as any).heldItem === 'amulet_coin' && this.player) {
@@ -583,6 +589,9 @@ export class BattleCore {
         }
 
         this.activeMon.currentHp = Math.max(0, this.activeMon.currentHp - totalDmg);
+        if (totalDmg > 0) {
+            this.playerTookDamageThisBattle = true;
+        }
 
         if (totalReflected > 0) {
             this.opponent.currentHp = Math.max(0, this.opponent.currentHp - totalReflected);
@@ -643,10 +652,11 @@ export class BattleCore {
             setTimeout(() => { this.handleFaint(); }, 1000);
         }
         else if (this.opponent.currentHp <= 0) {
+            (this as any).finalPlayerLevelForQuests = this.activeMon.level;
             const oppStats = this.opponent.maxHp + this.opponent.atk + this.opponent.def + this.opponent.speed;
             const xpGain = Math.max(1, Math.floor(oppStats / 9));
             this.activeMon.gainXp(xpGain, this.player!);
-            this.activeMon.addHappiness(5);
+            this.activeMon.addHappiness(3);
             BattleUI.updateUI();
             if (NetworkObj.isOnline) NetworkObj.syncPlayerState();
             setTimeout(() => { this.checkWinCondition(); }, 1000);
@@ -780,6 +790,7 @@ export class BattleCore {
                 return;
             }
         }
+        (this as any).pokemonFaintedThisBattle = true;
         const nextPly = this.plyTeamList.find(p => !p.isFainted());
         if (nextPly) {
             this.activeMon!.removeHappiness(10);
@@ -831,7 +842,18 @@ export class BattleCore {
         const QuestManagerObj = (window as any).QuestManager || (window as any).modules?.QuestManager;
         if (QuestManagerObj && this.player) {
             QuestManagerObj.checkProgress(this.player, 'WIN_STREAK', 1);
+            if (!this.playerTookDamageThisBattle) {
+                QuestManagerObj.checkProgress(this.player, 'WIN_NO_DAMAGE', 1);
+            }
             if (!this.isPvP && !this.isGym && !this.isNPC) QuestManagerObj.checkProgress(this.player, 'DEFEAT_WILD', 1);
+            
+            if (this.opponent && this.activeMon) {
+                const pLevel = (this as any).finalPlayerLevelForQuests || this.activeMon.level;
+                QuestManagerObj.checkProgress(this.player, 'WIN_UNDERLEVELED', 1, { 
+                    playerLevel: pLevel, 
+                    enemyLevel: this.opponent.level 
+                });
+            }
             if (this.isPvP) {
                 QuestManagerObj.checkProgress(this.player, 'WIN_PVP', 1);
                 QuestManagerObj.checkProgress(this.player, 'WIN_PVP_STREAK', 1);
@@ -842,6 +864,17 @@ export class BattleCore {
                 QuestManagerObj.checkProgress(this.player, 'WIN_GYM_STREAK', 1);
             } else {
                 QuestManagerObj.resetProgress(this.player, 'WIN_GYM_STREAK');
+            }
+            
+            if (this.isNPC) {
+                // Checa se nenhum Pokémon desmaiou NESTA BATALHA especificamente
+                if (!(this as any).pokemonFaintedThisBattle) {
+                    QuestManagerObj.checkProgress(this.player, 'WIN_NPC_NO_FAINT', 1);
+                }
+                // TILE.ROCKET é 7 de acordo com as constantes
+                if (this.currentTerrain === 7) {
+                    QuestManagerObj.checkProgress(this.player, 'DEFEAT_ROCKET', 1);
+                }
             }
         }
 
@@ -1234,7 +1267,7 @@ export class BattleCore {
             BattleUI.updateButtons();
 
             this.activeMon!.heal(data.val!);
-            this.activeMon!.addHappiness(3);
+            this.activeMon!.addHappiness(1);
             BattleUI.logBattle(`💊 Usou ${data.name}! Recuperou HP.`, true);
             BattleUI.updateUI();
 
@@ -1339,7 +1372,7 @@ export class BattleCore {
                 if (this.opponent.baseTotal >= 280 && this.opponent.baseTotal <= 329) QuestManagerObj.checkProgress(this.player, 'CAPTURE_RARE', 1);
                 if (this.opponent.type === 'Água' || this.opponent.secondType === 'Água') QuestManagerObj.checkProgress(this.player, 'CAPTURE_WATER', 1);
                 if (this.opponent.isLegendary) QuestManagerObj.checkProgress(this.player, 'CAPTURE_LEGENDARY', 1);
-                QuestManagerObj.checkProgress(this.player, 'CAPTURE_TYPE_SPECIFIC', 1, {type: this.opponent.type});
+                QuestManagerObj.checkProgress(this.player, 'CAPTURE_TYPE_SPECIFIC', 1, {type: this.opponent.type, secondType: this.opponent.secondType});
             }
         }
 
@@ -1351,6 +1384,10 @@ export class BattleCore {
             if (!this.player!.pokedexData[oppId]) this.player!.pokedexData[oppId] = { seen: 0, caught: 0, defeated: 0 };
             this.player!.pokedexData[oppId].seen += 1;
             this.player!.pokedexData[oppId].caught += 1;
+
+            if (this.player!.pokedexData[oppId].caught >= 4 && QuestManagerObj) {
+                QuestManagerObj.checkProgress(this.player, 'RESONANCE_30', 1);
+            }
         }
 
         this.activeMon!.gainXp(5, this.player!);

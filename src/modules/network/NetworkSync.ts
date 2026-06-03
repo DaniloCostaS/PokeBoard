@@ -33,7 +33,8 @@ export class NetworkSync {
                 wins: mon.wins || 0,
                 vinculoSupremo: mon.vinculoSupremo || false,
                 heldItem: mon.heldItem || null,
-                masteryBonus: mon.masteryBonus || 0
+                masteryBonus: mon.masteryBonus || 0,
+                happiness: mon.happiness || 0
             };
 
             // Enhanced saving for Global Champion

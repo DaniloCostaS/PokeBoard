@@ -66,6 +66,11 @@ export const QUESTS_DB: QuestData[] = [
         name: "Pesquisador de Campo",
         desc: "Termine o movimento em Água, Terra e Grama ao longo do jogo.",
         target: 3,
+        multiTargets: [
+            { key: '2', label: 'Água', target: 1 },
+            { key: '3', label: 'Terra', target: 1 },
+            { key: '1', label: 'Grama', target: 1 }
+        ],
         rewardDesc: "3 Great Balls + Carta Aleatória",
         rarity: "Comum",
         triggerType: "VISIT_BIOMES",
@@ -203,7 +208,7 @@ export const QUESTS_DB: QuestData[] = [
         id: 14,
         name: "Investidor",
         desc: "Inicie e termine 5 turnos consecutivos mantendo 2500G ou mais.",
-        target: 3,
+        target: 5,
         rewardDesc: "Carta Incomum + 500G",
         rarity: "Incomum",
         triggerType: "TURN_GOLD_2500_STREAK",
@@ -299,13 +304,10 @@ export const QUESTS_DB: QuestData[] = [
         rarity: "Rara",
         triggerType: "WIN_UNDERLEVELED",
         onComplete: (player: any) => {
-            const CardsDB = (window as any).CARDS_DB;
-            if (CardsDB) {
-                const rareCandyCard = CardsDB.find((c: any) => c.id === 'rare_candy');
-                if (rareCandyCard) {
-                    player.cards.push({ ...rareCandyCard });
-                    player.cards.push({ ...rareCandyCard });
-                }
+            const Cards = (window as any).Cards;
+            if (Cards) {
+                Cards.drawSpecificCard(player, 'rare_candy');
+                Cards.drawSpecificCard(player, 'rare_candy');
             }
         }
     },
