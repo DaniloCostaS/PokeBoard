@@ -7,6 +7,7 @@ export class Player {
     id: number;
     name: string;
     avatar: string;
+    isCPU: boolean = false;
     x: number = 0;
     y: number = 0;
     gold: number = 500;
@@ -47,6 +48,7 @@ export class Player {
         lastGiftRound?: number;
         tremembeUserTurns?: number;
         ashGoodbyeRemaining?: number;
+        playedCardThisTurn?: boolean;
     } = {};
 
     // --- ESTATÍSTICAS DE JOGO ---

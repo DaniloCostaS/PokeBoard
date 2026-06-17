@@ -53,7 +53,31 @@ export class Setup {
         if (hc) hc.style.display = Network.isHost ? 'block' : 'none'; 
     }
     static showSetupScreen() { document.getElementById('menu-phase-online')!.style.display = 'none'; document.getElementById('menu-phase-setup')!.style.display = 'block'; }
-    static updateSlots() { const numInput = document.getElementById('num-players') as HTMLSelectElement; if (!numInput) return; const n = parseInt(numInput.value); const c = document.getElementById('player-slots-container')!; c.innerHTML = ''; const defs = ["Ash", "Gary", "Misty", "Brock", "May", "Dawn", "Serena", "Goh"]; for (let i = 0; i < n; i++) { const defImg = TRAINER_IMAGES[i % TRAINER_IMAGES.length].file; const opts = TRAINER_IMAGES.map(img => `<option value="${img.file}" ${img.file === defImg ? 'selected' : ''}>${img.label}</option>`).join(''); c.innerHTML += `<div class="setup-row"><strong>P${i + 1}</strong><input type="text" id="p${i}-name" value="${defs[i] || 'Player'}" style="width:100px;"><div class="avatar-selection"><img id="p${i}-preview" src="/assets/img/Treinadores/${defImg}" class="avatar-preview"><select id="p${i}-av" onchange="window.Setup.updatePreview(${i})">${opts}</select></div></div>`; } }
+    static updateSlots() { 
+        const numInput = document.getElementById('num-players') as HTMLSelectElement; 
+        if (!numInput) return; 
+        const n = parseInt(numInput.value); 
+        const c = document.getElementById('player-slots-container')!; 
+        c.innerHTML = ''; 
+        const defs = ["Ash", "Gary", "Misty", "Brock", "May", "Dawn", "Serena", "Goh"]; 
+        for (let i = 0; i < n; i++) { 
+            const defImg = TRAINER_IMAGES[i % TRAINER_IMAGES.length].file; 
+            const opts = TRAINER_IMAGES.map(img => `<option value="${img.file}" ${img.file === defImg ? 'selected' : ''}>${img.label}</option>`).join(''); 
+            c.innerHTML += `
+            <div class="setup-row">
+                <strong>P${i + 1}</strong>
+                <input type="text" id="p${i}-name" value="${defs[i] || 'Player'}" style="width:100px;">
+                <div class="avatar-selection">
+                    <img id="p${i}-preview" src="/assets/img/Treinadores/${defImg}" class="avatar-preview">
+                    <select id="p${i}-av" onchange="window.Setup.updatePreview(${i})">${opts}</select>
+                </div>
+                <div style="display:flex; flex-direction:column; align-items:center; margin-left:10px;">
+                    <label style="font-size:0.75rem; margin-bottom:2px;">CPU?</label>
+                    <input type="checkbox" id="p${i}-cpu">
+                </div>
+            </div>`; 
+        } 
+    }
     static updatePreview(i: number) { (document.getElementById(`p${i}-preview`) as HTMLImageElement).src = `/assets/img/Treinadores/${(document.getElementById(`p${i}-av`) as HTMLSelectElement).value}`; }
 
     static async loginOnline() {
@@ -158,6 +182,11 @@ export class Setup {
         const ps: Player[] = [];
         for (let i = 0; i < n; i++) {
             const p = new Player(i, (document.getElementById(`p${i}-name`) as HTMLInputElement).value, (document.getElementById(`p${i}-av`) as HTMLSelectElement).value, false);
+            const isCPU = (document.getElementById(`p${i}-cpu`) as HTMLInputElement)?.checked || false;
+            p.isCPU = isCPU;
+            if (isCPU) {
+                p.name = "[CPU] " + p.name;
+            }
             ps.push(p);
         }
 

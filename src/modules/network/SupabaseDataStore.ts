@@ -198,7 +198,7 @@ export class SupabaseDataStore {
             this.replaceItems(id, player.items || {}),
             this.replaceCards(id, player.cards || []),
             this.replaceBadges(id, player.badges || []),
-            this.replaceKeyValues('player_effects', id, player.effects || {}),
+            this.replaceKeyValues('player_effects', id, { ...(player.effects || {}), activeQuests: player.activeQuests || [] }),
             this.replaceKeyValues('player_stats', id, player.stats || DEFAULT_STATS),
             this.replacePokedex(id, player.pokedexData || {})
         ]);
@@ -271,7 +271,14 @@ export class SupabaseDataStore {
             });
             player.items = {};
             (pd.player_items || []).forEach((item: any) => { player.items[item.item_id] = item.quantity; });
-            player.effects = expandRecord(pd.player_effects);
+            const effectsData: any = expandRecord(pd.player_effects);
+            if (effectsData.activeQuests) {
+                player.activeQuests = effectsData.activeQuests;
+                delete effectsData.activeQuests;
+            } else {
+                player.activeQuests = [];
+            }
+            player.effects = effectsData;
             player.stats = { ...DEFAULT_STATS, ...expandRecord(pd.player_stats) };
             player.pokedexData = {};
             (pd.player_pokedex || []).forEach((dex: any) => {
@@ -380,18 +387,7 @@ export class SupabaseDataStore {
         return {
             name: data.name,
             avatar: data.avatar,
-            team: (data.global_champion_team || []).sort((a: any, b: any) => a.slot_index - b.slot_index).map((row: any) => ({
-                id: row.pokemon_id,
-                level: row.level,
-                isShiny: row.is_shiny,
-                currentHp: row.current_hp,
-                maxHp: row.max_hp,
-                currentXp: row.current_xp,
-                maxXp: row.max_xp,
-                heldItem: row.held_item,
-                megaStone: row.mega_stone,
-                baseTotal: row.base_total
-            }))
+            team: (data.global_champion_team || []).sort((a: any, b: any) => a.slot_index - b.slot_index).map(hydratePokemon)
         };
     }
 

@@ -13,6 +13,7 @@ import { MAPA_MEGAS } from '../../constants/mapaMegas';
 import { GYM_DATA } from '../../constants/gyms';
 import { GameSpawns } from './GameSpawns';
 import { NotificationSystem } from './NotificationSystem';
+import { CPUController } from './CPUController';
 import { QuestManager } from '../quests/QuestManager';
 import type { ItemData } from '../../constants';
 import { supabase } from '../network/SupabaseInit';
@@ -203,6 +204,7 @@ export class GameEvents {
             const cityGold = document.getElementById('city-gold-display');
             if (cityGold) cityGold.innerText = `Saldo: ${p.gold}G`;
             document.getElementById('city-modal')!.style.display = 'flex';
+            CPUController.handleCity(p);
         }
         else if (type === TILE.EVENT) {
             const QuestManagerObj = (window as any).QuestManager || (window as any).modules?.QuestManager;
@@ -694,6 +696,7 @@ export class GameEvents {
                 const currP = GameState.players[me];
                 if (currP) NotificationSystem.notifyMyTurn(currP.name, GameState.round, GameState.turn);
             }
+            CPUController.handleTurn();
             return;
         }
 
@@ -718,6 +721,8 @@ export class GameEvents {
 
         rollBtn.disabled = false;
         rollBtn.innerText = "ROLAR";
+        
+        CPUController.handleTurn();
     }
 
     static iniciarTurno() {

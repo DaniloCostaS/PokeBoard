@@ -8,6 +8,8 @@ import { POKEDEX } from '../../constants/pokedex';
 import { GYM_DATA } from '../../constants/gyms';
 import { MAPA_MEGAS } from '../../constants/mapaMegas';
 import { GameState } from '../game/GameState';
+import { CPUController } from '../game/CPUController';
+import { SHOP_ITEMS } from '../../constants';
 import type { ItemData } from '../../constants';
 
 export class BattleCore {
@@ -209,6 +211,7 @@ export class BattleCore {
                 contextTitle = `🐾 <b>Um Pokémon selvagem apareceu!</b><br><small style="color:#f1c40f; font-size:0.9rem;">Local: ${terrainName}</small>`;
             }
             BattleUI.openSelectionModal(contextTitle);
+            CPUController.handleBattleSelect(this);
         }
         
         // Iniciar o log de batalha isolado
@@ -315,13 +318,79 @@ export class BattleCore {
                 currentTerrain: this.currentTerrain
             });
         }
+        
+        CPUController.handleBattleStart(this);
     }
 
-    static attack() {
+    static attack(_skill?: any) {
         const NetworkObj = (window as any).Network || Network;
         if (NetworkObj.isOnline && this.player && this.player.id !== NetworkObj.myPlayerId) return;
 
         if (!this.active || !this.activeMon || !this.opponent) return;
+
+        // -- NOVO CPU BATTLE LOGIC --
+        if (this.isAutoPvE && this.player && this.player.isCPU) {
+            // Verifica CPU captura
+            if (!this.isPvP && !this.isGym && !this.isNPC) {
+                const oppHpPct = this.opponent.currentHp / this.opponent.maxHp;
+                if (oppHpPct <= 0.3) {
+                    let shouldCatch = true;
+                    if (this.player.team.length >= 6) {
+                        const getStats = (m: any) => m.maxHp + m.atk + m.def + m.speed;
+                        const oppStats = getStats(this.opponent);
+                        const weakestStats = Math.min(...this.player.team.map(getStats));
+                        if (oppStats <= weakestStats) shouldCatch = false;
+                    }
+
+                    if (shouldCatch) {
+                        const balls = ['masterball', 'ultraball', 'greatball', 'pokeball'];
+                        for (const b of balls) {
+                            if ((this.player.items[b] || 0) > 0) {
+                                const ItemObj = SHOP_ITEMS.find((i: any) => i.id === b);
+                                if (ItemObj) {
+                                    this.player.items[b]--;
+                                    this.attemptCapture(ItemObj);
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Verifica Poção
+            const myHpPct = this.activeMon.currentHp / this.activeMon.maxHp;
+            if (myHpPct <= 0.3) {
+                const potions = ['hyperpotion', 'superpotion', 'potion'];
+                for (const p of potions) {
+                    if ((this.player.items[p] || 0) > 0) {
+                        const ItemObj = SHOP_ITEMS.find((i: any) => i.id === p);
+                        if (ItemObj && ItemObj.val) {
+                            this.player.items[p]--;
+                            this.activeMon.heal(ItemObj.val);
+                            BattleUI.logBattle(`💊 CPU usou ${ItemObj.name}!`, true);
+                            BattleUI.updateUI();
+                            
+                            // Depois da cura, leva o ataque inimigo
+                            this.processingAction = true;
+                            setTimeout(() => {
+                                this.performEnemyAttack(() => {
+                                    this.processingAction = false;
+                                    BattleUI.updateButtons();
+                                    if (this.isAutoPvE && this.activeMon!.currentHp > 0 && this.opponent!.currentHp > 0) {
+                                        setTimeout(() => this.attack(), 1500);
+                                    } else if (this.activeMon!.currentHp <= 0) {
+                                        this.handleFaint();
+                                    }
+                                });
+                            }, 1500);
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+        // -- FIM NOVO CPU BATTLE LOGIC --
 
         this.processingAction = true;
         BattleUI.updateButtons();
@@ -809,6 +878,7 @@ export class BattleCore {
             } else {
                 document.getElementById('battle-modal')!.style.display = 'none';
                 BattleUI.openSelectionModal("Escolha o próximo!");
+                CPUController.handleBattleSelect(this);
             }
         }
         else { 
@@ -1389,8 +1459,32 @@ export class BattleCore {
             if (NetworkObj.isOnline) NetworkObj.syncPlayerState();
             setTimeout(() => this.end(false), 1500);
         } else {
-            this.pendingCapture = this.opponent;
-            Game.openSwapModal(this.pendingCapture);
+            if (this.player!.isCPU) {
+                const getStats = (mon: any) => mon.maxHp + mon.atk + mon.def + mon.speed;
+                const oppStats = getStats(this.opponent!);
+                
+                let weakestIdx = 0;
+                let weakestStats = getStats(this.player!.team[0]);
+
+                for (let i = 1; i < 6; i++) {
+                    const st = getStats(this.player!.team[i]);
+                    if (st < weakestStats) {
+                        weakestStats = st;
+                        weakestIdx = i;
+                    }
+                }
+
+                if (oppStats > weakestStats) {
+                    if (Game.sendGlobalLog) Game.sendGlobalLog(`🔄 CPU substituiu ${this.player!.team[weakestIdx].name} por ${this.opponent!.name}!`);
+                    this.player!.team[weakestIdx] = this.opponent!;
+                }
+                
+                if (NetworkObj.isOnline) NetworkObj.syncPlayerState();
+                setTimeout(() => this.end(false), 1500);
+            } else {
+                this.pendingCapture = this.opponent;
+                Game.openSwapModal(this.pendingCapture);
+            }
         }
     }
 
