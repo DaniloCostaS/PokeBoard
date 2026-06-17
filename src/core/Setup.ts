@@ -1,14 +1,16 @@
 import { TRAINER_IMAGES } from '../constants/trainerImages';
 import { Player } from '../models/Player';
 import { Game } from './Game';
-import { Network, db } from '../systems/Network';
-import { update, ref, get } from 'firebase/database';
+import { Network, db as supabase } from '../systems/Network';
 import { MapSystem } from '../systems/MapSystem';
+import { SupabaseDataStore } from '../modules/network/SupabaseDataStore';
+import { GameSpawns } from '../modules/game/GameSpawns';
 
 export class Setup {
     static showOfflineSetup() { document.getElementById('menu-phase-1')!.style.display = 'none'; document.getElementById('menu-phase-setup')!.style.display = 'block'; }
     static showOnlineLogin() { document.getElementById('menu-phase-1')!.style.display = 'none'; document.getElementById('online-login')!.style.display = 'block'; }
     static showOnlineMenu() { document.getElementById('online-login')!.style.display = 'none'; document.getElementById('menu-phase-online')!.style.display = 'block'; const sel = document.getElementById('online-avatar-select') as HTMLSelectElement; if (sel && sel.options.length === 0) { sel.innerHTML = TRAINER_IMAGES.map(img => `<option value="${img.file}">${img.label}</option>`).join(''); } this.updateOnlinePreview(); }
+    
     static async updateOnlinePreview() {
         const sel = document.getElementById('online-avatar-select') as HTMLSelectElement;
         const img = document.getElementById('online-avatar-preview') as HTMLImageElement;
@@ -18,9 +20,8 @@ export class Setup {
 
         if (Network.isOnline && Network.currentRoomId) {
             const players = Network.lobbyPlayers || [];
-            // Check if another player is already using this avatar
             const isAvatarTaken = players.some((p: any) => {
-                if (p.id === Network.myPlayerId) return false;
+                if (p.local_index === Network.myPlayerId) return false;
                 const avFile = (p.avatar || "").split('/').pop();
                 const selFile = sel.value.split('/').pop();
                 return avFile === selFile;
@@ -28,8 +29,7 @@ export class Setup {
 
             if (isAvatarTaken) {
                 alert("Este avatar já foi escolhido por outro jogador! Escolha outro.");
-                // Revert to player's previous avatar
-                const me = players.find((p: any) => p.id === Network.myPlayerId);
+                const me = players.find((p: any) => p.local_index === Network.myPlayerId);
                 if (me && me.avatar) {
                     const avFile = me.avatar.split('/').pop();
                     sel.value = avFile || "Red.png";
@@ -38,16 +38,14 @@ export class Setup {
                 return;
             }
 
-            // Sync the updated avatar with Firebase
             try {
-                const updates: any = {};
-                updates[`rooms/${Network.currentRoomId}/players/${Network.myPlayerId}/avatar`] = sel.value;
-                await update(ref(db), updates);
+                await supabase.from('room_players').update({ avatar: sel.value }).eq('room_id', Network.currentRoomId).eq('local_index', Network.myPlayerId);
             } catch (e) {
                 console.error("Erro ao atualizar avatar no lobby:", e);
             }
         }
     }
+    
     static showLobbyUIOnly() { 
         const ctrl = document.getElementById('online-lobby-controls'); 
         if (ctrl) ctrl.style.display = 'none'; 
@@ -66,22 +64,7 @@ export class Setup {
 
         if (!username || !password) return alert("Preencha nickname e senha!");
 
-        const userRef = ref(db, `users/${username}`);
-        const snap = await get(userRef);
-
-        if (snap.exists()) {
-            const data = snap.val();
-            if (data.password !== password) {
-                return alert("Senha incorreta!");
-            }
-        } else {
-            // Register new user
-            const updates: any = {};
-            updates[`users/${username}`] = { password: password, rooms: {} };
-            await update(ref(db), updates);
-            alert("Novo usuário registrado com sucesso!");
-        }
-
+        // Sem tabela 'users' migrada, aceitamos o login diretamente (mock local)
         (window as any).loggedUser = username;
 
         this.showOnlineMenu();
@@ -95,54 +78,35 @@ export class Setup {
 
     static async openUserRoomsHub() {
         const username = (window as any).loggedUser;
-        if (!username) {
-            alert("Erro: Usuário não está logado!");
-            return;
-        }
+        if (!username) return alert("Erro: Usuário não está logado!");
 
         const modal = document.getElementById('rooms-hub-modal')!;
         const title = document.getElementById('rooms-hub-title')!;
         const containerDiv = document.getElementById('rooms-hub-container')!;
 
         title.innerText = "🎮 Minhas Salas em Andamento";
-        containerDiv.innerHTML = '<p style="text-align:center; font-size: 0.9rem; color: #fff;">Buscando suas salas...</p>';
+        containerDiv.innerHTML = '<p style="text-align:center; font-size: 0.9rem; color: #fff;">Buscando suas salas no Supabase...</p>';
         modal.style.display = 'flex';
 
-        const userRef = ref(db, `users/${username}/rooms`);
-        const snap = await get(userRef);
-
-        if (snap.exists()) {
-            const rooms = snap.val();
-            const roomCodes = Object.keys(rooms);
-
-            const validRooms = [];
-            for (const code of roomCodes) {
-                const roomSnap = await get(ref(db, `rooms/${code}`));
-                if (roomSnap.exists()) {
-                    const roomData = roomSnap.val();
-                    if (roomData.status !== "FINISHED") {
-                        validRooms.push({ code, data: roomData });
-                    } else {
-                        await update(ref(db), { [`users/${username}/rooms/${code}`]: null });
-                    }
-                } else {
-                    await update(ref(db), { [`users/${username}/rooms/${code}`]: null });
-                }
-            }
-
-            if (validRooms.length > 0) {
-                containerDiv.innerHTML = validRooms.map(room => {
-                    const hostName = room.data.players && room.data.players[0] ? room.data.players[0].name : "Desconhecido";
-                    const round = room.data.round || 1;
-                    const playerCount = Object.keys(room.data.players || {}).length;
+        // Busca salas do Supabase onde o jogador tenha o nome atual e a sala esteja "playing"
+        const { data: playerRows } = await supabase.from('room_players').select('room_id').eq('name', username);
+        if (playerRows && playerRows.length > 0) {
+            const roomIds = playerRows.map((r: any) => r.room_id);
+            const { data: rooms } = await supabase.from('rooms').select('*, room_players(*)').in('id', roomIds).eq('status', 'playing');
+            
+            if (rooms && rooms.length > 0) {
+                containerDiv.innerHTML = rooms.map((room: any) => {
+                    const hostName = room.room_players && room.room_players.find((p: any) => p.local_index === 0)?.name || "Desconhecido";
+                    const round = room.current_round || 1;
+                    const playerCount = room.room_players.length;
 
                     return `
-                    <div style="background: #34495e; padding: 15px; border-radius: 8px; border: 1px solid #7f8c8d; text-align: left; position: relative;">
-                        <h4 style="margin: 0 0 5px 0; color: #f1c40f;">Sala: [${room.code}]</h4>
+                    <div style="background: #34495e; padding: 15px; border-radius: 8px; border: 1px solid #7f8c8d; text-align: left; position: relative; margin-bottom: 10px;">
+                        <h4 style="margin: 0 0 5px 0; color: #f1c40f;">Sala: <span style="font-size:14px">[${room.alias || room.id}]</span></h4>
                         <p style="margin: 0 0 3px 0; font-size: 0.85rem; color: #ecf0f1;">👤 <b>Host:</b> ${hostName}</p>
                         <p style="margin: 0 0 3px 0; font-size: 0.85rem; color: #ecf0f1;">👥 <b>Jogadores:</b> ${playerCount}/8</p>
                         <p style="margin: 0 0 10px 0; font-size: 0.85rem; color: #ecf0f1;">🔄 <b>Rodada Atual:</b> ${round}</p>
-                        <button class="btn" style="background:#8e44ad; padding:8px; margin:0; width: 100%; font-size: 0.9rem;" onclick="document.getElementById('rooms-hub-modal').style.display='none'; window.Network.joinRoom('${room.code}')">Reconectar</button>
+                        <button class="btn" style="background:#8e44ad; padding:8px; margin:0; width: 100%; font-size: 0.9rem;" onclick="document.getElementById('rooms-hub-modal').style.display='none'; window.Network.joinRoom('${room.alias || room.id}')">Reconectar</button>
                     </div>`;
                 }).join('');
             } else {
@@ -159,36 +123,26 @@ export class Setup {
         const containerDiv = document.getElementById('rooms-hub-container')!;
 
         title.innerText = "🔍 Partidas Abertas";
-        containerDiv.innerHTML = '<p style="text-align:center; font-size: 0.9rem; color: #fff;">Buscando partidas...</p>';
+        containerDiv.innerHTML = '<p style="text-align:center; font-size: 0.9rem; color: #fff;">Buscando partidas no Supabase...</p>';
         modal.style.display = 'flex';
 
-        const roomsRef = ref(db, 'rooms');
-        const snap = await get(roomsRef);
+        const { data: rooms } = await supabase.from('rooms').select('*, room_players(*)').eq('status', 'waiting');
 
-        if (snap.exists()) {
-            const rooms = snap.val();
-            const openRooms = [];
-
-            for (const code in rooms) {
-                const room = rooms[code];
-                if (room.status === 'LOBBY') {
-                    const playerCount = Object.keys(room.players || {}).length;
-                    if (playerCount < 8) {
-                        const hostName = room.players && room.players[0] ? room.players[0].name : "Desconhecido";
-                        openRooms.push({ code, hostName, playerCount });
-                    }
-                }
-            }
-
+        if (rooms && rooms.length > 0) {
+            const openRooms = rooms.filter((room: any) => (room.room_players || []).length < 8);
+            
             if (openRooms.length > 0) {
-                containerDiv.innerHTML = openRooms.map(r => `
-                    <div style="background: #34495e; padding: 15px; border-radius: 8px; border: 1px solid #7f8c8d; text-align: left; position: relative;">
-                        <h4 style="margin: 0 0 5px 0; color: #3498db;">Sala: [${r.code}]</h4>
-                        <p style="margin: 0 0 3px 0; font-size: 0.85rem; color: #ecf0f1;">👤 <b>Host:</b> ${r.hostName}</p>
-                        <p style="margin: 0 0 10px 0; font-size: 0.85rem; color: #ecf0f1;">👥 <b>Jogadores:</b> ${r.playerCount}/8</p>
-                        <button class="btn" style="background:#2980b9; padding:8px; margin:0; width: 100%; font-size: 0.9rem;" onclick="document.getElementById('rooms-hub-modal').style.display='none'; window.Network.joinRoom('${r.code}')">Entrar na Partida</button>
+                containerDiv.innerHTML = openRooms.map((r: any) => {
+                    const hostName = r.room_players && r.room_players.find((p: any) => p.local_index === 0)?.name || "Desconhecido";
+                    const playerCount = r.room_players ? r.room_players.length : 0;
+                    return `
+                    <div style="background: #34495e; padding: 15px; border-radius: 8px; border: 1px solid #7f8c8d; text-align: left; position: relative; margin-bottom: 10px;">
+                        <h4 style="margin: 0 0 5px 0; color: #3498db;">Sala: <span style="font-size:14px">[${r.alias || r.id}]</span></h4>
+                        <p style="margin: 0 0 3px 0; font-size: 0.85rem; color: #ecf0f1;">👤 <b>Host:</b> ${hostName}</p>
+                        <p style="margin: 0 0 10px 0; font-size: 0.85rem; color: #ecf0f1;">👥 <b>Jogadores:</b> ${playerCount}/8</p>
+                        <button class="btn" style="background:#2980b9; padding:8px; margin:0; width: 100%; font-size: 0.9rem;" onclick="document.getElementById('rooms-hub-modal').style.display='none'; window.Network.joinRoom('${r.alias || r.id}')">Entrar na Partida</button>
                     </div>
-                `).join('');
+                `}).join('');
             } else {
                 containerDiv.innerHTML = '<p style="text-align:center; font-size: 0.9rem; color: #fff;">Nenhuma partida aberta encontrada.</p>';
             }
@@ -219,8 +173,6 @@ export class Setup {
 
         ps.forEach(p => p.assignStarter(settings));
 
-        // Ordem original baseada no registro (quem for entrando na sala)
-
         document.getElementById('setup-screen')!.style.display = 'none';
         document.getElementById('game-container')!.style.display = 'flex';
         Game.init(ps, mapSize, settings);
@@ -242,39 +194,101 @@ export class Setup {
             megas: mega
         };
 
-        // Ordem original do lobby mantida
+        if (supabase) {
+            try {
+                // Sorteia os starters de todos os jogadores antes do jogo iniciar no DB
+                const { data: players, error: fetchErr } = await supabase.from('room_players').select('*').eq('room_id', Network.currentRoomId).order('local_index');
+                if (fetchErr) throw fetchErr;
+                
+                if (players) {
+                    // Limpa dados antigos caso o jogo esteja sendo reiniciado na mesma sala
+                    const playerIds = players.map(p => p.id);
+                    if (playerIds.length > 0) {
+                        await supabase.from('player_pokemons').delete().in('player_id', playerIds);
+                        await supabase.from('player_items').delete().in('player_id', playerIds);
+                        await supabase.from('player_cards').delete().in('player_id', playerIds);
+                        await supabase.from('player_badges').delete().in('player_id', playerIds);
+                    }
 
-        const updateData: any = {
-            status: "PLAYING",
-            map: { size: mapSize, grid: MapSystem.grid, gymLocations: MapSystem.gymLocations },
-            settings: settings
-        };
+                    // Adiciona o starter e itens/cartas iniciais via Supabase
+                    for (const pd of players) {
+                        // isLoadMode = false faz o Player gerar os itens e 5 cartas iniciais aleatórias
+                        const tempPlayer = new Player(pd.local_index, pd.name, pd.avatar, false);
+                        tempPlayer.assignStarter(settings);
+                        
+                        const starter = tempPlayer.team[0];
+                        if (starter) {
+                            const { error: insErr } = await supabase.from('player_pokemons').upsert([{
+                                player_id: pd.id,
+                                slot_index: 0,
+                                pokemon_id: starter.id,
+                                name: starter.name,
+                                current_hp: starter.currentHp,
+                                max_hp: starter.maxHp,
+                                level: starter.level,
+                                current_xp: starter.currentXp,
+                                max_xp: starter.maxXp,
+                                is_shiny: starter.isShiny,
+                                held_item: null,
+                                base_total: starter.baseTotal
+                            }], { onConflict: 'player_id,slot_index' });
+                            if (insErr) { console.error("Erro inserindo pokemon:", insErr); }
+                        }
 
-        // Let's just update the teams in db
-        if (db) {
-            const snap = await get(ref(db, `rooms/${Network.currentRoomId}/players`));
-            if (snap.exists()) {
-                const playersData = snap.val();
-                const validPlayers = Object.values(playersData).filter((pd: any) => pd !== null && pd !== undefined);
+                        // Salva itens iniciais no banco
+                        if (tempPlayer.items) {
+                            const itemInserts = Object.keys(tempPlayer.items).map(itemName => ({
+                                player_id: pd.id,
+                                item_id: itemName,
+                                quantity: tempPlayer.items[itemName]
+                            }));
+                            if (itemInserts.length > 0) {
+                                await supabase.from('player_items').upsert(itemInserts, { onConflict: 'player_id,item_id' });
+                            }
+                        }
 
-                const playOrder: number[] = [];
-                const updatedPlayers: any = {};
+                        // Salva cartas iniciais no banco
+                        if (tempPlayer.cards) {
+                            const cardInserts = tempPlayer.cards.map((c: any, index: number) => ({
+                                player_id: pd.id,
+                                hand_index: index,
+                                card_id: c.id,
+                                is_protected: false
+                            }));
+                            if (cardInserts.length > 0) {
+                                await supabase.from('player_cards').insert(cardInserts);
+                            }
+                        }
 
-                validPlayers.forEach((pd: any, index: number) => {
-                    pd.id = index; // Re-index sequentially to avoid gaps
-                    const tempPlayer = new Player(index, pd.name, pd.avatar, true); // true = no starter logic
-                    tempPlayer.assignStarter(settings);
-                    pd.team = tempPlayer.team;
-                    pd.pokedexData = Object.assign({}, pd.pokedexData, tempPlayer.pokedexData);
+                        await SupabaseDataStore.replacePokedex(pd.id, tempPlayer.pokedexData || {});
+                    }
+                }
 
-                    updatedPlayers[index] = pd;
-                    playOrder.push(index);
-                });
+                if (!Game.activeGyms || Game.activeGyms.length === 0) {
+                    const allGyms = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
+                    Game.activeGyms = allGyms.sort(() => Math.random() - 0.5).slice(0, 8);
+                }
+                if (!Game.gymTeams || Object.keys(Game.gymTeams).length === 0) {
+                    GameSpawns.generateGymTeams();
+                }
+                await SupabaseDataStore.saveBoard(Network.currentRoomId, settings, Game.gymTeams, Game.activeGyms);
 
-                updateData.players = updatedPlayers;
-                updateData.playOrder = playOrder;
+                const { error: roomErr } = await supabase.from('rooms').update({ 
+                    status: "playing",
+                    map_size: mapSize,
+                    generations: settings.generations,
+                    legendaries_rule: settings.legendaries,
+                    megas_enabled: settings.megas,
+                    current_turn: 0,
+                    current_round: 1
+                }).eq('id', Network.currentRoomId);
+                
+                if (roomErr) throw roomErr;
+                
+            } catch (err: any) {
+                console.error(err);
+                alert("Erro ao iniciar jogo no Supabase: " + (err.message || JSON.stringify(err)));
             }
-            await update(ref(db, `rooms/${Network.currentRoomId}`), updateData);
         }
     }
 }

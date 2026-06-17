@@ -7,7 +7,6 @@ import { Cards } from '../../systems/Cards';
 import { POKEDEX } from '../../constants/pokedex';
 import { GYM_DATA } from '../../constants/gyms';
 import { MAPA_MEGAS } from '../../constants/mapaMegas';
-import { ref, update } from 'firebase/database';
 import { GameState } from '../game/GameState';
 import type { ItemData } from '../../constants';
 
@@ -904,11 +903,7 @@ export class BattleCore {
                     msg += ` Roubou a Insígnia ${stolenBadgeIdx + 1}!`;
 
                     if (NetworkObj.isOnline) {
-                        const updates: any = {};
-                        const playersPath = `rooms/${NetworkObj.currentRoomId}/players`;
-                        updates[`${playersPath}/${realWinner.id}/badges/${stolenBadgeIdx}`] = true;
-                        updates[`${playersPath}/${realLoser.id}/badges/${stolenBadgeIdx}`] = false;
-                        update(ref(db), updates);
+                        NetworkObj.syncPlayers([realWinner.id, realLoser.id]);
                     }
                 } else {
                     msg += ` (Inimigo não tinha insígnias novas)`;
@@ -1127,10 +1122,7 @@ export class BattleCore {
                 // Notifica o fim da batalha via ação (para outros clients limparem a UI)
                 NetworkObj.sendAction('BATTLE_END', {});
                 
-                // --- Correção de Trava de Turno ---
-                // Limpamos o status battleActive diretamente no Firebase para não depender da fila de logs lenta.
-                // Isso permite que o próximo jogador jogue mesmo se os logs ainda estiverem subindo em background.
-                update(ref(db, `rooms/${NetworkObj.currentRoomId}`), { battleActive: false });
+                db.from('rooms').update({ battle_active: false }).eq('id', NetworkObj.currentRoomId).then();
             }
             Game.nextTurn();
         } else {

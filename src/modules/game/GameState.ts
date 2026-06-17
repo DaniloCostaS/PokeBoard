@@ -1,12 +1,12 @@
 import { Player } from '../../models/Player';
 import { Pokemon } from '../../models/Pokemon';
 import { MapSystem } from '../../systems/MapSystem';
-import { Network, db } from '../../systems/Network';
-import { ref, update, get } from 'firebase/database';
+import { Network } from '../../systems/Network';
 import { GLOBAL_EVENTS } from '../../constants/globalEvents';
 import { GameSpawns } from './GameSpawns';
 import { GameUI } from './GameUI';
 import { GameEvents } from './GameEvents';
+import { supabase } from '../network/SupabaseInit';
 
 export interface GameSettings {
     generations: number[];
@@ -70,33 +70,24 @@ export class GameState {
         }
 
         const NetworkObj = (window as any).Network || Network;
-        if (NetworkObj.isOnline && NetworkObj.isHost) {
-            if (db) update(ref(db, `rooms/${NetworkObj.currentRoomId}`), {
-                grid: MapSystem.grid,
-                gymLocations: MapSystem.gymLocations,
-                gymTeams: this.gymTeams,
-                settings: this.settings
-            });
-        }
 
-        if (NetworkObj.isOnline && db) {
-            get(ref(db, `rooms/${NetworkObj.currentRoomId}`)).then(snap => {
-                const data = snap.val();
+        if (NetworkObj.isOnline) {
+            supabase.from('rooms').select('current_round, current_event_id, event_end_round').eq('id', NetworkObj.currentRoomId).maybeSingle().then(({data}: any) => {
                 if (data) {
-                    if (data.round && data.round > this.round) {
-                        this.round = data.round;
+                    if (data.current_round && data.current_round > this.round) {
+                        this.round = data.current_round;
                     }
-                }
-                if (data.currentEventId) {
-                    if (this.round >= data.eventEndRound) {
-                        this.currentGlobalEvent = null;
-                        this.eventEndRound = 0;
-                        update(ref(db, `rooms/${NetworkObj.currentRoomId}`), { currentEventId: null, eventEndRound: 0 });
-                    } else {
-                        this.currentGlobalEvent = GLOBAL_EVENTS.find((e: any) => e.id === data.currentEventId) || null;
-                        this.eventEndRound = data.eventEndRound || 0;
+                    if (data.current_event_id) {
+                        if (this.round >= (data.event_end_round || 0)) {
+                            this.currentGlobalEvent = null;
+                            this.eventEndRound = 0;
+                            supabase.from('rooms').update({ current_event_id: null, event_end_round: 0 }).eq('id', NetworkObj.currentRoomId).then();
+                        } else {
+                            this.currentGlobalEvent = data.current_event_id ? GLOBAL_EVENTS.find((e: any) => e.id === data.current_event_id) || null : null;
+                            this.eventEndRound = data.event_end_round || 0;
+                        }
+                        GameUI.updateHUD();
                     }
-                    GameUI.updateHUD();
                 }
             });
         }

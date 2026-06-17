@@ -16,6 +16,6 @@
     "vite": "npm:rolldown-vite@7.2.5"
   },
   "dependencies": {
-    "firebase": "^12.9.0"
+    "@supabase/supabase-js": "^2.108.1"
   }
 }

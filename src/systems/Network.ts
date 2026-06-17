@@ -1,13 +1,13 @@
-import { db, NetworkState } from '../modules/network/FirebaseInit';
+import { supabase, NetworkState } from '../modules/network/SupabaseInit';
 import { NetworkSync } from '../modules/network/NetworkSync';
 import { NetworkActions } from '../modules/network/NetworkActions';
 import type { Player } from '../models/Player';
 
-export { db };
+export { supabase as db }; // Maintain backwards compatibility for now, or just export supabase
 
 export class Network {
 
-    // --- PROPRIEDADES E ESTADOS (Mapeando para o FirebaseInit) ---
+    // --- PROPRIEDADES E ESTADOS ---
     static get isOnline() { return NetworkState.isOnline; }
     static set isOnline(val) { NetworkState.isOnline = val; }
 
@@ -19,6 +19,9 @@ export class Network {
 
     static get currentRoomId() { return NetworkState.currentRoomId; }
     static set currentRoomId(val) { NetworkState.currentRoomId = val; }
+
+    static get currentRoomAlias() { return NetworkState.currentRoomAlias; }
+    static set currentRoomAlias(val) { NetworkState.currentRoomAlias = val; }
 
     static get localName() { return NetworkState.localName; }
     static set localName(val) { NetworkState.localName = val; }
@@ -45,7 +48,7 @@ export class Network {
     static async joinRoom(roomCode?: string) { return await NetworkActions.joinRoom(roomCode); }
     static setupLobbyListener() { NetworkActions.setupLobbyListener(); }
     static async removePlayer(playerId: number) { await NetworkActions.removePlayer(playerId); }
-    static async initializeGameFromFirebase() { await NetworkActions.initializeGameFromFirebase(); }
+    static async initializeGameFromSupabase() { await NetworkActions.initializeGameFromSupabase(); }
     static setupGameLoopListener() { NetworkActions.setupGameLoopListener(); }
 
     // --- AÇÕES REMOTAS (QUEUE) ---

@@ -6,8 +6,7 @@ import { MapSystem } from '../../systems/MapSystem';
 import { Battle } from '../../systems/Battle';
 import { Shop } from '../../systems/Shop';
 import { Cards } from '../../systems/Cards';
-import { Network, db } from '../../systems/Network';
-import { ref, update, getDatabase } from 'firebase/database';
+import { Network } from '../../systems/Network';
 import { TILE, NPC_DATA, SHOP_ITEMS } from '../../constants';
 import { GLOBAL_EVENTS } from '../../constants/globalEvents';
 import { MAPA_MEGAS } from '../../constants/mapaMegas';
@@ -16,6 +15,9 @@ import { GameSpawns } from './GameSpawns';
 import { NotificationSystem } from './NotificationSystem';
 import { QuestManager } from '../quests/QuestManager';
 import type { ItemData } from '../../constants';
+import { supabase } from '../network/SupabaseInit';
+import { NetworkSync } from '../network/NetworkSync';
+import { SupabaseDataStore } from '../network/SupabaseDataStore';
 
 export class GameEvents {
 
@@ -53,14 +55,10 @@ export class GameEvents {
         document.getElementById('victory-modal')!.style.display = 'flex';
         console.log("GAME OVER - VITORIA!");
 
-        const NetworkObj = (window as any).Network;
+        const NetworkObj = (window as any).Network || Network;
         if (NetworkObj && NetworkObj.isOnline && winnerId === NetworkObj.myPlayerId) {
             try {
-                const db = (window as any).db || getDatabase();
-                const updates: any = {};
-                updates[`rooms/${NetworkObj.currentRoomId}/status`] = "FINISHED";
-                updates[`rooms/${NetworkObj.currentRoomId}/winnerId`] = winnerId;
-                update(ref(db), updates);
+                supabase.from('rooms').update({ status: 'finished' }).eq('id', NetworkObj.currentRoomId).then();
             } catch (e) {
                 console.error("Erro ao salvar vitória:", e);
             }
@@ -565,16 +563,12 @@ export class GameEvents {
         }
 
         const nextTurnIdx = (GameState.turn + 1) % GameState.players.length;
-        const roomUpdates: any = {};
-
         if (nextTurnIdx === 0) {
             GameState.round++;
-            roomUpdates[`round`] = GameState.round;
 
             if (GameState.currentGlobalEvent && GameState.round >= GameState.eventEndRound) {
                 GameState.currentGlobalEvent = null;
-                roomUpdates[`currentEventId`] = null;
-                roomUpdates[`eventEndRound`] = 0;
+                GameState.eventEndRound = 0;
                 GameUI.sendGlobalLog("🌍 O clima do mundo voltou à normalidade.");
             }
 
@@ -589,8 +583,6 @@ export class GameEvents {
 
                 GameState.currentGlobalEvent = ev;
                 GameState.eventEndRound = GameState.round + 5;
-                roomUpdates[`currentEventId`] = ev.id;
-                roomUpdates[`eventEndRound`] = GameState.eventEndRound;
 
                 const msgGlobal = `🌍 ALERTA GLOBAL! O evento ${ev.name} começou!||EVENT:${ev.id}`;
 
@@ -619,10 +611,9 @@ export class GameEvents {
 
                         const lostNames = lostCards.length > 0 ? `: ${lostCards.join(', ')}` : "";
                         GameUI.sendGlobalLog(`🃏 [Extrato] ${p.name} pagou impostos${lostNames}. Cartas restantes: ${p.cards.length}`);
-                        roomUpdates[`players/${p.id}/cards`] = p.cards;
-                        roomUpdates[`players/${p.id}/items`] = p.items;
                     });
                     GameUI.sendGlobalLog("📜 IMPOSTO DE RENDA: Todos os jogadores perderam metade de suas cartas e itens!");
+                    if (NetworkObj.isOnline) NetworkObj.syncPlayers(GameState.players.map(p => p.id));
                 }
 
                 GameUI.log(msgGlobal);
@@ -632,10 +623,17 @@ export class GameEvents {
 
         GameState.turn = nextTurnIdx;
         GameState.hasRolled = false;
-        roomUpdates[`turn`] = GameState.turn;
 
-        if (NetworkObj.isOnline && db) {
-            update(ref(db, `rooms/${NetworkObj.currentRoomId}`), roomUpdates);
+        if (NetworkObj.isOnline) {
+            supabase.from('rooms').update({
+                current_turn: GameState.turn,
+                current_round: GameState.round,
+                current_event_id: GameState.currentGlobalEvent ? GameState.currentGlobalEvent.id : null,
+                event_end_round: GameState.eventEndRound
+            }).eq('id', NetworkObj.currentRoomId).then();
+            SupabaseDataStore.saveRoomConfig(NetworkObj.currentRoomId, GameState.settings, MapSystem.size).then();
+            
+            if (NetworkSync) NetworkSync.syncPlayerStateAsync();
         } else if (!NetworkObj.isOnline) {
             const nextP = GameState.players[GameState.turn];
             if (nextP.skipTurns > 0) {

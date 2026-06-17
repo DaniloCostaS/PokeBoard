@@ -1,11 +1,10 @@
-import { db, NetworkState } from './FirebaseInit';
-import { ref, update, set, get } from 'firebase/database';
+import { supabase, NetworkState } from './SupabaseInit';
 import { Player } from '../../models/Player';
-import { BattleCalc } from '../battle/BattleCalc';
+import { SupabaseDataStore } from './SupabaseDataStore';
 
 export class NetworkSync {
 
-    static getSanitizedTeam(team: any[], player?: Player) {
+    static getSanitizedTeam(team: any[]) {
         if (!team) return [];
         return team.map((mon: any) => {
             const data: any = {
@@ -36,44 +35,16 @@ export class NetworkSync {
                 masteryBonus: mon.masteryBonus || 0,
                 happiness: mon.happiness || 0
             };
-
-            // Enhanced saving for Global Champion
-            if (player && player.pokedexData) {
-                // Resonance: +10% per additional capture
-                const dexEntry = player.pokedexData[mon.id];
-                const caught = dexEntry ? (dexEntry.caught || 0) : 0;
-                if (caught > 1) {
-                    const resonancePerc = Math.min(100, (caught - 1) * 10);
-                    const multiplier = 1 + (resonancePerc / 100);
-                    data.maxHp = Math.floor(data.maxHp * multiplier);
-                    data.currentHp = data.maxHp;
-                    data.atk = Math.floor(data.atk * multiplier);
-                    data.def = Math.floor(data.def * multiplier);
-                    data.speed = Math.floor(data.speed * multiplier);
-                }
-
-                // Mastery: Saved to be applied in battles
-                if (BattleCalc && BattleCalc.getTypeMasteryBonus) {
-                    const m1 = BattleCalc.getTypeMasteryBonus(player, mon.type);
-                    const m2 = mon.secondType ? BattleCalc.getTypeMasteryBonus(player, mon.secondType) : 0;
-                    data.masteryBonus = m1 + m2;
-                }
-            }
-
             return data;
         });
     }
 
     static async loadGlobalChampion() {
         try {
-            const snap = await get(ref(db, 'global/champion'));
+            const data = await SupabaseDataStore.loadGlobalChampion();
             const Game = (window as any).Game;
 
-            if (snap.exists()) {
-                Game.globalChampion = snap.val();
-            } else {
-                Game.globalChampion = null;
-            }
+            Game.globalChampion = data || null;
 
             if (Game.renderChampionBanner) Game.renderChampionBanner();
         } catch (e) { console.error("Erro ao carregar campeão", e); }
@@ -81,130 +52,104 @@ export class NetworkSync {
 
     static async saveGlobalChampion(player: Player) {
         try {
-            const championData = {
-                name: player.name,
-                avatar: player.avatar.split('/').pop(),
-                team: this.getSanitizedTeam(player.team, player)
-            };
-            await set(ref(db, 'global/champion'), championData);
+            await SupabaseDataStore.saveGlobalChampion(player);
         } catch (e) { console.error("Erro ao salvar campeão", e); }
     }
 
+    // Mantido por compatibilidade temporária
     static syncPlayerState() {
-        if (!NetworkState.isOnline) return;
+        this.syncPlayerStateAsync();
+    }
+    
+    // Antigo sync global, migrado para update pontual do room_players
+    static async syncPlayerStateAsync() {
+        if (!NetworkState.isOnline || !NetworkState.currentRoomId) return;
         const Game = (window as any).Game;
 
         const p = Game.players.find((pl: any) => pl.id === NetworkState.myPlayerId) || Game.players[NetworkState.myPlayerId];
         if (!p) return;
+        
+        const playerIdDb = NetworkState.myPlayerIdDb;
+        if (!playerIdDb) return;
 
-        update(ref(db, `rooms/${NetworkState.currentRoomId}/players/${NetworkState.myPlayerId}`), {
-            id: p.id,
-            name: p.name,
-            avatar: p.avatar.split('/').pop(),
-            x: p.x,
-            y: p.y,
-            gold: p.gold,
-            team: this.getSanitizedTeam(p.team),
-            items: p.items,
-            skipTurns: p.skipTurns,
-            badges: p.badges,
-            cards: p.cards && p.cards.length > 0 ? p.cards : null,
-            effects: p.effects,
-            pokedexData: p.pokedexData || {},
-            stats: p.stats || { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 },
-            activeQuests: p.activeQuests || [],
-            questTrackers: p.questTrackers || { tilesMovedNoReturn: 0, biomesVisited: [], turnsLostAccumulated: 0, pvpWinsStreak: 0, gymWinsStreak: 0 }
-        });
+        await SupabaseDataStore.savePlayer(p, playerIdDb);
+    }
+
+    static async syncTeam() {
+        if (!NetworkState.isOnline || !NetworkState.myPlayerIdDb) return;
+        const Game = (window as any).Game;
+        const p = Game.players.find((pl: any) => pl.id === NetworkState.myPlayerId);
+        if (!p || !p.team) return;
+
+        await SupabaseDataStore.replaceTeam(NetworkState.myPlayerIdDb, p.team);
     }
 
     static sendState() {
         this.syncPlayerState();
     }
 
-    static syncSpecificPlayer(targetId: number) {
+    // Sincronizações Específicas
+    static async syncPlayerPosition(x: number, y: number) {
         if (!NetworkState.isOnline) return;
+        await supabase
+            .from('room_players')
+            .update({ x, y })
+            .eq('room_id', NetworkState.currentRoomId)
+            .eq('local_index', NetworkState.myPlayerIdLocal);
+    }
+
+    static async syncPlayerGold(gold: number) {
+        if (!NetworkState.isOnline) return;
+        await supabase
+            .from('room_players')
+            .update({ gold })
+            .eq('room_id', NetworkState.currentRoomId)
+            .eq('local_index', NetworkState.myPlayerIdLocal);
+    }
+
+    static syncSpecificPlayer(targetId: number) {
         const Game = (window as any).Game;
-
-        const p = Game.players.find((pl: any) => pl.id === targetId) || Game.players[targetId];
-        if (!p) return;
-
-        update(ref(db, `rooms/${NetworkState.currentRoomId}/players/${targetId}`), {
-            id: p.id,
-            name: p.name,
-            avatar: p.avatar.split('/').pop(),
-            x: p.x,
-            y: p.y,
-            gold: p.gold,
-            team: this.getSanitizedTeam(p.team),
-            items: p.items,
-            badges: p.badges,
-            cards: p.cards && p.cards.length > 0 ? p.cards : null,
-            skipTurns: p.skipTurns,
-            effects: p.effects,
-            pokedexData: p.pokedexData || {},
-            stats: p.stats || { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 },
-            activeQuests: p.activeQuests || [],
-            questTrackers: p.questTrackers || { tilesMovedNoReturn: 0, biomesVisited: [], turnsLostAccumulated: 0, pvpWinsStreak: 0, gymWinsStreak: 0 }
-        });
+        const player = Game.players.find((p: any) => p.id === targetId);
+        if (player) SupabaseDataStore.savePlayer(player);
     }
 
     static syncPlayers(ids: number[]) {
-        if (!NetworkState.isOnline) return;
         const Game = (window as any).Game;
-        const updates: any = {};
-
         ids.forEach(id => {
-            const p = Game.players.find((pl: any) => pl.id === id) || Game.players[id];
-            if (p) {
-                updates[`rooms/${NetworkState.currentRoomId}/players/${id}`] = {
-                    id: p.id,
-                    name: p.name,
-                    avatar: p.avatar.split('/').pop(),
-                    x: p.x,
-                    y: p.y,
-                    gold: p.gold,
-                    team: this.getSanitizedTeam(p.team),
-                    items: p.items,
-                    skipTurns: p.skipTurns,
-                    badges: p.badges,
-                    cards: p.cards && p.cards.length > 0 ? p.cards : null,
-                    effects: p.effects,
-                    pokedexData: p.pokedexData || {},
-                    stats: p.stats || { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 },
-                    activeQuests: p.activeQuests || [],
-                    questTrackers: p.questTrackers || { tilesMovedNoReturn: 0, biomesVisited: [], turnsLostAccumulated: 0, pvpWinsStreak: 0, gymWinsStreak: 0 }
-                };
-            }
+            const player = Game.players.find((p: any) => p.id === id);
+            if (player) SupabaseDataStore.savePlayer(player);
         });
-
-        update(ref(db), updates);
     }
 
-    static syncLogs(logs: any[]) {
+    static async syncLogs(logs: any[]) {
         if (!NetworkState.isOnline) return;
-        update(ref(db, `rooms/${NetworkState.currentRoomId}`), { logs: logs });
+        // Pega o último log adicionado (que está no index 0 devido ao unshift)
+        if (logs.length > 0) {
+            await SupabaseDataStore.insertRoomLog(NetworkState.currentRoomId, logs[0]);
+        }
     }
 
-    static syncCardLogs(logs: any[]) {
+    static async syncCardLogs(logs: any[]) {
         if (!NetworkState.isOnline) return;
-        update(ref(db, `rooms/${NetworkState.currentRoomId}`), { cardLogs: logs });
+        if (logs.length > 0) await SupabaseDataStore.insertCardLog(NetworkState.currentRoomId, logs[0]);
     }
 
-    static syncTurn(newTurn: number, newRound: number = 1) {
+    static async syncTurn(newTurn: number, newRound: number = 1) {
         if (!NetworkState.isOnline) return;
-        update(ref(db, `rooms/${NetworkState.currentRoomId}`), { turn: newTurn, round: newRound });
+        await supabase
+            .from('rooms')
+            .update({ current_turn: newTurn, current_round: newRound })
+            .eq('id', NetworkState.currentRoomId);
     }
 
     static syncLixeira() {
         if (!NetworkState.isOnline) return;
         const Game = (window as any).Game;
-        update(ref(db, `rooms/${NetworkState.currentRoomId}`), { lixeira: this.getSanitizedTeam(Game.lixeira) });
+        SupabaseDataStore.saveDiscardPile(NetworkState.currentRoomId, Game.lixeira || []);
     }
 
-    static syncBattleLogs(battleId: string, logs: string[]) {
+    static syncBattleLogs(_battleId: string, _logs: string[]) {
         if (!NetworkState.isOnline) return;
-        const updates: any = {};
-        updates[`rooms/${NetworkState.currentRoomId}/battleLogs/${battleId}`] = logs;
-        update(ref(db), updates);
+        // TODO: Adaptar
     }
 }

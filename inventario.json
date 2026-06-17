@@ -1,13 +1,13 @@
 {
   "nomeProjeto": "PokéBoard V64",
-  "descricao": "Jogo de tabuleiro estratégico inspirado em Pokémon, jogável via navegador com suporte a multiplayer (Firebase).",
+  "descricao": "Jogo de tabuleiro estratégico inspirado em Pokémon, jogável via navegador com suporte a multiplayer (Supabase).",
   "versao": "0.0.0",
   "tecnologias": [
     "HTML5",
     "CSS3",
     "TypeScript",
     "Vite",
-    "Firebase Realtime Database",
+    "Supabase (PostgreSQL & Realtime)",
     "Rolldown Vite"
   ],
   "estruturaProjeto": {
@@ -15,12 +15,12 @@
       {
         "nome": "index.html",
         "tipo": "arquivo",
-        "descricao": "Ponto de entrada do jogo. Contém todo o layout base, modais (Batalha, Pokedex, Loja, etc.) e dependências do Firebase."
+        "descricao": "Ponto de entrada do jogo. Contém todo o layout base, modais (Batalha, Pokedex, Loja, etc.) e dependências do Supabase."
       },
       {
         "nome": "package.json",
         "tipo": "arquivo",
-        "descricao": "Arquivo de manifesto do npm com scripts (dev, build, preview) e dependências (typescript, vite, firebase)."
+        "descricao": "Arquivo de manifesto do npm com scripts (dev, build, preview) e dependências (typescript, vite, supabase)."
       },
       {
         "nome": "tsconfig.json",
@@ -98,7 +98,7 @@
     "preview": "Testa o build final de produção simulando um servidor local"
   },
   "informacoesAdicionais": {
-    "mecanicasAtuais": "Batalhas contam com mitigação, chance de crítico, esquiva e bloqueio. Ambiente multiplayer online sincronizando estados pelo Firebase em Salas. Geração inteligente e procedural da grade de mapa na tela. Sistema dinâmico de Missões (Quests) para conceder objetivos e recompensas ao jogador.",
+    "mecanicasAtuais": "Batalhas contam com mitigação, chance de crítico, esquiva e bloqueio. Ambiente multiplayer online sincronizando estados pelo Supabase em Salas. Geração inteligente e procedural da grade de mapa na tela. Sistema dinâmico de Missões (Quests) para conceder objetivos e recompensas ao jogador.",
     "autor": "Danilo Costa S"
   }
 }

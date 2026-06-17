@@ -6,7 +6,7 @@ import { CardUI } from './CardUI';
 import { GLOBAL_EVENTS } from '../../constants/globalEvents';
 import { MAPA_MEGAS } from '../../constants/mapaMegas';
 import { POKEDEX } from '../../constants/pokedex';
-import { ref, update, getDatabase, get } from 'firebase/database';
+import { SupabaseDataStore } from '../network/SupabaseDataStore';
 
 export class CardEffects {
     static async checkAutoDefense(attacker: Player, target: Player, incomingCardId: string, incomingCardName: string): Promise<boolean> {
@@ -87,18 +87,7 @@ export class CardEffects {
 
                 if (Network.isOnline) {
                     try {
-
-                        const db = getDatabase();
-                        const roomPath = `rooms/${Network.currentRoomId}`;
-
-                        const atomicUpdate: any = {};
-                        atomicUpdate[`${roomPath}/players/${attacker.id}/cards`] = attacker.cards && attacker.cards.length > 0 ? attacker.cards : null;
-                        atomicUpdate[`${roomPath}/players/${attacker.id}/effects`] = attacker.effects;
-                        atomicUpdate[`${roomPath}/players/${attacker.id}/stats`] = attacker.stats;
-                        atomicUpdate[`${roomPath}/players/${target.id}/cards`] = target.cards && target.cards.length > 0 ? target.cards : null;
-                        atomicUpdate[`${roomPath}/players/${target.id}/stats`] = target.stats;
-
-                        await update(ref(db), atomicUpdate);
+                        Network.syncPlayers([attacker.id, target.id]);
                     } catch (e) {
                         console.error('[checkAutoDefense] Erro ao sincronizar bloqueio:', e);
                     }
@@ -153,21 +142,7 @@ export class CardEffects {
 
         if (Network.isOnline) {
             try {
-                const { ref, update, getDatabase } = await import('firebase/database');
-                const db = getDatabase();
-                const roomPath = `rooms/${Network.currentRoomId}`;
-                const atomicUpd: any = {};
-
-                const sanitizeTeam = (t: any) => (Network as any).getSanitizedTeam ? (Network as any).getSanitizedTeam(t) : t;
-
-                atomicUpd[`${roomPath}/players/${player.id}/team`] = sanitizeTeam(player.team);
-                atomicUpd[`${roomPath}/players/${player.id}/cards`] = player.cards && player.cards.length > 0 ? player.cards : null;
-                atomicUpd[`${roomPath}/players/${player.id}/stats`] = player.stats;
-
-                atomicUpd[`${roomPath}/players/${target.id}/team`] = sanitizeTeam(target.team);
-                atomicUpd[`${roomPath}/players/${target.id}/stats`] = target.stats;
-
-                await update(ref(db), atomicUpd);
+                Network.syncPlayers([player.id, target.id]);
             } catch (e) { console.error('[executeTrade] Sync Atômico:', e); }
 
             Network.sendAction('SHOW_ALERT', { msg: fullMsg, playerName: player.name, endsTurn: false });
@@ -881,72 +856,28 @@ export class CardEffects {
 
             case 'communism':
                 skipBottomSync = true;
-                if (Network.isOnline) {
-                    try {
-
-                        const db = (window as any).db || getDatabase();
-                        const roomPath = `rooms/${Network.currentRoomId}`;
-                        const roomSnap = await get(ref(db, roomPath));
-                        const roomData = roomSnap.val();
-
-                        let allCardsPool: any[] = [];
-                        const playerIds = Object.keys(roomData.players);
-
-                        playerIds.forEach(id => {
-                            const pData = roomData.players[id];
-                            if (pData.cards && Array.isArray(pData.cards)) {
-                                let cardsToAdd: any[] = []; let legendaryCards: any[] = [];
-                                pData.cards.forEach((c: any) => {
-                                    if (parseInt(id) === player.id && c.id === cardId) { }
-                                    else if (c.rarity === 'Lendária' || c.isProtected) legendaryCards.push(c);
-                                    else cardsToAdd.push(c);
-                                });
-                                pData._legendaries = legendaryCards;
-                                allCardsPool = [...allCardsPool, ...cardsToAdd];
-                            }
-                        });
-
-                        const syncAllUpdates: any = {};
-                        syncAllUpdates[`${roomPath}/global/communism/cards`] = allCardsPool;
-                        playerIds.forEach(id => { syncAllUpdates[`${roomPath}/players/${id}/cards`] = null; });
-                        await update(ref(db), syncAllUpdates);
-
-                        for (let i = allCardsPool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[allCardsPool[i], allCardsPool[j]] = [allCardsPool[j], allCardsPool[i]]; }
-
-                        const perPlayer = Math.floor(allCardsPool.length / playerIds.length);
-                        const leftovers = allCardsPool.length % playerIds.length;
-
-                        const finalSyncUpdates: any = {};
-                        playerIds.forEach(id => {
-                            const newHand = roomData.players[id]._legendaries || [];
-                            for (let i = 0; i < perPlayer; i++) { if (allCardsPool.length > 0) newHand.push(allCardsPool.pop()); }
-                            if (parseInt(id) === player.id) player.cards = newHand;
-                            finalSyncUpdates[`${roomPath}/players/${id}/cards`] = newHand.length > 0 ? newHand : null;
-                        });
-
-                        finalSyncUpdates[`${roomPath}/global/communism`] = null;
-                        await update(ref(db), finalSyncUpdates);
-                        effectLog = `REVOLUCAO GLOBAL! Todas as cartas não protegidas do jogo foram redistribuidas! Cada jogador tem ${perPlayer} cartas. (${leftovers} destruidas)`;
-                    } catch (err) { console.error("Erro no Comunismo Online:", err); effectLog = "Erro na redistribuição global."; }
-                } else {
-                    let offlinePool: any[] = [];
+                {
+                    const cardPool: any[] = [];
                     Game.players.forEach((p: any) => {
-                        let nonLendaries = p.cards.filter((c: any) => c.rarity !== 'Lendária' && !c.isProtected);
-                        p._legendaries = p.cards.filter((c: any) => c.rarity === 'Lendária' || c.isProtected);
-                        offlinePool = [...offlinePool, ...nonLendaries];
-                        p.cards = [];
+                        const protectedCards = p.cards.filter((c: any) => c.rarity === 'Lendária' || c.isProtected);
+                        const freeCards = p.cards.filter((c: any) => {
+                            if (p.id === player.id && c.id === cardId) return false;
+                            return c.rarity !== 'Lendária' && !c.isProtected;
+                        });
+                        p.cards = protectedCards;
+                        cardPool.push(...freeCards);
                     });
 
-                    for (let i = offlinePool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[offlinePool[i], offlinePool[j]] = [offlinePool[j], offlinePool[i]]; }
-                    const perPlayer = Math.floor(offlinePool.length / Game.players.length);
-                    const leftovers = offlinePool.length % Game.players.length;
+                    for (let i = cardPool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[cardPool[i], cardPool[j]] = [cardPool[j], cardPool[i]]; }
+                    const perPlayer = Math.floor(cardPool.length / Game.players.length);
+                    const leftovers = cardPool.length % Game.players.length;
 
                     Game.players.forEach((p: any) => {
-                        p.cards = [...(p._legendaries || [])];
-                        for (let i = 0; i < perPlayer; i++) { if (offlinePool.length > 0) p.cards.push(offlinePool.pop()); }
+                        for (let i = 0; i < perPlayer; i++) { if (cardPool.length > 0) p.cards.push(cardPool.pop()); }
                         Game.sendGlobalLog(`🃏 [Extrato] ${p.name} agora possui ${p.cards.length} cartas (Comunismo).`);
                     });
-                    effectLog = `REVOLUCAO local! Cartas redistribuidas! Cada jogador tem ${perPlayer} cartas. (${leftovers} destruidas)`;
+                    if (Network.isOnline) Network.syncPlayers(Game.players.map((p: any) => p.id));
+                    effectLog = `REVOLUCAO GLOBAL! Todas as cartas não protegidas do jogo foram redistribuidas! Cada jogador tem ${perPlayer} cartas. (${leftovers} destruidas)`;
                 }
 
                 Game.updateHUD();
@@ -967,59 +898,29 @@ export class CardEffects {
 
             case 'imposto':
                 skipBottomSync = true;
-                if (Network.isOnline) {
-                    try {
-
-                        const db = (window as any).db || getDatabase();
-                        const roomPath = `rooms/${Network.currentRoomId}`;
-                        const roomSnap = await get(ref(db, roomPath));
-                        const roomData = roomSnap.val();
-
-                        const playerIds = Object.keys(roomData.players);
-                        const impUpdates: any = {};
-                        let totalCardsL = 0; let totalItemsL = 0;
-
-                        playerIds.forEach(id => {
-                            const pData = roomData.players[id];
-                            const cards = pData.cards ? [...pData.cards] : [];
-                            if (parseInt(id) === player.id) {
-                                const impIdx = cards.findIndex((c: any) => c.id === cardId);
-                                if (impIdx > -1) cards.splice(impIdx, 1);
-                            }
-
-                            const legendaries = cards.filter(c => c.rarity === 'Lendária' || c.isProtected);
-                            const others = cards.filter(c => c.rarity !== 'Lendária' && !c.isProtected);
-
-                            const toRemoveC = Math.floor(others.length / 2);
-                            for (let i = 0; i < toRemoveC; i++) { others.splice(Math.floor(Math.random() * others.length), 1); totalCardsL++; }
-
-                            const finalCards = [...legendaries, ...others];
-                            const items = pData.items || {};
-                            Object.keys(items).forEach(k => {
-                                if (items[k] > 0) { const toRemoveI = Math.floor(items[k] / 2); items[k] -= toRemoveI; totalItemsL += toRemoveI; }
-                            });
-
-                            impUpdates[`${roomPath}/players/${id}/cards`] = finalCards.length > 0 ? finalCards : null;
-                            impUpdates[`${roomPath}/players/${id}/items`] = items;
-
-                            if (parseInt(id) === player.id) { player.cards = finalCards; player.items = items; }
-                        });
-
-                        await update(ref(db), impUpdates);
-                        effectLog = `A RECEITA FEDERAL CHEGOU! O Leao abocanhou a conta de todos na mesa! (${totalCardsL} cartas desprotegidas e ${totalItemsL} itens retidos!)`;
-                    } catch (err) { console.error("Erro no Imposto:", err); effectLog = "Erro na coleta de impostos."; }
-                } else {
-                    let totalOfflineC = 0; let totalOfflineI = 0;
+                {
+                    let totalCardsL = 0; let totalItemsL = 0;
                     Game.players.forEach((p: any) => {
-                        const legendaries = p.cards.filter((c: any) => c.rarity === 'Lendária' || c.isProtected);
-                        const others = p.cards.filter((c: any) => c.rarity !== 'Lendária' && !c.isProtected);
-                        const toRemC = Math.floor(others.length / 2);
-                        for (let i = 0; i < toRemC; i++) { others.splice(Math.floor(Math.random() * others.length), 1); totalOfflineC++; }
+                        const cards = [...p.cards];
+                        if (p.id === player.id) {
+                            const impIdx = cards.findIndex((c: any) => c.id === cardId);
+                            if (impIdx > -1) cards.splice(impIdx, 1);
+                        }
+                        const legendaries = cards.filter((c: any) => c.rarity === 'Lendária' || c.isProtected);
+                        const others = cards.filter((c: any) => c.rarity !== 'Lendária' && !c.isProtected);
+                        const toRemoveCards = Math.floor(others.length / 2);
+                        for (let i = 0; i < toRemoveCards; i++) { others.splice(Math.floor(Math.random() * others.length), 1); totalCardsL++; }
                         p.cards = [...legendaries, ...others];
-
-                        Object.keys(p.items).forEach(k => { const toRemI = Math.floor(p.items[k] / 2); p.items[k] -= toRemI; totalOfflineI += toRemI; });
+                        Object.keys(p.items).forEach(k => {
+                            if (p.items[k] > 0) {
+                                const toRemoveItems = Math.floor(p.items[k] / 2);
+                                p.items[k] -= toRemoveItems;
+                                totalItemsL += toRemoveItems;
+                            }
+                        });
                     });
-                    effectLog = `IMPOSTO! O Leao passou por aqui! (${totalOfflineC} cartas desprotegidas e ${totalOfflineI} itens perdidos!)`;
+                    if (Network.isOnline) Network.syncPlayers(Game.players.map((p: any) => p.id));
+                    effectLog = `A RECEITA FEDERAL CHEGOU! O Leao abocanhou a conta de todos na mesa! (${totalCardsL} cartas desprotegidas e ${totalItemsL} itens retidos!)`;
                 }
 
                 Game.updateHUD();
@@ -1275,36 +1176,17 @@ export class CardEffects {
 
             if (Network.isOnline && !skipBottomSync) {
                 try {
-                    const db = getDatabase();
-                    const roomPath = `rooms/${Network.currentRoomId}`;
-                    const atomicUpd: any = {};
-
-                    const sanitize = (p: any) => ({
-                        id: p.id, name: p.name,
-                        avatar: typeof p.avatar === 'string' && p.avatar.includes('/') ? p.avatar.split('/').pop() : p.avatar,
-                        x: p.x, y: p.y, gold: p.gold,
-                        team: (Network as any).getSanitizedTeam ? (Network as any).getSanitizedTeam(p.team) : p.team,
-                        items: p.items || {}, skipTurns: p.skipTurns || 0, badges: p.badges || [],
-                        cards: p.cards && p.cards.length > 0 ? p.cards : null,
-                        effects: p.effects || {}, pokedexData: p.pokedexData || {},
-                        stats: p.stats || { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 },
-                        activeQuests: p.activeQuests || [],
-                        questTrackers: p.questTrackers || { tilesMovedNoReturn: 0, biomesVisited: [], turnsLostAccumulated: 0, pvpWinsStreak: 0, gymWinsStreak: 0 }
-                    });
-
                     if (requiresGlobalSync) {
-                        Game.players.forEach((p: any) => { atomicUpd[`${roomPath}/players/${p.id}`] = sanitize(p); });
+                        Network.syncPlayers(Game.players.map((p: any) => p.id));
                     } else {
-                        atomicUpd[`${roomPath}/players/${player.id}`] = sanitize(player);
-                        if (targetObjForSync) atomicUpd[`${roomPath}/players/${targetObjForSync.id}`] = sanitize(targetObjForSync);
+                        const ids = [player.id];
+                        if (targetObjForSync) ids.push(targetObjForSync.id);
+                        Network.syncPlayers(ids);
                     }
 
                     if (cardId === 'change_event') {
-                        atomicUpd[`${roomPath}/currentEventId`] = Game.currentGlobalEvent ? Game.currentGlobalEvent.id : null;
-                        atomicUpd[`${roomPath}/eventEndRound`] = Game.eventEndRound;
+                        SupabaseDataStore.setGlobalEvent(Network.currentRoomId, Game.currentGlobalEvent ? Game.currentGlobalEvent.id : null, Game.eventEndRound);
                     }
-
-                    await update(ref(db), atomicUpd);
                 } catch (e) { console.error("Erro no Sync Atômico Final:", e); }
 
                 if (cardId !== 'new_leader' && cardId !== 'reroll' && cardId !== 'dice' && cardId !== 'illegal_adoption') {

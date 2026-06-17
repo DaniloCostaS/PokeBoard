@@ -1,15 +1,14 @@
-import { db, NetworkState } from './FirebaseInit';
+import { supabase, NetworkState } from './SupabaseInit';
 import { NetworkSync } from './NetworkSync';
 import { Player } from '../../models/Player';
-import { Pokemon } from '../../models/Pokemon';
 import { MapSystem } from '../../systems/MapSystem';
 import { Setup } from '../../core/Setup';
 import { GameState } from '../game/GameState';
 import { GameUI } from '../game/GameUI';
-import { GLOBAL_EVENTS } from '../../constants/globalEvents';
-import { ref, get, onValue, update } from 'firebase/database';
+import { SupabaseDataStore } from './SupabaseDataStore';
 
 export class NetworkActions {
+    private static playerRefreshTimer: number | null = null;
 
     static checkInput(): boolean {
         const nameInput = document.getElementById('online-player-name') as HTMLInputElement;
@@ -20,29 +19,31 @@ export class NetworkActions {
         return true;
     }
 
-    static reconnect() {
+    static async reconnect() {
         const stored = localStorage.getItem('pkbd_session');
         if (stored) {
             const sess = JSON.parse(stored);
-            get(ref(db, `rooms/${sess.roomId}`)).then((snapshot) => {
-                const roomData = snapshot.val();
-                if (roomData && roomData.players && roomData.players[sess.id]) {
-                    const playerData = roomData.players[sess.id];
+            const { data: roomData, error } = await supabase.from('rooms').select('*, room_players(*)').eq('id', sess.roomId).single();
+            if (roomData && !error) {
+                const playerData = roomData.room_players.find((p: any) => p.local_index === sess.id);
+                if (playerData) {
                     NetworkState.currentRoomId = sess.roomId;
+                    NetworkState.currentRoomAlias = roomData.alias;
                     NetworkState.myPlayerId = sess.id;
+                    NetworkState.myPlayerIdDb = playerData.id;
                     NetworkState.isHost = (sess.id === 0);
                     NetworkState.isOnline = true;
                     NetworkState.localName = playerData.name;
                     NetworkState.localAvatar = playerData.avatar;
 
-                    if (roomData.status === "LOBBY") {
+                    if (roomData.status === "waiting") {
                         document.getElementById('setup-screen')!.style.display = 'block';
                         document.getElementById('menu-phase-1')!.style.display = 'none';
                         document.getElementById('online-login')!.style.display = 'none';
                         document.getElementById('menu-phase-online')!.style.display = 'block';
                         
                         document.getElementById('lobby-status')!.style.display = 'block';
-                        document.getElementById('lobby-status')!.innerHTML = `Conectado à sala: <b>${sess.roomId}</b> ${NetworkState.isHost ? '<br>Você é o HOST' : ''}`;
+                        document.getElementById('lobby-status')!.innerHTML = `Conectado à sala: <b>${roomData.alias || sess.roomId}</b> ${NetworkState.isHost ? '<br>Você é o HOST' : ''}`;
                         
                         Setup.showLobbyUIOnly();
                         this.setupLobbyListener();
@@ -50,517 +51,342 @@ export class NetworkActions {
                         document.getElementById('setup-screen')!.style.display = 'none';
                         document.getElementById('game-container')!.style.display = 'flex';
                         this.setupLobbyListener();
-                        this.initializeGameFromFirebase();
+                        this.initializeGameFromSupabase();
                     }
-                } else {
-                    alert("Sessão inválida ou jogo encerrado.");
-                    localStorage.removeItem('pkbd_session');
-                    setTimeout(() => location.reload(), 3000);
+                    return;
                 }
-            }).catch(() => { alert("Erro ao reconectar."); });
+            }
+            alert("Sessão inválida ou jogo encerrado.");
+            localStorage.removeItem('pkbd_session');
+            setTimeout(() => location.reload(), 3000);
         }
     }
-
 
     static async createRoom() {
         if (!this.checkInput()) return;
         await NetworkSync.loadGlobalChampion();
 
         const customInput = (document.getElementById('custom-room-code') as HTMLInputElement);
-        let roomCode = "";
-
-        if (customInput && customInput.value.trim().length > 0) {
-            roomCode = customInput.value.trim().toUpperCase();
-            if (/[.#$\[\]]/.test(roomCode)) {
-                return alert("O código da sala não pode conter símbolos especiais (. # $ [ ]).");
-            }
-        } else {
-            roomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
+        
+        const roomAlias = customInput ? customInput.value.trim() : "";
+        if (!roomAlias) {
+            alert("Você precisa digitar um Apelido para a Sala!");
+            return;
         }
 
+        // Criando a sala
+        const { data: room, error: roomError } = await supabase.from('rooms').insert([{ status: 'waiting', map_size: 20, alias: roomAlias }]).select().single();
+        if (roomError || !room) {
+            console.error(roomError);
+            if (roomError?.code === '23505') {
+                alert("Este apelido de sala já está em uso! Escolha outro.");
+            } else {
+                alert("Erro ao criar sala!");
+            }
+            return;
+        }
+        
+        const roomCode = room.id;
+
         NetworkState.currentRoomId = roomCode;
+        NetworkState.currentRoomAlias = roomAlias;
         NetworkState.myPlayerId = 0;
         NetworkState.isHost = true;
 
         const myPlayerObj = new Player(0, NetworkState.localName, NetworkState.localAvatar, false);
 
+        // Inserir Player 0
+        const { data: playerDb, error: playerError } = await supabase.from('room_players').insert([{
+            room_id: roomCode,
+            local_index: 0,
+            name: myPlayerObj.name,
+            avatar: NetworkState.localAvatar,
+            gold: myPlayerObj.gold,
+            x: 0, y: 0
+        }]).select().single();
+
+        if (playerError || !playerDb) return alert("Erro ao criar jogador na sala.");
+        NetworkState.myPlayerIdDb = playerDb.id;
+
         MapSystem.generate(20);
-        const Game = (window as any).Game;
-        if (Game.generateGymTeams) Game.generateGymTeams();
-
-        const allGyms = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
-        const shuffledGyms = allGyms.sort(() => Math.random() - 0.5).slice(0, 8);
-
-        const initialData = {
-            status: "LOBBY",
-            turn: 0,
-            round: 1,
-            mapSize: 20,
-            activeGyms: shuffledGyms,
-            map: {
-                size: 20,
-                grid: MapSystem.grid,
-                gymLocations: MapSystem.gymLocations
-            },
-            gymTeams: Game.gymTeams || {},
-            players: {
-                0: {
-                    name: myPlayerObj.name,
-                    avatar: NetworkState.localAvatar,
-                    id: 0,
-                    x: 0,
-                    y: 0,
-                    gold: myPlayerObj.gold,
-                    items: myPlayerObj.items,
-                    cards: myPlayerObj.cards,
-                    team: myPlayerObj.team,
-                    skipTurns: 0,
-                    badges: myPlayerObj.badges,
-                    effects: {},
-                    pokedexData: myPlayerObj.pokedexData || {},
-                    activeQuests: [],
-                    questTrackers: { tilesMovedNoReturn: 0, biomesVisited: [], turnsLostAccumulated: 0, pvpWinsStreak: 0, gymWinsStreak: 0 }
-                }
-            },
-            lastAction: { type: "INIT", timestamp: Date.now() }
-        };
-
-        const updates: any = {};
-        updates['rooms/' + roomCode] = initialData;
-
-        const loggedUser = (window as any).loggedUser;
-        if (loggedUser) {
-            updates[`users/${loggedUser}/rooms/${roomCode}`] = true;
-        }
-
-        await update(ref(db), updates);
 
         localStorage.setItem('pkbd_session', JSON.stringify({ roomId: roomCode, id: 0 }));
         NetworkState.isOnline = true;
         this.setupLobbyListener();
 
         document.getElementById('lobby-status')!.style.display = 'block';
-        document.getElementById('lobby-status')!.innerHTML = `Sala Criada: <b>${roomCode}</b><br>Você é o HOST`;
+        document.getElementById('lobby-status')!.innerHTML = `Sala Criada!<br><span style="font-size:14px; font-weight:bold;">${roomAlias}</span><br>Você é o HOST`;
         document.getElementById('host-controls')!.style.display = 'block';
     }
 
     static async joinRoom(roomCode?: string) {
         if (!this.checkInput()) return;
-        const code = (roomCode || (document.getElementById('room-code-input') as HTMLInputElement).value).toUpperCase();
-        if (!code) return alert("Digite o código!");
+        const code = (roomCode || (document.getElementById('room-code-input') as HTMLInputElement).value).trim();
+        if (!code) return alert("Digite o Apelido da sala!");
 
-        const roomRef = ref(db, 'rooms/' + code);
-        const snapshot = await get(roomRef);
-        if (!snapshot.exists()) return alert("Sala não encontrada!");
+        const { data: roomData, error } = await supabase.from('rooms').select('*, room_players(*)').eq('alias', code).single();
+        if (error || !roomData) return alert("Sala não encontrada! Verifique o Apelido.");
 
-        const data = snapshot.val();
-        if (data.status === "PLAYING") {
-            const existingPlayers = Object.values(data.players || {}).filter((p: any) => p !== null && p !== undefined);
-            const found = existingPlayers.find((p: any) => p.name === NetworkState.localName);
+        if (roomData.status === "playing") {
+            const found = roomData.room_players.find((p: any) => p.name === NetworkState.localName);
             if (found) {
-                NetworkState.myPlayerId = (found as any).id;
-                NetworkState.currentRoomId = code;
+                NetworkState.myPlayerId = found.local_index;
+                NetworkState.myPlayerIdDb = found.id;
+                NetworkState.currentRoomId = roomData.id;
+                NetworkState.currentRoomAlias = roomData.alias;
                 NetworkState.isHost = (NetworkState.myPlayerId === 0);
-                localStorage.setItem('pkbd_session', JSON.stringify({ roomId: code, id: NetworkState.myPlayerId }));
+                localStorage.setItem('pkbd_session', JSON.stringify({ roomId: roomData.id, id: NetworkState.myPlayerId }));
                 NetworkState.isOnline = true;
                 this.setupLobbyListener();
-                this.initializeGameFromFirebase();
+                this.initializeGameFromSupabase();
                 return;
             } else {
                 return alert("Jogo já começou e seu nome não está na lista!");
             }
         }
 
-        const players = data.players || {};
-        const existingPlayers = Object.values(players).filter((p: any) => p !== null && p !== undefined);
+        const existingPlayers = roomData.room_players || [];
         const nameFound = existingPlayers.find((p: any) => p.name === NetworkState.localName);
 
         let targetId = existingPlayers.length;
-        let isRejoining = false;
-
         if (nameFound) {
-            targetId = (nameFound as any).id;
-            isRejoining = true;
+            targetId = nameFound.local_index;
         } else {
-            const existingIds = existingPlayers.map((p: any) => p.id);
+            const existingIds = existingPlayers.map((p: any) => p.local_index);
             targetId = existingIds.length > 0 ? Math.max(...existingIds) + 1 : 0;
             if (existingPlayers.length >= 8) return alert("Sala cheia!");
         }
 
-        // Check if another player is already using this avatar
-        const selectedAvatar = NetworkState.localAvatar;
         const isAvatarTaken = existingPlayers.some((p: any) => {
-            if (isRejoining && p.id === targetId) return false;
+            if (nameFound && p.local_index === targetId) return false;
             const avFile = (p.avatar || "").split('/').pop();
-            const selFile = selectedAvatar.split('/').pop();
+            const selFile = NetworkState.localAvatar.split('/').pop();
             return avFile === selFile;
         });
 
-        if (isAvatarTaken) {
-            return alert("Este avatar já foi escolhido por outro jogador na sala! Escolha outro antes de entrar.");
-        }
+        if (isAvatarTaken) return alert("Avatar já escolhido por outro jogador!");
 
         NetworkState.myPlayerId = targetId;
-        NetworkState.currentRoomId = code;
+        NetworkState.currentRoomId = roomData.id;
+        NetworkState.currentRoomAlias = roomData.alias;
         NetworkState.isHost = (targetId === 0);
 
-        const myPlayerObj = new Player(NetworkState.myPlayerId, NetworkState.localName, NetworkState.localAvatar, false);
+        const myPlayerObj = new Player(targetId, NetworkState.localName, NetworkState.localAvatar, false);
 
-        const newPlayer = {
-            name: myPlayerObj.name,
-            avatar: NetworkState.localAvatar,
-            id: NetworkState.myPlayerId,
-            x: 0,
-            y: 0,
-            gold: myPlayerObj.gold,
-            items: myPlayerObj.items,
-            cards: myPlayerObj.cards,
-            team: myPlayerObj.team,
-            skipTurns: 0,
-            badges: myPlayerObj.badges,
-            effects: {},
-            pokedexData: myPlayerObj.pokedexData || {},
-            activeQuests: [],
-            questTrackers: { tilesMovedNoReturn: 0, biomesVisited: [], turnsLostAccumulated: 0, pvpWinsStreak: 0, gymWinsStreak: 0 }
-        };
-
-        const updates: any = {};
-        updates[`rooms/${code}/players/${NetworkState.myPlayerId}`] = newPlayer;
-
-        const loggedUser = (window as any).loggedUser;
-        if (loggedUser) {
-            updates[`users/${loggedUser}/rooms/${code}`] = true;
+        if (!nameFound) {
+            const { data: playerDb } = await supabase.from('room_players').insert([{
+                room_id: roomData.id,
+                local_index: targetId,
+                name: myPlayerObj.name,
+                avatar: NetworkState.localAvatar,
+                gold: myPlayerObj.gold,
+                x: 0, y: 0
+            }]).select().single();
+            if (playerDb) NetworkState.myPlayerIdDb = playerDb.id;
+        } else {
+            NetworkState.myPlayerIdDb = nameFound.id;
         }
 
-        await update(ref(db), updates);
-        
-        localStorage.setItem('pkbd_session', JSON.stringify({ roomId: code, id: NetworkState.myPlayerId }));
+        localStorage.setItem('pkbd_session', JSON.stringify({ roomId: roomData.id, id: NetworkState.myPlayerId }));
         NetworkState.isOnline = true;
         this.setupLobbyListener();
 
         document.getElementById('lobby-status')!.style.display = 'block';
-        document.getElementById('lobby-status')!.innerHTML = `Conectado à sala: <b>${code}</b> ${NetworkState.isHost ? '<br>Você é o HOST' : ''}`;
+        document.getElementById('lobby-status')!.innerHTML = `Conectado à sala: <b>${roomData.alias}</b> ${NetworkState.isHost ? '<br>Você é o HOST' : ''}`;
         Setup.showLobbyUIOnly();
     }
 
     static setupLobbyListener() {
-        const playersRef = ref(db, `rooms/${NetworkState.currentRoomId}/players`);
-        const statusRef = ref(db, `rooms/${NetworkState.currentRoomId}/status`);
+        supabase.channel(`lobby:${NetworkState.currentRoomId}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'room_players', filter: `room_id=eq.${NetworkState.currentRoomId}` }, async () => {
+                const { data: players } = await supabase.from('room_players').select('*').eq('room_id', NetworkState.currentRoomId);
+                if (!players) return;
+                NetworkState.lobbyPlayers = players.sort((a: any,b: any) => a.local_index - b.local_index);
 
-        onValue(playersRef, (snapshot) => {
-            const players = snapshot.val();
-            if (!players) {
-                if (NetworkState.isOnline && !NetworkState.isHost) {
-                    alert("A sala foi desfeita pelo Host.");
+                const stillExists = NetworkState.lobbyPlayers.some((p: any) => p.local_index === NetworkState.myPlayerId);
+                if (!stillExists && !NetworkState.isHost && NetworkState.isOnline) {
+                    alert("Você foi removido da sala pelo Host.");
                     localStorage.removeItem('pkbd_session');
                     setTimeout(() => location.reload(), 3000);
+                    return;
                 }
-                return;
-            }
-            
-            // Filter nulls/undefineds to handle Firebase sequential array conversion gaps
-            NetworkState.lobbyPlayers = Object.values(players).filter((p: any) => p !== null && p !== undefined);
 
-            // Check if local player was removed
-            const stillExists = NetworkState.lobbyPlayers.some((p: any) => p.id === NetworkState.myPlayerId);
-            if (!stillExists && !NetworkState.isHost && NetworkState.isOnline) {
-                alert("Você foi removido da sala pelo Host.");
-                localStorage.removeItem('pkbd_session');
-                setTimeout(() => location.reload(), 3000);
-                return;
-            }
+                const list = document.getElementById('online-lobby-list')!;
+                list.style.display = 'block';
 
-            const list = document.getElementById('online-lobby-list')!;
-            list.style.display = 'block';
-
-            list.innerHTML = NetworkState.lobbyPlayers.map((p: any) => {
-                const avatarFile = (p.avatar || "Red.jpg").split('/').pop();
-                let removeBtn = '';
-                if (NetworkState.isHost && p.id !== 0) {
-                    removeBtn = `<button class="btn btn-danger" style="padding: 2px 6px; font-size: 0.75rem; margin-left: 10px; background: #e74c3c; border: none; border-radius: 4px; color: white;" onclick="window.Network.removePlayer(${p.id})">Remover</button>`;
-                }
-                return `<div class="lobby-player-item"><img src="/assets/img/Treinadores/${avatarFile}"><span><b>P${p.id + 1}</b>: ${p.name} ${p.id === 0 ? '(HOST)' : ''}${removeBtn}</span></div>`;
-            }).join('');
-        });
-
-        onValue(statusRef, (snapshot) => {
-            const status = snapshot.val();
-            if (status === 'PLAYING') { this.initializeGameFromFirebase(); }
-        });
+                list.innerHTML = NetworkState.lobbyPlayers.map((p: any) => {
+                    const avatarFile = (p.avatar || "Red.jpg").split('/').pop();
+                    let removeBtn = '';
+                    if (NetworkState.isHost && p.local_index !== 0) {
+                        removeBtn = `<button class="btn btn-danger" style="padding: 2px 6px; font-size: 0.75rem; margin-left: 10px; background: #e74c3c; border: none; border-radius: 4px; color: white;" onclick="window.Network.removePlayer(${p.local_index})">Remover</button>`;
+                    }
+                    return `<div class="lobby-player-item"><img src="/assets/img/Treinadores/${avatarFile}"><span><b>P${p.local_index + 1}</b>: ${p.name} ${p.local_index === 0 ? '(HOST)' : ''}${removeBtn}</span></div>`;
+                }).join('');
+            })
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'rooms', filter: `id=eq.${NetworkState.currentRoomId}` }, (payload) => {
+                if (payload.new.status === 'playing') { this.initializeGameFromSupabase(); }
+            }).subscribe();
     }
 
     static async removePlayer(playerId: number) {
         if (!NetworkState.isHost) return;
-        try {
-            const updates: any = {};
-            updates[`rooms/${NetworkState.currentRoomId}/players/${playerId}`] = null;
-            await update(ref(db), updates);
-        } catch (e) {
-            console.error("Erro ao remover jogador:", e);
-        }
+        await supabase.from('room_players').delete().eq('room_id', NetworkState.currentRoomId).eq('local_index', playerId);
     }
 
-    static async initializeGameFromFirebase() {
+    static async initializeGameFromSupabase() {
         const Game = (window as any).Game;
         await NetworkSync.loadGlobalChampion();
-        const snapshot = await get(ref(db, `rooms/${NetworkState.currentRoomId}`));
-        const data = snapshot.val();
+        
+        // Removido o update do Host para playing, pois o Setup já faz isso e causa loop infinito
+        
+        const { data: roomData } = await supabase
+            .from('rooms')
+            .select('*, room_players(*, player_pokemons(*), player_items(*), player_cards(*), player_badges(*), player_effects(*), player_stats(*), player_pokedex(*))')
+            .eq('id', NetworkState.currentRoomId)
+            .single();
+        if (!roomData) return;
 
-        Game.round = data.round || 1;
+        Game.turn = roomData.current_turn !== undefined ? roomData.current_turn : 0;
+        Game.round = roomData.current_round || 1;
+        const boardState = await SupabaseDataStore.loadBoard(roomData);
+        Game.settings = boardState.settings;
+        Game.activeGyms = boardState.activeGyms;
+        Game.gymTeams = boardState.gymTeams;
+        const eventState = SupabaseDataStore.eventFromRoom(roomData);
+        Game.currentGlobalEvent = eventState.currentGlobalEvent;
+        Game.eventEndRound = eventState.eventEndRound;
 
-        if (data.map) {
-            MapSystem.size = data.map.size;
-            MapSystem.grid = data.map.grid;
-            MapSystem.gymLocations = data.map.gymLocations || {};
-        } else { return; }
-
-        if (data.gymTeams) Game.gymTeams = data.gymTeams;
-        Game.activeGyms = data.activeGyms || [1, 2, 3, 4, 5, 6, 7, 8];
-
-        if (data.logs) {
-            Game.globalLogs = data.logs;
+        // Fetch logs
+        const { data: logsData } = await supabase.from('room_logs').select('*').eq('room_id', NetworkState.currentRoomId).order('created_at', { ascending: false }).limit(200);
+        if (logsData) {
+            Game.globalLogs = logsData.map((row: any) => SupabaseDataStore.logFromRow(row));
             const GameUIObj = (window as any).GameUI || GameUI;
-            if (GameUIObj.renderAllLogs) {
-                GameUIObj.renderAllLogs();
-            }
+            if (GameUIObj.renderAllLogs) GameUIObj.renderAllLogs();
         }
 
-        if (data.battleLogs) {
-            GameState.battleLogs = data.battleLogs;
-        }
-
-        if (data.lixeira) {
-            Game.lixeira = data.lixeira.map((td: any) => {
-                const po = new Pokemon(td.id, td.level, td.isShiny);
-                Object.assign(po, td);
-                return po;
-            });
-        } else {
-            Game.lixeira = [];
-        }
-
-        if (data.cardLogs) {
-            GameState.cardLogs = data.cardLogs;
-            GameUI.renderCardLogs();
-        } else {
-            GameState.cardLogs = [];
-            GameUI.renderCardLogs();
-        }
-
-        const playerArray = Object.values(data.players)
-            .filter((pd: any) => pd !== null && pd !== undefined)
-            .map((pd: any) => {
-                const avatarFile = (pd.avatar || "Red.jpg").split('/').pop();
-                const pl = new Player(pd.id, pd.name, avatarFile, true);
-                pl.x = pd.x; pl.y = pd.y; pl.gold = pd.gold;
-
-                pl.skipTurns = pd.skipTurns || 0;
-                pl.badges = pd.badges || [false, false, false, false, false, false, false, false];
-                pl.cards = pd.cards || [];
-                pl.effects = pd.effects || {};
-                pl.pokedexData = pd.pokedexData || {};
-                pl.stats = pd.stats || { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
-                pl.activeQuests = pd.activeQuests || [];
-                pl.questTrackers = pd.questTrackers || { tilesMovedNoReturn: 0, biomesVisited: [], turnsLostAccumulated: 0, pvpWinsStreak: 0, gymWinsStreak: 0 };
-
-                if (pd.team && pd.team.length > 0) {
-                    pl.team = pd.team.map((td: any) => {
-                        const po = new Pokemon(td.id, td.level, td.isShiny);
-                        Object.assign(po, td);
-                        if (td.happiness !== undefined) po.happiness = Number(td.happiness);
-                        return po;
-                    });
-                }
-                if (pd.items) pl.items = pd.items;
-                return pl;
-            });
-
-        // Update local player ID based on name matching
-        const me = playerArray.find((p: any) => p.name === NetworkState.localName);
-        if (me) {
-            NetworkState.myPlayerId = me.id;
-            localStorage.setItem('pkbd_session', JSON.stringify({ roomId: NetworkState.currentRoomId, id: me.id }));
-            NetworkState.isHost = (me.id === 0);
-        }
-
-        if (data.playOrder) {
-            playerArray.sort((a: Player, b: Player) => data.playOrder.indexOf(a.id) - data.playOrder.indexOf(b.id));
-        } else {
-            playerArray.sort((a: Player, b: Player) => a.id - b.id);
-        }
+        const playerArray = SupabaseDataStore.hydratePlayers(roomData.room_players || []);
+        GameState.cardLogs = await SupabaseDataStore.loadCardLogs(NetworkState.currentRoomId);
+        GameState.lixeira = await SupabaseDataStore.loadDiscardPile(NetworkState.currentRoomId);
 
         document.getElementById('setup-screen')!.style.display = 'none';
         document.getElementById('game-container')!.style.display = 'flex';
-        Game.init(playerArray, MapSystem.size, data.settings);
+        Game.init(playerArray, MapSystem.size, boardState.settings);
         this.setupGameLoopListener();
-
-        if (data.status === "FINISHED" && data.winnerId !== undefined) {
-            setTimeout(() => {
-                Game.triggerVictory(data.winnerId);
-            }, 500);
-        }
     }
-
 
     static setupGameLoopListener() {
         const Game = (window as any).Game;
         if (NetworkState.isListenerActive) return;
         NetworkState.isListenerActive = true;
 
-        onValue(ref(db, `rooms/${NetworkState.currentRoomId}/lastAction`), (snapshot) => {
-            const action = snapshot.val();
-            if (!action || action.type === 'INIT') return;
-            this.handleRemoteAction(action);
-        });
+        const channel = supabase.channel(`room:${NetworkState.currentRoomId}`, { config: { broadcast: { self: false } } });
+        const refreshPlayerTables = ['player_pokemons', 'player_items', 'player_cards', 'player_badges', 'player_effects', 'player_stats', 'player_pokedex'];
 
-        onValue(ref(db, `rooms/${NetworkState.currentRoomId}/turn`), (snapshot) => {
-            const turn = snapshot.val();
-            if (turn !== null) {
-                Game.turn = turn;
-                Game.updateHUD();
-                Game.moveVisuals(); // Forçar atualização visual ao mudar o turno
-                if (typeof Game.checkTurnControl === 'function') Game.checkTurnControl();
-            }
-        });
-
-        onValue(ref(db, `rooms/${NetworkState.currentRoomId}/round`), (snapshot) => {
-            const round = snapshot.val();
-            if (round !== null) {
-                Game.round = round;
-                Game.updateHUD();
-                Game.moveVisuals(); // Forçar atualização visual ao mudar a rodada
-                if (typeof Game.checkTurnControl === 'function') Game.checkTurnControl();
-            }
-        });
-
-        onValue(ref(db, `rooms/${NetworkState.currentRoomId}/currentEventId`), (snapshot) => {
-            const evId = snapshot.val();
-            Game.currentGlobalEvent = GLOBAL_EVENTS.find((e: any) => e.id === evId) || null;
-            Game.updateHUD();
-        });
-
-        onValue(ref(db, `rooms/${NetworkState.currentRoomId}/eventEndRound`), (snapshot) => {
-            Game.eventEndRound = snapshot.val() || 0;
-        });
-
-
-        onValue(ref(db, `rooms/${NetworkState.currentRoomId}/lixeira`), (snapshot) => {
-            const lixeiraData = snapshot.val();
-            if (lixeiraData) {
-                Game.lixeira = lixeiraData.map((td: any) => {
-                    const po = new Pokemon(td.id, td.level, td.isShiny);
-                    Object.assign(po, td);
-                    return po;
-                });
-            } else {
-                Game.lixeira = [];
-            }
-        });
-
-        onValue(ref(db, `rooms/${NetworkState.currentRoomId}/cardLogs`), (snapshot) => {
-            const data = snapshot.val();
-            if (data) {
-                GameState.cardLogs = data;
-                GameUI.renderCardLogs();
-            }
-        });
-
-        onValue(ref(db, `rooms/${NetworkState.currentRoomId}/players`), (snapshot) => {
-            const playersData = snapshot.val();
-            if (!playersData) return;
-
-            Object.values(playersData).filter((pd: any) => pd !== null && pd !== undefined).forEach((pd: any) => {
-                const localPlayer = Game.players.find((p: any) => p.id == pd.id);
+        channel.on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'rooms', filter: `id=eq.${NetworkState.currentRoomId}` }, (payload) => {
+                const newRecord = payload.new;
+                if (newRecord.current_turn !== undefined && newRecord.current_turn !== Game.turn) {
+                    Game.turn = newRecord.current_turn;
+                    Game.updateHUD();
+                    Game.moveVisuals();
+                    if (typeof Game.checkTurnControl === 'function') Game.checkTurnControl();
+                }
+                if (newRecord.current_round !== undefined && newRecord.current_round !== Game.round) {
+                    Game.round = newRecord.current_round;
+                    Game.updateHUD();
+                    Game.moveVisuals();
+                    if (typeof Game.checkTurnControl === 'function') Game.checkTurnControl();
+                }
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'room_players', filter: `room_id=eq.${NetworkState.currentRoomId}` }, () => {
+                this.schedulePlayerRefresh();
+            })
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'room_players', filter: `room_id=eq.${NetworkState.currentRoomId}` }, (payload) => {
+                const pData = payload.new;
+                const localPlayer = Game.players.find((p: any) => p.id === pData.local_index);
+                
                 if (localPlayer) {
                     const isMeAndMyTurn = (localPlayer.id === NetworkState.myPlayerId && Game.canAct && Game.canAct());
-                    
-                    // Só evita sincronizar x,y se for meu turno E eu já tiver rolado o dado (estiver em movimento)
-                    // Caso contrário, sincroniza para corrigir eventuais atrasos ou erros visuais do início do turno
+                    if (isMeAndMyTurn && (GameState.turnStarted || GameState.hasRolled)) return;
                     const isMoving = isMeAndMyTurn && GameState.hasRolled;
 
-                    if (!isMoving) {
-                        localPlayer.x = pd.x;
-                        localPlayer.y = pd.y;
+                    let posChanged = false;
+                    if (!isMoving && (localPlayer.x !== pData.x || localPlayer.y !== pData.y)) {
+                        localPlayer.x = pData.x;
+                        localPlayer.y = pData.y;
+                        posChanged = true;
+                    }
+                    
+                    let statsChanged = false;
+                    if (localPlayer.gold !== pData.gold || localPlayer.skipTurns !== pData.skip_turns) {
+                        localPlayer.gold = pData.gold;
+                        localPlayer.skipTurns = pData.skip_turns;
+                        statsChanged = true;
                     }
 
-                    localPlayer.gold = pd.gold;
-                    localPlayer.skipTurns = pd.skipTurns || 0;
-                    localPlayer.badges = pd.badges || localPlayer.badges;
-                    localPlayer.cards = pd.cards || [];
-                    localPlayer.effects = pd.effects || {};
-                    localPlayer.pokedexData = pd.pokedexData || {};
-                    localPlayer.stats = pd.stats || { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
-                    localPlayer.activeQuests = pd.activeQuests || [];
-                    localPlayer.questTrackers = pd.questTrackers || { tilesMovedNoReturn: 0, biomesVisited: [], turnsLostAccumulated: 0, pvpWinsStreak: 0, gymWinsStreak: 0 };
-
-                    if (pd.items) localPlayer.items = pd.items;
-
-                    if (pd.team) {
-                        const BattleObj = (window as any).Battle;
-                        const isMyBattleEcho = (localPlayer.id === NetworkState.myPlayerId && BattleObj && BattleObj.active);
-                        const isOpponentInBattle = (BattleObj && BattleObj.active && BattleObj.isPvP && BattleObj.enemyPlayer && BattleObj.enemyPlayer.id === localPlayer.id);
-
-                        if (!isMyBattleEcho && !isOpponentInBattle) {
-                            const remoteTeam = Array.isArray(pd.team) ? pd.team : Object.values(pd.team);
-
-                            remoteTeam.forEach((remoteMon: any, idx: number) => {
-                                if (localPlayer.team[idx]) {
-                                    if (localPlayer.team[idx].id !== remoteMon.id && !(localPlayer.team[idx] as any).isTemp) {
-                                        const PokemonClass = (window as any).Pokemon || localPlayer.team[0].constructor;
-                                        const newMon = new PokemonClass(remoteMon.id, remoteMon.level, remoteMon.isShiny);
-                                        Object.assign(newMon, remoteMon);
-                                        localPlayer.team[idx] = newMon;
-                                    } else {
-                                        let newHp = remoteMon.currentHp;
-                                        if (newHp === undefined) newHp = remoteMon.hp;
-
-                                        if (newHp !== undefined) localPlayer.team[idx].currentHp = Number(newHp);
-                                        if (remoteMon.maxHp) localPlayer.team[idx].maxHp = Number(remoteMon.maxHp);
-                                        if (remoteMon.currentXp !== undefined) localPlayer.team[idx].currentXp = Number(remoteMon.currentXp);
-                                        if (remoteMon.level) localPlayer.team[idx].level = Number(remoteMon.level);
-
-                                        Object.assign(localPlayer.team[idx], remoteMon);
-                                        if (newHp !== undefined) localPlayer.team[idx].currentHp = Number(newHp);
-                                        if (remoteMon.happiness !== undefined) localPlayer.team[idx].happiness = Number(remoteMon.happiness);
-                                    }
-                                }
-                            });
-
-                            if (remoteTeam.length > localPlayer.team.length) {
-                                const PokemonClass = (window as any).Pokemon || localPlayer.team[0].constructor;
-                                for (let i = localPlayer.team.length; i < remoteTeam.length; i++) {
-                                    const tData = remoteTeam[i];
-                                    try {
-                                        const po = new PokemonClass(tData.id, tData.level, tData.isShiny);
-                                        Object.assign(po, tData);
-                                        if (tData.currentHp !== undefined) po.currentHp = Number(tData.currentHp);
-                                        localPlayer.team.push(po);
-                                    } catch (e) {
-                                        localPlayer.team.push(tData);
-                                    }
-                                }
-                            } else if (remoteTeam.length < localPlayer.team.length) {
-                                localPlayer.team.splice(remoteTeam.length);
-                            }
-                        }
-                    }
+                    if (statsChanged) Game.updateHUD();
+                    if (posChanged) Game.moveVisuals();
+                }
+            })
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'room_logs', filter: `room_id=eq.${NetworkState.currentRoomId}` }, (payload) => {
+                const logData = payload.new;
+                const logObj = SupabaseDataStore.logFromRow(logData);
+                const isDuplicate = Game.globalLogs.some((l: any) => l.text === logObj.text && l.timestamp === logObj.timestamp);
+                if (!isDuplicate) {
+                    Game.globalLogs.unshift(logObj);
+                    if (Game.globalLogs.length > 200) Game.globalLogs.pop();
+                    const GameUIObj = (window as any).GameUI || GameUI;
+                    if (GameUIObj.renderAllLogs) GameUIObj.renderAllLogs();
                 }
             });
-            Game.updateHUD();
-            if (typeof (GameUI as any).refreshOpenPokemonDetail === 'function') {
-                (GameUI as any).refreshOpenPokemonDetail();
-            }
-            Game.moveVisuals();
-        });
+            
+        // Mock remote action handler via Supabase broadcast
+            channel.on('broadcast', { event: 'game_action' }, (payload) => {
+                this.handleRemoteAction(payload.payload);
+            });
 
-        onValue(ref(db, `rooms/${NetworkState.currentRoomId}/battleLogs`), (snapshot) => {
-            const data = snapshot.val();
-            if (data) {
-                GameState.battleLogs = data;
-            }
+        refreshPlayerTables.forEach(table => {
+            channel.on('postgres_changes', { event: '*', schema: 'public', table }, () => {
+                this.schedulePlayerRefresh();
+            });
         });
+            
+        channel.subscribe();
     }
 
+    private static schedulePlayerRefresh() {
+        if (this.playerRefreshTimer !== null) window.clearTimeout(this.playerRefreshTimer);
+        this.playerRefreshTimer = window.setTimeout(() => {
+            this.playerRefreshTimer = null;
+            this.refreshPlayersFromSupabase();
+        }, 150);
+    }
+
+    private static async refreshPlayersFromSupabase() {
+        const Game = (window as any).Game;
+        if (!NetworkState.isOnline || !NetworkState.currentRoomId || !Game?.players) return;
+
+        const { data: roomData } = await supabase
+            .from('rooms')
+            .select('room_players(*, player_pokemons(*), player_items(*), player_cards(*), player_badges(*), player_effects(*), player_stats(*), player_pokedex(*))')
+            .eq('id', NetworkState.currentRoomId)
+            .single();
+
+        if (!roomData?.room_players) return;
+
+        const refreshedPlayers = SupabaseDataStore.hydratePlayers(roomData.room_players);
+        const currentLocalPlayer = Game.players.find((player: any) => player.id === NetworkState.myPlayerId);
+        const keepLocalPlayer = currentLocalPlayer && Game.canAct && Game.canAct() && (GameState.turnStarted || GameState.hasRolled);
+        if (keepLocalPlayer) {
+            const localIndex = refreshedPlayers.findIndex((player: any) => player.id === NetworkState.myPlayerId);
+            if (localIndex >= 0) refreshedPlayers[localIndex] = currentLocalPlayer;
+        }
+        Game.players = refreshedPlayers;
+        GameState.players = refreshedPlayers;
+        Game.updateHUD();
+        Game.moveVisuals();
+    }
+
+    // Mantido intacto da versão anterior para não quebrar lógicas de Batalha
     static handleRemoteAction(action: any) {
         const Game = (window as any).Game;
         const Battle = (window as any).Battle;
@@ -648,8 +474,6 @@ export class NetworkActions {
                     }
 
                     if (targetP.id === NetworkState.myPlayerId) {
-                        // O jogador da rodada e autor da batalha e a fonte de verdade deste ajuste.
-                        // Regravar aqui pode sobrescrever a perda de gold com um estado local atrasado.
                         Game.updateHUD();
                     }
                 }
@@ -660,107 +484,41 @@ export class NetworkActions {
     static sendAction(type: string, payload: any) {
         if (!NetworkState.isOnline) return;
 
-        // --- Lógica de Agrupamento (Batching) para Logs e Updates ---
-        // Se já houver um item do mesmo tipo no fim da fila, mesclamos para reduzir tráfego e latência.
-        if (type === 'LOG' || type === 'BATTLE_UPDATE') {
-            const last = NetworkState.actionQueue[NetworkState.actionQueue.length - 1];
-            if (last && last.type === type) {
-                if (type === 'LOG') {
-                    last.payload.msg += "\n" + payload.msg;
-                    return;
-                }
-                if (type === 'BATTLE_UPDATE') {
-                    // No caso de Batalha, acumulamos o texto mas sempre mantemos o HP mais recente
-                    last.payload.msg += "\n" + payload.msg;
-                    if (payload.plyHp !== undefined) last.payload.plyHp = payload.plyHp;
-                    if (payload.oppHp !== undefined) last.payload.oppHp = payload.oppHp;
-                    return;
-                }
-            }
-        }
-
-        NetworkState.actionQueue.push({ type, payload });
-        this.processQueue();
+        // Migrado para Supabase Broadcast
+        const actionData = { type, payload, playerId: NetworkState.myPlayerId, timestamp: Date.now() };
+        supabase.channel(`room:${NetworkState.currentRoomId}`).send({
+            type: 'broadcast',
+            event: 'game_action',
+            payload: actionData
+        });
     }
 
     static async processQueue() {
-        if (NetworkState.isProcessingQueue || NetworkState.actionQueue.length === 0) return;
-
-        NetworkState.isProcessingQueue = true;
-
-        while (NetworkState.actionQueue.length > 0) {
-            const action = NetworkState.actionQueue.shift();
-
-            if (action) {
-                const actionData = { type: action.type, payload: action.payload, playerId: NetworkState.myPlayerId, timestamp: Date.now() };
-                const updates: any = {};
-                updates['lastAction'] = actionData;
-                if (action.type === 'BATTLE_START') updates['battleActive'] = NetworkState.myPlayerId;
-                if (action.type === 'BATTLE_END') updates['battleActive'] = false;
-
-                try {
-                    await update(ref(db, `rooms/${NetworkState.currentRoomId}`), updates);
-                } catch (e) {
-                    console.error("Erro ao enviar ação para a fila: ", e);
-                }
-
-                await new Promise(resolve => setTimeout(resolve, 100));
-            }
-        }
-
-        NetworkState.isProcessingQueue = false;
+        // Obsoleto no Supabase Broadcast, mantido vazio para retrocompatibilidade
     }
 
     static async syncTurnState() {
         const Game = (window as any).Game;
-        if (!NetworkState.isOnline) {
-            if (Game && Game.checkTurnControl) Game.checkTurnControl();
-            return;
-        }
-        try {
-            const turnSnap = await get(ref(db, `rooms/${NetworkState.currentRoomId}/turn`));
-            const turn = turnSnap.val();
-            if (turn !== null) {
-                Game.turn = turn;
-                if (turn === NetworkState.myPlayerId) {
-                    Game.turnStarted = false;
-                }
-            }
-            
-            const roundSnap = await get(ref(db, `rooms/${NetworkState.currentRoomId}/round`));
-            const round = roundSnap.val();
-            if (round !== null) {
-                Game.round = round;
-            }
-
-            const BattleObj = (window as any).Battle;
-            if (BattleObj) BattleObj.active = false;
-
+        if (!NetworkState.isOnline) return;
+        const { data } = await supabase.from('rooms').select('current_turn, current_round').eq('id', NetworkState.currentRoomId).single();
+        if (data) {
+            Game.turn = data.current_turn;
+            Game.round = data.current_round;
             Game.updateHUD();
             Game.moveVisuals();
             if (Game.checkTurnControl) Game.checkTurnControl();
-            
-            const GameUIObj = (window as any).GameUI || GameUI;
-            if (GameUIObj && GameUIObj.log) GameUIObj.log("🔄 Sincronização manual do turno realizada.");
-        } catch (e) {
-            console.error("Erro ao sincronizar turno manualmente", e);
         }
     }
 
     static async syncLogsManually() {
         if (!NetworkState.isOnline) return;
-        try {
-            const snap = await get(ref(db, `rooms/${NetworkState.currentRoomId}/logs`));
-            const logs = snap.val();
-            if (logs) {
-                GameState.globalLogs = logs;
-                const GameUIObj = (window as any).GameUI || GameUI;
-                if (GameUIObj.renderAllLogs) {
-                    GameUIObj.renderAllLogs();
-                }
+        const { data } = await supabase.from('room_logs').select('*').eq('room_id', NetworkState.currentRoomId).order('created_at', { ascending: false }).limit(200);
+        if (data) {
+            GameState.globalLogs = data.map((row: any) => SupabaseDataStore.logFromRow(row));
+            const GameUIObj = (window as any).GameUI || GameUI;
+            if (GameUIObj.renderAllLogs) {
+                GameUIObj.renderAllLogs();
             }
-        } catch (e) {
-            console.error("Erro ao sincronizar logs", e);
         }
     }
 }

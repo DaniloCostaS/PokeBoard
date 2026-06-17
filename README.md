@@ -4,10 +4,10 @@ Bem-vindo ao **PokéBoard V64**, um jogo de tabuleiro estratégico e divertido i
 
 ## 📋 Resumo
 
-O PokéBoard coloca você no papel de um treinador competindo em uma jornada emocionante. Escolha seu avatar, explore o tabuleiro procedural, duele contra Pokémons selvagens, NPCs, e conquiste os Líderes de Ginásio. Salve seu progresso (Offline) ou desafie seus amigos remotamente (Online utilizando o Firebase) para se certificar de ser o maior Campeão!
+O PokéBoard coloca você no papel de um treinador competindo em uma jornada emocionante. Escolha seu avatar, explore o tabuleiro procedural, duele contra Pokémons selvagens, NPCs, e conquiste os Líderes de Ginásio. Salve seu progresso (Offline) ou desafie seus amigos remotamente (Online utilizando o Supabase) para se certificar de ser o maior Campeão!
 
 **Recursos Principais:**
-- **Modos de Jogo:** Offline (Hotseat) e Online (Firebase com gerenciamento de Salas).
+- **Modos de Jogo:** Offline (Hotseat) e Online (Supabase com gerenciamento de Salas).
 - **Mecânicas de Batalha (V2.1):** Sistema robusto onde os ataques e defesas são híbridos, trazendo cálculos de bloqueio, esquiva, acertos críticos baseados em velocidade, além de vantagens de tipo e bônus pelo lance de dados 🎲 (`D20` e `D6`).
 - **Sistema de Progressão:** Level up ilimitado para sua equipe, com o recebimento de Ouro (G) e XP escalonados em vitórias, derrotas ou completando uma volta inteira no tabuleiro.
 - **Missões (Quests):** Sistema dinâmico de missões e objetivos variados (comuns a épicos) que garantem valiosas recompensas como Cartas, Itens e Ouro ao serem cumpridos durante o jogo.
@@ -20,7 +20,7 @@ O PokéBoard coloca você no papel de um treinador competindo em uma jornada emo
 - **Linguagem Principal:** [TypeScript](https://www.typescriptlang.org/) `~5.9.3`
 - **Ferramenta de Build/Dev:** [Vite](https://vitejs.dev/)
 - **Frontend / Interface:** HTML5 puro e CSS Vanilla (`style.css`), sem frameworks visuais pesados.
-- **Backend / Multiplayer:** [Firebase](https://firebase.google.com/) Realtime Database (App modular V10+).
+- **Backend / Multiplayer:** [Supabase](https://supabase.com/) (PostgreSQL e Realtime).
 
 ## 📁 Estrutura Detalhada do Projeto
 
@@ -48,7 +48,7 @@ Esta é a nova camada central onde reside toda a inteligência do jogo, separada
     - `MapGenerator.ts`: Algoritmo procedural para criação da grade do tabuleiro.
     - `MapRender.ts`: Renderização visual e cálculo de coordenadas (Isometric/Grid).
 - **`network/`**: Comunicação Multiplayer.
-    - `FirebaseInit.ts`: Configuração e conexão com o Firebase Realtime Database.
+    - `SupabaseInit.ts`: Configuração e conexão com o Supabase.
     - `NetworkActions.ts`: Comandos de envio (Sync de ataques, movimentos, etc).
     - `NetworkSync.ts`: Listeners que recebem e aplicam mudanças de outros jogadores.
 - **`shop/`**: Sistema econômico.
@@ -94,7 +94,7 @@ Contém toda a informação estática do jogo:
 
 ## 📦 Deploy e Compilação para Produção
 
-Para validar checagens do TypeScript e realizar o *bundle* estático para publicação web (como Firebase Hosting):
+Para validar checagens do TypeScript e realizar o *bundle* estático para publicação web (como Vercel, Netlify ou Firebase Hosting):
 ```bash
 npm run build
 ```

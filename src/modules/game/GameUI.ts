@@ -74,7 +74,7 @@ export class GameUI {
                 if (m.isShiny) auraClass = 'aura-shiny';
 
                 const megaIcon = m.megaStone ? `<img src="/assets/img/megaStone.png" style="width:16px; height:16px; margin-left:4px;" title="Mega Pedra Equipada">` : '';
-                
+
                 const heldItemData = m.heldItem ? SHOP_ITEMS.find(i => i.id === m.heldItem) : null;
                 const itemIcon = heldItemData ? `<img src="/assets/img/Itens/${heldItemData.icon}" style="width:16px; height:16px; margin-left:4px;" title="Item Segurando: ${heldItemData.name}">` : '';
 
@@ -112,7 +112,7 @@ export class GameUI {
             const totalCards = p.cards.length;
 
             let effectsHTML = `<div style="display:flex; gap:4px; flex-wrap:wrap; margin-top:2px; min-height:18px;">`;
-            const protectedCardsCount = p.cards.filter((c:any) => c.isProtected).length;
+            const protectedCardsCount = p.cards.filter((c: any) => c.isProtected).length;
             if (protectedCardsCount > 0) effectsHTML += `<span style="background:#f39c12; color:white; font-size:0.65rem; padding:1px 4px; border-radius:4px;" title="Cartas Protegidas">🔒 ${protectedCardsCount}</span>`;
             if (p.skipTurns > 0) effectsHTML += `<span style="background:#c0392b; color:white; font-size:0.65rem; padding:1px 4px; border-radius:4px;" title="Paralisado">🚫 ${p.skipTurns}</span>`;
             if (p.effects.slow && p.effects.slow > 0) effectsHTML += `<span style="background:#7f8c8d; color:white; font-size:0.65rem; padding:1px 4px; border-radius:4px;" title="Lentidão">🕸️ ${p.effects.slow}</span>`;
@@ -181,7 +181,7 @@ export class GameUI {
         }
 
         const NetworkObj = (window as any).Network || Network;
-        if (elRoom) { elRoom.innerText = NetworkObj.isOnline ? NetworkObj.currentRoomId : "LOCAL"; }
+        if (elRoom) { elRoom.innerText = NetworkObj.isOnline ? (NetworkObj.currentRoomAlias) : "LOCAL"; }
         const avgLvl = GameState.getGlobalAverageLevel();
         const elAvg = document.getElementById('avg-lvl-indicator'); if (elAvg) elAvg.innerText = `Lv.${avgLvl}`;
         const minLvl = Math.max(1, avgLvl - 2);
@@ -335,9 +335,9 @@ export class GameUI {
         const container = document.getElementById('log-container');
         if (!container) return;
         container.innerHTML = '';
-        
+
         const logsToRender = GameState.globalLogs.slice().reverse();
-        
+
         const currentFilter = (this as any).currentLogFilter || 'all';
         const searchInput = document.getElementById('log-search-input') as HTMLInputElement;
         const searchText = searchInput ? searchInput.value.toLowerCase().trim() : "";
@@ -491,7 +491,7 @@ export class GameUI {
         }
 
         const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        
+
         let icon = "📟";
         if (logType === "battle") icon = "⚔️";
         else if (logType === "cards") icon = "🃏";
@@ -516,11 +516,11 @@ export class GameUI {
         if (container) {
             m = m.replace(/\n/g, '<br>');
 
-            const newLogEntry: any = { 
-                text: m, 
-                style: customStyle, 
-                type: logType, 
-                timestamp 
+            const newLogEntry: any = {
+                text: m,
+                style: customStyle,
+                type: logType,
+                timestamp
             };
             if (battleId) newLogEntry.battleId = battleId;
 
@@ -874,17 +874,17 @@ export class GameUI {
         document.getElementById('detail-name')!.innerText = mon.name;
         document.getElementById('detail-img')!.setAttribute('src', mon.getSprite());
         document.getElementById('detail-level')!.innerText = mon.level.toString();
-        
+
         document.getElementById('detail-hp')!.innerText = `${Math.floor(mon.currentHp)} / ${mon.maxHp}`;
         document.getElementById('detail-hp-bar')!.style.width = `${Math.min(100, (mon.currentHp / mon.maxHp) * 100)}%`;
-        
+
         document.getElementById('detail-xp')!.innerText = `${Math.floor(mon.currentXp)} / ${mon.maxXp}`;
         document.getElementById('detail-xp-bar')!.style.width = `${Math.min(100, (mon.currentXp / mon.maxXp) * 100)}%`;
-        
+
         const hap = mon.happiness || 0;
         document.getElementById('detail-happiness')!.innerText = `${hap}%`;
         document.getElementById('detail-happiness-bar')!.style.width = `${hap}%`;
-        
+
         document.getElementById('detail-shiny')!.style.display = mon.isShiny ? 'block' : 'none';
 
         const colors: any = { "Normal": "#A8A77A", "Fogo": "#EE8130", "Água": "#6390F0", "Elétrico": "#F7D02C", "Grama": "#7AC74C", "Gelo": "#96D9D6", "Lutador": "#C22E28", "Veneno": "#A33EA1", "Terra": "#E2BF65", "Voador": "#A98FF3", "Psíquico": "#F95587", "Inseto": "#A6B91A", "Pedra": "#B6A136", "Fantasma": "#735797", "Dragão": "#6F35FC", "Noturno": "#705746", "Aço": "#B7B7CE", "Fada": "#D685AD" };
@@ -942,7 +942,7 @@ export class GameUI {
             grid.parentElement?.insertBefore(itemSection, grid.nextSibling);
         }
         itemSection.style.cssText = "margin-top: 15px; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);";
-        
+
         let itemHTML = `<div style="font-weight: bold; color: #fff; font-size: 0.9rem; margin-bottom: 5px;">📦 Item Segurando</div>`;
         if (mon.heldItem || mon.megaStone) {
             const heldId = mon.heldItem || 'megastone';
@@ -1163,7 +1163,7 @@ export class GameUI {
 
             const d = document.createElement('div');
             d.style.cssText = "display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); width: 100%; box-sizing: border-box; position: relative; cursor: zoom-in; transition: transform 0.2s;";
-            
+
             d.onmouseover = () => { d.style.transform = "scale(1.05)"; d.style.zIndex = "5"; };
             d.onmouseout = () => { d.style.transform = "scale(1)"; d.style.zIndex = "1"; };
 
@@ -1230,11 +1230,11 @@ export class GameUI {
             d.style.cssText = "display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); width: 100%; box-sizing: border-box; position: relative; border: 1px solid #556;";
 
             const typeLabel = item.type === 'heal' ? 'Cura' :
-                              item.type === 'revive' ? 'Reviver' :
-                              item.type === 'capture' ? 'Captura' :
-                              item.type === 'mega' ? 'Mega Stone' :
-                              item.type === 'boost' ? 'Boost' :
-                              item.type === 'hold' ? 'Segurar' : (item.type as string).toUpperCase();
+                item.type === 'revive' ? 'Reviver' :
+                    item.type === 'capture' ? 'Captura' :
+                        item.type === 'mega' ? 'Mega Stone' :
+                            item.type === 'boost' ? 'Boost' :
+                                item.type === 'hold' ? 'Segurar' : (item.type as string).toUpperCase();
 
             const borderColor = item.type === 'mega' ? '#f1c40f' : '#3498db';
 
@@ -1406,7 +1406,7 @@ export class GameUI {
             } else {
                 d.style.cssText = "display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); width: 100%; box-sizing: border-box; position: relative;";
                 const protectedBadge = c.isProtected ? `<div style="position: absolute; top: -10px; left: -10px; font-size: 1.5rem; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8)); z-index: 15;" title="Carta Protegida">🔒</div>` : '';
-                
+
                 d.innerHTML = `
                     ${protectedBadge}
                     <div style="position: absolute; top: -5px; right: -5px; background: ${borderColor}; color: #fff; padding: 2px 6px; font-size: 0.7rem; border-radius: 10px; font-weight: bold; border: 1px solid #222; text-shadow: 1px 1px 0 #000; box-shadow: 0 2px 4px rgba(0,0,0,0.5); z-index: 10;">
@@ -1417,10 +1417,10 @@ export class GameUI {
                 `;
             }
             list.appendChild(d);
-            
+
             const mobileInfo = d.querySelector('.mobile-card-info') as HTMLElement;
             if (mobileInfo) mobileInfo.onclick = () => GameUI.showCardZoom(c.id);
-            
+
             const desktopImg = d.querySelector('.desktop-card-img') as HTMLElement;
             if (desktopImg) desktopImg.onclick = () => GameUI.showCardZoom(c.id);
         });
@@ -1475,7 +1475,7 @@ export class GameUI {
             const isActive = p.badges[b];
             const actualGymId = GameState.activeGyms ? GameState.activeGyms[b] : (b + 1);
             const gData = GYM_DATA.find(g => g.id === actualGymId);
-            
+
             const badgeImg = gData ? `/assets/img/Insignias/${gData.badgeImg}` : '';
             const leaderName = gData ? gData.leaderName : `Líder ${b + 1}`;
             const gymType = gData ? gData.type.join('/') : 'Desconhecido';
@@ -1487,7 +1487,7 @@ export class GameUI {
                 d.style.background = 'rgba(241, 196, 15, 0.08)';
                 d.style.border = '2px solid #f1c40f';
                 d.style.boxShadow = '0 0 12px rgba(241, 196, 15, 0.25), inset 0 0 8px rgba(241, 196, 15, 0.1)';
-                
+
                 d.innerHTML = `
                     <img src="${badgeImg}" style="width: 55px; height: 55px; object-fit: contain; filter: drop-shadow(0 2px 6px rgba(241,196,15,0.5)); margin-bottom: 8px;" title="Conquistada!">
                     <span style="font-size: 0.85rem; font-weight: bold; color: #fff; text-align: center;">${gymType}</span>
@@ -1497,7 +1497,7 @@ export class GameUI {
             } else {
                 d.style.background = 'rgba(0, 0, 0, 0.4)';
                 d.style.border = '2px dashed rgba(255, 255, 255, 0.1)';
-                
+
                 d.innerHTML = `
                     <img src="${badgeImg}" style="width: 55px; height: 55px; object-fit: contain; filter: grayscale(100%) opacity(0.2); margin-bottom: 8px;" title="Bloqueada">
                     <span style="font-size: 0.85rem; font-weight: normal; color: #7f8c8d; text-align: center;">${gymType}</span>
@@ -1554,7 +1554,7 @@ export class GameUI {
                     if (id <= 905) return 8;
                     return 9;
                 };
-                
+
                 const pGen = getGenById(mon.id);
                 if (pGen > 0 && !GameState.settings.generations.includes(pGen)) return;
                 if (mon.id >= 10000 && !GameState.settings.megas) return;
@@ -1687,8 +1687,8 @@ export class GameUI {
         const modal = document.getElementById('pkmn-select-modal')!;
         const list = document.getElementById('pkmn-select-list')!;
         const title = document.getElementById('select-title')!;
-        title.innerText = item.type === 'mega' ? "Escolha quem vai segurar a Mega Pedra:" : 
-                          item.type === 'hold' ? "Escolha quem vai segurar este item:" : "Usar em qual Pokémon?";
+        title.innerText = item.type === 'mega' ? "Escolha quem vai segurar a Mega Pedra:" :
+            item.type === 'hold' ? "Escolha quem vai segurar este item:" : "Usar em qual Pokémon?";
         list.innerHTML = '';
 
         p.team.forEach((mon, idx) => {
@@ -1803,7 +1803,7 @@ export class GameUI {
             </div>
         `;
 
-            divNew.onclick = () => GameEvents.executeSwap(-1, newMon);
+        divNew.onclick = () => GameEvents.executeSwap(-1, newMon);
         list.appendChild(divNew);
 
         modal.style.display = 'block';
@@ -1823,7 +1823,7 @@ export class GameUI {
                 card.style.cssText = `display: flex; flex-direction: column; align-items: center; background: ${isShiny ? 'rgba(241, 196, 15, 0.1)' : 'rgba(0,0,0,0.5)'}; padding: 10px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); border: 1px solid ${isShiny ? '#f1c40f' : 'transparent'}; width: 160px; cursor: pointer; position: relative; box-sizing: border-box;`;
 
                 const spriteUrl = mon.getSprite();
-                
+
                 const heldItemData = (mon as any).heldItem ? SHOP_ITEMS.find(i => i.id === (mon as any).heldItem) : null;
                 const iconsHtml = [
                     mon.megaStone ? '<span title="Mega Pedra Equipada" style="filter: drop-shadow(0 0 2px #3498db); font-size: 1rem;">💎</span>' : '',
@@ -1870,10 +1870,10 @@ export class GameUI {
             modal.id = 'player-mastery-modal';
             modal.style.cssText = "position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.85); display:flex; justify-content:center; align-items:center; z-index:15000;";
             modal.onclick = (e) => { if (e.target === modal) modal!.style.display = 'none'; };
-            
+
             const content = document.createElement('div');
             content.style.cssText = "background: #1a1a1d; width: 90%; max-width: 600px; max-height: 90vh; border-radius: 15px; border: 3px solid #3498db; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 0 30px rgba(52, 152, 219, 0.5);";
-            
+
             content.innerHTML = `
                 <div style="background: linear-gradient(135deg, #2c3e50, #3498db); padding: 15px; text-align: center; color: white; border-bottom: 2px solid #2980b9; display: flex; justify-content: space-between; align-items: center;">
                     <div style="display:flex; align-items:center; gap: 15px;">
@@ -1919,7 +1919,7 @@ export class GameUI {
             const mastery = typeMastery[type];
             const color = typeColors[type];
             const d = document.createElement('div');
-            
+
             const isUnlocked = mastery > 0;
             const filterStyle = isUnlocked ? '' : 'filter: grayscale(100%) opacity(0.5);';
 

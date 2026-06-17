@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PokéBoard V95c</title>
+    <title>PokéBoard V1a</title>
     <link rel="icon" type="image/png" href="/favicon.png">
     <link rel="stylesheet" href="style.css">
 
@@ -21,8 +21,8 @@
 <body>
 
     <div id="setup-screen">
-        <h1 class="title-highlight">PokéBoard V95c</h1>
-        <p class="subtitle">Nova funcionalidade: Missões secundárias.</p>
+        <h1 class="title-highlight">PokéBoard V1a</h1>
+        <p class="subtitle">Migrando para SupaBase.</p>
 
         <div id="menu-phase-1">
             <button class="btn" onclick="window.Setup.showOfflineSetup()">🏠 JOGAR OFFLINE</button>
@@ -80,12 +80,12 @@
 
             <div id="online-lobby-controls">
                 <div style="margin-bottom: 10px;">
-                    <input type="text" id="custom-room-code" placeholder="Cód. Sala (Opcional)" maxlength="10"
+                    <input type="text" id="custom-room-code" placeholder="Apelido da Sala (Obrigatório)" maxlength="20"
                         style="padding: 10px; text-transform: uppercase; width: 150px; text-align: center;">
                 </div>
                 <button id="btn-create-room" class="btn" onclick="Network.createRoom()">Criar Sala</button>
                 <div style="display:flex; gap:5px; margin-top:10px;">
-                    <input type="text" id="room-code-input" placeholder="Código da Sala" style="flex:1; padding:10px;">
+                    <input type="text" id="room-code-input" placeholder="Apelido da Sala" style="flex:1; padding:10px;">
                     <button class="btn" style="width:auto; margin:0;"
                         onclick="window.Network.joinRoom(document.getElementById('room-code-input').value)">Entrar</button>
                 </div>
