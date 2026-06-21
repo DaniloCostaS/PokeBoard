@@ -39,10 +39,9 @@ export class BattleCalc {
         const defenderPlayer = !isPlayerAttacking ? BattleCore.player! : (BattleCore.enemyPlayer || null);
         let logDetails = "";
 
-        // Resonance (Aumenta todos os status baseado em capturas repetidas)
-        // Nota: Para o Campeão, isso já foi "assado" nos status salvos em NetworkSync
-        const atkReso = attackerPlayer ? this.getResonanceMultiplier(attackerPlayer, attacker.id) : 1.0;
-        const defReso = defenderPlayer ? this.getResonanceMultiplier(defenderPlayer, defender.id) : 1.0;
+        // Ressonância Genética já está embutida nos status do Pokémon normal (não-Mega) em BattleCore.applyResonanceBonus
+        const atkReso = 1.0;
+        const defReso = 1.0;
 
         const effAtk = attacker.atk * atkReso;
         const effDef = defender.def * defReso;

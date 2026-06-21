@@ -53,20 +53,45 @@ export class CPUController {
         if (!CardsObj) return false;
 
         const offensiveIds = ['steal_coins', 'steal_item', 'teleport_trap', 'sabotage', 'rocket', 'curse'];
-        const buffIds = ['boost', 'time', 'guard', 'focus']; // Heal é usável na batalha
+        const buffIds = ['boost', 'time', 'guard', 'focus', 'doublexp', 'expshare']; // Heal é usável na batalha
 
         let selectedCardIndex = -1;
         let isOffensive = false;
+        let targetArg: any = null;
         
         for (let i = 0; i < p.cards.length; i++) {
             const c = p.cards[i];
+            if (c.isProtected) continue;
             const cId = typeof c === 'string' ? c : c.id;
-            if (offensiveIds.includes(cId)) {
+            
+            if (cId === 'evoluir') {
+                const idx = p.team.findIndex((mon: any) => mon.evoData && mon.evoData.next);
+                if (idx !== -1) {
+                    selectedCardIndex = i;
+                    targetArg = idx;
+                    break;
+                }
+            } else if (cId === 'epic_shiny') {
+                const idx = p.team.findIndex((mon: any) => !mon.isShiny && !mon.isLegendary);
+                if (idx !== -1) {
+                    selectedCardIndex = i;
+                    targetArg = idx;
+                    break;
+                }
+            } else if (cId === 'rare_candy') {
+                const idx = p.team.findIndex((mon: any) => mon.level < 25);
+                if (idx !== -1) {
+                    selectedCardIndex = i;
+                    targetArg = idx;
+                    break;
+                }
+            } else if (offensiveIds.includes(cId)) {
                 selectedCardIndex = i;
                 isOffensive = true;
                 break;
             } else if (buffIds.includes(cId)) {
                 selectedCardIndex = i;
+                targetArg = p.id;
                 break;
             }
         }
@@ -75,7 +100,6 @@ export class CPUController {
             const cardData = p.cards[selectedCardIndex];
             const cardId = typeof cardData === 'string' ? cardData : cardData.id;
             
-            p.cards.splice(selectedCardIndex, 1);
             p.effects.playedCardThisTurn = true;
             if (Game.updateHUD) Game.updateHUD();
 
@@ -92,7 +116,7 @@ export class CPUController {
 
                 CardsObj.activate(cardId, target.id);
             } else {
-                CardsObj.activate(cardId, p.id);
+                CardsObj.activate(cardId, targetArg);
             }
             return true;
         }

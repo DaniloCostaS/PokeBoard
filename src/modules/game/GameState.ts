@@ -56,7 +56,8 @@ export class GameState {
         }
         if (!this.activeGyms || this.activeGyms.length === 0) {
             const allGyms = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
-            this.activeGyms = allGyms.sort(() => Math.random() - 0.5).slice(0, 8);
+            const count = mapSize === 7 ? 4 : 8;
+            this.activeGyms = allGyms.sort(() => Math.random() - 0.5).slice(0, count);
         }
 
         this.players = players;
@@ -151,7 +152,49 @@ export class GameState {
 
     static loadGame() {
         const json = localStorage.getItem('pk_save');
-        if (json) this.loadGameFromData(JSON.parse(json));
+        if (json) {
+            this.loadGameFromData(JSON.parse(json));
+            alert("Partida carregada com sucesso do navegador!");
+        } else {
+            alert("Nenhum save encontrado no navegador!");
+        }
+    }
+
+    static exportSave() {
+        try {
+            const data = JSON.stringify(this.getSaveData(), null, 2);
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `pokeboard_save_${new Date().toISOString().slice(0, 10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        } catch (err: any) {
+            alert("Erro ao exportar save: " + err.message);
+        }
+    }
+
+    static importSave(input: HTMLInputElement) {
+        const file = input.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = JSON.parse(e.target?.result as string);
+                if (!data.players || !data.grid) {
+                    throw new Error("O arquivo não parece ser um save válido do PokeBoard.");
+                }
+                this.loadGameFromData(data);
+                alert("Save importado e carregado com sucesso!");
+            } catch (err: any) {
+                alert("Erro ao importar save: " + err.message);
+            } finally {
+                input.value = '';
+            }
+        };
+        reader.readAsText(file);
     }
 
     static loadGameFromData(d: any) {

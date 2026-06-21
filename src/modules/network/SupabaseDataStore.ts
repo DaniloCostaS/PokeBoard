@@ -311,7 +311,7 @@ export class SupabaseDataStore {
             style: row.style || '',
             type: row.log_type || 'system',
             battleId: row.battle_id || undefined,
-            timestamp: new Date(row.created_at).toLocaleTimeString()
+            timestamp: new Date(row.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
     }
 

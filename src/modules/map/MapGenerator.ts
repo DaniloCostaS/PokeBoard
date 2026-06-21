@@ -34,8 +34,9 @@ export class MapGenerator {
             if (idx > -1) allCoords.splice(idx, 1);
         };
 
-        // 2. Posiciona os 8 Ginásios
-        for (let i = 0; i < 8; i++) {
+        // 2. Posiciona os Ginásios
+        const gymCount = size === 7 ? 4 : 8;
+        for (let i = 0; i < gymCount; i++) {
             if (allCoords.length === 0) break;
             const c = allCoords.pop()!;
             grid[c.y][c.x] = TILE.GYM;

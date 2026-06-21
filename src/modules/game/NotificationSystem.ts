@@ -84,7 +84,7 @@ export class NotificationSystem {
 
             const n = new Notification('🎮 PokéBoard — Sua vez!', {
                 body: `${playerName}, é a sua vez de jogar! (Rodada ${round})`,
-                icon: '/assets/img/icon-pokeboard.png',
+                icon: '/favicon.png',
                 tag: 'pokeboard-turn',
             } as NotificationOptions);
             n.onclick = () => { window.focus(); n.close(); };

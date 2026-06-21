@@ -8,8 +8,24 @@ import { GameSpawns } from '../modules/game/GameSpawns';
 
 export class Setup {
     static showOfflineSetup() { document.getElementById('menu-phase-1')!.style.display = 'none'; document.getElementById('menu-phase-setup')!.style.display = 'block'; }
-    static showOnlineLogin() { document.getElementById('menu-phase-1')!.style.display = 'none'; document.getElementById('online-login')!.style.display = 'block'; }
-    static showOnlineMenu() { document.getElementById('online-login')!.style.display = 'none'; document.getElementById('menu-phase-online')!.style.display = 'block'; const sel = document.getElementById('online-avatar-select') as HTMLSelectElement; if (sel && sel.options.length === 0) { sel.innerHTML = TRAINER_IMAGES.map(img => `<option value="${img.file}">${img.label}</option>`).join(''); } this.updateOnlinePreview(); }
+    static checkCachedLogin() {
+        const cachedUser = localStorage.getItem('poke_username');
+        if (cachedUser) {
+            (window as any).loggedUser = cachedUser;
+            const nameInput = document.getElementById('online-player-name') as HTMLInputElement;
+            if (nameInput) {
+                nameInput.value = cachedUser;
+                nameInput.disabled = true;
+            }
+            document.getElementById('online-login')!.style.display = 'none';
+            document.getElementById('menu-phase-1')!.style.display = 'block';
+        }
+    }
+    static logout() {
+        localStorage.removeItem('poke_username');
+        location.reload();
+    }
+    static showOnlineMenu() { document.getElementById('menu-phase-1')!.style.display = 'none'; document.getElementById('menu-phase-online')!.style.display = 'block'; const sel = document.getElementById('online-avatar-select') as HTMLSelectElement; if (sel && sel.options.length === 0) { sel.innerHTML = TRAINER_IMAGES.map(img => `<option value="${img.file}">${img.label}</option>`).join(''); } this.updateOnlinePreview(); }
     
     static async updateOnlinePreview() {
         const sel = document.getElementById('online-avatar-select') as HTMLSelectElement;
@@ -90,8 +106,10 @@ export class Setup {
 
         // Sem tabela 'users' migrada, aceitamos o login diretamente (mock local)
         (window as any).loggedUser = username;
+        localStorage.setItem('poke_username', username);
 
-        this.showOnlineMenu();
+        document.getElementById('online-login')!.style.display = 'none';
+        document.getElementById('menu-phase-1')!.style.display = 'block';
 
         const nameInput = document.getElementById('online-player-name') as HTMLInputElement;
         if (nameInput) {
@@ -295,7 +313,8 @@ export class Setup {
 
                 if (!Game.activeGyms || Game.activeGyms.length === 0) {
                     const allGyms = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
-                    Game.activeGyms = allGyms.sort(() => Math.random() - 0.5).slice(0, 8);
+                    const count = mapSize === 7 ? 4 : 8;
+                    Game.activeGyms = allGyms.sort(() => Math.random() - 0.5).slice(0, count);
                 }
                 if (!Game.gymTeams || Object.keys(Game.gymTeams).length === 0) {
                     GameSpawns.generateGymTeams();

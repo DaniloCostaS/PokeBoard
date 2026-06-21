@@ -508,7 +508,8 @@ export class CardEffects {
 
             case 'new_leader':
                 const myBadgesCount = player.badges.filter((b: boolean) => b).length;
-                if (myBadgesCount >= 7) {
+                const targetLimit = MapSystem.size === 7 ? 3 : 7;
+                if (myBadgesCount >= targetLimit) {
                     Game.showGlobalAlert("A Liga Pokémon interveio! É proibido usar a carta 'Novo Líder' quando falta apenas 1 Insígnia.", player.name, true, false);
                     consumed = false; break;
                 }
@@ -517,7 +518,8 @@ export class CardEffects {
                     if (!target) { consumed = false; break; }
 
                     const stealableBadges = [];
-                    for (let i = 0; i < 8; i++) { if (target.badges[i] && !player.badges[i]) stealableBadges.push(i); }
+                    const totalGyms = MapSystem.size === 7 ? 4 : 8;
+                    for (let i = 0; i < totalGyms; i++) { if (target.badges[i] && !player.badges[i]) stealableBadges.push(i); }
 
                     if (stealableBadges.length === 0) { Game.showGlobalAlert(`O jogador ${target.name} não possui nenhuma Insígnia nova para você roubar!`, player.name, true, false); consumed = false; break; }
                     const targetTeam = target.getBattleTeam(false);

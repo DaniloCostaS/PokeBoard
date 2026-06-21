@@ -41,7 +41,8 @@ export class GameEvents {
         const badgeContainer = document.getElementById('win-badges-container')!;
         badgeContainer.innerHTML = '';
 
-        for (let i = 0; i < 8; i++) {
+        const totalGyms = GameState.activeGyms && GameState.activeGyms.length > 0 ? GameState.activeGyms.length : 8;
+        for (let i = 0; i < totalGyms; i++) {
             const actualGymId = GameState.activeGyms ? GameState.activeGyms[i] : (i + 1);
             const gym = GYM_DATA.find((g: any) => g.id === actualGymId);
             if (gym) {

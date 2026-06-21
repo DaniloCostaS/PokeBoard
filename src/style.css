@@ -53,32 +53,40 @@ body {
 #setup-screen {
     position: fixed;
     z-index: 999;
-    background: rgb(255, 255, 255);
+    background: linear-gradient(180deg, rgba(21, 58, 62, 0.95), rgba(6, 14, 18, 0.98));
+    backdrop-filter: blur(12px) saturate(1.2);
     padding: 40px;
-    border-radius: 15px;
-    box-shadow: 0 0 50px rgba(0, 0, 0, 0.9);
+    border-radius: 16px;
+    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.7), inset 0 1px 1px rgba(255, 255, 255, 0.1);
     text-align: center;
     width: 450px;
     display: flex;
     flex-direction: column;
     gap: 15px;
-    border: 4px solid var(--highlight);
+    border: 1px solid rgba(230, 193, 91, 0.3);
+    color: #e7f2ee;
     max-height: 90vh;
     overflow-y: auto;
 }
 
 .title-highlight {
-    color: var(--highlight);
+    color: var(--gold);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5), 0 0 15px rgba(241, 196, 15, 0.4);
     margin-bottom: 0;
 }
 
 .subtitle {
     margin-top: 0;
-    color: #7f8c8d;
+    color: #bdc3c7;
 }
 
 .setup-group {
     margin-bottom: 20px;
+}
+
+.setup-group label {
+    color: #bdc3c7;
+    font-weight: bold;
 }
 
 .setup-row {
@@ -86,7 +94,7 @@ body {
     align-items: center;
     justify-content: space-between;
     margin: 10px 0;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     padding-bottom: 10px;
 }
 
@@ -115,13 +123,38 @@ body {
 }
 
 #lobby-status {
-    background: #fdf2e9;
+    background: rgba(230, 126, 34, 0.2);
     padding: 10px;
-    border: 1px dashed #e67e22;
+    border: 1px dashed rgba(230, 126, 34, 0.6);
     border-radius: 5px;
     margin-top: 10px;
     font-size: 0.9rem;
-    color: #d35400;
+    color: #e67e22;
+}
+
+#setup-screen input[type="text"],
+#setup-screen input[type="password"],
+#setup-screen select {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #e7f2ee;
+    border-radius: 6px;
+    padding: 8px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+#setup-screen input[type="text"]:focus,
+#setup-screen input[type="password"]:focus,
+#setup-screen select:focus {
+    border-color: var(--gold);
+    background: rgba(0, 0, 0, 0.5);
+}
+
+#setup-screen select option {
+    background: #2c3e50;
+    color: #e7f2ee;
 }
 
 /* Estilo para lista de Lobby Online */
@@ -130,8 +163,9 @@ body {
     align-items: center;
     gap: 10px;
     padding: 5px;
-    border-bottom: 1px solid #eee;
-    background: #fafafa;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.2);
+    color: #e7f2ee;
 }
 
 .lobby-player-item img {

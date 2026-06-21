@@ -24,6 +24,8 @@ export class BattleUI {
             const isShiny = mon.isShiny;
             const heldItemData = mon.heldItem ? SHOP_ITEMS.find(i => i.id === mon.heldItem) : null;
             const heldItemHTML = heldItemData ? `<img src="/assets/img/Itens/${heldItemData.icon}" style="width:20px; height:20px; margin-left:8px; vertical-align: middle; filter: drop-shadow(0 0 2px rgba(255,255,255,0.8));" title="Segurando: ${heldItemData.name}">` : '';
+            const vinculoIcon = mon.vinculoSupremo ? `<span style="font-size:16px; margin-left:8px; vertical-align: middle;" title="Vínculo Supremo">🤝</span>` : '';
+            const happinessIcon = mon.happiness === 100 ? `<span style="font-size:16px; margin-left:8px; vertical-align: middle;" title="Vínculo Afetivo (100% Felicidade)">💖</span>` : '';
 
             div.style.cssText = `
                 display: flex; 
@@ -43,7 +45,12 @@ export class BattleUI {
                 <img src="${mon.getSprite()}" width="50" style="object-fit:contain; filter: drop-shadow(0 0 3px ${isShiny ? '#f1c40f' : 'transparent'});">
                 <div style="display:flex; flex-direction:column; gap:4px; flex:1;">
                     <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
-                        <b style="font-size:1.1rem; color:${isShiny ? '#f1c40f' : '#fff'}; display:flex; align-items:center;">${mon.name} ${isShiny ? '✨' : ''}${heldItemHTML}</b>
+                        <b style="font-size:1.1rem; color:${isShiny ? '#f1c40f' : '#fff'}; display:flex; align-items:center;">
+                            ${mon.name} ${isShiny ? '✨' : ''}
+                            ${heldItemHTML}
+                            ${vinculoIcon}
+                            ${happinessIcon}
+                        </b>
                         <span style="font-size:0.9rem; font-weight:bold; color:#f1c40f; background:rgba(0,0,0,0.5); padding:2px 6px; border-radius:4px;">Lv.${mon.level}</span>
                     </div>
                     <div style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap:4px; font-size:0.8rem; color:#ecf0f1; background:rgba(0,0,0,0.3); padding:4px; border-radius:4px; text-align:center;">
@@ -182,7 +189,9 @@ export class BattleUI {
     static updateUI() {
         if (!BattleCore.activeMon || !BattleCore.opponent || !BattleCore.player) return;
 
-        document.getElementById('ply-name')!.innerText = BattleCore.activeMon.name;
+        const plyVinculo = BattleCore.activeMon.vinculoSupremo ? `<span style="font-size:14px; margin-left:4px;" title="Vínculo Supremo">🤝</span>` : '';
+        const plyHappiness = BattleCore.activeMon.happiness === 100 ? `<span style="font-size:14px; margin-left:4px;" title="Vínculo Afetivo (100% Felicidade)">💖</span>` : '';
+        document.getElementById('ply-name')!.innerHTML = `${BattleCore.activeMon.name}${plyVinculo}${plyHappiness}`;
         const plyTypesEl = document.getElementById('ply-types');
         if (plyTypesEl && typeof BattleCore.activeMon.getTypeBadgesHTML === 'function') {
             plyTypesEl.innerHTML = BattleCore.activeMon.getTypeBadgesHTML('flex-start');
@@ -219,7 +228,9 @@ export class BattleUI {
             }
         }
 
-        document.getElementById('opp-name')!.innerText = BattleCore.opponent.name;
+        const oppVinculo = BattleCore.opponent.vinculoSupremo ? `<span style="font-size:14px; margin-left:4px;" title="Vínculo Supremo">🤝</span>` : '';
+        const oppHappiness = BattleCore.opponent.happiness === 100 ? `<span style="font-size:14px; margin-left:4px;" title="Vínculo Afetivo (100% Felicidade)">💖</span>` : '';
+        document.getElementById('opp-name')!.innerHTML = `${BattleCore.opponent.name}${oppVinculo}${oppHappiness}`;
         document.getElementById('opp-lvl')!.innerHTML = `
             <div style="display: flex; align-items: center; justify-content: center;">
                 <span>Lv.${BattleCore.opponent.level}</span>
@@ -337,9 +348,11 @@ export class BattleUI {
 
             const megaIcon = p.megaStone ? `<img src="/assets/img/megaStone.png" style="width:16px; position:absolute; top:8px; right:8px; filter: drop-shadow(0 0 4px #fff);" title="Mega Evoluído!">` : '';
             const vinculoIcon = p.vinculoSupremo ? `<span style="font-size:14px; position:absolute; top:8px; left:8px; filter: drop-shadow(0 0 4px #fff);" title="Vínculo Supremo">🤝</span>` : '';
+            const happinessIcon = p.happiness === 100 ? `<span style="font-size:14px; position:absolute; top:8px; left:${p.vinculoSupremo ? '26px' : '8px'}; filter: drop-shadow(0 0 4px #fff);" title="Vínculo Afetivo (100% Felicidade)">💖</span>` : '';
 
             card.innerHTML = `
                 ${vinculoIcon}
+                ${happinessIcon}
                 ${megaIcon}
                 <div style="font-size: 0.75rem; font-weight: 800; color: #fff; background: rgba(0,0,0,0.4); padding: 3px 8px; border-radius: 999px; margin-bottom: 5px; border: 1px solid rgba(255,255,255,0.1); letter-spacing: 0.5px;">Lv.${p.level}</div>
                 <img src="${spriteUrl}" style="width: 70px; height: 70px; object-fit: contain; filter: drop-shadow(0 0 8px ${isShiny ? '#f1c40f' : 'transparent'}); margin: 5px 0;">
@@ -542,7 +555,7 @@ export class BattleUI {
 
     static logBattle(msg: string, sync: boolean = false) {
         const el = document.getElementById('battle-msg');
-        if (el) el.innerText = msg;
+        if (el) el.innerHTML = msg;
 
         const logContainer = document.getElementById('battle-log-history');
         if (logContainer) {

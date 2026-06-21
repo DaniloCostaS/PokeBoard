@@ -4,6 +4,7 @@ import { Player } from '../../models/Player';
 import { Pokemon } from '../../models/Pokemon';
 import { Network, db } from '../../systems/Network';
 import { Cards } from '../../systems/Cards';
+import { MapSystem } from '../../systems/MapSystem';
 import { POKEDEX } from '../../constants/pokedex';
 import { GYM_DATA } from '../../constants/gyms';
 import { MAPA_MEGAS } from '../../constants/mapaMegas';
@@ -272,6 +273,13 @@ export class BattleCore {
 
         BattleUI.renderBattleScreen();
 
+        if (this.activeMon && this.activeMon.happiness === 100) {
+            BattleUI.logBattle(`<span style="color:#ff9ff3; font-weight:bold;">💖 [Vínculo Afetivo]</span> ${this.activeMon.name} está com Felicidade máxima e recebeu +5% de status nesta batalha!`, true);
+        }
+        if (this.opponent && this.opponent.happiness === 100) {
+            BattleUI.logBattle(`<span style="color:#ff9ff3; font-weight:bold;">💖 [Vínculo Afetivo]</span> O oponente ${this.opponent.name} está com Felicidade máxima e recebeu +5% de status nesta batalha!`, true);
+        }
+
         this.isPlayerTurn = true;
         this.processingAction = false;
         BattleUI.updateButtons();
@@ -385,6 +393,29 @@ export class BattleCore {
                                 });
                             }, 1500);
                             return;
+                        }
+                    }
+                }
+            }
+
+            // Verifica Destiny Card (Destino Selado)
+            if (this.opponent && this.activeMon && this.player.cards) {
+                let willKill = false;
+                try {
+                    const calc = BattleCalc.calculateDamage(this.activeMon, this.opponent, true);
+                    if (calc.damage >= this.opponent.currentHp) willKill = true;
+                } catch (e) {
+                    // Ignora caso erro no cálculo
+                }
+                
+                if (willKill && !this.activeEffects.destiny) {
+                    const destinyIdx = this.player.cards.findIndex((c: any) => (typeof c === 'string' ? c : c.id) === 'destiny' && !c.isProtected);
+                    if (destinyIdx !== -1) {
+                        const CardsObj = (window as any).Cards;
+                        if (CardsObj) {
+                            // Marca como jogado para não sobrepor outras lógicas depois
+                            this.player.effects.playedCardThisTurn = true; 
+                            CardsObj.activate('destiny', this.player.id);
                         }
                     }
                 }
@@ -816,6 +847,9 @@ export class BattleCore {
             if (this.activeEffects.stunOpponent) this.activeEffects.stunOpponent = 0;
 
             BattleUI.logBattle(`Rival enviou ${nextOpp.name}!`, true);
+            if (nextOpp.happiness === 100) {
+                BattleUI.logBattle(`<span style="color:#ff9ff3; font-weight:bold;">💖 [Vínculo Afetivo]</span> O oponente ${nextOpp.name} está com Felicidade máxima e recebeu +5% de status nesta batalha!`, true);
+            }
             BattleUI.updateUI();
             this.processingAction = false;
             BattleUI.updateButtons();
@@ -867,6 +901,9 @@ export class BattleCore {
             if (this.isPvP) {
                 this.activeMon = nextPly;
                 BattleUI.logBattle(`Você enviou ${nextPly.name}!`, true);
+                if (nextPly.happiness === 100) {
+                    BattleUI.logBattle(`<span style="color:#ff9ff3; font-weight:bold;">💖 [Vínculo Afetivo]</span> ${nextPly.name} está com Felicidade máxima e recebeu +5% de status nesta batalha!`, true);
+                }
                 BattleUI.updateUI();
 
                 const NetworkObj = (window as any).Network || Network;
@@ -958,7 +995,8 @@ export class BattleCore {
 
             if (realWinner && realLoser) {
                 const validBadges: number[] = [];
-                for (let i = 0; i < 8; i++) {
+                const totalGyms = MapSystem.size === 7 ? 4 : 8;
+                for (let i = 0; i < totalGyms; i++) {
                     if (realLoser.badges[i] === true && realWinner.badges[i] === false) validBadges.push(i);
                 }
 
@@ -1009,6 +1047,19 @@ export class BattleCore {
             Game.sendGlobalLog(`💰 [Extrato] ${this.player!.name} recebeu +${gain}G (Líder de Ginásio).`);
             if (!this.player!.badges[this.gymId - 1]) { this.player!.badges[this.gymId - 1] = true; msg += ` Insígnia ${this.gymId}!`; }
             if (Game.currentGlobalEvent?.id === 'GYM_RUSH' && CardsObj) { CardsObj.draw(this.player!); msg += ` e ganhou 1 Carta do Desafio!`; }
+
+            if (MapSystem.size === 7) {
+                const badgesCount = this.player!.badges.filter((b: boolean) => b).length;
+                if (badgesCount === 4) {
+                    Game.sendGlobalLog(`🎉 PARABÉNS! ${this.player!.name} CONQUISTOU AS 4 INSÍGNIAS E VENCEU O JOGO! 🎉`);
+                    if (NetworkObj && NetworkObj.isOnline) {
+                        NetworkObj.sendAction('GAME_WIN', { winnerId: this.player!.id });
+                    }
+                    this.end(false);
+                    Game.triggerVictory(this.player!.id);
+                    return;
+                }
+            }
         } else if (this.isNPC) {
             gain = (Game.currentGlobalEvent?.id === 'GOLD_RUSH') ? this.reward * 2 : this.reward;
             Game.sendGlobalLog(`💰 [Extrato] ${this.player!.name} recebeu +${gain}G (Treinador NPC).`);
@@ -1412,6 +1463,9 @@ export class BattleCore {
                 this.performEnemyAttack(() => {
                     this.processingAction = false;
                     BattleUI.updateButtons();
+                    if (this.isAutoPvE && this.activeMon!.currentHp > 0 && this.opponent!.currentHp > 0) {
+                        setTimeout(() => this.attack(), 1500);
+                    }
                 });
             }, 500);
         }
@@ -1534,6 +1588,8 @@ export class BattleCore {
         megaMon.bonusStats = { ...this.activeMon!.bonusStats };
         megaMon.currentXp = this.activeMon!.currentXp;
         megaMon.maxXp = this.activeMon!.maxXp;
+        megaMon.happiness = this.activeMon!.happiness;
+        megaMon.vinculoSupremo = this.activeMon!.vinculoSupremo;
         megaMon.id = megaData.id;
         megaMon.name = megaData.name;
         megaMon.type = megaData.type;
@@ -1582,6 +1638,8 @@ export class BattleCore {
         megaMon.bonusStats = { ...this.opponent!.bonusStats };
         megaMon.currentXp = this.opponent!.currentXp;
         megaMon.maxXp = this.opponent!.maxXp;
+        megaMon.happiness = this.opponent!.happiness;
+        megaMon.vinculoSupremo = this.opponent!.vinculoSupremo;
         megaMon.id = megaData.id;
         megaMon.name = megaData.name;
         megaMon.type = megaData.type;
@@ -1617,6 +1675,11 @@ export class BattleCore {
     static revertMew() {
         if (this.activeEffects && this.activeEffects.mewOriginal && this.player) {
             const original = this.activeEffects.mewOriginal;
+
+            // Recalcula status completo e reaplica a Ressonância Genética
+            original.recalculateStats(false);
+            this.applyResonanceBonus(this.player, original);
+
             const tempIndex = this.player.team.findIndex(p => (p as any).isTemp || p.isMegaEvolution);
 
             if (tempIndex !== -1) this.player.team[tempIndex] = original;
@@ -1639,6 +1702,13 @@ export class BattleCore {
     static revertOpponentMew() {
         if (this.activeEffects && this.activeEffects.opponentMewOriginal) {
             const original = this.activeEffects.opponentMewOriginal;
+
+            // Recalcula status completo e reaplica a Ressonância Genética para o oponente se houver player
+            original.recalculateStats(false);
+            if (this.enemyPlayer) {
+                this.applyResonanceBonus(this.enemyPlayer, original);
+            }
+
             if (this.enemyPlayer) {
                 const tempIndex = this.enemyPlayer.team.findIndex(p => (p as any).isTemp || p.isMegaEvolution);
                 if (tempIndex !== -1) this.enemyPlayer.team[tempIndex] = original;

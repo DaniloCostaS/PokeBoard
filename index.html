@@ -4,9 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PokéBoard V1a</title>
+    <title>PokéBoard V1b</title>
     <link rel="icon" type="image/png" href="/favicon.png">
-    <link rel="stylesheet" href="style.css">
+
 
     <script type="importmap">
       {
@@ -21,12 +21,12 @@
 <body>
 
     <div id="setup-screen">
-        <h1 class="title-highlight">PokéBoard V1a</h1>
-        <p class="subtitle">Migrando para SupaBase.</p>
+        <h1 class="title-highlight">PokéBoard V1b</h1>
+        <p class="subtitle">Modo Offline com Bots.</p>
 
-        <div id="menu-phase-1">
+        <div id="menu-phase-1" style="display: none;">
             <button class="btn" onclick="window.Setup.showOfflineSetup()">🏠 JOGAR OFFLINE</button>
-            <button class="btn" style="background:#8e44ad;" onclick="window.Setup.showOnlineLogin()">🌐 JOGAR
+            <button class="btn" style="background:#8e44ad;" onclick="window.Setup.showOnlineMenu()">🌐 JOGAR
                 ONLINE</button>
             <div id="reconnect-area"
                 style="display:none; margin-top:10px; padding:10px; background:#e8f8f5; border:1px solid #2ecc71; border-radius:5px;">
@@ -35,19 +35,14 @@
                     RECONECTAR</button>
             </div>
             <div style="margin-top:15px; border-top:1px solid #eee; padding-top:10px;">
-                <p style="font-size:0.8rem; color:#777;">Gerenciamento de Save & Ajuda</p>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
-                    <button class="btn btn-secondary" onclick="window.Game.exportSave()">💾 Baixar Save</button>
-                    <button class="btn btn-secondary" onclick="document.getElementById('file-input').click()">📂
-                        Carregar Save</button>
-                </div>
                 <button class="btn" style="background:#34495e; margin-top:5px; font-size:0.8rem;"
                     onclick="window.open('./manual.html', '_blank')">📖 ABRIR MANUAL DO JOGO</button>
-                <input type="file" id="file-input" style="display:none" onchange="window.Game.importSave(this)">
+                <button class="btn" style="background:#c0392b; margin-top:10px; font-size:0.8rem;"
+                    onclick="window.Setup.logout()">🚪 SAIR / TROCAR CONTA</button>
             </div>
         </div>
 
-        <div id="online-login" style="display: none; margin-top: 15px;">
+        <div id="online-login" style="margin-top: 15px;">
             <h3 style="margin-bottom: 15px;">Acesso ao Lobby</h3>
             <label style="font-weight: bold;">Usuário (Nickname):</label>
             <input type="text" id="login-username" class="input-field" placeholder="Ex: Ash Ketchum"
@@ -58,7 +53,6 @@
                 style="margin-bottom: 15px; padding: 10px; width: 90%; font-size: 1.1rem; text-align: center;">
             <button class="btn" onclick="window.Setup.loginOnline()" style="background:#27ae60;">ACESSAR /
                 CADASTRAR</button>
-            <button class="btn btn-secondary" style="margin-top:10px;" onclick="location.reload()">Voltar</button>
         </div>
 
         <div id="menu-phase-online" style="display:none;">
@@ -107,6 +101,7 @@
             <div id="host-controls" style="display:none; margin-top:15px; border-top:1px solid #eee; padding-top:10px;">
                 <label>Tamanho do Mapa:</label>
                 <select id="online-map-size">
+                    <option value="7">Micro (7x7)</option>
                     <option value="10" selected>Pequeno (10x10)</option>
                     <option value="20">Médio (20x20)</option>
                     <option value="30">Grande (30x30)</option>
@@ -153,6 +148,19 @@
         </div>
 
         <div id="menu-phase-setup" style="display:none;">
+            <div
+                style="margin-bottom:15px; padding-bottom:15px; border-bottom:1px solid rgba(255,255,255,0.2); display: flex; flex-direction: column; gap: 8px; align-items: center;">
+                <p style="font-size:0.9rem; color:#f1c40f; margin-bottom: 5px; text-align: center; font-weight: bold;">
+                    Continuar Jornada</p>
+                <div style="display: flex; gap: 10px; width: 100%;">
+                    <button class="btn" style="background:#2980b9; flex: 1; margin: 0;"
+                        onclick="window.Game.loadGame()">📂 Carregar do Navegador</button>
+                    <button class="btn" style="background:#27ae60; flex: 1; margin: 0;"
+                        onclick="document.getElementById('file-input').click()">📂 Importar Arquivo</button>
+                </div>
+                <input type="file" id="file-input" style="display:none" onchange="window.Game.importSave(this)">
+            </div>
+
             <div class="setup-group">
                 <label>Número de Jogadores:</label>
                 <select id="num-players" onchange="window.Setup.updateSlots()">
@@ -168,6 +176,7 @@
             <div class="setup-group">
                 <label>Tamanho do Mapa:</label>
                 <select id="map-size">
+                    <option value="7">Micro (7x7)</option>
                     <option value="10" selected>Pequeno (10x10)</option>
                     <option value="20">Médio (20x20)</option>
                     <option value="30">Grande (30x30)</option>
@@ -208,7 +217,8 @@
             </div>
 
             <div id="player-slots-container"></div>
-            <button id="btn-start-game" class="btn" onclick="window.Setup.start()">🚀 INICIAR JORNADA</button>
+            <button id="btn-start-game" class="btn" onclick="window.Setup.start()">🚀 INICIAR NOVA JORNADA</button>
+            <button class="btn btn-secondary" style="margin-top:10px;" onclick="location.reload()">Voltar</button>
         </div>
     </div>
 
@@ -249,17 +259,13 @@
 
             <div class="panel-box extra-space">
                 <div id="champion-global-banner" style="display: none;"></div>
-                <button class="btn btn-secondary" onclick="window.Game.openCardLibrary()">📖 Ver Todas as
-                    Cartas</button>
-                <button class="btn btn-secondary" onclick="window.Game.openItemLibrary()">🎒 Ver Todos os Itens</button>
-                <button class="btn btn-secondary" onclick="window.QuestManager.openQuestLibrary()">📜 Ver Todas as
-                    Missões</button>
-                <button class="btn btn-secondary btn-rules-capture" onclick="window.Game.openCaptureRules()">🦅 Regras
-                    de Captura</button>
-                <button class="btn btn-secondary btn-rules-combat" onclick="window.Game.openCombatRules()">⚔️
-                    Regras de Combate</button>
+                <button class="btn btn-secondary"
+                    onclick="document.getElementById('pokepedia-modal').style.display='flex'">📖 Poképédia</button>
                 <button class="btn btn-secondary btn-trash" onclick="window.Game.openLixeira(false)">🗑️ Ver
                     Lixeira</button>
+                <button id="save-game-btn" class="btn"
+                    style="background:#27ae60; color:white; margin-top:10px; display:none;"
+                    onclick="document.getElementById('save-game-modal').style.display='flex'">💾 Salvar Partida</button>
                 <button id="btn-admin-panel" class="btn"
                     style="display:none; background:#c0392b; color:white; margin-top:10px; font-weight:bold; box-shadow:0 0 5px #c0392b;"
                     onclick="window.Game.openAdminPanel()">🛠️ Painel Host</button>
@@ -377,6 +383,42 @@
             </ul>
             <button class="btn btn-secondary mt-15"
                 onclick="document.getElementById('capture-rules-modal').style.display='none'">Fechar</button>
+        </div>
+    </div>
+
+    <div id="happiness-rules-modal" class="modal-overlay">
+        <div
+            style="width: 550px; max-width: 95%; max-height: 90vh; overflow-y: auto; background: rgba(20, 20, 20, 0.95); border: 2px solid #ff9ff3; color: #fff; border-radius: 16px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box; text-align: left;">
+            <h3 style="text-align:center; color: #ff9ff3; margin-top: 0; font-family: 'Outfit', sans-serif;">💖
+                Felicidade & Vínculo</h3>
+            <ul style="font-size: 0.9rem; line-height: 1.6; color: #ddd;">
+                <li><strong>O que é:</strong> A felicidade representa o vínculo afetivo entre você e seu Pokémon,
+                    variando de 0% a 100%.</li>
+                <li><strong>⭐ Bônus de 100%:</strong> Ao atingir 100% de felicidade, o Pokémon ganha um **bônus de +5%
+                    em todos os status** (HP Máximo, Ataque, Defesa e Velocidade).</li>
+                <li><strong>💔 Perda de Bônus:</strong> Se a felicidade cair abaixo de 100%, o bônus de status é perdido
+                    imediatamente.</li>
+                <hr style="border-color: rgba(255,255,255,0.1); margin: 12px 0;">
+                <li><strong>📈 Como Aumentar:</strong>
+                    <ul>
+                        <li><strong>Subir de Nível:</strong> +5% de felicidade.</li>
+                        <li><strong>Ações e Vitórias em Batalha:</strong> +1% a +3% por vitória/combate.</li>
+                        <li><strong>Itens de Cura Especiais:</strong> Alguns itens no Centro Pokémon restauram o afeto.
+                        </li>
+                    </ul>
+                </li>
+                <li><strong>📉 Como Diminuir:</strong>
+                    <ul>
+                        <li><strong>Nocaute em Combate:</strong> -10% de felicidade quando o Pokémon desmaia.</li>
+                        <li><strong>Derrotas Gerais:</strong> Outras penalidades podem reduzir o afeto em 5%.</li>
+                    </ul>
+                </li>
+                <hr style="border-color: rgba(255,255,255,0.1); margin: 12px 0;">
+                <li><strong>🤝 Vínculo Supremo:</strong> Se o Pokémon tiver o efeito <em>Vínculo Supremo</em> ativado,
+                    sua felicidade é travada em 100% e nunca poderá ser reduzida.</li>
+            </ul>
+            <button class="btn btn-secondary mt-15"
+                onclick="document.getElementById('happiness-rules-modal').style.display='none'; document.getElementById('pokepedia-modal').style.display='flex'">Voltar</button>
         </div>
     </div>
 
@@ -508,6 +550,61 @@
             <div id="shop-items-list" class="scroll-list"
                 style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 5px;">
             </div>
+        </div>
+    </div>
+
+    <div id="pokepedia-modal" class="modal-overlay" style="z-index: 2500; display: none;">
+        <div style="width: 650px; max-width: 95%; height: auto; max-height: 90vh; display: flex; flex-direction: column; background: rgba(20, 20, 20, 0.95); border: 2px solid #f1c40f; color: #fff; border-radius: 16px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box;"
+            class="modal-box">
+            <h3
+                style="color: #f1c40f; margin-top: 0; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; font-family: 'Outfit', sans-serif;">
+                📖 Poképédia</h3>
+
+            <p style="text-align: center; color: #bdc3c7; font-size: 0.95rem; margin-bottom: 25px;">
+                Bem-vindo à Poképédia! Escolha o manual que deseja consultar:
+            </p>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <button class="btn"
+                    style="margin:0; padding: 15px; font-size: 1.05rem; border:none; background: linear-gradient(135deg, #1abc9c, #16a085); color: #fff; font-weight: bold; border-radius: 10px; box-shadow: 0 4px 15px rgba(26, 188, 156, 0.3); transition: transform 0.2s;"
+                    onmouseover="this.style.transform='translateY(-2px)'"
+                    onmouseout="this.style.transform='translateY(0)'"
+                    onclick="document.getElementById('pokepedia-modal').style.display='none'; window.Game.openCardLibrary()">📖
+                    Ver Todas as Cartas</button>
+                <button class="btn"
+                    style="margin:0; padding: 15px; font-size: 1.05rem; border:none; background: linear-gradient(135deg, #3498db, #2980b9); color: #fff; font-weight: bold; border-radius: 10px; box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3); transition: transform 0.2s;"
+                    onmouseover="this.style.transform='translateY(-2px)'"
+                    onmouseout="this.style.transform='translateY(0)'"
+                    onclick="document.getElementById('pokepedia-modal').style.display='none'; window.Game.openItemLibrary()">🎒
+                    Ver Todos os Itens</button>
+                <button class="btn"
+                    style="margin:0; padding: 15px; font-size: 1.05rem; border:none; background: linear-gradient(135deg, #e67e22, #d35400); color: #fff; font-weight: bold; border-radius: 10px; box-shadow: 0 4px 15px rgba(230, 126, 34, 0.3); transition: transform 0.2s;"
+                    onmouseover="this.style.transform='translateY(-2px)'"
+                    onmouseout="this.style.transform='translateY(0)'"
+                    onclick="document.getElementById('pokepedia-modal').style.display='none'; window.QuestManager.openQuestLibrary()">📜
+                    Ver Todas as Missões</button>
+                <button class="btn"
+                    style="margin:0; padding: 15px; font-size: 1.05rem; border:none; background: linear-gradient(135deg, #9b59b6, #8e44ad); color: #fff; font-weight: bold; border-radius: 10px; box-shadow: 0 4px 15px rgba(155, 89, 182, 0.3); transition: transform 0.2s;"
+                    onmouseover="this.style.transform='translateY(-2px)'"
+                    onmouseout="this.style.transform='translateY(0)'"
+                    onclick="document.getElementById('pokepedia-modal').style.display='none'; window.Game.openCaptureRules()">🦅
+                    Regras de Captura</button>
+                <button class="btn"
+                    style="margin:0; padding: 15px; font-size: 1.05rem; border:none; background: linear-gradient(135deg, #e74c3c, #c0392b); color: #fff; font-weight: bold; border-radius: 10px; box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3); transition: transform 0.2s;"
+                    onmouseover="this.style.transform='translateY(-2px)'"
+                    onmouseout="this.style.transform='translateY(0)'"
+                    onclick="document.getElementById('pokepedia-modal').style.display='none'; window.Game.openCombatRules()">⚔️
+                    Regras de Combate</button>
+                <button class="btn"
+                    style="margin:0; padding: 15px; font-size: 1.05rem; border:none; background: linear-gradient(135deg, #ff9ff3, #f368e0); color: #fff; font-weight: bold; border-radius: 10px; box-shadow: 0 4px 15px rgba(255, 159, 243, 0.3); transition: transform 0.2s;"
+                    onmouseover="this.style.transform='translateY(-2px)'"
+                    onmouseout="this.style.transform='translateY(0)'"
+                    onclick="document.getElementById('pokepedia-modal').style.display='none'; document.getElementById('happiness-rules-modal').style.display='flex'">💖
+                    Felicidade Pokémon</button>
+            </div>
+
+            <button class="btn btn-secondary mt-15" style="margin-top: 25px; border-radius: 8px;"
+                onclick="document.getElementById('pokepedia-modal').style.display='none'">Fechar</button>
         </div>
     </div>
 
@@ -1096,6 +1193,32 @@
             </div>
             <button class="btn" style="background:#e74c3c; margin-top: 15px;"
                 onclick="document.getElementById('rooms-hub-modal').style.display='none'">Fechar</button>
+        </div>
+    </div>
+
+    <!-- SAVE GAME MODAL -->
+    <div id="save-game-modal" class="modal-overlay">
+        <div
+            style="width: 450px; max-width: 95%; background: rgba(20, 20, 20, 0.95); border: 2px solid #27ae60; color: #fff; border-radius: 16px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box; text-align: center;">
+            <h3 style="color: #27ae60; margin-top: 0; font-family: 'Outfit', sans-serif;">💾 Salvar Partida</h3>
+            <p style="font-size: 0.9rem; color: #ccc; margin-bottom: 20px;">Escolha como deseja salvar seu progresso da
+                jornada offline:</p>
+
+            <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
+                <button class="btn"
+                    style="background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%); margin: 0; padding: 12px;"
+                    onclick="window.Game.saveGame(); document.getElementById('save-game-modal').style.display='none'; alert('Partida salva com sucesso no navegador!')">
+                    🌐 Salvar no Navegador (Cache)
+                </button>
+                <button class="btn"
+                    style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); margin: 0; padding: 12px;"
+                    onclick="window.Game.exportSave(); document.getElementById('save-game-modal').style.display='none';">
+                    📂 Exportar Arquivo de Save (.json)
+                </button>
+            </div>
+
+            <button class="btn btn-secondary" style="margin: 0; width: 100%;"
+                onclick="document.getElementById('save-game-modal').style.display='none'">Cancelar</button>
         </div>
     </div>
 

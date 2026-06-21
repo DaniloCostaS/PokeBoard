@@ -46,7 +46,8 @@ export class GameUI {
             d.style.borderLeft = `4px solid ${playerColor}`;
 
             let badgeHTML = `<div class="badges-container" style="cursor: pointer;" onclick="window.openPlayerBadges(${i})" title="Clique para abrir o Porta-Insígnias de ${p.name}">`;
-            for (let b = 0; b < 8; b++) {
+            const totalGyms = GameState.activeGyms && GameState.activeGyms.length > 0 ? GameState.activeGyms.length : 8;
+            for (let b = 0; b < totalGyms; b++) {
                 const isActive = p.badges[b];
                 const actualGymId = GameState.activeGyms ? GameState.activeGyms[b] : (b + 1);
                 const gData = GYM_DATA.find(g => g.id === actualGymId);
@@ -79,6 +80,7 @@ export class GameUI {
                 const itemIcon = heldItemData ? `<img src="/assets/img/Itens/${heldItemData.icon}" style="width:16px; height:16px; margin-left:4px;" title="Item Segurando: ${heldItemData.name}">` : '';
 
                 const vinculoIcon = m.vinculoSupremo ? `<span style="font-size:14px; margin-left:4px;" title="Vínculo Supremo">🤝</span>` : '';
+                const happinessIcon = m.happiness === 100 ? `<span style="font-size:14px; margin-left:4px;" title="Vínculo Afetivo (100% Felicidade)">💖</span>` : '';
 
                 return ` 
                 <div class="poke-card ${m.isFainted() ? 'fainted' : ''}" style="${rarityStyle}; cursor: pointer;" onclick="window.Game.openPokemonDetail(${i}, ${slotIndex})"> 
@@ -89,6 +91,7 @@ export class GameUI {
                             ${megaIcon}
                             ${itemIcon}
                             ${vinculoIcon}
+                            ${happinessIcon}
                             <span class="poke-lvl">Lv.${m.level}</span> 
                         </div> 
                         ${m.getTypeBadgesHTML ? m.getTypeBadgesHTML() : ''}
@@ -199,6 +202,11 @@ export class GameUI {
             } else {
                 btnAdmin.style.display = 'none';
             }
+        }
+
+        const btnSave = document.getElementById('save-game-btn');
+        if (btnSave) {
+            btnSave.style.display = NetworkObj.isOnline ? 'none' : 'block';
         }
     }
 
@@ -512,10 +520,23 @@ export class GameUI {
             customStyle = "background: rgba(46, 204, 113, 0.1); border-left: 4px solid #2ecc71; font-weight: bold; color: #2ecc71;";
         }
 
+        m = m.replace(/\n/g, '<br>');
+
+        const NetworkObj = (window as any).Network || Network;
+        if (NetworkObj.isOnline && !skipSync) {
+            if (typeof NetworkObj.syncLogs === 'function') {
+                NetworkObj.syncLogs([{
+                    text: m,
+                    style: customStyle,
+                    type: logType,
+                    battleId: battleId
+                }]);
+            }
+            return;
+        }
+
         const container = document.getElementById('log-container');
         if (container) {
-            m = m.replace(/\n/g, '<br>');
-
             const newLogEntry: any = {
                 text: m,
                 style: customStyle,
@@ -526,11 +547,6 @@ export class GameUI {
 
             GameState.globalLogs.unshift(newLogEntry);
             if (GameState.globalLogs.length > 200) GameState.globalLogs.pop();
-
-            const NetworkObj = (window as any).Network || Network;
-            if (!skipSync && NetworkObj && NetworkObj.isOnline && typeof NetworkObj.syncLogs === 'function') {
-                NetworkObj.syncLogs(GameState.globalLogs);
-            }
 
             const currentFilter = (this as any).currentLogFilter || 'all';
             const searchInput = document.getElementById('log-search-input') as HTMLInputElement;
@@ -597,10 +613,6 @@ export class GameUI {
 
     static sendGlobalLog(msg: string) {
         this.log(msg);
-        const NetworkObj = (window as any).Network || Network;
-        if (NetworkObj.isOnline) {
-            NetworkObj.sendAction('LOG', { msg: msg });
-        }
     }
 
     static recordCardLog(attackerName: string, cardName: string, targetName: string) {
@@ -1471,7 +1483,8 @@ export class GameUI {
         const grid = document.getElementById('badges-case-grid')!;
         grid.innerHTML = '';
 
-        for (let b = 0; b < 8; b++) {
+        const totalGyms = GameState.activeGyms && GameState.activeGyms.length > 0 ? GameState.activeGyms.length : 8;
+        for (let b = 0; b < totalGyms; b++) {
             const isActive = p.badges[b];
             const actualGymId = GameState.activeGyms ? GameState.activeGyms[b] : (b + 1);
             const gData = GYM_DATA.find(g => g.id === actualGymId);
@@ -2047,7 +2060,7 @@ export class GameUI {
         let banner = document.getElementById('champion-global-banner');
         if (!banner) return;
 
-        if (!champion || !champion.team || champion.team.length === 0) {
+        if (MapSystem.size === 7 || !champion || !champion.team || champion.team.length === 0) {
             banner.style.display = 'none';
             return;
         }

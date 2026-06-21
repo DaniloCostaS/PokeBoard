@@ -110,8 +110,10 @@ window.openXpRules = () => Game.openXpRules();
 // Inicialização
 document.addEventListener('DOMContentLoaded', () => {
     Setup.updateSlots();
+    Setup.checkCachedLogin();
 });
 
 if (document.readyState === "complete" || document.readyState === "interactive") {
     Setup.updateSlots();
+    Setup.checkCachedLogin();
 }

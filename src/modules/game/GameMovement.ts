@@ -33,8 +33,18 @@ export class GameMovement {
 
         const p = GameState.getCurrentPlayer();
         const badgesCount = p.badges.filter((b: boolean) => b).length;
+        const targetBadges = MapSystem.size === 7 ? 4 : 8;
 
-        if (badgesCount === 8) {
+        if (badgesCount === targetBadges) {
+            if (MapSystem.size === 7) {
+                alert("🏆 PARABÉNS! Você conseguiu as 4 Insígnias e venceu o jogo!");
+                const NetworkObj = (window as any).Network;
+                if (NetworkObj && NetworkObj.isOnline) {
+                    NetworkObj.sendAction('GAME_WIN', { winnerId: p.id });
+                }
+                GameEvents.triggerVictory(p.id);
+                return;
+            }
             if (GameState.globalChampion) {
                 const querLutar = confirm(`🏆 VOCÊ TEM AS 8 INSÍGNIAS!\n\nDeseja desafiar o Campeão Atual (${GameState.globalChampion.name}) agora?\n\n(Regras: Sem itens, sem cartas. Vencer = Fim de Jogo!)\n\nClique OK para Lutar ou Cancelar para rolar o dado e se preparar mais.`);
 
