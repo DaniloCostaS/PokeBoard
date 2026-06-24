@@ -142,7 +142,13 @@ export class GameState {
             gymLoc: MapSystem.gymLocations, 
             lastBonusRoundClaimed: this.lastBonusRoundClaimed,
             battleLogs: this.battleLogs,
-            settings: this.settings 
+            settings: this.settings,
+            lixeira: this.lixeira,
+            round: this.round,
+            currentGlobalEventId: this.currentGlobalEvent ? this.currentGlobalEvent.id : null,
+            eventEndRound: this.eventEndRound,
+            activeGyms: this.activeGyms,
+            gymTeams: this.gymTeams
         };
     }
 
@@ -198,6 +204,9 @@ export class GameState {
     }
 
     static loadGameFromData(d: any) {
+        this.reset();
+        this.activeGyms = d.activeGyms || [];
+        this.gymTeams = d.gymTeams || {};
         MapSystem.size = d.mapSize;
         MapSystem.grid = d.grid;
         MapSystem.gymLocations = d.gymLoc || {};
@@ -222,8 +231,49 @@ export class GameState {
             return pl;
         });
         this.turn = d.turn;
+        this.round = d.round || 1;
+        this.eventEndRound = d.eventEndRound || 0;
+        this.currentGlobalEvent = d.currentGlobalEventId ? GLOBAL_EVENTS.find((e: any) => e.id === d.currentGlobalEventId) || null : null;
+        if (d.lixeira) {
+            this.lixeira = d.lixeira.map((td: any) => {
+                const po = new Pokemon(td.id, td.level, td.isShiny);
+                Object.assign(po, td);
+                if (td.happiness !== undefined) po.happiness = Number(td.happiness);
+                return po;
+            });
+        } else {
+            this.lixeira = [];
+        }
         document.getElementById('setup-screen')!.style.display = 'none';
         document.getElementById('game-container')!.style.display = 'flex';
         this.init(this.players, d.mapSize, this.settings);
+    }
+
+    static reset() {
+        this.players = [];
+        this.turn = 0;
+        this.round = 1;
+        this.alertEndsTurn = true;
+        this.pendingTileEvent = false;
+        this.isCityEvent = false;
+        this.hasRolled = false;
+        this.turnStarted = false;
+        this.forcedDiceValue = 0;
+        this.bonusMovement = 0;
+        this.traps = [];
+        this.pendingHealItem = null;
+        this.gymTeams = {};
+        this.pendingCardAnimation = null;
+        this.pendingLegendaryEncounter = null;
+        this.pendingLegendaryAlert = null;
+        this.currentGlobalEvent = null;
+        this.eventEndRound = 0;
+        this.lastBonusRoundClaimed = 0;
+        this.activeGyms = [];
+        this.globalLogs = [];
+        this.battleLogs = {};
+        this.cardLogs = [];
+        this.lixeira = [];
+        this.globalChampion = null;
     }
 }

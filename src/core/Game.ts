@@ -166,6 +166,7 @@ export class Game {
     static getSaveData() { return GameState.getSaveData(); }
     static exportSave() { (GameState as any).exportSave(); }
     static importSave(i: HTMLInputElement) { (GameState as any).importSave(i); }
+    static reset() { GameState.reset(); }
 
     // ==========================================
     // SPAWNS

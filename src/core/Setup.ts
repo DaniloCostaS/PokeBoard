@@ -5,6 +5,7 @@ import { Network, db as supabase } from '../systems/Network';
 import { MapSystem } from '../systems/MapSystem';
 import { SupabaseDataStore } from '../modules/network/SupabaseDataStore';
 import { GameSpawns } from '../modules/game/GameSpawns';
+import { GameState } from '../modules/game/GameState';
 
 export class Setup {
     static showOfflineSetup() { document.getElementById('menu-phase-1')!.style.display = 'none'; document.getElementById('menu-phase-setup')!.style.display = 'block'; }
@@ -195,8 +196,10 @@ export class Setup {
 
     // START OFFLINE
     static start() {
+        Game.reset();
         const n = parseInt((document.getElementById('num-players') as HTMLSelectElement).value);
         const mapSize = parseInt((document.getElementById('map-size') as HTMLSelectElement).value);
+        MapSystem.generate(mapSize);
         const ps: Player[] = [];
         for (let i = 0; i < n; i++) {
             const p = new Player(i, (document.getElementById(`p${i}-name`) as HTMLInputElement).value, (document.getElementById(`p${i}-av`) as HTMLSelectElement).value, false);
@@ -317,6 +320,7 @@ export class Setup {
                     Game.activeGyms = allGyms.sort(() => Math.random() - 0.5).slice(0, count);
                 }
                 if (!Game.gymTeams || Object.keys(Game.gymTeams).length === 0) {
+                    GameState.settings = settings;
                     GameSpawns.generateGymTeams();
                 }
                 await SupabaseDataStore.saveBoard(Network.currentRoomId, settings, Game.gymTeams, Game.activeGyms);

@@ -398,28 +398,9 @@ export class BattleCore {
                 }
             }
 
-            // Verifica Destiny Card (Destino Selado)
-            if (this.opponent && this.activeMon && this.player.cards) {
-                let willKill = false;
-                try {
-                    const calc = BattleCalc.calculateDamage(this.activeMon, this.opponent, true);
-                    if (calc.damage >= this.opponent.currentHp) willKill = true;
-                } catch (e) {
-                    // Ignora caso erro no cálculo
-                }
-                
-                if (willKill && !this.activeEffects.destiny) {
-                    const destinyIdx = this.player.cards.findIndex((c: any) => (typeof c === 'string' ? c : c.id) === 'destiny' && !c.isProtected);
-                    if (destinyIdx !== -1) {
-                        const CardsObj = (window as any).Cards;
-                        if (CardsObj) {
-                            // Marca como jogado para não sobrepor outras lógicas depois
-                            this.player.effects.playedCardThisTurn = true; 
-                            CardsObj.activate('destiny', this.player.id);
-                        }
-                    }
-                }
-            }
+            // Inteligência artificial de cartas de batalha da CPU
+            this.cpuPlayBattleCardsAI();
+            if (!this.active) return; // Se a CPU fugiu com Fumaça Ninja, encerra
         }
         // -- FIM NOVO CPU BATTLE LOGIC --
 
@@ -487,6 +468,10 @@ export class BattleCore {
             this.processingAction = false;
             BattleUI.updateButtons();
 
+            if (this.activeEffects) {
+                this.activeEffects.cpuPlayedCardThisRound = false;
+            }
+
             if (this.isPvP && NetworkObj.isOnline) {
                 NetworkObj.syncPlayerState();
                 if (this.enemyPlayer) NetworkObj.syncSpecificPlayer(this.enemyPlayer.id);
@@ -535,6 +520,119 @@ export class BattleCore {
                     finishTurnSequence();
                 }
             });
+        }
+    }
+
+    static cpuPlayBattleCardsAI() {
+        if (!this.player || !this.player.isCPU || !this.player.cards) return;
+        if (this.cardsUsedThisBattle >= 3) return;
+
+        // Limita a 1 carta de batalha por rodada para a CPU
+        if (this.activeEffects.cpuPlayedCardThisRound) return;
+
+        const p = this.player;
+        const myMon = this.activeMon;
+        const oppMon = this.opponent;
+        if (!myMon || !oppMon) return;
+
+        const myHpPct = myMon.currentHp / myMon.maxHp;
+        const oppHpPct = oppMon.currentHp / oppMon.maxHp;
+
+        // Lista de IDs das cartas de batalha disponíveis na mão
+        const cardIds = p.cards.filter((c: any) => !c.isProtected).map((c: any) => typeof c === 'string' ? c : c.id);
+
+        let cardToPlay: string | null = null;
+        let targetArg: any = p.id;
+
+        // 1. MASTER BALL: Se for selvagem e o oponente for Shiny ou Lendário, e tivermos pokébolas
+        if (!this.isPvP && !this.isGym && !this.isNPC && (oppMon.isShiny || oppMon.isLegendary) && cardIds.includes('master')) {
+            const hasBalls = (p.items['pokeball'] || 0) > 0 || (p.items['greatball'] || 0) > 0 || (p.items['ultraball'] || 0) > 0;
+            if (hasBalls) {
+                cardToPlay = 'master';
+            }
+        }
+
+        // 2. SEQUESTRAR POKÉMON (illegal_adoption): Se não for PvP/Gym/Campeão, e o oponente for Shiny ou Lendário ou muito mais forte que o nosso time
+        if (!cardToPlay && cardIds.includes('illegal_adoption') && !this.isPvP && !this.isGym && !this.isChampion) {
+            const getStats = (mon: any) => mon.maxHp + mon.atk + mon.def + mon.speed;
+            const oppStats = getStats(oppMon);
+            const weakestMonStats = Math.min(...p.team.map(getStats));
+            if (oppMon.isShiny || oppMon.isLegendary || oppStats > weakestMonStats * 1.3) {
+                cardToPlay = 'illegal_adoption';
+            }
+        }
+
+        // 3. DNA DE MEW (mew): Se o nosso HP estiver crítico (<= 35%) ou o oponente for muito forte
+        if (!cardToPlay && cardIds.includes('mew') && !this.activeEffects.mewOriginal) {
+            const getStats = (mon: any) => mon.maxHp + mon.atk + mon.def + mon.speed;
+            if (myHpPct <= 0.35 || getStats(oppMon) > getStats(myMon) * 1.25) {
+                cardToPlay = 'mew';
+            }
+        }
+
+        // 4. CURA (heal): Se o HP estiver crítico (<= 30%)
+        if (!cardToPlay && cardIds.includes('heal') && myHpPct <= 0.30) {
+            cardToPlay = 'heal';
+        }
+
+        // 5. ATAQUE SURPRESA (status): Atordoa o oponente por 2 turnos se ele não estiver atordoado
+        if (!cardToPlay && cardIds.includes('status') && (!this.activeEffects.stunOpponent || this.activeEffects.stunOpponent <= 0) && oppHpPct > 0.3) {
+            cardToPlay = 'status';
+        }
+
+        // 6. CONTRA-ATAQUE (counter): Reflete dano por 3 ataques
+        if (!cardToPlay && cardIds.includes('counter') && !this.activeEffects.counter && oppHpPct > 0.4 && myHpPct > 0.4) {
+            cardToPlay = 'counter';
+        }
+
+        // 7. ESCUDO PROTETOR (guard): Reduz dano recebido pela metade
+        if (!cardToPlay && cardIds.includes('guard') && !this.activeEffects.guard && oppHpPct > 0.4 && myHpPct > 0.4) {
+            cardToPlay = 'guard';
+        }
+
+        // 8. FOCO TOTAL (focus): Próximo ataque 4x dano
+        if (!cardToPlay && cardIds.includes('focus') && !this.activeEffects.focus && oppHpPct > 0.4) {
+            cardToPlay = 'focus';
+        }
+
+        // 9. SUPER CRÍTICO (crit): Dobra dano dos próximos 3 ataques
+        if (!cardToPlay && cardIds.includes('crit') && !this.activeEffects.crit && oppHpPct > 0.5) {
+            cardToPlay = 'crit';
+        }
+
+        // 10. SNIPER AMERICANO (sniper): Sem erro
+        if (!cardToPlay && cardIds.includes('sniper') && !this.activeEffects.sniper && oppHpPct > 0.5) {
+            cardToPlay = 'sniper';
+        }
+
+        // 11. DESTINO SELADO (destiny): Recompensas dobradas se vencer (se o próximo ataque vai matar)
+        if (!cardToPlay && cardIds.includes('destiny') && !this.activeEffects.destiny) {
+            let willKill = false;
+            try {
+                const calc = BattleCalc.calculateDamage(myMon, oppMon, true);
+                if (calc.damage >= oppMon.currentHp) willKill = true;
+            } catch (e) {}
+            if (willKill) {
+                cardToPlay = 'destiny';
+            }
+        }
+
+        // 12. FUMAÇA NINJA (run): Fugir se a situação estiver péssima (HP baixo e último mon)
+        if (!cardToPlay && cardIds.includes('run') && !this.isPvP && !this.isGym && !this.isNPC) {
+            const aliveCount = p.team.filter(m => !m.isFainted()).length;
+            if (myHpPct <= 0.20 && aliveCount === 1) {
+                cardToPlay = 'run';
+            }
+        }
+
+        if (cardToPlay) {
+            this.cardsUsedThisBattle++;
+            this.activeEffects.cpuPlayedCardThisRound = true;
+            
+            const CardsObj = (window as any).Cards || Cards;
+            if (CardsObj) {
+                CardsObj.activate(cardToPlay, targetArg);
+            }
         }
     }
 

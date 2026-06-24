@@ -33,12 +33,43 @@ export class Pokemon {
             forceMegaStone = true;
         }
 
+        const getGen = (id: number) => {
+            if (id >= 10000) return 0;
+            if (id <= 151) return 1;
+            if (id <= 251) return 2;
+            if (id <= 386) return 3;
+            if (id <= 493) return 4;
+            if (id <= 649) return 5;
+            if (id <= 721) return 6;
+            if (id <= 809) return 7;
+            if (id <= 905) return 8;
+            return 9;
+        };
+
         let template = POKEDEX.find(p => p.id === actualTemplateId) || POKEDEX[0];
         
         while (template.nextForm && template.evoTrigger && targetLevel >= template.evoTrigger) {
             const next = POKEDEX.find(p => p.name === template.nextForm);
-            if (next) template = next;
-            else break;
+            if (next) {
+                let canEvolve = true;
+                try {
+                    const GameStateObj = (window as any).GameState;
+                    if (GameStateObj?.settings?.generations) {
+                        const nextGen = getGen(next.id);
+                        if (nextGen > 0 && !GameStateObj.settings.generations.includes(nextGen)) {
+                            canEvolve = false;
+                        }
+                    }
+                } catch(e) {}
+                
+                if (canEvolve) {
+                    template = next;
+                } else {
+                    break;
+                }
+            } else {
+                break;
+            }
         }
 
         this.id = template.id; 
@@ -391,6 +422,31 @@ export class Pokemon {
         if (this.level >= (this.evoData.trigger || 999)) { 
             const next = POKEDEX.find(p => p.name === this.evoData.next); 
             if (next) { 
+                let canEvolve = true;
+                try {
+                    const GameStateObj = (window as any).GameState;
+                    if (GameStateObj?.settings?.generations) {
+                        const getGen = (id: number) => {
+                            if (id >= 10000) return 0;
+                            if (id <= 151) return 1;
+                            if (id <= 251) return 2;
+                            if (id <= 386) return 3;
+                            if (id <= 493) return 4;
+                            if (id <= 649) return 5;
+                            if (id <= 721) return 6;
+                            if (id <= 809) return 7;
+                            if (id <= 905) return 8;
+                            return 9;
+                        };
+                        const nextGen = getGen(next.id);
+                        if (nextGen > 0 && !GameStateObj.settings.generations.includes(nextGen)) {
+                            canEvolve = false;
+                        }
+                    }
+                } catch(e) {}
+
+                if (!canEvolve) return false;
+
                 const oldName = this.name; 
                 const triggeredAt = this.evoData.trigger; 
                 

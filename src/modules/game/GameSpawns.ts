@@ -179,4 +179,36 @@ export class GameSpawns {
 
         return wildMon;
     }
+
+    static generateNPCTeam(npc: any, npcLevel: number, teamSize: number): Pokemon[] {
+        const allowedGens = GameState.settings.generations || [1, 2, 3, 4, 5, 6, 7, 8, 9];
+        let validTeamPool = npc.team.filter((monId: number) => {
+            const gen = this.getGenById(monId);
+            return gen > 0 ? allowedGens.includes(gen) : true;
+        });
+
+        if (validTeamPool.length === 0) {
+            const validCandidates = POKEDEX.filter(p => {
+                if (p.nextForm && p.nextForm !== "") return false;
+                const pGen = this.getGenById(p.id);
+                if (pGen > 0 && !allowedGens.includes(pGen)) return false;
+                if (p.id >= 10000 && !GameState.settings.megas) return false;
+                if (GameState.settings.legendaries === 'no' && p.isLegendary) return false;
+                if (GameState.settings.legendaries === 'only' && !p.isLegendary) return false;
+                return true;
+            });
+            validTeamPool = validCandidates.map(p => p.id);
+        }
+
+        if (validTeamPool.length === 0) {
+            validTeamPool = [130];
+        }
+
+        const npcTeam: Pokemon[] = [];
+        for (let i = 0; i < teamSize; i++) {
+            const monId = validTeamPool[Math.floor(Math.random() * validTeamPool.length)];
+            npcTeam.push(new Pokemon(monId, npcLevel, null));
+        }
+        return npcTeam;
+    }
 }

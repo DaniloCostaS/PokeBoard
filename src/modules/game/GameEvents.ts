@@ -189,12 +189,7 @@ export class GameEvents {
             const npcImg = npc.img ? `/assets/img/NPCs/${npc.img}` : '/assets/img/Treinadores/Red.jpg';
             const npcLevel = GameState.getGlobalAverageLevel();
             const teamSize = GameState.getGlobalAverageTeamSize();
-            const npcTeam: Pokemon[] = [];
-
-            for (let i = 0; i < teamSize; i++) {
-                const monId = npc.team[Math.floor(Math.random() * npc.team.length)];
-                npcTeam.push(new Pokemon(monId, npcLevel, null));
-            }
+            const npcTeam = GameSpawns.generateNPCTeam(npc, npcLevel, teamSize);
 
             BattleObj.setup(p, npcTeam as any, false, npc.name, npc.gold, null, false, 0, npcImg, type);
             return;
@@ -889,24 +884,34 @@ export class GameEvents {
     }
 
     static async applyBoardItemEffect(p: Player, item: ItemData, targetIdx: number) {
+        const Game = (window as any).Game;
+        const alertCPU = (msg: string) => {
+            if (p.isCPU) {
+                if (Game && typeof Game.log === 'function') Game.log(`🤖 CPU: ${msg}`);
+            } else {
+                alert(msg);
+            }
+        };
+
         let used = false;
         if (item.type === 'heal') {
             if (item.id === 'ultrafullrestore') {
                 let count = 0; p.team.forEach(m => { if (!m.isFainted() && m.currentHp < m.maxHp) { m.heal(9999); count++; } });
-                if (count > 0) { used = true; alert(`${count} Pokémon curados!`); } else alert("Ninguém precisa de cura!");
+                if (count > 0) { used = true; alertCPU(`${count} Pokémon curados!`); } else alertCPU("Ninguém precisa de cura!");
             } else {
-                const target = p.team[targetIdx]; if (target.isFainted()) return alert("Não funciona em Pokémon desmaiado!");
-                if (target.currentHp >= target.maxHp) return alert("HP já está cheio!"); target.heal(item.val || 20);
+                const target = p.team[targetIdx]; if (target.isFainted()) { alertCPU("Não funciona em Pokémon desmaiado!"); return; }
+                if (target.currentHp >= target.maxHp) { alertCPU("HP já está cheio!"); return; }
+                target.heal(item.val || 20);
                 target.addHappiness(1);
-                alert(`Usou ${item.name} em ${target.name}.`); used = true;
+                alertCPU(`Usou ${item.name} em ${target.name}.`); used = true;
             }
         } else if (item.type === 'revive') {
             if (item.id === 'ultramaxrevive') {
                 let count = 0; p.team.forEach(m => { if (m.isFainted()) { m.revive(100); count++; } });
-                if (count > 0) { used = true; alert(`${count} Pokémon revividos!`); } else alert("Ninguém está desmaiado!");
+                if (count > 0) { used = true; alertCPU(`${count} Pokémon revividos!`); } else alertCPU("Ninguém está desmaiado!");
             } else {
-                const target = p.team[targetIdx]; if (!target.isFainted()) return alert("Este Pokémon não está desmaiado!");
-                target.revive(item.val || 50); alert(`Usou ${item.name} em ${target.name}.`); used = true;
+                const target = p.team[targetIdx]; if (!target.isFainted()) { alertCPU("Este Pokémon não está desmaiado!"); return; }
+                target.revive(item.val || 50); alertCPU(`Usou ${item.name} em ${target.name}.`); used = true;
             }
         } else if (item.type === 'boost') {
             const target = p.team[targetIdx];
@@ -916,7 +921,7 @@ export class GameEvents {
                 target.bonusStats.def += 1;
                 target.bonusStats.spd += 1;
                 target.recalculateStats(false);
-                alert(`✨ SUPLEMENTAÇÃO! O ${target.name} tomou as vitaminas e todos os seus status subiram +1!`);
+                alertCPU(`✨ SUPLEMENTAÇÃO! O ${target.name} tomou as vitaminas e todos os seus status subiram +1!`);
                 used = true;
             }
         } else if (item.type === 'mega') {
@@ -924,27 +929,27 @@ export class GameEvents {
             if (targetMon) {
                 // MAPA_MEGAS is imported statically
                 if (!MAPA_MEGAS[targetMon.id]) {
-                    alert(`O Pokémon ${targetMon.name} não reage a esta Mega Pedra!`);
+                    alertCPU(`O Pokémon ${targetMon.name} não reage a esta Mega Pedra!`);
                     return;
                 }
                 if (targetMon.megaStone || targetMon.heldItem) {
-                    alert(`${targetMon.name} já está segurando um item! Remova-o antes de equipar outro.`);
+                    alertCPU(`${targetMon.name} já está segurando um item! Remova-o antes de equipar outro.`);
                     return;
                 }
                 targetMon.megaStone = true;
-                alert(`💎 A Mega Pedra foi vinculada a ${targetMon.name}! Ele agora pode Mega Evoluir em batalha.`);
+                alertCPU(`💎 A Mega Pedra foi vinculada a ${targetMon.name}! Ele agora pode Mega Evoluir em batalha.`);
                 used = true;
             }
         } else if (item.type === 'hold') {
             const targetMon = p.team[targetIdx];
             if (targetMon) {
                 if (targetMon.megaStone || targetMon.heldItem) {
-                    alert(`${targetMon.name} já está segurando um item! Remova-o antes de equipar outro.`);
+                    alertCPU(`${targetMon.name} já está segurando um item! Remova-o antes de equipar outro.`);
                     return;
                 }
                 targetMon.heldItem = item.id;
                 targetMon.addHappiness(5);
-                alert(`📦 ${targetMon.name} agora está segurando: ${item.name}!`);
+                alertCPU(`📦 ${targetMon.name} agora está segurando: ${item.name}!`);
                 used = true;
             }
         }
@@ -952,7 +957,9 @@ export class GameEvents {
         if (used) {
             p.items[item.id]--;
             GameUI.updateHUD();
-            GameUI.openInventoryModal(p.id);
+            if (!p.isCPU) {
+                GameUI.openInventoryModal(p.id);
+            }
             GameState.saveGame();
             const NetworkObj = (window as any).Network || Network;
             if (NetworkObj.isOnline) {
@@ -1007,11 +1014,36 @@ export class GameEvents {
                 NetworkObj.syncLixeira();
             }
         } else {
-            GameUI.sendGlobalLog(`💚 ${p.name} quer resgatar ${mon.name} da lixeira... mas precisa abrir espaço!`);
-            if (NetworkObj.isOnline) {
-                NetworkObj.syncLixeira();
+            if (p.isCPU) {
+                // Time cheio: encontra o pior Pokémon e substitui
+                const getStats = (m: any) => m.maxHp + m.atk + m.def + m.speed;
+                let worstIdx = 0;
+                let worstStats = getStats(p.team[0]);
+                for (let i = 1; i < p.team.length; i++) {
+                    const st = getStats(p.team[i]);
+                    if (st < worstStats) {
+                        worstStats = st;
+                        worstIdx = i;
+                    }
+                }
+                const discarded = p.team[worstIdx];
+                p.team[worstIdx] = mon;
+                discarded.currentHp = discarded.maxHp;
+                GameState.lixeira.push(discarded);
+
+                GameUI.sendGlobalLog(`💚 ${p.name} resgatou ${mon.name} da lixeira e libertou ${discarded.name}!`);
+                GameUI.updateHUD();
+                if (NetworkObj.isOnline) {
+                    NetworkObj.syncPlayerState();
+                    NetworkObj.syncLixeira();
+                }
+            } else {
+                GameUI.sendGlobalLog(`💚 ${p.name} quer resgatar ${mon.name} da lixeira... mas precisa abrir espaço!`);
+                if (NetworkObj.isOnline) {
+                    NetworkObj.syncLixeira();
+                }
+                GameUI.openSwapModal(mon);
             }
-            GameUI.openSwapModal(mon);
         }
     }
 

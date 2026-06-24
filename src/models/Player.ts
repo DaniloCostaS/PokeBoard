@@ -49,6 +49,8 @@ export class Player {
         tremembeUserTurns?: number;
         ashGoodbyeRemaining?: number;
         playedCardThisTurn?: boolean;
+        isWaitingCardAnimation?: boolean;
+        cardsPlayedThisTurn?: number;
     } = {};
 
     // --- ESTATÍSTICAS DE JOGO ---
@@ -155,5 +157,10 @@ export class Player {
     resetTurnFlags() {
         this.team.forEach(p => p.leveledUpThisTurn = false);
         this.boughtQuestThisTurn = false;
+        if (this.effects) {
+            this.effects.playedCardThisTurn = false;
+            this.effects.cardsPlayedThisTurn = 0;
+            this.effects.isWaitingCardAnimation = false;
+        }
     }
 }
