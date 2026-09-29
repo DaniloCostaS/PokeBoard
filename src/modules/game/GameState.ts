@@ -96,6 +96,7 @@ export class GameState {
         GameUI.renderBoard();
         GameUI.updateHUD();
         GameUI.moveVisuals();
+        if (GameUI.renderCardLogs) GameUI.renderCardLogs();
         GameEvents.checkTurnControl();
     }
 

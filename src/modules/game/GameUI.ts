@@ -635,25 +635,68 @@ export class GameUI {
             if (GameState.cardLogs.length > 20) GameState.cardLogs.pop();
         }
         this.renderCardLogs();
+
+        const tabCartas = document.getElementById('tab-cartas');
+        if (tabCartas && !tabCartas.classList.contains('active')) {
+            const badge = document.getElementById('cartas-badge');
+            if (badge) {
+                const currentVal = parseInt(badge.innerText) || 0;
+                badge.innerText = (currentVal + 1).toString();
+                badge.style.display = 'inline-block';
+            }
+        }
     }
 
     static renderCardLogs() {
         const container = document.getElementById('card-log-container');
+        const countSpan = document.getElementById('card-log-count');
         if (!container) return;
 
         if (GameState.cardLogs.length === 0) {
-            container.innerHTML = `<div class="empty-log">Nenhum ataque registrado...</div>`;
+            container.innerHTML = `<div class="empty-log" style="text-align: center; color: #9ca3af; margin-top: 20px;">Nenhum feitiço registrado...</div>`;
+            if (countSpan) countSpan.innerText = '0 jogadas';
             return;
         }
 
-        container.innerHTML = GameState.cardLogs.map(entry => `
-            <div class="card-log-entry">
-                <span class="round">R${entry.round}</span>
-                <span class="attacker">${entry.attacker}</span> usou 
-                <b class="card-name">${entry.card}</b> em 
-                <span class="target">${entry.target}</span>
-            </div>
-        `).join('');
+        if (countSpan) countSpan.innerText = `${GameState.cardLogs.length} jogada${GameState.cardLogs.length > 1 ? 's' : ''}`;
+
+        container.innerHTML = GameState.cardLogs.map(entry => {
+            const cardData = CARDS_DB.find(c => c.name === entry.card) || { rarity: 'Comum' as any, desc: '' };
+            let rarityColor = '#95a5a6';
+            if (cardData.rarity === 'Rara') rarityColor = '#3498db';
+            if (cardData.rarity === 'Épica') rarityColor = '#9b59b6';
+            if (cardData.rarity === 'Lendária') rarityColor = '#f1c40f';
+
+            const attackerP = GameState.players.find(p => p.name === entry.attacker);
+            const targetP = GameState.players.find(p => p.name === entry.target);
+            
+            const atkAvatar = attackerP ? attackerP.avatar : '/assets/img/Treinadores/Red.png';
+            const tgtAvatar = targetP ? targetP.avatar : (entry.target === 'Si mesmo' || entry.target === entry.attacker ? atkAvatar : '/assets/img/Treinadores/Red.png');
+
+            return `
+            <div class="card-log-entry" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px; position: relative;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                    <span style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; color: #bdc3c7;">Rodada ${entry.round}</span>
+                    <span style="border: 1px solid ${rarityColor}; color: ${rarityColor}; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; text-transform: uppercase;">${cardData.rarity}</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                    <div style="width: 36px; height: 36px; display: flex; justify-content: center; align-items: center; background: rgba(0,0,0,0.3); border-radius: 6px; font-size: 1.2rem;">✨</div>
+                    <div style="flex: 1; min-width: 0;">
+                        <div style="color: #f1c40f; font-weight: bold; font-size: 0.95rem;">${entry.card}</div>
+                        <div style="color: #9ca3af; font-size: 0.75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;" title="${cardData.desc}">${cardData.desc}</div>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.2); padding: 5px 8px; border-radius: 6px;">
+                    <div style="display: flex; align-items: center; gap: 5px; font-size: 0.8rem; font-weight: bold; color: #fff; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        <img src="${atkAvatar}" style="width: 20px; height: 20px; border-radius: 50%; object-fit: cover;"> ${entry.attacker}
+                    </div>
+                    <span style="color: #7f8c8d; font-size: 0.8rem; flex-shrink: 0;">→</span>
+                    <div style="display: flex; align-items: center; gap: 5px; font-size: 0.8rem; font-weight: bold; color: #e74c3c; max-width: 45%; justify-content: flex-end; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        <img src="${tgtAvatar}" style="width: 20px; height: 20px; border-radius: 50%; object-fit: cover;"> ${entry.target}
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
     }
 
     static showGlobalAlert(msg: string, playerName: string, isMyTurn: boolean, endsTurn: boolean = true) {
@@ -743,6 +786,52 @@ export class GameUI {
         } else if (GameState.pendingLegendaryAlert) {
             this.playLegendaryCinematic(GameState.pendingLegendaryAlert.player, GameState.pendingLegendaryAlert.monName, GameState.pendingLegendaryAlert.isMyEncounter);
             GameState.pendingLegendaryAlert = null;
+        }
+    }
+
+    static toggleRightPanel(btn: HTMLButtonElement) {
+        const panel = document.getElementById('right-panel');
+        if (panel) {
+            panel.classList.toggle('collapsed');
+            if (panel.classList.contains('collapsed')) {
+                panel.style.width = '0px';
+                btn.innerText = '◀';
+            } else {
+                panel.style.width = '320px';
+                btn.innerText = '▶';
+            }
+        }
+    }
+
+    static switchLogTab(tab: string) {
+        const tabPartida = document.getElementById('tab-partida');
+        const tabCartas = document.getElementById('tab-cartas');
+        const contentPartida = document.getElementById('log-content-partida');
+        const contentCartas = document.getElementById('log-content-cartas');
+        const badge = document.getElementById('cartas-badge');
+
+        if (tab === 'partida') {
+            tabPartida?.classList.add('active');
+            tabCartas?.classList.remove('active');
+            tabPartida!.style.color = '#fff';
+            tabPartida!.style.borderBottomColor = '#f1c40f';
+            tabCartas!.style.color = '#9ca3af';
+            tabCartas!.style.borderBottomColor = 'transparent';
+            if (contentPartida) contentPartida.style.display = 'flex';
+            if (contentCartas) contentCartas.style.display = 'none';
+        } else {
+            tabCartas?.classList.add('active');
+            tabPartida?.classList.remove('active');
+            tabCartas!.style.color = '#fff';
+            tabCartas!.style.borderBottomColor = '#f1c40f';
+            tabPartida!.style.color = '#9ca3af';
+            tabPartida!.style.borderBottomColor = 'transparent';
+            if (contentCartas) contentCartas.style.display = 'flex';
+            if (contentPartida) contentPartida.style.display = 'none';
+            if (badge) {
+                badge.style.display = 'none';
+                badge.innerText = '0';
+            }
         }
     }
 

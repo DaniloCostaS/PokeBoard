@@ -280,37 +280,59 @@
             </div>
             <div id="hud-col-right" class="hud-column"></div>
         </div>
-        <div id="right-panel">
-            <div id="match-log-header" class="panel-header"
-                style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:5px;">
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <span>📟 Log da partida</span>
-                    <button class="icon-chip-btn" onclick="window.Game.syncLogsManually()"
-                        title="Sincronizar Logs">🔄</button>
+        <div id="right-panel-wrapper" style="position: relative; height: 100%; display: flex; transition: transform 0.3s; z-index: 50;">
+            <button id="right-panel-toggle" class="btn" style="position: absolute; left: -25px; top: 50%; transform: translateY(-50%); width: 25px; height: 60px; padding: 0; border-radius: 8px 0 0 8px; z-index: 50; background: #2c3e50; border: 1px solid #f1c40f; border-right: none; color: #f1c40f; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: -2px 0 5px rgba(0,0,0,0.5);" onclick="window.Game.toggleRightPanel(this)">▶</button>
+            
+            <div id="right-panel" style="display: flex; flex-direction: column; overflow: hidden; width: 320px; transition: width 0.3s;">
+                <!-- Tabs Header -->
+                <div class="log-tabs" style="display: flex; background: #111827; border-bottom: 2px solid #374151; flex-shrink: 0;">
+                    <div class="log-tab active" id="tab-partida" onclick="window.Game.switchLogTab('partida')" style="flex: 1; text-align: center; padding: 12px; cursor: pointer; color: #fff; border-bottom: 2px solid #f1c40f; font-weight: bold; transition: 0.2s; font-size: 0.9rem;">
+                        📜 Partida
+                    </div>
+                    <div class="log-tab" id="tab-cartas" onclick="window.Game.switchLogTab('cartas')" style="flex: 1; text-align: center; padding: 12px; cursor: pointer; color: #9ca3af; border-bottom: 2px solid transparent; font-weight: bold; transition: 0.2s; position: relative; font-size: 0.9rem;">
+                        🃏 Cartas <span id="cartas-badge" style="display: none; background: #f1c40f; color: #000; border-radius: 50%; padding: 2px 6px; font-size: 0.7rem; margin-left: 5px; vertical-align: middle;">0</span>
+                    </div>
                 </div>
-                <div class="log-toolbar">
-                    <input type="text" id="log-search-input" placeholder="🔍 Buscar..."
-                        oninput="window.Game.filterLogs(document.getElementById('log-filter-select').value)"
-                        class="log-search-input">
-                    <select id="log-filter-select" onchange="window.Game.filterLogs(this.value)"
-                        class="log-filter-select">
-                        <option value="all">Ver Tudo</option>
-                        <option value="cards">Só Cartas</option>
-                        <option value="items">Só Itens</option>
-                        <option value="gold">Economia</option>
-                        <option value="battle">Batalhas</option>
-                    </select>
-                </div>
-            </div>
-            <div id="log-container"></div>
 
-            <div id="card-log-header" class="panel-header card-log-header">
-                <span style="font-size: 0.8rem;">🃏 Log de Ataques (Cartas)</span>
-                <small style="opacity: 0.7; font-size: 0.6rem;">Últimos 20</small>
-            </div>
-            <div id="card-log-container">
-                <div class="empty-log">Nenhum ataque
-                    registrado...</div>
+                <!-- Tab content: Partida -->
+                <div id="log-content-partida" style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
+                    <div id="match-log-header" class="panel-header"
+                        style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:5px;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span>📟 Log da partida</span>
+                            <button class="icon-chip-btn" onclick="window.Game.syncLogsManually()"
+                                title="Sincronizar Logs">🔄</button>
+                        </div>
+                        <div class="log-toolbar">
+                            <input type="text" id="log-search-input" placeholder="🔍 Buscar..."
+                                oninput="window.Game.filterLogs(document.getElementById('log-filter-select').value)"
+                                class="log-search-input">
+                            <select id="log-filter-select" onchange="window.Game.filterLogs(this.value)"
+                                class="log-filter-select">
+                                <option value="all">Ver Tudo</option>
+                                <option value="cards">Só Cartas</option>
+                                <option value="items">Só Itens</option>
+                                <option value="gold">Economia</option>
+                                <option value="battle">Batalhas</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="log-container"></div>
+                </div>
+
+                <!-- Tab content: Cartas -->
+                <div id="log-content-cartas" style="display: none; flex-direction: column; flex: 1; overflow: hidden;">
+                    <div id="card-log-header" class="panel-header card-log-header" style="display: flex; justify-content: space-between; align-items: center; background: #111827; padding: 15px;">
+                        <span style="font-size: 1rem; font-weight: bold; color: #f1c40f;">🃏 Cartas & Feitiços</span>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <button class="icon-chip-btn" onclick="window.Game.syncCardLogsManually()" title="Sincronizar Logs" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 5px; padding: 4px 8px; cursor: pointer; color: white;">🔄</button>
+                            <span id="card-log-count" style="background: rgba(241, 196, 15, 0.15); color: #f1c40f; border: 1px solid #f1c40f; border-radius: 12px; padding: 2px 8px; font-size: 0.75rem; font-weight: bold;">0 jogadas</span>
+                        </div>
+                    </div>
+                    <div id="card-log-container" style="flex: 1; overflow-y: auto; background: #1f2937; padding: 10px; display: flex; flex-direction: column; gap: 10px;">
+                        <div class="empty-log" style="text-align: center; color: #9ca3af; margin-top: 20px;">Nenhum feitiço registrado...</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

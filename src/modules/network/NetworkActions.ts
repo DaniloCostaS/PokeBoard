@@ -521,4 +521,14 @@ export class NetworkActions {
             }
         }
     }
+
+    static async syncCardLogsManually() {
+        if (!NetworkState.isOnline) return;
+        const logs = await SupabaseDataStore.loadCardLogs(NetworkState.currentRoomId);
+        GameState.cardLogs = logs;
+        const GameUIObj = (window as any).GameUI || GameUI;
+        if (GameUIObj.renderCardLogs) {
+            GameUIObj.renderCardLogs();
+        }
+    }
 }

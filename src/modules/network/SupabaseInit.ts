@@ -3,7 +3,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 // No mundo real, essas chaves devem vir de variáveis de ambiente (ex: import.meta.env.VITE_SUPABASE_URL)
 // Por enquanto, deixe strings vazias ou preencha com as corretas
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://pubyamgenwmctwithgvi.supabase.co';
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_rI47u5yyya-EQ7UrwGSD3g_BjZOdh7Y';
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1YnlhbWdlbndtY3R3aXRoZ3ZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyNzIyNTQsImV4cCI6MjA5Njg0ODI1NH0.mvNZ3PY7Instrzyz-DwBhWEkHkM46LPPeGRh5ctONp4';
 
 export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseKey);
 

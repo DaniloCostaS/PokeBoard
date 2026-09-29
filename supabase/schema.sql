@@ -17,6 +17,8 @@ CREATE TABLE IF NOT EXISTS rooms (
 );
 
 ALTER TABLE rooms ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'waiting';
+ALTER TABLE rooms DROP CONSTRAINT IF EXISTS rooms_status_check;
+ALTER TABLE rooms ADD CONSTRAINT rooms_status_check CHECK (status IN ('waiting', 'playing', 'finished'));
 ALTER TABLE rooms ADD COLUMN IF NOT EXISTS map_size INT DEFAULT 20;
 ALTER TABLE rooms ADD COLUMN IF NOT EXISTS current_turn INT DEFAULT 0;
 ALTER TABLE rooms ADD COLUMN IF NOT EXISTS current_round INT DEFAULT 1;
@@ -130,6 +132,8 @@ CREATE TABLE IF NOT EXISTS player_pokemons (
     is_legendary BOOLEAN DEFAULT FALSE,
     type_name VARCHAR(80),
     second_type_name VARCHAR(80),
+    ivs JSONB DEFAULT '{}'::jsonb,
+    bonus_stats JSONB DEFAULT '{}'::jsonb,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -157,6 +161,8 @@ ALTER TABLE player_pokemons ADD COLUMN IF NOT EXISTS vinculo_supremo BOOLEAN DEF
 ALTER TABLE player_pokemons ADD COLUMN IF NOT EXISTS is_legendary BOOLEAN DEFAULT FALSE;
 ALTER TABLE player_pokemons ADD COLUMN IF NOT EXISTS type_name VARCHAR(80);
 ALTER TABLE player_pokemons ADD COLUMN IF NOT EXISTS second_type_name VARCHAR(80);
+ALTER TABLE player_pokemons ADD COLUMN IF NOT EXISTS ivs JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE player_pokemons ADD COLUMN IF NOT EXISTS bonus_stats JSONB DEFAULT '{}'::jsonb;
 ALTER TABLE player_pokemons ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
 ALTER TABLE player_pokemons ADD CONSTRAINT player_pokemons_player_slot_unique UNIQUE (player_id, slot_index);
 
@@ -308,7 +314,9 @@ CREATE TABLE IF NOT EXISTS room_discarded_pokemons (
     vinculo_supremo BOOLEAN DEFAULT FALSE,
     is_legendary BOOLEAN DEFAULT FALSE,
     type_name VARCHAR(80),
-    second_type_name VARCHAR(80)
+    second_type_name VARCHAR(80),
+    ivs JSONB DEFAULT '{}'::jsonb,
+    bonus_stats JSONB DEFAULT '{}'::jsonb
 );
 
 ALTER TABLE room_discarded_pokemons ADD COLUMN IF NOT EXISTS room_id UUID REFERENCES rooms(id) ON DELETE CASCADE;
@@ -335,6 +343,8 @@ ALTER TABLE room_discarded_pokemons ADD COLUMN IF NOT EXISTS vinculo_supremo BOO
 ALTER TABLE room_discarded_pokemons ADD COLUMN IF NOT EXISTS is_legendary BOOLEAN DEFAULT FALSE;
 ALTER TABLE room_discarded_pokemons ADD COLUMN IF NOT EXISTS type_name VARCHAR(80);
 ALTER TABLE room_discarded_pokemons ADD COLUMN IF NOT EXISTS second_type_name VARCHAR(80);
+ALTER TABLE room_discarded_pokemons ADD COLUMN IF NOT EXISTS ivs JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE room_discarded_pokemons ADD COLUMN IF NOT EXISTS bonus_stats JSONB DEFAULT '{}'::jsonb;
 
 DO $$
 DECLARE

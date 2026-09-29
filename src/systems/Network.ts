@@ -17,6 +17,9 @@ export class Network {
     static get myPlayerId() { return NetworkState.myPlayerId; }
     static set myPlayerId(val) { NetworkState.myPlayerId = val; }
 
+    static get myPlayerIdDb() { return NetworkState.myPlayerIdDb; }
+    static set myPlayerIdDb(val) { NetworkState.myPlayerIdDb = val; }
+
     static get currentRoomId() { return NetworkState.currentRoomId; }
     static set currentRoomId(val) { NetworkState.currentRoomId = val; }
 
@@ -40,6 +43,8 @@ export class Network {
 
     static get isProcessingQueue() { return NetworkState.isProcessingQueue; }
     static set isProcessingQueue(val) { NetworkState.isProcessingQueue = val; }
+
+    static get supabase() { return supabase; }
 
     // --- INPUTS E LOBBY ---
     static checkInput() { return NetworkActions.checkInput(); }
@@ -71,6 +76,7 @@ export class Network {
     static syncBattleLogs(battleId: string, logs: string[]) { NetworkSync.syncBattleLogs(battleId, logs); }
     static async syncTurnState() { await NetworkActions.syncTurnState(); }
     static async syncLogsManually() { await NetworkActions.syncLogsManually(); }
+    static async syncCardLogsManually() { await NetworkActions.syncCardLogsManually(); }
 }
 
 // Vincula o Network ao window para permitir chamadas no DOM

@@ -38,7 +38,9 @@ function toPokemonRow(playerId: string, mon: any, slotIndex: number) {
         vinculo_supremo: !!mon.vinculoSupremo,
         is_legendary: !!mon.isLegendary,
         type_name: mon.type || '',
-        second_type_name: mon.secondType || ''
+        second_type_name: mon.secondType || '',
+        ivs: mon.ivs || {},
+        bonus_stats: mon.bonusStats || {}
     };
 }
 
@@ -59,6 +61,14 @@ function hydratePokemon(row: any): Pokemon {
     if (row.happiness !== undefined) mon.happiness = Number(row.happiness);
     if (row.mastery_bonus) mon.masteryBonus = row.mastery_bonus;
     if (row.vinculo_supremo) mon.vinculoSupremo = row.vinculo_supremo;
+    
+    if (row.ivs && Object.keys(row.ivs).length > 0) {
+        mon.ivs = row.ivs;
+    }
+    if (row.bonus_stats && Object.keys(row.bonus_stats).length > 0) {
+        mon.bonusStats = row.bonus_stats;
+    }
+    
     return mon;
 }
 

@@ -86,6 +86,8 @@ export class Game {
     static recordCardLog(attacker: string, card: string, target: string) { GameUI.recordCardLog(attacker, card, target); }
     static renderCardLogs() { GameUI.renderCardLogs(); }
     static filterLogs(type: string) { (GameUI as any).filterLogs(type); }
+    static toggleRightPanel(btn: HTMLButtonElement) { (GameUI as any).toggleRightPanel(btn); }
+    static switchLogTab(tab: string) { (GameUI as any).switchLogTab(tab); }
 
     static showGlobalAlert(msg: string, playerName: string, isMyTurn: boolean, endsTurn: boolean = true) {
         GameUI.showGlobalAlert(msg, playerName, isMyTurn, endsTurn);
@@ -145,6 +147,7 @@ export class Game {
     static nextTurn() { GameEvents.nextTurn(); }
     static syncTurnState() { (window as any).Network.syncTurnState(); }
     static syncLogsManually() { (window as any).Network.syncLogsManually(); }
+    static syncCardLogsManually() { (window as any).Network.syncCardLogsManually(); }
     static handleTile(p: Player) { GameEvents.handleTile(p); }
     static handleCityChoice(c: string) { GameEvents.handleCityChoice(c); }
     static triggerVictory(winnerId: number) { GameEvents.triggerVictory(winnerId); }
