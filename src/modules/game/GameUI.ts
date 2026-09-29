@@ -171,6 +171,13 @@ export class GameUI {
             if (GameState.currentGlobalEvent && GameState.eventEndRound > 0 && GameState.round >= GameState.eventEndRound) {
                 GameState.currentGlobalEvent = null;
             }
+
+            const boardWrapper = document.getElementById('board-wrapper');
+            if (boardWrapper) {
+                // Remove todas as classes de weather
+                boardWrapper.className = boardWrapper.className.replace(/\bweather-\S+/g, '');
+            }
+
             if (GameState.currentGlobalEvent) {
                 const roundsLeft = GameState.eventEndRound - GameState.round;
                 eventEl.innerHTML = `
@@ -178,6 +185,10 @@ export class GameUI {
                     <b style="color: #f1c40f;">${GameState.currentGlobalEvent.icon} ${GameState.currentGlobalEvent.name}</b><br>
                     <span style="font-size: 0.65rem; color: #bdc3c7;">Faltam ${roundsLeft} rodada(s)</span>
                 </div>`;
+
+                if (boardWrapper) {
+                    boardWrapper.classList.add(`weather-${GameState.currentGlobalEvent.id}`);
+                }
             } else {
                 eventEl.innerHTML = '';
             }
@@ -421,6 +432,18 @@ export class GameUI {
                 opt.innerText = `[${c.rarity}] ${c.name}`;
                 cSelect.appendChild(opt);
             });
+        }
+
+        const eSelect = document.getElementById('admin-event-select') as HTMLSelectElement;
+        if (eSelect) {
+            eSelect.innerHTML = '<option value="none">Nenhum (Limpar Clima)</option>';
+            GLOBAL_EVENTS.forEach(e => {
+                const opt = document.createElement('option');
+                opt.value = e.id;
+                opt.innerText = `${e.icon} ${e.name}`;
+                eSelect.appendChild(opt);
+            });
+            eSelect.value = GameState.currentGlobalEvent ? GameState.currentGlobalEvent.id : "none";
         }
 
         GameState.players.forEach((p, idx) => {

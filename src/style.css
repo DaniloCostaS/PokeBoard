@@ -3464,3 +3464,144 @@ body {
     padding: 12px;
     margin-bottom: 5px;
 }
+
+/* --- EFEITOS DE EVENTOS GLOBAIS NO TABULEIRO --- */
+#board-wrapper {
+    position: relative; 
+    overflow: hidden;
+}
+#board-wrapper::after {
+    content: '';
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 20;
+    transition: all 1s ease;
+    opacity: 0;
+}
+
+/* Chuva Torrencial (RAIN) */
+/* Recriado com gotas perfeitamente modeladas usando elipses radias e container inclinado */
+#board-wrapper.weather-RAIN::after {
+    opacity: 1;
+    top: -50%; left: -50%; width: 200%; height: 200%;
+    transform: rotate(15deg);
+    background: 
+        radial-gradient(1.5px 25px at 50% 50%, rgba(255,255,255,0.7) 0%, transparent 100%),
+        radial-gradient(1px 20px at 20% 80%, rgba(255,255,255,0.5) 0%, transparent 100%),
+        radial-gradient(2px 30px at 80% 30%, rgba(255,255,255,0.6) 0%, transparent 100%),
+        radial-gradient(1px 15px at 40% 10%, rgba(255,255,255,0.4) 0%, transparent 100%),
+        rgba(10, 30, 80, 0.3);
+    background-size: 90px 90px, 140px 140px, 200px 200px, 270px 270px, 100% 100%;
+    animation: rain-fall 0.8s linear infinite;
+}
+@keyframes rain-fall { 
+    0% { background-position: 0px 0px, 0px 0px, 0px 0px, 0px 0px, 0 0; } 
+    100% { background-position: 0px 90px, 0px 140px, 0px 200px, 0px 270px, 0 0; } 
+}
+
+/* Onda de Calor (DROUGHT) */
+/* Pulsação mais intensa no brilho */
+#board-wrapper.weather-DROUGHT::after {
+    opacity: 1;
+    background: radial-gradient(circle at 50% 30%, rgba(255,150,0,0.3) 0%, rgba(200,50,0,0.1) 60%, transparent 100%);
+    background-size: 150% 150%;
+    animation: heat-wave 2s ease-in-out infinite alternate;
+}
+@keyframes heat-wave { 
+    0% { opacity: 0.3; background-position: 50% 0%; } 
+    100% { opacity: 0.9; background-position: 50% 30%; } 
+}
+
+/* Tempestade de Areia (SANDSTORM) */
+/* Linhas rasgando e mini poeiras/flocos de areia */
+#board-wrapper.weather-SANDSTORM::after {
+    opacity: 1;
+    background: 
+        repeating-linear-gradient(100deg, rgba(210,180,140,0.2) 0px, rgba(210,180,140,0.2) 2px, transparent 4px, transparent 60px),
+        radial-gradient(circle, rgba(139, 69, 19, 0.4) 1px, transparent 2px),
+        radial-gradient(circle, rgba(210,180,140,0.5) 1.5px, transparent 2px),
+        rgba(139, 69, 19, 0.15);
+    background-size: 250px 250px, 120px 80px, 160px 120px, 100% 100%;
+    animation: sand-storm 1.2s linear infinite;
+}
+@keyframes sand-storm { 
+    0% { background-position: 0px 0px, 0px 0px, 0px 0px, 0 0; } 
+    100% { background-position: 250px 50px, 120px 20px, 160px 30px, 0 0; } 
+}
+
+/* Nevasca Rigorosa (WINTER_STORM) */
+#board-wrapper.weather-WINTER_STORM::after {
+    opacity: 1;
+    background: 
+        radial-gradient(circle, rgba(255,255,255,0.8) 1px, transparent 2px),
+        radial-gradient(circle, rgba(255,255,255,0.8) 1px, transparent 2px),
+        rgba(173, 216, 230, 0.15);
+    background-size: 50px 50px, 50px 50px, 100% 100%;
+    background-position: 0 0, 25px 25px, 0 0;
+    animation: snow-fall 2s linear infinite;
+}
+@keyframes snow-fall { 
+    0% { background-position: 0 0, 25px 25px, 0 0; } 
+    100% { background-position: 25px 50px, 50px 75px, 0 0; } 
+}
+
+/* Névoa Tóxica (TOXIC_SMOG) */
+/* Pulsação intensificada de 0.2 para 1 */
+#board-wrapper.weather-TOXIC_SMOG::after {
+    opacity: 1;
+    background: radial-gradient(circle, transparent 5%, rgba(0,100,0,0.45) 40%, rgba(128,0,128,0.7) 100%);
+    background-size: 150% 150%;
+    animation: smog-pulse 3s ease-in-out infinite alternate;
+}
+@keyframes smog-pulse { 
+    0% { opacity: 0.6; background-position: center; } 
+    100% { opacity: 1; background-position: 10% 10%; } 
+}
+
+/* Lua Sangrenta (BLOOD_MOON) */
+#board-wrapper.weather-BLOOD_MOON::after {
+    opacity: 1;
+    background: radial-gradient(circle, rgba(255,0,0,0.15) 20%, rgba(139,0,0,0.4) 100%);
+}
+
+/* Fenda Espacial (SPATIAL_RIFT) */
+#board-wrapper.weather-SPATIAL_RIFT::after {
+    opacity: 1;
+    background: radial-gradient(circle, transparent 40%, rgba(75,0,130,0.4) 100%);
+    box-shadow: inset 0 0 50px rgba(138,43,226,0.3);
+    animation: rift-pulse 2s infinite alternate;
+}
+@keyframes rift-pulse { 0% { box-shadow: inset 0 0 20px rgba(138,43,226,0.2); } 100% { box-shadow: inset 0 0 60px rgba(138,43,226,0.6); } }
+
+/* Aura Mística (MYSTIC_AURA) */
+/* Circulando o brilho ao redor */
+#board-wrapper.weather-MYSTIC_AURA::after {
+    opacity: 1;
+    background: 
+        radial-gradient(circle at 30% 30%, rgba(255,105,180,0.3) 0%, transparent 60%),
+        radial-gradient(circle at 70% 70%, rgba(138,43,226,0.3) 0%, transparent 60%);
+    background-size: 200% 200%;
+    animation: mystic-circulate 4s ease-in-out infinite alternate;
+}
+@keyframes mystic-circulate { 
+    0% { opacity: 0.4; background-position: 0% 0%, 100% 100%; } 
+    100% { opacity: 1; background-position: 100% 100%, 0% 0%; } 
+}
+
+/* Febre Shiny (SHINY_FEVER) */
+#board-wrapper.weather-SHINY_FEVER::after {
+    opacity: 1;
+    background: 
+        radial-gradient(circle, rgba(255,255,255,1) 1px, transparent 3px),
+        radial-gradient(circle, rgba(255,215,0,1) 2px, transparent 4px),
+        radial-gradient(circle, rgba(255,255,255,0.8) 1.5px, transparent 3px),
+        rgba(255, 215, 0, 0.08);
+    background-size: 100px 100px, 150px 150px, 250px 250px, 100% 100%;
+    background-position: 0 0, 40px 60px, 130px 20px, 0 0;
+    animation: shiny-sparkles 1.5s ease-in-out infinite alternate;
+}
+@keyframes shiny-sparkles {
+    0% { opacity: 0.4; }
+    50% { opacity: 0.8; }
+    100% { opacity: 1; }
+}

@@ -1215,4 +1215,30 @@ export class GameEvents {
         GameUI.updateHUD();
         this.checkTurnControl();
     }
+
+    static adminSetGlobalEvent() {
+        const select = document.getElementById('admin-event-select') as HTMLSelectElement;
+        if (!select) return;
+        const val = select.value;
+        
+        if (val === "none") {
+            GameState.currentGlobalEvent = null;
+            GameState.eventEndRound = 0;
+            GameUI.sendGlobalLog(`🛠️ ADMIN HOST: O Clima Global foi limpo à força!`);
+        } else {
+            const ev = GLOBAL_EVENTS.find(e => e.id === val);
+            if (ev) {
+                GameState.currentGlobalEvent = ev;
+                GameState.eventEndRound = GameState.round + 5; // 5 rodadas
+                GameUI.sendGlobalLog(`🛠️ ADMIN HOST: O Clima Global foi alterado à força para ${ev.name}! (5 rodadas)`);
+            }
+        }
+
+        const NetworkObj = (window as any).Network;
+        if (NetworkObj && NetworkObj.isOnline) {
+            SupabaseDataStore.setGlobalEvent(NetworkObj.currentRoomId, GameState.currentGlobalEvent ? GameState.currentGlobalEvent.id : null, GameState.eventEndRound);
+        }
+
+        GameUI.updateHUD();
+    }
 }

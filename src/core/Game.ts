@@ -129,6 +129,7 @@ export class Game {
     static adminGiveGold() { (GameEvents as any).adminGiveGold(); }
     static adminSetRound() { (GameEvents as any).adminSetRound(); }
     static adminSetTurn() { (GameEvents as any).adminSetTurn(); }
+    static adminSetGlobalEvent() { (GameEvents as any).adminSetGlobalEvent(); }
 
     // ==========================================
     // MÉTODOS DE MOVIMENTAÇÃO E DADOS
