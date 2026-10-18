@@ -2181,144 +2181,265 @@ body {
 
 .battle-actions {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 6px;
-    padding: 10px;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 14px;
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    backdrop-filter: blur(6px);
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding: 12px;
+    background: linear-gradient(180deg, rgba(16, 24, 38, 0.95) 0%, rgba(9, 13, 22, 0.98) 100%);
+    border-radius: 16px;
+    border: 2px solid rgba(241, 196, 15, 0.3);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.65), inset 0 1px 1px rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(10px);
+    position: relative;
+    user-select: none;
 }
 
-/* Botões da batalha — compactos e muted, no estilo do painel lateral */
+/* Botões da batalha — estilo console arcade 3D tátil */
 .battle-actions .btn {
-    padding: 8px 6px;
-    font-size: 0.82rem;
-    font-weight: 600;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 8px;
+    min-height: 46px;
+    padding: 10px 8px;
     margin-top: 0;
-    border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-bottom: none;
-    letter-spacing: 0.3px;
-    transition: all 0.18s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    text-align: left;
-    justify-content: flex-start;
-    gap: 6px;
+    font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
+    font-size: 0.88rem;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
+    color: #ffffff;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-top: 1px solid rgba(255, 255, 255, 0.55);
+    cursor: pointer;
+    overflow: hidden;
+    transition: transform 0.12s cubic-bezier(0.175, 0.885, 0.32, 1.275), 
+                box-shadow 0.12s ease, 
+                filter 0.15s ease;
 }
 
+/* Efeito de brilho de vidro/cápsula no topo de cada botão */
+.battle-actions .btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 46%;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.03) 100%);
+    border-radius: 11px 11px 0 0;
+    pointer-events: none;
+}
+
+/* Feedback tátil ao pressionar (clique com afundamento de 3px) */
+.battle-actions .btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    filter: brightness(1.12);
+}
+
+.battle-actions .btn:active:not(:disabled) {
+    transform: translateY(3px);
+}
+
+/* ⚔️ ATACAR */
 .battle-actions .btn-attack {
-    background: rgba(192, 57, 43, 0.55);
-    color: #fdd5d1;
-    border-color: rgba(231, 76, 60, 0.25);
-    box-shadow: none;
+    background: linear-gradient(180deg, #ff4757 0%, #ee2f40 50%, #c0392b 100%);
+    border-color: rgba(255, 138, 148, 0.6);
+    border-top-color: rgba(255, 215, 220, 0.9);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45),
+                0 4px 0 #7a1616,
+                0 6px 14px rgba(238, 47, 64, 0.35);
 }
 
 .battle-actions .btn-attack:hover:not(:disabled) {
-    background: rgba(231, 76, 60, 0.75);
-    box-shadow: 0 0 14px rgba(231, 76, 60, 0.35);
-    transform: translateY(-1px);
-    color: #fff;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65),
+                0 6px 0 #7a1616,
+                0 10px 22px rgba(238, 47, 64, 0.55);
 }
 
+.battle-actions .btn-attack:active:not(:disabled) {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2),
+                0 1px 0 #7a1616,
+                0 3px 8px rgba(238, 47, 64, 0.3);
+}
+
+/* 🎒 ITENS */
 .battle-actions .btn-items {
-    background: rgba(176, 90, 20, 0.55);
-    color: #fde9c9;
-    border-color: rgba(230, 126, 34, 0.25);
-    box-shadow: none;
+    background: linear-gradient(180deg, #ffa801 0%, #e67e22 50%, #d35400 100%);
+    border-color: rgba(255, 195, 85, 0.6);
+    border-top-color: rgba(255, 230, 160, 0.9);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45),
+                0 4px 0 #873600,
+                0 6px 14px rgba(230, 126, 34, 0.35);
 }
 
 .battle-actions .btn-items:hover:not(:disabled) {
-    background: rgba(230, 126, 34, 0.75);
-    box-shadow: 0 0 14px rgba(230, 126, 34, 0.35);
-    transform: translateY(-1px);
-    color: #fff;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65),
+                0 6px 0 #873600,
+                0 10px 22px rgba(230, 126, 34, 0.55);
 }
 
+.battle-actions .btn-items:active:not(:disabled) {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2),
+                0 1px 0 #873600,
+                0 3px 8px rgba(230, 126, 34, 0.3);
+}
+
+/* 🃏 CARTAS */
 .battle-actions .btn-cards {
-    background: rgba(108, 52, 131, 0.55);
-    color: #e8d0f5;
-    border-color: rgba(142, 68, 173, 0.25);
-    box-shadow: none;
+    background: linear-gradient(180deg, #b06ab3 0%, #8e44ad 50%, #6c3483 100%);
+    border-color: rgba(210, 140, 250, 0.6);
+    border-top-color: rgba(240, 200, 255, 0.9);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45),
+                0 4px 0 #4a235a,
+                0 6px 14px rgba(142, 68, 173, 0.35);
 }
 
 .battle-actions .btn-cards:hover:not(:disabled) {
-    background: rgba(142, 68, 173, 0.75);
-    box-shadow: 0 0 14px rgba(142, 68, 173, 0.35);
-    transform: translateY(-1px);
-    color: #fff;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65),
+                0 6px 0 #4a235a,
+                0 10px 22px rgba(142, 68, 173, 0.55);
 }
 
+.battle-actions .btn-cards:active:not(:disabled) {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2),
+                0 1px 0 #4a235a,
+                0 3px 8px rgba(142, 68, 173, 0.3);
+}
+
+/* 👀 MEU TIME */
 .battle-actions .btn-secondary {
-    background: rgba(255, 255, 255, 0.07);
-    color: #d0e8e2;
-    border-color: rgba(255, 255, 255, 0.1);
-    box-shadow: none;
+    background: linear-gradient(180deg, #1dd1a1 0%, #10ac84 50%, #0c7a5e 100%);
+    border-color: rgba(94, 237, 200, 0.6);
+    border-top-color: rgba(200, 255, 240, 0.9);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45),
+                0 4px 0 #064e3b,
+                0 6px 14px rgba(16, 172, 132, 0.35);
 }
 
 .battle-actions .btn-secondary:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.14);
-    transform: translateY(-1px);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65),
+                0 6px 0 #064e3b,
+                0 10px 22px rgba(16, 172, 132, 0.55);
 }
 
+.battle-actions .btn-secondary:active:not(:disabled) {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2),
+                0 1px 0 #064e3b,
+                0 3px 8px rgba(16, 172, 132, 0.3);
+}
+
+/* 🏃 FUGIR */
 .battle-actions .btn-run {
-    background: rgba(97, 106, 107, 0.55);
-    color: #d5dcdc;
-    border-color: rgba(127, 140, 141, 0.2);
-    box-shadow: none;
+    background: linear-gradient(180deg, #718093 0%, #485460 50%, #2f3640 100%);
+    border-color: rgba(149, 165, 166, 0.5);
+    border-top-color: rgba(220, 230, 240, 0.85);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45),
+                0 4px 0 #1e272e,
+                0 6px 14px rgba(47, 54, 64, 0.35);
 }
 
 .battle-actions .btn-run:hover:not(:disabled) {
-    background: rgba(127, 140, 141, 0.75);
-    box-shadow: 0 0 10px rgba(127, 140, 141, 0.3);
-    transform: translateY(-1px);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65),
+                0 6px 0 #1e272e,
+                0 10px 22px rgba(113, 128, 147, 0.45);
 }
 
+.battle-actions .btn-run:active:not(:disabled) {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2),
+                0 1px 0 #1e272e,
+                0 3px 8px rgba(47, 54, 64, 0.3);
+}
+
+/* 🏳️ DESISTIR */
 .battle-actions .btn-surrender {
-    background: rgba(110, 31, 23, 0.55);
-    color: #f5c4c0;
-    border-color: rgba(192, 57, 43, 0.25);
-    box-shadow: none;
+    background: linear-gradient(180deg, #962d22 0%, #78281f 50%, #561d17 100%);
+    border-color: rgba(192, 57, 43, 0.5);
+    border-top-color: rgba(255, 180, 170, 0.8);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35),
+                0 4px 0 #3b1410,
+                0 6px 14px rgba(86, 29, 23, 0.35);
 }
 
 .battle-actions .btn-surrender:hover:not(:disabled) {
-    background: rgba(192, 57, 43, 0.75);
-    box-shadow: 0 0 14px rgba(192, 57, 43, 0.35);
-    transform: translateY(-1px);
-    color: #fff;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55),
+                0 6px 0 #3b1410,
+                0 10px 22px rgba(150, 45, 34, 0.45);
 }
 
-/* Auto Atacar — span toda a linha, dourado muted */
+.battle-actions .btn-surrender:active:not(:disabled) {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2),
+                0 1px 0 #3b1410,
+                0 3px 8px rgba(86, 29, 23, 0.3);
+}
+
+/* ⚡ AUTO ATACAR */
 .battle-actions .btn-auto {
-    background: rgba(185, 119, 13, 0.45);
-    color: #fde68a;
-    border-color: rgba(241, 196, 15, 0.22);
-    text-shadow: none;
-    box-shadow: none;
-    justify-content: center;
-    font-size: 0.85rem;
+    background: linear-gradient(180deg, #ffd32a 0%, #ffa801 50%, #e67e22 100%);
+    color: #2e1503;
+    font-size: 0.94rem;
+    font-weight: 900;
+    letter-spacing: 0.8px;
+    text-shadow: 0 1px 1px rgba(255, 255, 255, 0.35);
+    border-color: rgba(255, 234, 167, 0.75);
+    border-top-color: rgba(255, 255, 255, 0.95);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55),
+                0 4px 0 #8c4500,
+                0 6px 16px rgba(255, 168, 1, 0.4);
 }
 
 .battle-actions .btn-auto:hover:not(:disabled) {
-    background: rgba(241, 196, 15, 0.55);
-    color: #1a1a1a;
-    box-shadow: 0 0 16px rgba(241, 196, 15, 0.35);
-    transform: translateY(-1px);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75),
+                0 6px 0 #8c4500,
+                0 10px 24px rgba(255, 168, 1, 0.6);
+}
+
+.battle-actions .btn-auto:active:not(:disabled) {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2),
+                0 1px 0 #8c4500,
+                0 3px 8px rgba(255, 168, 1, 0.3);
 }
 
 .battle-actions .btn-auto.active-auto {
-    background: rgba(192, 57, 43, 0.65);
-    color: #fdd5d1;
-    animation: pulseAuto 1s infinite;
+    background: linear-gradient(180deg, #ff4757 0%, #ff6b81 50%, #c0392b 100%);
+    color: #ffffff;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+    border-color: rgba(255, 150, 160, 0.8);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55),
+                0 4px 0 #7f1d1d,
+                0 0 20px rgba(255, 71, 87, 0.6);
+    animation: pulseAutoGame 0.9s infinite alternate;
+}
+
+@keyframes pulseAutoGame {
+    from {
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 4px 0 #7f1d1d, 0 0 12px rgba(255, 71, 87, 0.4);
+        filter: brightness(1);
+    }
+    to {
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75), 0 4px 0 #7f1d1d, 0 0 24px rgba(255, 71, 87, 0.85);
+        filter: brightness(1.15);
+    }
 }
 
 /* Botões desabilitados na área de batalha */
 .battle-actions .btn:disabled {
-    background: rgba(255, 255, 255, 0.04) !important;
+    background: linear-gradient(180deg, rgba(70, 80, 95, 0.35) 0%, rgba(45, 52, 65, 0.45) 100%) !important;
     color: rgba(255, 255, 255, 0.25) !important;
-    border-color: rgba(255, 255, 255, 0.05) !important;
-    box-shadow: none !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+    border-top-color: rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.25) !important;
+    text-shadow: none !important;
     transform: none !important;
-    cursor: not-allowed;
+    filter: grayscale(0.8) !important;
+    cursor: not-allowed !important;
+}
+
+.battle-actions .btn:disabled::before {
+    display: none;
 }
 
 .mt-15 {
