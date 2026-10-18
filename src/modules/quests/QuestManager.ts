@@ -184,9 +184,12 @@ export class QuestManager {
             modal.style.zIndex = '9999';
             modal.innerHTML = `
                 <div class="modal-content" style="width: 500px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: rgba(20, 20, 20, 0.95); border: 2px solid #f1c40f; color: #fff; border-radius: 16px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box;">
-                    <h3 style="color: #f1c40f; margin-top: 0; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px; display: flex; align-items: center; gap: 8px; font-family: 'Outfit', sans-serif;">
-                        📜 Minhas Missões
-                    </h3>
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
+                        <h3 style="color: #f1c40f; margin: 0; display: flex; align-items: center; gap: 8px; font-family: 'Outfit', sans-serif;">
+                            📜 Minhas Missões
+                        </h3>
+                        <button class="modal-btn-icon close-btn" title="Fechar" onclick="document.getElementById('quests-modal').style.display='none'">✕</button>
+                    </div>
                     <div id="quests-list" class="scroll-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; margin-top: 10px; padding-right: 5px;"></div>
                     <button class="btn btn-secondary" style="margin-top: 15px; width: 100%;" onclick="document.getElementById('quests-modal').style.display='none'">Fechar</button>
                 </div>
@@ -419,11 +422,17 @@ export class QuestManager {
             modal.style.zIndex = '9999';
             modal.innerHTML = `
                 <div class="modal-content" style="width: 1200px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: rgba(20, 20, 20, 0.95); border: 2px solid #f1c40f; color: #fff; border-radius: 16px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box;">
-                    <h3 style="color: #f1c40f; margin-top: 0; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px; display: flex; align-items: center; gap: 8px; font-family: 'Outfit', sans-serif;">
-                        📜 Biblioteca de Missões
-                    </h3>
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
+                        <h3 style="color: #f1c40f; margin: 0; display: flex; align-items: center; gap: 8px; font-family: 'Outfit', sans-serif;">
+                            📜 Biblioteca de Missões
+                        </h3>
+                        <div class="modal-header-actions">
+                            <button class="modal-btn-icon back-btn" title="Voltar para a Poképédia" onclick="window.returnToPokepedia('quest-library-modal')">←</button>
+                            <button class="modal-btn-icon close-btn" title="Fechar" onclick="document.getElementById('quest-library-modal').style.display='none'">✕</button>
+                        </div>
+                    </div>
                     <div id="quest-library-list" class="scroll-list" style="flex: 1; overflow-y: auto;"></div>
-                    <button class="btn btn-secondary" style="margin-top: 15px; width: 100%;" onclick="document.getElementById('quest-library-modal').style.display='none'">Fechar</button>
+                    <button class="btn btn-secondary" style="margin-top: 15px; width: 100%;" onclick="window.returnToPokepedia('quest-library-modal')">⬅ Voltar para a Poképédia</button>
                 </div>
             `;
             document.body.appendChild(modal);

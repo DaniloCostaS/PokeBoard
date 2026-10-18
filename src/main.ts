@@ -24,6 +24,7 @@ declare global {
         openCardLibrary: () => void;
         openItemLibrary: () => void;
         openXpRules: () => void;
+        returnToPokepedia: (currentModalId?: string) => void;
     }
 }
 
@@ -107,13 +108,97 @@ window.openCardLibrary = () => Game.openCardLibrary();
 window.openItemLibrary = () => Game.openItemLibrary();
 window.openXpRules = () => Game.openXpRules();
 
+window.returnToPokepedia = (currentModalId?: string) => {
+    if (currentModalId) {
+        const el = document.getElementById(currentModalId);
+        if (el) el.style.display = 'none';
+    }
+    const pokepedia = document.getElementById('pokepedia-modal');
+    if (pokepedia) pokepedia.style.display = 'flex';
+};
+
+// Fechamento automático de modais ao clicar no fundo (backdrop)
+function initModalBackdropDismissal() {
+    let backdropDownTarget: EventTarget | null = null;
+
+    document.addEventListener('mousedown', (e) => {
+        backdropDownTarget = e.target;
+    });
+
+    document.addEventListener('click', (e) => {
+        const target = e.target as HTMLElement | null;
+        if (!target) return;
+
+        // Somente fecha se o clique começou e terminou exatamente no mesmo overlay de fundo
+        if (target !== backdropDownTarget) return;
+
+        const isOverlay = target.classList?.contains('modal-overlay') || target.classList?.contains('modal');
+        if (!isOverlay) return;
+
+        const modalId = target.id;
+
+        // Telas críticas de decisão do jogo que não devem ser fechadas ao clicar fora
+        const NON_DISMISSIBLE_MODALS = new Set([
+            'battle-modal',
+            'victory-modal',
+            'city-modal',
+            'swap-modal',
+            'quests-swap-modal',
+            'pkmn-select-modal',
+            'battle-confirm-modal',
+            'type-selection-modal'
+        ]);
+
+        if (NON_DISMISSIBLE_MODALS.has(modalId)) {
+            return;
+        }
+
+        // Subtelas da Poképédia: ao clicar fora, retorna para a tela inicial da Poképédia
+        const POKEPEDIA_SUBMODALS = new Set([
+            'library-modal',
+            'item-library-modal',
+            'quest-library-modal',
+            'capture-rules-modal',
+            'combat-rules-modal',
+            'happiness-rules-modal',
+            'xp-rules-modal'
+        ]);
+
+        if (POKEPEDIA_SUBMODALS.has(modalId)) {
+            window.returnToPokepedia(modalId);
+            return;
+        }
+
+        // A própria Poképédia: fecha ao clicar fora
+        if (modalId === 'pokepedia-modal') {
+            target.style.display = 'none';
+            return;
+        }
+
+        // PokéMart / Loja: usa o método oficial para encerrar o evento
+        if (modalId === 'shop-modal') {
+            if (window.Shop && typeof window.Shop.close === 'function') {
+                window.Shop.close();
+            } else {
+                target.style.display = 'none';
+            }
+            return;
+        }
+
+        // Demais modais gerais (mochila, cartas, pokédex, lixeira, estatísticas, etc.)
+        target.style.display = 'none';
+    });
+}
+
 // Inicialização
 document.addEventListener('DOMContentLoaded', () => {
     Setup.updateSlots();
     Setup.checkCachedLogin();
+    initModalBackdropDismissal();
 });
 
 if (document.readyState === "complete" || document.readyState === "interactive") {
     Setup.updateSlots();
     Setup.checkCachedLogin();
+    initModalBackdropDismissal();
 }
