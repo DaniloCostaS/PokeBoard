@@ -34,17 +34,30 @@
 /* ==========================================================================
    2. ESTILOS BASE
    ========================================================================== */
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+}
+
+html::-webkit-scrollbar, body::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
 body {
     font-family: 'Segoe UI', Tahoma, sans-serif;
     background-image: url('/assets/img/Background/PokemonBoardGameImagemConceitual.jpeg');
     background-size: 100% 100%;
-    margin: 0;
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
     color: #333;
-    overflow: hidden;
 }
 
 /* ==========================================================================
@@ -52,21 +65,548 @@ body {
    ========================================================================== */
 #setup-screen {
     position: fixed;
+    inset: 0;
     z-index: 999;
-    background: linear-gradient(180deg, rgba(21, 58, 62, 0.95), rgba(6, 14, 18, 0.98));
-    backdrop-filter: blur(12px) saturate(1.2);
-    padding: 40px;
-    border-radius: 16px;
-    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.7), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 24px 16px;
+    box-sizing: border-box;
     text-align: center;
-    width: 450px;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
     display: flex;
     flex-direction: column;
-    gap: 15px;
-    border: 1px solid rgba(230, 193, 91, 0.3);
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
     color: #e7f2ee;
-    max-height: 90vh;
     overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    pointer-events: auto;
+}
+
+#setup-screen::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+/* ==========================================================================
+   TELA DE LOGIN GAMER (ESTILO TERMINAL MECHA ARCADE)
+   ========================================================================== */
+.gamer-login-card {
+    position: relative;
+    width: 100%;
+    max-width: 380px;
+    margin: auto;
+    background: linear-gradient(180deg, #1b2c40 0%, #121e2d 50%, #0c141e 100%);
+    border: 3px solid #3b658f;
+    border-radius: 18px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.85),
+                inset 0 0 0 1px rgba(130, 195, 255, 0.25),
+                inset 0 2px 4px rgba(255, 255, 255, 0.15),
+                0 0 25px rgba(41, 128, 185, 0.3);
+    padding: 26px 24px 20px 24px;
+    box-sizing: border-box;
+    user-select: none;
+    font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
+    animation: gamerCardFadeIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    overflow: visible !important;
+}
+
+@keyframes gamerCardFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.94) translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* 4 Cantos de Armadura Metálica Dourada */
+.gamer-corner {
+    position: absolute;
+    width: 38px;
+    height: 38px;
+    pointer-events: none;
+    z-index: 10;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.7));
+}
+
+.gamer-corner.corner-tl {
+    top: -3px;
+    left: -3px;
+}
+
+.gamer-corner.corner-tr {
+    top: -3px;
+    right: -3px;
+}
+
+.gamer-corner.corner-bl {
+    bottom: -3px;
+    left: -3px;
+}
+
+.gamer-corner.corner-br {
+    bottom: -3px;
+    right: -3px;
+}
+
+/* Placa do Topo: LOGIN + ACESSO DO TREINADOR */
+.gamer-login-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 24px;
+    position: relative;
+}
+
+.gamer-login-badge {
+    background: linear-gradient(180deg, #2a4c72 0%, #172d45 100%);
+    border: 2px solid #5a8ec0;
+    border-top: 2.5px solid #a3cbf5;
+    border-radius: 8px;
+    padding: 7px 32px;
+    clip-path: polygon(10px 0%, calc(100% - 10px) 0%, 100% 100%, 0% 100%);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5), inset 0 1px 2px rgba(255, 255, 255, 0.4);
+}
+
+.gamer-login-badge .badge-text {
+    font-size: 1.45rem;
+    font-weight: 900;
+    color: #ffffff;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    text-shadow: 0 0 12px rgba(255, 255, 255, 0.6), 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.gamer-login-subtitle {
+    margin-top: 10px;
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: #e2e8f0;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+/* Campos de Formulário */
+.gamer-login-body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.gamer-field-group {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    margin-bottom: 14px;
+}
+
+.gamer-field-label {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #cbd5e1;
+    margin-bottom: 6px;
+    letter-spacing: 0.5px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.gamer-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: #09111b !important;
+    border: 2px solid #284768;
+    border-radius: 12px;
+    box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.8), 0 1px 0 rgba(255, 255, 255, 0.1);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    height: 48px;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.gamer-input-wrap:focus-within {
+    border-color: #4da3e8;
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.8), 0 0 14px rgba(77, 163, 232, 0.5);
+}
+
+#setup-screen .gamer-input,
+.gamer-input {
+    width: 100% !important;
+    height: 100% !important;
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    padding: 0 46px 0 16px !important;
+    color: #ffffff !important;
+    font-family: 'Outfit', 'Inter', system-ui, sans-serif !important;
+    font-size: 1.05rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.5px !important;
+    box-sizing: border-box !important;
+    text-align: left !important;
+}
+
+#setup-screen .gamer-input.with-left-icon,
+.gamer-input.with-left-icon {
+    padding-left: 48px !important;
+    padding-right: 16px !important;
+    text-align: left !important;
+}
+
+.gamer-input::placeholder {
+    color: #64748b;
+    font-weight: 500;
+}
+
+.gamer-input:-webkit-autofill,
+.gamer-input:-webkit-autofill:hover,
+.gamer-input:-webkit-autofill:focus,
+.gamer-input:-webkit-autofill:active {
+    -webkit-text-fill-color: #ffffff !important;
+    -webkit-box-shadow: 0 0 0px 1000px #09111b inset !important;
+    box-shadow: 0 0 0px 1000px #09111b inset !important;
+    transition: background-color 5000s ease-in-out 0s !important;
+}
+
+.gamer-input-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 5;
+}
+
+.gamer-input-icon.icon-pokeball {
+    position: absolute;
+    left: 14px;
+    filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.35));
+}
+
+.gamer-input-icon.icon-lock {
+    position: absolute;
+    left: 14px;
+    opacity: 0.9;
+}
+
+/* Botão 3D Arcade Dourado com Chanfros Laterais: ENTRAR */
+.gamer-btn-wrap {
+    position: relative;
+    margin-top: 10px;
+    margin-bottom: 16px;
+    width: 100%;
+}
+
+.btn-gamer-enter {
+    position: relative;
+    width: 100%;
+    height: 54px;
+    background: linear-gradient(180deg, #ffe066 0%, #f39c12 50%, #d35400 100%);
+    border: 2px solid #fff5a8;
+    border-radius: 12px;
+    clip-path: polygon(14px 0%, calc(100% - 14px) 0%, 100% 50%, calc(100% - 14px) 100%, 14px 100%, 0% 50%);
+    box-shadow: 0 5px 0 #7e3802, 0 10px 24px rgba(243, 156, 18, 0.45);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.12s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.12s ease, filter 0.15s ease;
+    overflow: hidden;
+}
+
+/* Brilho de vidro no topo */
+.btn-gamer-enter::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 48%;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.05) 100%);
+    pointer-events: none;
+}
+
+/* Pinos laterais metálicos */
+.btn-side-notch {
+    position: absolute;
+    width: 5px;
+    height: 16px;
+    background: #ffeaa7;
+    border: 1px solid #d35400;
+    border-radius: 2px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+.btn-side-notch.notch-left {
+    left: 3px;
+}
+
+.btn-side-notch.notch-right {
+    right: 3px;
+}
+
+.btn-enter-inner {
+    font-family: 'Outfit', 'Inter', system-ui, sans-serif;
+    font-size: 1.35rem;
+    font-weight: 900;
+    color: #3d1700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+    z-index: 2;
+}
+
+.btn-gamer-enter:hover {
+    filter: brightness(1.12);
+    transform: translateY(-2px);
+    box-shadow: 0 7px 0 #7e3802, 0 14px 28px rgba(243, 156, 18, 0.6);
+}
+
+.btn-gamer-enter:active {
+    transform: translateY(3px);
+    box-shadow: 0 2px 0 #7e3802, 0 4px 10px rgba(243, 156, 18, 0.35);
+}
+
+/* Rodapé com Links */
+.gamer-login-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 10px;
+}
+
+.gamer-link {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #93c5fd;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    transition: color 0.15s, text-shadow 0.15s;
+    cursor: pointer;
+}
+
+.gamer-link:hover {
+    color: #f1c40f;
+    text-shadow: 0 0 8px rgba(241, 196, 15, 0.6);
+}
+
+/* ==========================================================================
+   TELA DE MENU LOGADO GAMER (ESTILO TERMINAL MECHA ARCADE)
+   ========================================================================== */
+#menu-phase-1.gamer-menu-card,
+.gamer-menu-card {
+    position: relative;
+    width: 100%;
+    max-width: 380px;
+    margin: auto;
+    background: linear-gradient(180deg, #1b2c40 0%, #121e2d 50%, #0c141e 100%);
+    border: 3px solid #3b658f;
+    border-radius: 18px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.85),
+                inset 0 0 0 1px rgba(130, 195, 255, 0.25),
+                inset 0 2px 4px rgba(255, 255, 255, 0.15),
+                0 0 25px rgba(41, 128, 185, 0.3);
+    padding: 24px 22px 22px 22px;
+    box-sizing: border-box;
+    user-select: none;
+    font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
+    animation: gamerCardFadeIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    overflow: visible !important;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+/* Badge de Identificação do Treinador */
+.gamer-trainer-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: rgba(9, 17, 27, 0.8);
+    border: 1px solid rgba(77, 163, 232, 0.4);
+    border-radius: 20px;
+    padding: 6px 16px;
+    margin-top: 10px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #cbd5e1;
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.6), 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.gamer-trainer-pill .trainer-icon {
+    font-size: 1.05rem;
+}
+
+.gamer-trainer-pill .trainer-name {
+    color: #f1c40f;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    text-shadow: 0 0 8px rgba(241, 196, 15, 0.5);
+}
+
+/* Grupo de Botões do Menu Gamer */
+.gamer-menu-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+}
+
+.gamer-menu-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, rgba(77, 163, 232, 0.35) 50%, transparent 100%);
+    margin: 3px 0;
+}
+
+/* Estilo Base dos Botões 3D Arcade do Menu */
+.btn-gamer-menu {
+    position: relative;
+    width: 100%;
+    height: 52px;
+    border-radius: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
+    font-size: 1.02rem;
+    font-weight: 800;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    transition: transform 0.12s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.12s ease, filter 0.15s ease;
+    box-sizing: border-box;
+    padding: 0 16px;
+    overflow: hidden;
+}
+
+/* Brilho superior de reflexo de vidro */
+.btn-gamer-menu::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 48%;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0.04) 100%);
+    pointer-events: none;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+}
+
+.btn-gamer-menu:hover {
+    filter: brightness(1.12);
+    transform: translateY(-2px);
+}
+
+.btn-gamer-menu:active {
+    transform: translateY(3px);
+}
+
+.btn-gamer-menu .btn-menu-icon {
+    font-size: 1.25rem;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.7));
+    z-index: 2;
+}
+
+.btn-gamer-menu .btn-menu-text {
+    z-index: 2;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
+}
+
+/* 1. Botão Offline (Verde Esmeralda Arcade) */
+.btn-gamer-menu.btn-offline {
+    background: linear-gradient(180deg, #2ecc71 0%, #27ae60 50%, #1e8449 100%);
+    border: 2px solid #82e5aa;
+    color: #ffffff;
+    box-shadow: 0 5px 0 #145a32, 0 10px 20px rgba(39, 174, 96, 0.38);
+}
+.btn-gamer-menu.btn-offline:hover {
+    box-shadow: 0 7px 0 #145a32, 0 14px 26px rgba(39, 174, 96, 0.5);
+}
+.btn-gamer-menu.btn-offline:active {
+    box-shadow: 0 2px 0 #145a32, 0 4px 10px rgba(39, 174, 96, 0.3);
+}
+
+/* 2. Botão Online (Azul Elétrico Arcade) */
+.btn-gamer-menu.btn-online {
+    background: linear-gradient(180deg, #3498db 0%, #2980b9 50%, #1f618d 100%);
+    border: 2px solid #aed6f1;
+    color: #ffffff;
+    box-shadow: 0 5px 0 #154360, 0 10px 20px rgba(41, 128, 185, 0.42);
+}
+.btn-gamer-menu.btn-online:hover {
+    box-shadow: 0 7px 0 #154360, 0 14px 26px rgba(41, 128, 185, 0.55);
+}
+.btn-gamer-menu.btn-online:active {
+    box-shadow: 0 2px 0 #154360, 0 4px 10px rgba(41, 128, 185, 0.3);
+}
+
+/* 3. Área e Botão de Reconexão (Dourado / Âmbar Pulsante) */
+.gamer-reconnect-box {
+    background: rgba(243, 156, 18, 0.12);
+    border: 1px dashed rgba(243, 156, 18, 0.5);
+    border-radius: 12px;
+    padding: 10px;
+    text-align: center;
+}
+.reconnect-title {
+    margin: 0 0 8px 0;
+    color: #f39c12;
+    font-size: 0.88rem;
+    font-weight: 700;
+}
+.btn-gamer-menu.btn-reconnect {
+    height: 46px;
+    background: linear-gradient(180deg, #f39c12 0%, #d35400 100%);
+    border: 2px solid #ffeaa7;
+    color: #ffffff;
+    box-shadow: 0 4px 0 #7e3802, 0 8px 18px rgba(230, 126, 34, 0.4);
+}
+.btn-gamer-menu.btn-reconnect:hover {
+    box-shadow: 0 6px 0 #7e3802, 0 12px 22px rgba(230, 126, 34, 0.55);
+}
+.btn-gamer-menu.btn-reconnect:active {
+    box-shadow: 0 2px 0 #7e3802, 0 4px 10px rgba(230, 126, 34, 0.3);
+}
+
+/* 4. Botão Manual (Aço Metálico Escuro) */
+.btn-gamer-menu.btn-manual {
+    background: linear-gradient(180deg, #3d566e 0%, #2c3e50 50%, #1c2833 100%);
+    border: 2px solid #7f8c8d;
+    color: #e2e8f0;
+    box-shadow: 0 4px 0 #11171d, 0 8px 16px rgba(0, 0, 0, 0.5);
+}
+.btn-gamer-menu.btn-manual:hover {
+    box-shadow: 0 6px 0 #11171d, 0 12px 20px rgba(0, 0, 0, 0.65);
+    border-color: #95a5a6;
+}
+.btn-gamer-menu.btn-manual:active {
+    box-shadow: 0 2px 0 #11171d, 0 4px 10px rgba(0, 0, 0, 0.4);
+}
+
+/* 5. Botão Sair / Trocar Conta (Rubi / Vinho Metálico) */
+.btn-gamer-menu.btn-logout {
+    background: linear-gradient(180deg, #c0392b 0%, #962d22 50%, #641e16 100%);
+    border: 2px solid #e6b0aa;
+    color: #ffffff;
+    box-shadow: 0 4px 0 #42140f, 0 8px 16px rgba(192, 57, 43, 0.35);
+}
+.btn-gamer-menu.btn-logout:hover {
+    box-shadow: 0 6px 0 #42140f, 0 12px 20px rgba(192, 57, 43, 0.5);
+}
+.btn-gamer-menu.btn-logout:active {
+    box-shadow: 0 2px 0 #42140f, 0 4px 10px rgba(192, 57, 43, 0.25);
 }
 
 .title-highlight {
@@ -113,13 +653,20 @@ body {
     background-color: #eee;
 }
 
-#menu-phase-1,
 #menu-phase-online,
 #menu-phase-setup {
     width: 100%;
+    max-width: 440px;
+    margin: auto;
+    background: linear-gradient(180deg, rgba(20, 36, 52, 0.96) 0%, rgba(10, 18, 28, 0.98) 100%);
+    border: 2px solid rgba(52, 152, 219, 0.4);
+    border-radius: 18px;
+    padding: 24px;
+    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.8), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
 }
 
 #lobby-status {
@@ -132,8 +679,8 @@ body {
     color: #e67e22;
 }
 
-#setup-screen input[type="text"],
-#setup-screen input[type="password"],
+#setup-screen input[type="text"]:not(.gamer-input),
+#setup-screen input[type="password"]:not(.gamer-input),
 #setup-screen select {
     background: rgba(0, 0, 0, 0.3);
     border: 1px solid rgba(255, 255, 255, 0.2);
@@ -145,8 +692,8 @@ body {
     transition: border-color 0.2s, background 0.2s;
 }
 
-#setup-screen input[type="text"]:focus,
-#setup-screen input[type="password"]:focus,
+#setup-screen input[type="text"]:not(.gamer-input):focus,
+#setup-screen input[type="password"]:not(.gamer-input):focus,
 #setup-screen select:focus {
     border-color: var(--gold);
     background: rgba(0, 0, 0, 0.5);
@@ -2553,11 +3100,19 @@ body {
    5. RESPONSIVIDADE (MOBILE / TABLET)
    ========================================================================== */
 @media (max-width: 1000px) {
-    body {
-        background-image: none;
-        background-color: #2c3e50;
+    html, body {
         height: auto;
+        min-height: 100vh;
+        min-height: 100dvh;
         overflow-y: auto;
+    }
+
+    body {
+        background-image: url('/assets/img/Background/PokemonBoardGameImagemConceitual.jpeg');
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+        background-color: #2c3e50;
     }
 
     #game-container {
@@ -2669,13 +3224,24 @@ body {
        AJUSTES GERAIS MOBILE MANTIDOS DO SEU CSS ANTERIOR
        ================================================== */
     #setup-screen {
-        width: 85%;
-        max-width: 400px;
-        padding: 20px;
-        max-height: 85vh;
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        height: 100dvh;
+        max-width: 100%;
+        max-height: 100%;
+        padding: 16px 12px;
+        box-sizing: border-box;
         overflow-y: auto;
-        position: relative;
-        border-width: 2px;
+        overflow-x: hidden;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        background: transparent;
+        border: none;
+        box-shadow: none;
     }
 
     .setup-row input {
@@ -2803,6 +3369,142 @@ body {
         width: 100%;
         box-sizing: border-box;
         /* MantÃ©m o grid de 2 colunas, mas agora esticado */
+    }
+}
+
+/* ==========================================================================
+   AJUSTES RESPONSIVOS MOBILE (SMARTPHONES / TELAS PEQUENAS <= 480px)
+   ========================================================================== */
+@media (max-width: 480px) {
+    #setup-screen {
+        padding: 12px 8px;
+    }
+
+    .gamer-login-card,
+    #menu-phase-1.gamer-menu-card,
+    .gamer-menu-card {
+        max-width: 100%;
+        width: 100%;
+        padding: 20px 14px 16px 14px;
+        border-radius: 14px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.85);
+    }
+
+    .gamer-corner {
+        width: 28px;
+        height: 28px;
+    }
+
+    .gamer-corner svg {
+        width: 28px;
+        height: 28px;
+    }
+
+    .gamer-login-header {
+        margin-bottom: 16px;
+    }
+
+    .gamer-login-badge {
+        padding: 5px 20px;
+    }
+
+    .gamer-login-badge .badge-text {
+        font-size: 1.18rem;
+        letter-spacing: 1.5px;
+    }
+
+    .gamer-login-subtitle {
+        font-size: 0.75rem;
+        letter-spacing: 1.2px;
+        margin-top: 6px;
+    }
+
+    .gamer-field-group {
+        margin-bottom: 10px;
+    }
+
+    .gamer-field-label {
+        font-size: 0.82rem;
+        margin-bottom: 4px;
+    }
+
+    .gamer-input-wrap {
+        height: 44px;
+    }
+
+    .gamer-input-icon.icon-pokeball,
+    .gamer-input-icon.icon-lock {
+        left: 12px;
+    }
+
+    .gamer-input-icon.icon-pokeball svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    .gamer-input-icon.icon-lock svg {
+        width: 17px;
+        height: 17px;
+    }
+
+    #setup-screen .gamer-input.with-left-icon,
+    .gamer-input.with-left-icon {
+        padding-left: 42px !important;
+        font-size: 0.95rem !important;
+    }
+
+    .gamer-btn-wrap {
+        margin-top: 6px;
+        margin-bottom: 10px;
+    }
+
+    .btn-gamer-enter {
+        height: 46px;
+        clip-path: polygon(10px 0%, calc(100% - 10px) 0%, 100% 50%, calc(100% - 10px) 100%, 10px 100%, 0% 50%);
+    }
+
+    .btn-enter-inner {
+        font-size: 1.15rem;
+        letter-spacing: 1.5px;
+    }
+
+    .gamer-login-footer {
+        padding-top: 6px;
+        gap: 6px;
+    }
+
+    .gamer-link {
+        font-size: 0.82rem;
+    }
+
+    /* Menu do Treinador Logado */
+    .gamer-trainer-pill {
+        font-size: 0.8rem;
+        padding: 4px 12px;
+        margin-top: 6px;
+    }
+
+    .gamer-menu-buttons {
+        gap: 9px;
+    }
+
+    .btn-gamer-menu {
+        height: 46px;
+        padding: 0 10px;
+        gap: 8px;
+        border-radius: 10px;
+    }
+
+    .btn-gamer-menu .btn-menu-icon {
+        font-size: 1.05rem;
+    }
+
+    .btn-gamer-menu .btn-menu-text {
+        font-size: 0.82rem;
+        letter-spacing: 0.4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 }
 
@@ -3773,3 +4475,167 @@ body {
     50% { opacity: 0.8; }
     100% { opacity: 1; }
 }
+
+/* ==========================================================================
+   TOOLTIP DE VANTAGENS E FRAQUEZAS DE TIPAGEM (ESTILO KREASOULS)
+   ========================================================================== */
+.type-tooltip-box {
+    position: fixed;
+    z-index: 999999;
+    pointer-events: none;
+    width: 320px;
+    max-width: 90vw;
+    background: linear-gradient(180deg, #131722 0%, #0d1017 100%);
+    border: 2px solid #e1b12c;
+    border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.85), 
+                inset 0 1px 1px rgba(255, 255, 255, 0.15),
+                0 0 16px rgba(225, 177, 44, 0.25);
+    padding: 14px 16px;
+    font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
+    color: #ffffff;
+    user-select: none;
+    box-sizing: border-box;
+    animation: typeTooltipFadeIn 0.15s ease-out;
+}
+
+@keyframes typeTooltipFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.96) translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.type-tooltip-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.type-tooltip-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.type-tooltip-orb {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    font-size: 0.85rem;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+.type-tooltip-title {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #f5eed7;
+    letter-spacing: 0.5px;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+.type-tooltip-tag {
+    font-style: italic;
+    font-size: 0.78rem;
+    color: #94a3b8;
+    letter-spacing: 0.4px;
+}
+
+.type-tooltip-lore {
+    font-style: italic;
+    color: #94a3b8;
+    font-size: 0.8rem;
+    line-height: 1.35;
+    margin-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 8px;
+}
+
+.type-tooltip-section {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.type-tooltip-label {
+    font-size: 0.82rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 4px;
+}
+
+.type-tooltip-label.text-advantage {
+    color: #2ecc71;
+}
+
+.type-tooltip-label.text-disadvantage {
+    color: #e74c3c;
+}
+
+.type-tooltip-label.text-weakness {
+    color: #ff4757;
+}
+
+.type-tooltip-label.text-resistance {
+    color: #2ed573;
+}
+
+.type-tooltip-pill-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 6px;
+}
+
+.type-tooltip-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 7px;
+    border-radius: 5px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.45);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    letter-spacing: 0.3px;
+}
+
+.type-tooltip-pill-icon {
+    font-size: 0.75rem;
+}
+
+.type-tooltip-empty {
+    font-size: 0.75rem;
+    font-style: italic;
+    color: #64748b;
+    margin-bottom: 6px;
+    padding-left: 4px;
+}
+
+.type-tooltip-divider {
+    border-top: 1px dashed rgba(255, 255, 255, 0.16);
+    margin: 8px 0;
+}
+
+/* Hover effect nos badges de tipo no jogo */
+.poke-type-badge {
+    transition: transform 0.12s ease, filter 0.12s ease;
+    cursor: help;
+}
+
+.poke-type-badge:hover {
+    filter: brightness(1.25);
+    transform: translateY(-1px);
+}

@@ -7,6 +7,7 @@ import { Network } from './systems/Network';
 import { Cards } from './systems/Cards';
 import { QuestManager } from './modules/quests/QuestManager';
 import { GameEvents } from './modules/game/GameEvents';
+import { TypeTooltip } from './modules/ui/TypeTooltip';
 
 declare global {
     interface Window {
@@ -25,8 +26,11 @@ declare global {
         openItemLibrary: () => void;
         openXpRules: () => void;
         returnToPokepedia: (currentModalId?: string) => void;
+        TypeTooltip: typeof TypeTooltip;
     }
 }
+
+window.TypeTooltip = TypeTooltip;
 
 // --- CUSTOM GLOBAL ALERT OVERRIDE ---
 // Replaces the native blocking alert() with a custom on-screen toast
@@ -195,10 +199,12 @@ document.addEventListener('DOMContentLoaded', () => {
     Setup.updateSlots();
     Setup.checkCachedLogin();
     initModalBackdropDismissal();
+    TypeTooltip.init();
 });
 
 if (document.readyState === "complete" || document.readyState === "interactive") {
     Setup.updateSlots();
     Setup.checkCachedLogin();
     initModalBackdropDismissal();
+    TypeTooltip.init();
 }

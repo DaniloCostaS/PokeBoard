@@ -21,38 +21,181 @@
 <body>
 
     <div id="setup-screen">
-        <h1 class="title-highlight">PokéBoard V1b</h1>
-        <p class="subtitle">Modo Offline com Bots.</p>
-
-        <div id="menu-phase-1" style="display: none;">
-            <button class="btn" onclick="window.Setup.showOfflineSetup()">🏠 JOGAR OFFLINE</button>
-            <button class="btn" style="background:#8e44ad;" onclick="window.Setup.showOnlineMenu()">🌐 JOGAR
-                ONLINE</button>
-            <div id="reconnect-area"
-                style="display:none; margin-top:10px; padding:10px; background:#e8f8f5; border:1px solid #2ecc71; border-radius:5px;">
-                <p style="margin:0; color:#27ae60;">Sessão anterior encontrada!</p>
-                <button class="btn" style="background:#27ae60; margin-top:5px;" onclick="window.Network.reconnect()">🔄
-                    RECONECTAR</button>
+        <div id="menu-phase-1" class="gamer-menu-card" style="display: none;">
+            <!-- 4 Cantos de Armadura Dourada com Chanfro Mecânico -->
+            <div class="gamer-corner corner-tl">
+                <svg viewBox="0 0 38 38" width="38" height="38">
+                    <defs>
+                        <linearGradient id="goldArmorTL" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#fff5b8"/>
+                            <stop offset="35%" stop-color="#f1c40f"/>
+                            <stop offset="70%" stop-color="#d4ac0d"/>
+                            <stop offset="100%" stop-color="#8c5806"/>
+                        </linearGradient>
+                    </defs>
+                    <polygon points="0,0 38,0 38,10 18,10 10,18 10,38 0,38" fill="url(#goldArmorTL)" stroke="#523202" stroke-width="1.4"/>
+                    <polyline points="2,36 2,2 36,2" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="1.2"/>
+                    <line x1="10" y1="18" x2="18" y2="10" stroke="#523202" stroke-width="1.2"/>
+                </svg>
             </div>
-            <div style="margin-top:15px; border-top:1px solid #eee; padding-top:10px;">
-                <button class="btn" style="background:#34495e; margin-top:5px; font-size:0.8rem;"
-                    onclick="window.open('./manual.html', '_blank')">📖 ABRIR MANUAL DO JOGO</button>
-                <button class="btn" style="background:#c0392b; margin-top:10px; font-size:0.8rem;"
-                    onclick="window.Setup.logout()">🚪 SAIR / TROCAR CONTA</button>
+            <div class="gamer-corner corner-tr">
+                <svg viewBox="0 0 38 38" width="38" height="38" style="transform: scaleX(-1);">
+                    <polygon points="0,0 38,0 38,10 18,10 10,18 10,38 0,38" fill="url(#goldArmorTL)" stroke="#523202" stroke-width="1.4"/>
+                    <polyline points="2,36 2,2 36,2" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="1.2"/>
+                    <line x1="10" y1="18" x2="18" y2="10" stroke="#523202" stroke-width="1.2"/>
+                </svg>
+            </div>
+            <div class="gamer-corner corner-bl">
+                <svg viewBox="0 0 38 38" width="38" height="38" style="transform: scaleY(-1);">
+                    <polygon points="0,0 38,0 38,10 18,10 10,18 10,38 0,38" fill="url(#goldArmorTL)" stroke="#523202" stroke-width="1.4"/>
+                    <polyline points="2,36 2,2 36,2" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="1.2"/>
+                    <line x1="10" y1="18" x2="18" y2="10" stroke="#523202" stroke-width="1.2"/>
+                </svg>
+            </div>
+            <div class="gamer-corner corner-br">
+                <svg viewBox="0 0 38 38" width="38" height="38" style="transform: scale(-1);">
+                    <polygon points="0,0 38,0 38,10 18,10 10,18 10,38 0,38" fill="url(#goldArmorTL)" stroke="#523202" stroke-width="1.4"/>
+                    <polyline points="2,36 2,2 36,2" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="1.2"/>
+                    <line x1="10" y1="18" x2="18" y2="10" stroke="#523202" stroke-width="1.2"/>
+                </svg>
+            </div>
+
+            <!-- Top Header Plate -->
+            <div class="gamer-login-header">
+                <div class="gamer-login-badge">
+                    <span class="badge-text">POKÉBOARD</span>
+                </div>
+                <div class="gamer-trainer-pill">
+                    <span class="trainer-icon">👤</span> Treinador: <b id="logged-user-display" class="trainer-name">Ash Ketchum</b>
+                </div>
+            </div>
+
+            <!-- Botões de Ação do Menu Gamer -->
+            <div class="gamer-menu-buttons">
+                <button type="button" class="btn-gamer-menu btn-offline" onclick="window.Setup.showOfflineSetup()">
+                    <span class="btn-menu-icon">🏠</span>
+                    <span class="btn-menu-text">JOGAR OFFLINE (BOTS)</span>
+                </button>
+                <button type="button" class="btn-gamer-menu btn-online" onclick="window.Setup.showOnlineMenu()">
+                    <span class="btn-menu-icon">🌐</span>
+                    <span class="btn-menu-text">JOGAR ONLINE</span>
+                </button>
+
+                <div id="reconnect-area" style="display:none;" class="gamer-reconnect-box">
+                    <p class="reconnect-title">⚡ Sessão anterior encontrada!</p>
+                    <button type="button" class="btn-gamer-menu btn-reconnect" onclick="window.Network.reconnect()">
+                        <span class="btn-menu-icon">🔄</span>
+                        <span class="btn-menu-text">RECONECTAR À PARTIDA</span>
+                    </button>
+                </div>
+
+                <div class="gamer-menu-divider"></div>
+
+                <button type="button" class="btn-gamer-menu btn-manual" onclick="window.open('./manual.html', '_blank')">
+                    <span class="btn-menu-icon">📖</span>
+                    <span class="btn-menu-text">MANUAL DO JOGO & REGRAS</span>
+                </button>
+                <button type="button" class="btn-gamer-menu btn-logout" onclick="window.Setup.logout()">
+                    <span class="btn-menu-icon">🚪</span>
+                    <span class="btn-menu-text">SAIR / TROCAR CONTA</span>
+                </button>
             </div>
         </div>
 
-        <div id="online-login" style="margin-top: 15px;">
-            <h3 style="margin-bottom: 15px;">Acesso ao Lobby</h3>
-            <label style="font-weight: bold;">Usuário (Nickname):</label>
-            <input type="text" id="login-username" class="input-field" placeholder="Ex: Ash Ketchum"
-                style="margin-bottom: 10px; padding: 10px; width: 90%; font-size: 1.1rem; text-align: center;"
-                maxlength="15">
-            <label style="font-weight: bold;">Senha:</label>
-            <input type="password" id="login-password" class="input-field" placeholder="***"
-                style="margin-bottom: 15px; padding: 10px; width: 90%; font-size: 1.1rem; text-align: center;">
-            <button class="btn" onclick="window.Setup.loginOnline()" style="background:#27ae60;">ACESSAR /
-                CADASTRAR</button>
+        <div id="online-login" class="gamer-login-card">
+            <!-- 4 Cantos de Armadura Dourada com Chanfro Mecânico -->
+            <div class="gamer-corner corner-tl">
+                <svg viewBox="0 0 38 38" width="38" height="38">
+                    <defs>
+                        <linearGradient id="goldArmorTL" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#fff5b8"/>
+                            <stop offset="35%" stop-color="#f1c40f"/>
+                            <stop offset="70%" stop-color="#d4ac0d"/>
+                            <stop offset="100%" stop-color="#8c5806"/>
+                        </linearGradient>
+                    </defs>
+                    <polygon points="0,0 38,0 38,10 18,10 10,18 10,38 0,38" fill="url(#goldArmorTL)" stroke="#523202" stroke-width="1.4"/>
+                    <polyline points="2,36 2,2 36,2" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="1.2"/>
+                    <line x1="10" y1="18" x2="18" y2="10" stroke="#523202" stroke-width="1.2"/>
+                </svg>
+            </div>
+            <div class="gamer-corner corner-tr">
+                <svg viewBox="0 0 38 38" width="38" height="38" style="transform: scaleX(-1);">
+                    <polygon points="0,0 38,0 38,10 18,10 10,18 10,38 0,38" fill="url(#goldArmorTL)" stroke="#523202" stroke-width="1.4"/>
+                    <polyline points="2,36 2,2 36,2" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="1.2"/>
+                    <line x1="10" y1="18" x2="18" y2="10" stroke="#523202" stroke-width="1.2"/>
+                </svg>
+            </div>
+            <div class="gamer-corner corner-bl">
+                <svg viewBox="0 0 38 38" width="38" height="38" style="transform: scaleY(-1);">
+                    <polygon points="0,0 38,0 38,10 18,10 10,18 10,38 0,38" fill="url(#goldArmorTL)" stroke="#523202" stroke-width="1.4"/>
+                    <polyline points="2,36 2,2 36,2" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="1.2"/>
+                    <line x1="10" y1="18" x2="18" y2="10" stroke="#523202" stroke-width="1.2"/>
+                </svg>
+            </div>
+            <div class="gamer-corner corner-br">
+                <svg viewBox="0 0 38 38" width="38" height="38" style="transform: scale(-1);">
+                    <polygon points="0,0 38,0 38,10 18,10 10,18 10,38 0,38" fill="url(#goldArmorTL)" stroke="#523202" stroke-width="1.4"/>
+                    <polyline points="2,36 2,2 36,2" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="1.2"/>
+                    <line x1="10" y1="18" x2="18" y2="10" stroke="#523202" stroke-width="1.2"/>
+                </svg>
+            </div>
+
+            <!-- Top Header Plate -->
+            <div class="gamer-login-header">
+                <div class="gamer-login-badge">
+                    <span class="badge-text">LOGIN</span>
+                </div>
+                <div class="gamer-login-subtitle">ACESSO DO TREINADOR</div>
+            </div>
+
+            <!-- Form -->
+            <div class="gamer-login-body">
+                <div class="gamer-field-group">
+                    <label class="gamer-field-label" for="login-username">Usuário ou E-mail</label>
+                    <div class="gamer-input-wrap">
+                        <span class="gamer-input-icon icon-pokeball" title="Identificação do Treinador">
+                            <svg viewBox="0 0 24 24" width="22" height="22">
+                                <circle cx="12" cy="12" r="10" fill="#f8fafc" stroke="#1e293b" stroke-width="1.8"/>
+                                <path d="M 2 12 A 10 10 0 0 1 22 12 Z" fill="#ef4444" stroke="#1e293b" stroke-width="1.8"/>
+                                <line x1="2" y1="12" x2="22" y2="12" stroke="#1e293b" stroke-width="2.2"/>
+                                <circle cx="12" cy="12" r="3.5" fill="#f8fafc" stroke="#1e293b" stroke-width="1.8"/>
+                                <circle cx="12" cy="1.5" r="1.5" fill="#cbd5e1"/>
+                            </svg>
+                        </span>
+                        <input type="text" id="login-username" class="gamer-input with-left-icon" placeholder="Ex: Ash Ketchum" maxlength="15" autocomplete="username">
+                    </div>
+                </div>
+
+                <div class="gamer-field-group">
+                    <label class="gamer-field-label" for="login-password">Senha</label>
+                    <div class="gamer-input-wrap">
+                        <span class="gamer-input-icon icon-lock" title="Senha Segura">
+                            <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="#718096" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="4" y="11" width="16" height="10" rx="2" ry="2" fill="#2d3748"/>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                                <circle cx="12" cy="16" r="1.5" fill="#cbd5e0"/>
+                            </svg>
+                        </span>
+                        <input type="password" id="login-password" class="gamer-input with-left-icon" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter') window.Setup.loginOnline()">
+                    </div>
+                </div>
+
+                <!-- Botão 3D Arcade Dourado com Chanfros Laterais: ENTRAR -->
+                <div class="gamer-btn-wrap">
+                    <button type="button" id="btn-login-enter" class="btn-gamer-enter" onclick="window.Setup.loginOnline()">
+                        <span class="btn-side-notch notch-left"></span>
+                        <span class="btn-enter-inner">ENTRAR</span>
+                        <span class="btn-side-notch notch-right"></span>
+                    </button>
+                </div>
+
+                <!-- Rodapé com Links -->
+                <div class="gamer-login-footer">
+                    <a href="javascript:void(0)" class="gamer-link" onclick="window.Setup.showOfflineSetup()">🏠 Jogar Offline</a>
+                    <a href="./manual.html" target="_blank" class="gamer-link">📖 Manual / Ajuda</a>
+                </div>
+            </div>
         </div>
 
         <div id="menu-phase-online" style="display:none;">

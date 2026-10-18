@@ -406,10 +406,10 @@ export class Pokemon {
             "Fada": "#D685AD" 
         };
         const c1 = colors[this.type] || "#777";
-        let html = `<span style="background-color:${c1}; color:white; padding:1px 5px; border-radius:3px; font-size:0.55rem; font-weight:bold; text-shadow:1px 1px 1px rgba(0,0,0,0.8); border:1px solid rgba(255,255,255,0.4); box-shadow: 0 1px 2px rgba(0,0,0,0.5); letter-spacing: 0.5px;">${this.type.toUpperCase()}</span>`;
+        let html = `<span class="poke-type-badge" data-type="${this.type}" style="background-color:${c1}; color:white; padding:1px 5px; border-radius:3px; font-size:0.55rem; font-weight:bold; text-shadow:1px 1px 1px rgba(0,0,0,0.8); border:1px solid rgba(255,255,255,0.4); box-shadow: 0 1px 2px rgba(0,0,0,0.5); letter-spacing: 0.5px; cursor: help;">${this.type.toUpperCase()}</span>`;
         if (this.secondType) {
             const c2 = colors[this.secondType] || "#777";
-            html += ` <span style="background-color:${c2}; color:white; padding:1px 5px; border-radius:3px; font-size:0.55rem; font-weight:bold; text-shadow:1px 1px 1px rgba(0,0,0,0.8); border:1px solid rgba(255,255,255,0.4); box-shadow: 0 1px 2px rgba(0,0,0,0.5); letter-spacing: 0.5px;">${this.secondType.toUpperCase()}</span>`;
+            html += ` <span class="poke-type-badge" data-type="${this.secondType}" style="background-color:${c2}; color:white; padding:1px 5px; border-radius:3px; font-size:0.55rem; font-weight:bold; text-shadow:1px 1px 1px rgba(0,0,0,0.8); border:1px solid rgba(255,255,255,0.4); box-shadow: 0 1px 2px rgba(0,0,0,0.5); letter-spacing: 0.5px; cursor: help;">${this.secondType.toUpperCase()}</span>`;
         }
         return `<div style="display:flex; gap:3px; margin-top:2px; margin-bottom:2px; justify-content: ${align};">${html}</div>`;
     }

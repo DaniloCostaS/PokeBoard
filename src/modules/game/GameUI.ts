@@ -1019,8 +1019,10 @@ export class GameUI {
         [mon.type, mon.secondType].filter(t => t).forEach(t => {
             const span = document.createElement('span');
             span.innerText = t;
+            span.className = 'poke-type-badge';
+            span.setAttribute('data-type', t);
             const bgColor = colors[t] || '#555';
-            span.style.cssText = `background: ${bgColor}; border: 1px solid rgba(255,255,255,0.3); color: white; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; margin-left: 4px; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);`;
+            span.style.cssText = `background: ${bgColor}; border: 1px solid rgba(255,255,255,0.3); color: white; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; margin-left: 4px; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); cursor: help;`;
             typeContainer.appendChild(span);
         });
 
@@ -1690,35 +1692,35 @@ export class GameUI {
             const dexEntry = p.pokedexData[mon.id] || { seen: 0, caught: 0, defeated: 0 };
 
             const c1 = colors[mon.type] || "#777";
-            let typeHtml = `<span style="background-color:${c1}; color:white; padding:2px 6px; border-radius:4px; font-size:0.6rem; text-shadow:1px 1px 1px rgba(0,0,0,0.5);">${mon.type}</span>`;
+            let typeHtml = `<span class="poke-type-badge" data-type="${mon.type}" style="background-color:${c1}; color:white; padding:2px 6px; border-radius:4px; font-size:0.6rem; text-shadow:1px 1px 1px rgba(0,0,0,0.5); cursor: help;">${mon.type}</span>`;
             if (mon.secondType) {
                 const c2 = colors[mon.secondType] || "#777";
-                typeHtml += ` <span style="background-color:${c2}; color:white; padding:2px 6px; border-radius:4px; font-size:0.6rem; text-shadow:1px 1px 1px rgba(0,0,0,0.5);">${mon.secondType}</span>`;
+                typeHtml += ` <span class="poke-type-badge" data-type="${mon.secondType}" style="background-color:${c2}; color:white; padding:2px 6px; border-radius:4px; font-size:0.6rem; text-shadow:1px 1px 1px rgba(0,0,0,0.5); cursor: help;">${mon.secondType}</span>`;
             }
 
             const weaknesses: { type: string, multi: number }[] = [];
             const resistances: { type: string, multi: number }[] = [];
 
             for (const atkType in TYPE_CHART) {
-                let multiplier = 1;
-                if (TYPE_CHART[atkType] && (TYPE_CHART[atkType] as any)[mon.type]) {
-                    multiplier *= (TYPE_CHART[atkType] as any)[mon.type];
-                }
-                if (mon.secondType && TYPE_CHART[atkType] && (TYPE_CHART[atkType] as any)[mon.secondType]) {
-                    multiplier *= (TYPE_CHART[atkType] as any)[mon.secondType];
-                }
+                let factor = 1;
+                const defTypes = [mon.type, mon.secondType].filter(Boolean);
+                defTypes.forEach(defT => {
+                    if (TYPE_CHART[atkType] && (TYPE_CHART[atkType] as any)[defT] !== undefined) {
+                        const val = (TYPE_CHART[atkType] as any)[defT];
+                        if (val > 1) factor *= 1.75;
+                        else if (val < 1) factor *= 0.75;
+                    }
+                });
 
-                if (multiplier > 1) weaknesses.push({ type: atkType, multi: multiplier });
-                if (multiplier < 1) resistances.push({ type: atkType, multi: multiplier });
+                if (factor > 1) weaknesses.push({ type: atkType, multi: Number(factor.toFixed(2)) });
+                if (factor < 1) resistances.push({ type: atkType, multi: Number(factor.toFixed(2)) });
             }
 
             const formatTypeList = (types: { type: string, multi: number }[], label: string, titleColor: string) => {
                 if (types.length === 0) return '';
                 const badges = types.map(t => {
                     const typeColor = colors[t.type] || "#777";
-                    let multiStr = `x${t.multi}`;
-                    if (t.multi === 0.5) multiStr = 'x½';
-                    else if (t.multi === 0.25) multiStr = 'x¼';
+                    const multiStr = `x${t.multi}`;
 
                     return `<span style="background-color:${typeColor}; color:white; padding:2px 5px; border-radius:4px; font-size:0.6rem; text-shadow:1px 1px 1px rgba(0,0,0,0.5); margin-right:3px; display:inline-block; margin-bottom:2px; display: inline-flex; align-items: center; gap: 3px;">
                         ${t.type} <b style="background:rgba(0,0,0,0.3); padding:1px 3px; border-radius:3px; font-size: 0.55rem;">${multiStr}</b>
@@ -2233,10 +2235,10 @@ export class GameUI {
                         this.openPokemonDetail(-1, index, champion);
                     };
 
-                    let typesHtml = `<span style="background:${bgColor}; color:white; font-size:0.65rem; padding:2px 5px; border-radius:4px; border:1px solid rgba(255,255,255,0.3);">${p.type}</span>`;
+                    let typesHtml = `<span class="poke-type-badge" data-type="${p.type}" style="background:${bgColor}; color:white; font-size:0.65rem; padding:2px 5px; border-radius:4px; border:1px solid rgba(255,255,255,0.3); cursor: help;">${p.type}</span>`;
                     if (p.secondType) {
                         const bg2 = colors[p.secondType] || '#555';
-                        typesHtml += ` <span style="background:${bg2}; color:white; font-size:0.65rem; padding:2px 5px; border-radius:4px; border:1px solid rgba(255,255,255,0.3);">${p.secondType}</span>`;
+                        typesHtml += ` <span class="poke-type-badge" data-type="${p.secondType}" style="background:${bg2}; color:white; font-size:0.65rem; padding:2px 5px; border-radius:4px; border:1px solid rgba(255,255,255,0.3); cursor: help;">${p.secondType}</span>`;
                     }
 
                     const hId = p.heldItem;

@@ -8,7 +8,14 @@ import { GameSpawns } from '../modules/game/GameSpawns';
 import { GameState } from '../modules/game/GameState';
 
 export class Setup {
-    static showOfflineSetup() { document.getElementById('menu-phase-1')!.style.display = 'none'; document.getElementById('menu-phase-setup')!.style.display = 'block'; }
+    static showOfflineSetup() { 
+        const loginEl = document.getElementById('online-login');
+        if (loginEl) loginEl.style.display = 'none';
+        const branding = document.getElementById('menu-branding');
+        if (branding) branding.style.display = 'block';
+        document.getElementById('menu-phase-1')!.style.display = 'none'; 
+        document.getElementById('menu-phase-setup')!.style.display = 'block'; 
+    }
     static checkCachedLogin() {
         const cachedUser = localStorage.getItem('poke_username');
         if (cachedUser) {
@@ -19,6 +26,8 @@ export class Setup {
                 nameInput.disabled = true;
             }
             document.getElementById('online-login')!.style.display = 'none';
+            const userDisplay = document.getElementById('logged-user-display');
+            if (userDisplay) userDisplay.innerText = cachedUser;
             document.getElementById('menu-phase-1')!.style.display = 'block';
         }
     }
@@ -110,6 +119,8 @@ export class Setup {
         localStorage.setItem('poke_username', username);
 
         document.getElementById('online-login')!.style.display = 'none';
+        const userDisplay = document.getElementById('logged-user-display');
+        if (userDisplay) userDisplay.innerText = username;
         document.getElementById('menu-phase-1')!.style.display = 'block';
 
         const nameInput = document.getElementById('online-player-name') as HTMLInputElement;
