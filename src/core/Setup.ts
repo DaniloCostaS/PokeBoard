@@ -14,7 +14,7 @@ export class Setup {
         const branding = document.getElementById('menu-branding');
         if (branding) branding.style.display = 'block';
         document.getElementById('menu-phase-1')!.style.display = 'none'; 
-        document.getElementById('menu-phase-setup')!.style.display = 'block'; 
+        document.getElementById('menu-phase-setup')!.style.display = 'flex';
     }
     static checkCachedLogin() {
         const cachedUser = localStorage.getItem('poke_username');
@@ -28,14 +28,14 @@ export class Setup {
             document.getElementById('online-login')!.style.display = 'none';
             const userDisplay = document.getElementById('logged-user-display');
             if (userDisplay) userDisplay.innerText = cachedUser;
-            document.getElementById('menu-phase-1')!.style.display = 'block';
+            document.getElementById('menu-phase-1')!.style.display = 'flex';
         }
     }
     static logout() {
         localStorage.removeItem('poke_username');
         location.reload();
     }
-    static showOnlineMenu() { document.getElementById('menu-phase-1')!.style.display = 'none'; document.getElementById('menu-phase-online')!.style.display = 'block'; const sel = document.getElementById('online-avatar-select') as HTMLSelectElement; if (sel && sel.options.length === 0) { sel.innerHTML = TRAINER_IMAGES.map(img => `<option value="${img.file}">${img.label}</option>`).join(''); } this.updateOnlinePreview(); }
+    static showOnlineMenu() { document.getElementById('menu-phase-1')!.style.display = 'none'; document.getElementById('menu-phase-online')!.style.display = 'flex'; const sel = document.getElementById('online-avatar-select') as HTMLSelectElement; if (sel && sel.options.length === 0) { sel.innerHTML = TRAINER_IMAGES.map(img => `<option value="${img.file}">${img.label}</option>`).join(''); } this.updateOnlinePreview(); }
     
     static async updateOnlinePreview() {
         const sel = document.getElementById('online-avatar-select') as HTMLSelectElement;
@@ -78,7 +78,7 @@ export class Setup {
         const hc = document.getElementById('host-controls'); 
         if (hc) hc.style.display = Network.isHost ? 'block' : 'none'; 
     }
-    static showSetupScreen() { document.getElementById('menu-phase-online')!.style.display = 'none'; document.getElementById('menu-phase-setup')!.style.display = 'block'; }
+    static showSetupScreen() { document.getElementById('menu-phase-online')!.style.display = 'none'; document.getElementById('menu-phase-setup')!.style.display = 'flex'; }
     static updateSlots() { 
         const numInput = document.getElementById('num-players') as HTMLSelectElement; 
         if (!numInput) return; 
@@ -90,21 +90,45 @@ export class Setup {
             const defImg = TRAINER_IMAGES[i % TRAINER_IMAGES.length].file; 
             const opts = TRAINER_IMAGES.map(img => `<option value="${img.file}" ${img.file === defImg ? 'selected' : ''}>${img.label}</option>`).join(''); 
             c.innerHTML += `
-            <div class="setup-row">
-                <strong>P${i + 1}</strong>
-                <input type="text" id="p${i}-name" value="${defs[i] || 'Player'}" style="width:100px;">
-                <div class="avatar-selection">
-                    <img id="p${i}-preview" src="/assets/img/Treinadores/${defImg}" class="avatar-preview">
-                    <select id="p${i}-av" onchange="window.Setup.updatePreview(${i})">${opts}</select>
+            <article class="trainer-offline-player-card">
+                <div class="trainer-offline-player-topline">
+                    <span class="trainer-offline-player-index">${i + 1}</span>
+                    <strong>Treinador ${i + 1}</strong>
+                    <label class="trainer-offline-cpu-toggle" for="p${i}-cpu"><span>Controlado por bot</span><input type="checkbox" id="p${i}-cpu"><i aria-hidden="true"></i></label>
                 </div>
-                <div style="display:flex; flex-direction:column; align-items:center; margin-left:10px;">
-                    <label style="font-size:0.75rem; margin-bottom:2px;">CPU?</label>
-                    <input type="checkbox" id="p${i}-cpu">
+                <div class="trainer-offline-player-fields">
+                    <label><span>Nome</span><input type="text" id="p${i}-name" value="${defs[i] || 'Player'}"></label>
+                    <label class="trainer-offline-avatar-select"><span>Avatar</span><div><img id="p${i}-preview" src="/assets/img/Treinadores/${defImg}" class="avatar-preview" alt="Avatar de Treinador ${i + 1}"><select id="p${i}-av" onchange="window.Setup.updatePreview(${i})">${opts}</select></div></label>
                 </div>
-            </div>`; 
+            </article>`;
         } 
     }
     static updatePreview(i: number) { (document.getElementById(`p${i}-preview`) as HTMLImageElement).src = `/assets/img/Treinadores/${(document.getElementById(`p${i}-av`) as HTMLSelectElement).value}`; }
+
+    static clearLoginFeedback() {
+        const feedback = document.getElementById('login-feedback');
+        const usernameInput = document.getElementById('login-username') as HTMLInputElement | null;
+        const passwordInput = document.getElementById('login-password') as HTMLInputElement | null;
+
+        if (feedback) {
+            feedback.textContent = '';
+            feedback.hidden = true;
+        }
+        usernameInput?.removeAttribute('aria-invalid');
+        passwordInput?.removeAttribute('aria-invalid');
+    }
+
+    static toggleLoginPassword() {
+        const passwordInput = document.getElementById('login-password') as HTMLInputElement | null;
+        const toggle = document.querySelector('.trainer-password-toggle') as HTMLButtonElement | null;
+        if (!passwordInput || !toggle) return;
+
+        const isVisible = passwordInput.type === 'text';
+        passwordInput.type = isVisible ? 'password' : 'text';
+        toggle.setAttribute('aria-pressed', String(!isVisible));
+        toggle.setAttribute('aria-label', isVisible ? 'Mostrar senha' : 'Ocultar senha');
+        toggle.classList.toggle('is-active', !isVisible);
+    }
 
     static async loginOnline() {
         const usernameInput = document.getElementById('login-username') as HTMLInputElement;
@@ -112,7 +136,25 @@ export class Setup {
         const username = usernameInput.value.trim();
         const password = passwordInput.value;
 
-        if (!username || !password) return alert("Preencha nickname e senha!");
+        if (!username || !password) {
+            const feedback = document.getElementById('login-feedback');
+            const message = !username && !password
+                ? 'Informe seu nome de Treinador e sua senha para continuar.'
+                : !username
+                    ? 'Informe seu nome de Treinador para continuar.'
+                    : 'Informe sua senha para continuar.';
+
+            usernameInput.setAttribute('aria-invalid', String(!username));
+            passwordInput.setAttribute('aria-invalid', String(!password));
+            if (feedback) {
+                feedback.textContent = message;
+                feedback.hidden = false;
+            }
+            (!username ? usernameInput : passwordInput).focus();
+            return;
+        }
+
+        this.clearLoginFeedback();
 
         // Sem tabela 'users' migrada, aceitamos o login diretamente (mock local)
         (window as any).loggedUser = username;
@@ -121,7 +163,7 @@ export class Setup {
         document.getElementById('online-login')!.style.display = 'none';
         const userDisplay = document.getElementById('logged-user-display');
         if (userDisplay) userDisplay.innerText = username;
-        document.getElementById('menu-phase-1')!.style.display = 'block';
+        document.getElementById('menu-phase-1')!.style.display = 'flex';
 
         const nameInput = document.getElementById('online-player-name') as HTMLInputElement;
         if (nameInput) {
@@ -130,78 +172,119 @@ export class Setup {
         }
     }
 
+    private static escapeHubText(value: unknown) {
+        return String(value ?? '').replace(/[&<>'"]/g, char => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            "'": '&#39;',
+            '"': '&quot;'
+        }[char] || char));
+    }
+
+    private static setRoomsHubHeading(titleText: string, subtitleText: string) {
+        document.getElementById('rooms-hub-title')!.textContent = titleText;
+        document.getElementById('rooms-hub-subtitle')!.textContent = subtitleText;
+    }
+
+    private static renderRoomsHubLoading(container: HTMLElement, message: string) {
+        container.innerHTML = `<div class="rooms-hub-loading"><span aria-hidden="true"></span><p>${message}</p></div>`;
+    }
+
+    private static renderRoomsHubEmpty(container: HTMLElement, title: string, message: string) {
+        container.innerHTML = `<div class="rooms-hub-empty"><span class="rooms-hub-empty-mark" aria-hidden="true"></span><h3>${title}</h3><p>${message}</p></div>`;
+    }
+
+    private static renderRoomCards(container: HTMLElement, modal: HTMLElement, rooms: any[], type: 'active' | 'open') {
+        container.innerHTML = rooms.map((room: any) => {
+            const players = room.room_players || [];
+            const hostName = players.find((player: any) => player.local_index === 0)?.name || 'Desconhecido';
+            const playerCount = players.length;
+            const roomCode = String(room.alias || room.id || '');
+            const roomName = this.escapeHubText(roomCode);
+            const host = this.escapeHubText(hostName);
+            const isActive = type === 'active';
+            const state = isActive ? 'Em andamento' : 'Aguardando jogadores';
+            const detail = isActive ? `Rodada ${room.current_round || 1}` : `${playerCount}/8 jogadores`;
+            const action = isActive ? 'Reconectar' : 'Entrar na sala';
+
+            return `<article class="rooms-hub-card rooms-hub-card--${type}">
+                <header class="rooms-hub-card-header">
+                    <div><p>${state}</p><h3>${roomName}</h3></div>
+                    <span class="rooms-hub-card-badge">${detail}</span>
+                </header>
+                <dl class="rooms-hub-card-details">
+                    <div><dt>Host</dt><dd>${host}</dd></div>
+                    <div><dt>Jogadores</dt><dd>${playerCount}/8</dd></div>
+                </dl>
+                <button type="button" class="rooms-hub-card-action" data-room-code="${roomName}">${action}<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h13M13 7l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+            </article>`;
+        }).join('');
+
+        container.querySelectorAll<HTMLButtonElement>('[data-room-code]').forEach(button => {
+            button.addEventListener('click', () => {
+                modal.style.display = 'none';
+                Network.joinRoom(button.dataset.roomCode || '');
+            });
+        });
+    }
+
     static async openUserRoomsHub() {
         const username = (window as any).loggedUser;
-        if (!username) return alert("Erro: Usuário não está logado!");
+        if (!username) return alert('Erro: Usuário não está logado!');
 
         const modal = document.getElementById('rooms-hub-modal')!;
-        const title = document.getElementById('rooms-hub-title')!;
-        const containerDiv = document.getElementById('rooms-hub-container')!;
-
-        title.innerText = "🎮 Minhas Salas em Andamento";
-        containerDiv.innerHTML = '<p style="text-align:center; font-size: 0.9rem; color: #fff;">Buscando suas salas no Supabase...</p>';
+        const container = document.getElementById('rooms-hub-container')!;
+        this.setRoomsHubHeading('Minhas salas', 'Retome uma partida que já está em andamento.');
+        this.renderRoomsHubLoading(container, 'Buscando suas partidas...');
         modal.style.display = 'flex';
 
-        // Busca salas do Supabase onde o jogador tenha o nome atual e a sala esteja "playing"
-        const { data: playerRows } = await supabase.from('room_players').select('room_id').eq('name', username);
-        if (playerRows && playerRows.length > 0) {
-            const roomIds = playerRows.map((r: any) => r.room_id);
-            const { data: rooms } = await supabase.from('rooms').select('*, room_players(*)').in('id', roomIds).eq('status', 'playing');
-            
-            if (rooms && rooms.length > 0) {
-                containerDiv.innerHTML = rooms.map((room: any) => {
-                    const hostName = room.room_players && room.room_players.find((p: any) => p.local_index === 0)?.name || "Desconhecido";
-                    const round = room.current_round || 1;
-                    const playerCount = room.room_players.length;
+        try {
+            const { data: playerRows, error: playerError } = await supabase.from('room_players').select('room_id').eq('name', username);
+            if (playerError) throw playerError;
 
-                    return `
-                    <div style="background: #34495e; padding: 15px; border-radius: 8px; border: 1px solid #7f8c8d; text-align: left; position: relative; margin-bottom: 10px;">
-                        <h4 style="margin: 0 0 5px 0; color: #f1c40f;">Sala: <span style="font-size:14px">[${room.alias || room.id}]</span></h4>
-                        <p style="margin: 0 0 3px 0; font-size: 0.85rem; color: #ecf0f1;">👤 <b>Host:</b> ${hostName}</p>
-                        <p style="margin: 0 0 3px 0; font-size: 0.85rem; color: #ecf0f1;">👥 <b>Jogadores:</b> ${playerCount}/8</p>
-                        <p style="margin: 0 0 10px 0; font-size: 0.85rem; color: #ecf0f1;">🔄 <b>Rodada Atual:</b> ${round}</p>
-                        <button class="btn" style="background:#8e44ad; padding:8px; margin:0; width: 100%; font-size: 0.9rem;" onclick="document.getElementById('rooms-hub-modal').style.display='none'; window.Network.joinRoom('${room.alias || room.id}')">Reconectar</button>
-                    </div>`;
-                }).join('');
-            } else {
-                containerDiv.innerHTML = '<p style="text-align:center; font-size: 0.9rem; color: #fff;">Nenhuma sala em andamento.</p>';
+            if (!playerRows?.length) {
+                this.renderRoomsHubEmpty(container, 'Nenhuma partida em andamento', 'Quando você tiver uma sala ativa, ela aparecerá aqui.');
+                return;
             }
-        } else {
-            containerDiv.innerHTML = '<p style="text-align:center; font-size: 0.9rem; color: #fff;">Nenhuma sala em andamento.</p>';
+
+            const roomIds = playerRows.map((row: any) => row.room_id);
+            const { data: rooms, error: roomsError } = await supabase.from('rooms').select('*, room_players(*)').in('id', roomIds).eq('status', 'playing');
+            if (roomsError) throw roomsError;
+
+            if (!rooms?.length) {
+                this.renderRoomsHubEmpty(container, 'Nenhuma partida em andamento', 'Quando você tiver uma sala ativa, ela aparecerá aqui.');
+                return;
+            }
+
+            this.renderRoomCards(container, modal, rooms, 'active');
+        } catch (error) {
+            console.error('Erro ao buscar salas em andamento:', error);
+            this.renderRoomsHubEmpty(container, 'Não foi possível carregar as salas', 'Tente novamente em alguns instantes.');
         }
     }
 
     static async openSearchHub() {
         const modal = document.getElementById('rooms-hub-modal')!;
-        const title = document.getElementById('rooms-hub-title')!;
-        const containerDiv = document.getElementById('rooms-hub-container')!;
-
-        title.innerText = "🔍 Partidas Abertas";
-        containerDiv.innerHTML = '<p style="text-align:center; font-size: 0.9rem; color: #fff;">Buscando partidas no Supabase...</p>';
+        const container = document.getElementById('rooms-hub-container')!;
+        this.setRoomsHubHeading('Partidas abertas', 'Encontre uma sala disponível e entre na aventura.');
+        this.renderRoomsHubLoading(container, 'Procurando salas disponíveis...');
         modal.style.display = 'flex';
 
-        const { data: rooms } = await supabase.from('rooms').select('*, room_players(*)').eq('status', 'waiting');
+        try {
+            const { data: rooms, error } = await supabase.from('rooms').select('*, room_players(*)').eq('status', 'waiting');
+            if (error) throw error;
 
-        if (rooms && rooms.length > 0) {
-            const openRooms = rooms.filter((room: any) => (room.room_players || []).length < 8);
-            
-            if (openRooms.length > 0) {
-                containerDiv.innerHTML = openRooms.map((r: any) => {
-                    const hostName = r.room_players && r.room_players.find((p: any) => p.local_index === 0)?.name || "Desconhecido";
-                    const playerCount = r.room_players ? r.room_players.length : 0;
-                    return `
-                    <div style="background: #34495e; padding: 15px; border-radius: 8px; border: 1px solid #7f8c8d; text-align: left; position: relative; margin-bottom: 10px;">
-                        <h4 style="margin: 0 0 5px 0; color: #3498db;">Sala: <span style="font-size:14px">[${r.alias || r.id}]</span></h4>
-                        <p style="margin: 0 0 3px 0; font-size: 0.85rem; color: #ecf0f1;">👤 <b>Host:</b> ${hostName}</p>
-                        <p style="margin: 0 0 10px 0; font-size: 0.85rem; color: #ecf0f1;">👥 <b>Jogadores:</b> ${playerCount}/8</p>
-                        <button class="btn" style="background:#2980b9; padding:8px; margin:0; width: 100%; font-size: 0.9rem;" onclick="document.getElementById('rooms-hub-modal').style.display='none'; window.Network.joinRoom('${r.alias || r.id}')">Entrar na Partida</button>
-                    </div>
-                `}).join('');
-            } else {
-                containerDiv.innerHTML = '<p style="text-align:center; font-size: 0.9rem; color: #fff;">Nenhuma partida aberta encontrada.</p>';
+            const openRooms = (rooms || []).filter((room: any) => (room.room_players || []).length < 8);
+            if (!openRooms.length) {
+                this.renderRoomsHubEmpty(container, 'Nenhuma sala disponível', 'Crie uma sala e convide sua equipe para começar uma partida.');
+                return;
             }
-        } else {
-            containerDiv.innerHTML = '<p style="text-align:center; font-size: 0.9rem; color: #fff;">Nenhuma partida aberta encontrada.</p>';
+
+            this.renderRoomCards(container, modal, openRooms, 'open');
+        } catch (error) {
+            console.error('Erro ao buscar partidas abertas:', error);
+            this.renderRoomsHubEmpty(container, 'Não foi possível buscar partidas', 'Tente novamente em alguns instantes.');
         }
     }
 

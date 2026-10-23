@@ -40,7 +40,7 @@ export class NetworkActions {
                         document.getElementById('setup-screen')!.style.display = 'block';
                         document.getElementById('menu-phase-1')!.style.display = 'none';
                         document.getElementById('online-login')!.style.display = 'none';
-                        document.getElementById('menu-phase-online')!.style.display = 'block';
+                        document.getElementById('menu-phase-online')!.style.display = 'flex';
                         
                         document.getElementById('lobby-status')!.style.display = 'block';
                         document.getElementById('lobby-status')!.innerHTML = `Conectado à sala: <b>${roomData.alias || sess.roomId}</b> ${NetworkState.isHost ? '<br>Você é o HOST' : ''}`;

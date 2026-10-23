@@ -21,348 +21,259 @@
 <body>
 
     <div id="setup-screen">
-        <div id="menu-phase-1" class="gamer-menu-card" style="display: none;">
-            <!-- 4 Cantos de Armadura Dourada com Chanfro Mecânico -->
-            <div class="gamer-corner corner-tl">
-                <svg viewBox="0 0 38 38" width="38" height="38">
-                    <defs>
-                        <linearGradient id="goldArmorTL" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stop-color="#fff5b8"/>
-                            <stop offset="35%" stop-color="#f1c40f"/>
-                            <stop offset="70%" stop-color="#d4ac0d"/>
-                            <stop offset="100%" stop-color="#8c5806"/>
-                        </linearGradient>
-                    </defs>
-                    <polygon points="0,0 38,0 38,10 18,10 10,18 10,38 0,38" fill="url(#goldArmorTL)" stroke="#523202" stroke-width="1.4"/>
-                    <polyline points="2,36 2,2 36,2" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="1.2"/>
-                    <line x1="10" y1="18" x2="18" y2="10" stroke="#523202" stroke-width="1.2"/>
-                </svg>
-            </div>
-            <div class="gamer-corner corner-tr">
-                <svg viewBox="0 0 38 38" width="38" height="38" style="transform: scaleX(-1);">
-                    <polygon points="0,0 38,0 38,10 18,10 10,18 10,38 0,38" fill="url(#goldArmorTL)" stroke="#523202" stroke-width="1.4"/>
-                    <polyline points="2,36 2,2 36,2" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="1.2"/>
-                    <line x1="10" y1="18" x2="18" y2="10" stroke="#523202" stroke-width="1.2"/>
-                </svg>
-            </div>
-            <div class="gamer-corner corner-bl">
-                <svg viewBox="0 0 38 38" width="38" height="38" style="transform: scaleY(-1);">
-                    <polygon points="0,0 38,0 38,10 18,10 10,18 10,38 0,38" fill="url(#goldArmorTL)" stroke="#523202" stroke-width="1.4"/>
-                    <polyline points="2,36 2,2 36,2" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="1.2"/>
-                    <line x1="10" y1="18" x2="18" y2="10" stroke="#523202" stroke-width="1.2"/>
-                </svg>
-            </div>
-            <div class="gamer-corner corner-br">
-                <svg viewBox="0 0 38 38" width="38" height="38" style="transform: scale(-1);">
-                    <polygon points="0,0 38,0 38,10 18,10 10,18 10,38 0,38" fill="url(#goldArmorTL)" stroke="#523202" stroke-width="1.4"/>
-                    <polyline points="2,36 2,2 36,2" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="1.2"/>
-                    <line x1="10" y1="18" x2="18" y2="10" stroke="#523202" stroke-width="1.2"/>
-                </svg>
-            </div>
+        <section id="menu-phase-1" class="trainer-menu-card" style="display: none;" aria-labelledby="game-menu-title">
+            <div class="trainer-menu-glow" aria-hidden="true"></div>
 
-            <!-- Top Header Plate -->
-            <div class="gamer-login-header">
-                <div class="gamer-login-badge">
-                    <span class="badge-text">POKÉBOARD</span>
-                </div>
-                <div class="gamer-trainer-pill">
-                    <span class="trainer-icon">👤</span> Treinador: <b id="logged-user-display" class="trainer-name">Ash Ketchum</b>
-                </div>
-            </div>
-
-            <!-- Botões de Ação do Menu Gamer -->
-            <div class="gamer-menu-buttons">
-                <button type="button" class="btn-gamer-menu btn-offline" onclick="window.Setup.showOfflineSetup()">
-                    <span class="btn-menu-icon">🏠</span>
-                    <span class="btn-menu-text">JOGAR OFFLINE (BOTS)</span>
-                </button>
-                <button type="button" class="btn-gamer-menu btn-online" onclick="window.Setup.showOnlineMenu()">
-                    <span class="btn-menu-icon">🌐</span>
-                    <span class="btn-menu-text">JOGAR ONLINE</span>
-                </button>
-
-                <div id="reconnect-area" style="display:none;" class="gamer-reconnect-box">
-                    <p class="reconnect-title">⚡ Sessão anterior encontrada!</p>
-                    <button type="button" class="btn-gamer-menu btn-reconnect" onclick="window.Network.reconnect()">
-                        <span class="btn-menu-icon">🔄</span>
-                        <span class="btn-menu-text">RECONECTAR À PARTIDA</span>
-                    </button>
+            <header class="trainer-menu-header">
+                <div class="trainer-brand" aria-label="PokéBoard">
+                    <span class="trainer-brand-mark" aria-hidden="true">
+                        <svg viewBox="0 0 32 32" focusable="false">
+                            <circle cx="16" cy="16" r="13.5" fill="#f7f8f6" stroke="currentColor" stroke-width="2.5"/>
+                            <path d="M2.5 16a13.5 13.5 0 0 1 27 0H2.5Z" fill="#e34d4d" stroke="currentColor" stroke-width="2.5"/>
+                            <path d="M2.5 16h27" fill="none" stroke="currentColor" stroke-width="2.5"/>
+                            <circle cx="16" cy="16" r="4.25" fill="#f7f8f6" stroke="currentColor" stroke-width="2.5"/>
+                        </svg>
+                    </span>
+                    <span class="trainer-brand-name">POKÉBOARD</span>
                 </div>
 
-                <div class="gamer-menu-divider"></div>
-
-                <button type="button" class="btn-gamer-menu btn-manual" onclick="window.open('./manual.html', '_blank')">
-                    <span class="btn-menu-icon">📖</span>
-                    <span class="btn-menu-text">MANUAL DO JOGO & REGRAS</span>
-                </button>
-                <button type="button" class="btn-gamer-menu btn-logout" onclick="window.Setup.logout()">
-                    <span class="btn-menu-icon">🚪</span>
-                    <span class="btn-menu-text">SAIR / TROCAR CONTA</span>
-                </button>
-            </div>
-        </div>
-
-        <div id="online-login" class="gamer-login-card">
-            <!-- 4 Cantos de Armadura Dourada com Chanfro Mecânico -->
-            <div class="gamer-corner corner-tl">
-                <svg viewBox="0 0 38 38" width="38" height="38">
-                    <defs>
-                        <linearGradient id="goldArmorTL" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stop-color="#fff5b8"/>
-                            <stop offset="35%" stop-color="#f1c40f"/>
-                            <stop offset="70%" stop-color="#d4ac0d"/>
-                            <stop offset="100%" stop-color="#8c5806"/>
-                        </linearGradient>
-                    </defs>
-                    <polygon points="0,0 38,0 38,10 18,10 10,18 10,38 0,38" fill="url(#goldArmorTL)" stroke="#523202" stroke-width="1.4"/>
-                    <polyline points="2,36 2,2 36,2" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="1.2"/>
-                    <line x1="10" y1="18" x2="18" y2="10" stroke="#523202" stroke-width="1.2"/>
-                </svg>
-            </div>
-            <div class="gamer-corner corner-tr">
-                <svg viewBox="0 0 38 38" width="38" height="38" style="transform: scaleX(-1);">
-                    <polygon points="0,0 38,0 38,10 18,10 10,18 10,38 0,38" fill="url(#goldArmorTL)" stroke="#523202" stroke-width="1.4"/>
-                    <polyline points="2,36 2,2 36,2" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="1.2"/>
-                    <line x1="10" y1="18" x2="18" y2="10" stroke="#523202" stroke-width="1.2"/>
-                </svg>
-            </div>
-            <div class="gamer-corner corner-bl">
-                <svg viewBox="0 0 38 38" width="38" height="38" style="transform: scaleY(-1);">
-                    <polygon points="0,0 38,0 38,10 18,10 10,18 10,38 0,38" fill="url(#goldArmorTL)" stroke="#523202" stroke-width="1.4"/>
-                    <polyline points="2,36 2,2 36,2" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="1.2"/>
-                    <line x1="10" y1="18" x2="18" y2="10" stroke="#523202" stroke-width="1.2"/>
-                </svg>
-            </div>
-            <div class="gamer-corner corner-br">
-                <svg viewBox="0 0 38 38" width="38" height="38" style="transform: scale(-1);">
-                    <polygon points="0,0 38,0 38,10 18,10 10,18 10,38 0,38" fill="url(#goldArmorTL)" stroke="#523202" stroke-width="1.4"/>
-                    <polyline points="2,36 2,2 36,2" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="1.2"/>
-                    <line x1="10" y1="18" x2="18" y2="10" stroke="#523202" stroke-width="1.2"/>
-                </svg>
-            </div>
-
-            <!-- Top Header Plate -->
-            <div class="gamer-login-header">
-                <div class="gamer-login-badge">
-                    <span class="badge-text">LOGIN</span>
+                <div class="trainer-menu-profile">
+                    <span class="trainer-profile-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" focusable="false"><circle cx="12" cy="8" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5.4 20c.7-3.3 3-5 6.6-5s5.9 1.7 6.6 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M4 4.5h2M18 4.5h2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                    </span>
+                    <span class="trainer-profile-copy"><small>Treinador conectado</small><strong id="logged-user-display" class="trainer-name">Ash Ketchum</strong></span>
+                    <span class="trainer-profile-status"><i></i>Pronto</span>
                 </div>
-                <div class="gamer-login-subtitle">ACESSO DO TREINADOR</div>
+
+                <p class="trainer-menu-eyebrow">Pronto para jogar</p>
+                <h1 id="game-menu-title">Escolha sua próxima partida</h1>
+            </header>
+
+            <div class="trainer-game-actions">
+                <button type="button" class="trainer-game-action trainer-game-action-offline" onclick="window.Setup.showOfflineSetup()">
+                    <span class="trainer-game-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" focusable="false"><path d="M4 20V10l8-6 8 6v10H4Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 20v-5h6v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+                    </span>
+                    <span class="trainer-game-copy"><strong>Jogar offline</strong><small>Partida local com bots</small></span>
+                    <svg class="trainer-game-arrow" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+
+                <button type="button" class="trainer-game-action trainer-game-action-online" onclick="window.Setup.showOnlineMenu()">
+                    <span class="trainer-game-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" focusable="false"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3.8 12h16.4M12 3.5c2.1 2.3 3.2 5.1 3.2 8.5S14.1 18.2 12 20.5C9.9 18.2 8.8 15.4 8.8 12S9.9 5.8 12 3.5Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                    </span>
+                    <span class="trainer-game-copy"><strong>Jogar online</strong><small>Criar ou entrar em uma sala</small></span>
+                    <svg class="trainer-game-arrow" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+
+                <div id="reconnect-area" style="display:none;" class="trainer-reconnect-box">
+                    <span class="trainer-reconnect-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M20 11a8.2 8.2 0 0 0-14-4L4 9m0-5v5h5M4 13a8.2 8.2 0 0 0 14 4l2-2m0 5v-5h-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                    <p><strong>Uma partida está em andamento</strong><span>Retome de onde você parou.</span></p>
+                    <button type="button" onclick="window.Network.reconnect()">Reconectar</button>
+                </div>
             </div>
 
-            <!-- Form -->
-            <div class="gamer-login-body">
-                <div class="gamer-field-group">
-                    <label class="gamer-field-label" for="login-username">Usuário ou E-mail</label>
-                    <div class="gamer-input-wrap">
-                        <span class="gamer-input-icon icon-pokeball" title="Identificação do Treinador">
-                            <svg viewBox="0 0 24 24" width="22" height="22">
-                                <circle cx="12" cy="12" r="10" fill="#f8fafc" stroke="#1e293b" stroke-width="1.8"/>
-                                <path d="M 2 12 A 10 10 0 0 1 22 12 Z" fill="#ef4444" stroke="#1e293b" stroke-width="1.8"/>
-                                <line x1="2" y1="12" x2="22" y2="12" stroke="#1e293b" stroke-width="2.2"/>
-                                <circle cx="12" cy="12" r="3.5" fill="#f8fafc" stroke="#1e293b" stroke-width="1.8"/>
-                                <circle cx="12" cy="1.5" r="1.5" fill="#cbd5e1"/>
+            <nav class="trainer-menu-utilities" aria-label="Opções da conta">
+                <a href="./manual.html" target="_blank" class="trainer-utility-link">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H12v16H6.5A2.5 2.5 0 0 0 4 21.5v-16ZM20 5.5A2.5 2.5 0 0 0 17.5 3H12v16h5.5a2.5 2.5 0 0 1 2.5 2.5v-16Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+                    <span>Manual e regras</span>
+                </a>
+                <button type="button" class="trainer-logout-button" onclick="window.Setup.logout()">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M10 5H5v14h5M14 8l4 4-4 4M8 12h10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <span>Trocar conta</span>
+                </button>
+            </nav>
+        </section>
+
+        <section id="online-login" class="trainer-login-card" aria-labelledby="login-title">
+            <div class="trainer-login-glow" aria-hidden="true"></div>
+
+            <header class="trainer-login-header">
+                <div class="trainer-brand" aria-label="PokéBoard">
+                    <span class="trainer-brand-mark" aria-hidden="true">
+                        <svg viewBox="0 0 32 32" focusable="false">
+                            <circle cx="16" cy="16" r="13.5" fill="#f7f8f6" stroke="currentColor" stroke-width="2.5"/>
+                            <path d="M2.5 16a13.5 13.5 0 0 1 27 0H2.5Z" fill="#e34d4d" stroke="currentColor" stroke-width="2.5"/>
+                            <path d="M2.5 16h27" fill="none" stroke="currentColor" stroke-width="2.5"/>
+                            <circle cx="16" cy="16" r="4.25" fill="#f7f8f6" stroke="currentColor" stroke-width="2.5"/>
+                        </svg>
+                    </span>
+                    <span class="trainer-brand-name">POKÉBOARD</span>
+                </div>
+                <p class="trainer-login-eyebrow">Sua próxima partida começa aqui</p>
+                <h1 id="login-title">Boas-vindas, Treinador</h1>
+                <p class="trainer-login-intro">Entre para acessar o menu e reunir sua equipe.</p>
+            </header>
+
+            <form class="trainer-login-form" onsubmit="window.Setup.loginOnline(); return false;" novalidate>
+                <div class="trainer-field">
+                    <label for="login-username">Nome de Treinador</label>
+                    <div class="trainer-input-wrap">
+                        <svg class="trainer-input-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/>
+                            <path d="M4.6 8.5h14.8M12 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                        </svg>
+                        <input type="text" id="login-username" class="trainer-input" placeholder="Ex.: BlazerKen" maxlength="15" autocomplete="username" required aria-describedby="login-feedback" oninput="window.Setup.clearLoginFeedback()">
+                    </div>
+                </div>
+
+                <div class="trainer-field">
+                    <div class="trainer-label-row">
+                        <label for="login-password">Senha</label>
+                    </div>
+                    <div class="trainer-input-wrap">
+                        <svg class="trainer-input-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <rect x="5" y="10" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/>
+                            <path d="M8 10V7a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                        </svg>
+                        <input type="password" id="login-password" class="trainer-input trainer-password-input" placeholder="Digite sua senha" autocomplete="current-password" required aria-describedby="login-feedback" oninput="window.Setup.clearLoginFeedback()">
+                        <button type="button" class="trainer-password-toggle" onclick="window.Setup.toggleLoginPassword()" aria-label="Mostrar senha" aria-pressed="false">
+                            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                                <circle cx="12" cy="12" r="2.8" fill="none" stroke="currentColor" stroke-width="1.8"/>
                             </svg>
-                        </span>
-                        <input type="text" id="login-username" class="gamer-input with-left-icon" placeholder="Ex: Ash Ketchum" maxlength="15" autocomplete="username">
+                        </button>
                     </div>
                 </div>
 
-                <div class="gamer-field-group">
-                    <label class="gamer-field-label" for="login-password">Senha</label>
-                    <div class="gamer-input-wrap">
-                        <span class="gamer-input-icon icon-lock" title="Senha Segura">
-                            <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="#718096" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="4" y="11" width="16" height="10" rx="2" ry="2" fill="#2d3748"/>
-                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                                <circle cx="12" cy="16" r="1.5" fill="#cbd5e0"/>
-                            </svg>
-                        </span>
-                        <input type="password" id="login-password" class="gamer-input with-left-icon" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter') window.Setup.loginOnline()">
+                <p id="login-feedback" class="trainer-login-feedback" role="alert" aria-live="polite" hidden></p>
+
+                <button type="submit" id="btn-login-enter" class="trainer-login-submit">
+                    <span>Entrar no PokéBoard</span>
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M5 12h13M13 7l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            </form>
+
+            <div class="trainer-login-divider"><span>ou</span></div>
+
+            <div class="trainer-login-footer">
+                <button type="button" class="trainer-offline-action" onclick="window.Setup.showOfflineSetup()">
+                    <span class="trainer-offline-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" focusable="false"><path d="M4 20V10l8-6 8 6v10H4Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 20v-5h6v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+                    </span>
+                    <span><strong>Jogar com bots</strong><small>Modo offline, sem sala</small></span>
+                    <svg class="trainer-action-arrow" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <a href="./manual.html" target="_blank" class="trainer-help-link">Como funciona o jogo?</a>
+            </div>
+        </section>
+
+        <section id="menu-phase-online" class="trainer-online-card" style="display:none;" aria-labelledby="online-title">
+            <div class="trainer-online-glow" aria-hidden="true"></div>
+
+            <header class="trainer-online-header">
+                <div class="trainer-brand" aria-label="PokéBoard">
+                    <span class="trainer-brand-mark" aria-hidden="true">
+                        <svg viewBox="0 0 32 32" focusable="false">
+                            <circle cx="16" cy="16" r="13.5" fill="#f7f8f6" stroke="currentColor" stroke-width="2.5"/>
+                            <path d="M2.5 16a13.5 13.5 0 0 1 27 0H2.5Z" fill="#e34d4d" stroke="currentColor" stroke-width="2.5"/>
+                            <path d="M2.5 16h27" fill="none" stroke="currentColor" stroke-width="2.5"/>
+                            <circle cx="16" cy="16" r="4.25" fill="#f7f8f6" stroke="currentColor" stroke-width="2.5"/>
+                        </svg>
+                    </span>
+                    <span class="trainer-brand-name">POKÉBOARD</span>
+                </div>
+                <p class="trainer-online-eyebrow">Modo online</p>
+                <h1 id="online-title">Encontre sua próxima partida</h1>
+                <p>Crie uma sala para sua equipe ou entre pelo código de um amigo.</p>
+            </header>
+
+            <div class="trainer-online-player">
+                <span class="trainer-online-player-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><circle cx="12" cy="8" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5.4 20c.7-3.3 3-5 6.6-5s5.9 1.7 6.6 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+                <span><small>Treinador</small><input type="text" id="online-player-name" placeholder="Ex.: Ash Ketchum" disabled></span>
+                <span class="trainer-online-ready"><i></i>Online</span>
+            </div>
+
+            <div class="trainer-online-avatar">
+                <div><label for="online-avatar-select">Avatar da partida</label><small>Escolha como os outros jogadores verão você.</small></div>
+                <div class="trainer-online-avatar-control">
+                    <img id="online-avatar-preview" src="/assets/img/Treinadores/Red.png" class="avatar-preview" alt="Avatar selecionado">
+                    <select id="online-avatar-select" onchange="window.Setup.updateOnlinePreview()"></select>
+                </div>
+            </div>
+
+            <div id="online-lobby-controls" class="trainer-online-controls">
+                <section class="trainer-online-create" aria-labelledby="create-room-title">
+                    <div class="trainer-online-section-title"><span class="trainer-online-section-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M4 20V10l8-6 8 6v10H4Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 20v-5h6v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span><span><strong id="create-room-title">Criar uma sala</strong><small>Defina um apelido para compartilhar com a equipe.</small></span></div>
+                    <label class="trainer-online-field-label" for="custom-room-code">Apelido da sala</label>
+                    <input type="text" id="custom-room-code" placeholder="Ex.: LIGA-DA-PRAIA" maxlength="20" autocomplete="off">
+                    <button id="btn-create-room" class="trainer-online-primary" onclick="window.Network.createRoom()"><span>Criar sala</span><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h13M13 7l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+                </section>
+
+                <div class="trainer-online-divider"><span>ou entre em uma sala</span></div>
+
+                <section class="trainer-online-join" aria-label="Entrar em uma sala existente">
+                    <label class="trainer-online-field-label" for="room-code-input">Código ou apelido da sala</label>
+                    <div class="trainer-online-join-row">
+                        <input type="text" id="room-code-input" placeholder="Digite o código" autocomplete="off">
+                        <button class="trainer-online-join-button" onclick="window.Network.joinRoom(document.getElementById('room-code-input').value)">Entrar</button>
                     </div>
-                </div>
+                </section>
 
-                <!-- Botão 3D Arcade Dourado com Chanfros Laterais: ENTRAR -->
-                <div class="gamer-btn-wrap">
-                    <button type="button" id="btn-login-enter" class="btn-gamer-enter" onclick="window.Setup.loginOnline()">
-                        <span class="btn-side-notch notch-left"></span>
-                        <span class="btn-enter-inner">ENTRAR</span>
-                        <span class="btn-side-notch notch-right"></span>
-                    </button>
-                </div>
-
-                <!-- Rodapé com Links -->
-                <div class="gamer-login-footer">
-                    <a href="javascript:void(0)" class="gamer-link" onclick="window.Setup.showOfflineSetup()">🏠 Jogar Offline</a>
-                    <a href="./manual.html" target="_blank" class="gamer-link">📖 Manual / Ajuda</a>
-                </div>
-            </div>
-        </div>
-
-        <div id="menu-phase-online" style="display:none;">
-            <h3>Modo Online (Firebase)</h3>
-
-            <div class="setup-group">
-                <label>Seu Nome:</label>
-                <input type="text" id="online-player-name" placeholder="Ex: Ash Ketchum"
-                    style="width:90%; padding:10px; font-weight:bold; margin-bottom: 10px;" disabled>
-
-                <label>Seu Avatar:</label>
-                <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-                    <img id="online-avatar-preview" src="/assets/img/Treinadores/Red.png" class="avatar-preview">
-                    <select id="online-avatar-select" onchange="window.Setup.updateOnlinePreview()"
-                        style="flex:1; padding:8px;">
-                    </select>
+                <div class="trainer-online-discovery">
+                    <button type="button" onclick="window.Setup.openUserRoomsHub()"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>Minhas salas</span></button>
+                    <button type="button" onclick="window.Setup.openSearchHub()"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="10.5" cy="10.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m15 15 4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>Buscar partidas</span></button>
                 </div>
             </div>
 
-            <div id="online-lobby-controls">
-                <div style="margin-bottom: 10px;">
-                    <input type="text" id="custom-room-code" placeholder="Apelido da Sala (Obrigatório)" maxlength="20"
-                        style="padding: 10px; text-transform: uppercase; width: 150px; text-align: center;">
+            <div id="lobby-status" class="trainer-online-status" style="display:none;"></div>
+
+            <div id="online-lobby-list" class="scroll-list trainer-online-player-list" style="display:none;"></div>
+
+            <section id="host-controls" class="trainer-online-host" style="display:none;" aria-labelledby="host-controls-title">
+                <h2 id="host-controls-title">Configurações da sala</h2>
+                <div class="trainer-online-setting"><label for="online-map-size">Tamanho do mapa</label><select id="online-map-size"><option value="7">Micro (7×7)</option><option value="10" selected>Pequeno (10×10)</option><option value="20">Médio (20×20)</option><option value="30">Grande (30×30)</option></select></div>
+                <div class="trainer-online-setting"><label>Gerações</label><div id="online-gen-select" class="trainer-online-generations"><label><input type="checkbox" value="1" checked> Gen 1</label><label><input type="checkbox" value="2" checked> Gen 2</label><label><input type="checkbox" value="3" checked> Gen 3</label><label><input type="checkbox" value="4" checked> Gen 4</label><label><input type="checkbox" value="5" checked> Gen 5</label><label><input type="checkbox" value="6" checked> Gen 6</label><label><input type="checkbox" value="7" checked> Gen 7</label><label><input type="checkbox" value="8" checked> Gen 8</label><label><input type="checkbox" value="9" checked> Gen 9</label></div></div>
+                <div class="trainer-online-rules"><div class="trainer-online-setting"><label for="online-legendary-rule">Lendários</label><select id="online-legendary-rule"><option value="yes" selected>Sim</option><option value="no">Não</option><option value="only">Somente lendários</option></select></div><div class="trainer-online-setting"><label for="online-mega-rule">Mega Evoluções</label><select id="online-mega-rule"><option value="yes" selected>Sim</option><option value="no">Não</option></select></div></div>
+                <button class="trainer-online-start" onclick="window.Setup.startOnlineGame()">Iniciar jogo para todos</button>
+            </section>
+
+            <button type="button" class="trainer-online-back" onclick="location.reload()"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m14 6-6 6 6 6M8 12h11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Voltar ao menu</span></button>
+        </section>
+
+        <section id="menu-phase-setup" class="trainer-offline-card" style="display:none;" aria-labelledby="offline-title">
+            <div class="trainer-offline-glow" aria-hidden="true"></div>
+            <header class="trainer-offline-header">
+                <div class="trainer-brand" aria-label="PokéBoard">
+                    <span class="trainer-brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32" focusable="false"><circle cx="16" cy="16" r="13.5" fill="#f7f8f6" stroke="currentColor" stroke-width="2.5"/><path d="M2.5 16a13.5 13.5 0 0 1 27 0H2.5Z" fill="#e34d4d" stroke="currentColor" stroke-width="2.5"/><path d="M2.5 16h27" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="16" cy="16" r="4.25" fill="#f7f8f6" stroke="currentColor" stroke-width="2.5"/></svg></span>
+                    <span class="trainer-brand-name">POKÉBOARD</span>
                 </div>
-                <button id="btn-create-room" class="btn" onclick="Network.createRoom()">Criar Sala</button>
-                <div style="display:flex; gap:5px; margin-top:10px;">
-                    <input type="text" id="room-code-input" placeholder="Apelido da Sala" style="flex:1; padding:10px;">
-                    <button class="btn" style="width:auto; margin:0;"
-                        onclick="window.Network.joinRoom(document.getElementById('room-code-input').value)">Entrar</button>
-                </div>
+                <p class="trainer-offline-eyebrow">Modo offline</p>
+                <h1 id="offline-title">Prepare sua jornada</h1>
+                <p>Monte uma partida local e explore o tabuleiro no seu ritmo.</p>
+            </header>
 
-                <div
-                    style="display:flex; flex-direction:column; gap:5px; margin-top:15px; border-top:1px solid #eee; padding-top:10px;">
-                    <button class="btn btn-secondary" onclick="window.Setup.openUserRoomsHub()">🎮 Minhas Salas em
-                        Andamento</button>
-                    <button class="btn btn-secondary" onclick="window.Setup.openSearchHub()">🔍 Buscar Partidas
-                        Abertas</button>
-                </div>
-            </div>
-
-            <div id="lobby-status" style="display:none;"></div>
-
-            <div id="online-lobby-list" class="scroll-list" style="max-height: 150px; margin-top:10px; display:none;">
-            </div>
-
-            <div id="host-controls" style="display:none; margin-top:15px; border-top:1px solid #eee; padding-top:10px;">
-                <label>Tamanho do Mapa:</label>
-                <select id="online-map-size">
-                    <option value="7">Micro (7x7)</option>
-                    <option value="10" selected>Pequeno (10x10)</option>
-                    <option value="20">Médio (20x20)</option>
-                    <option value="30">Grande (30x30)</option>
-                </select>
-
-                <div class="setup-group" style="margin-top: 10px;">
-                    <label>Gerações:</label>
-                    <div id="online-gen-select"
-                        style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; font-size: 0.8rem;">
-                        <label><input type="checkbox" value="1" checked> Gen 1</label>
-                        <label><input type="checkbox" value="2" checked> Gen 2</label>
-                        <label><input type="checkbox" value="3" checked> Gen 3</label>
-                        <label><input type="checkbox" value="4" checked> Gen 4</label>
-                        <label><input type="checkbox" value="5" checked> Gen 5</label>
-                        <label><input type="checkbox" value="6" checked> Gen 6</label>
-                        <label><input type="checkbox" value="7" checked> Gen 7</label>
-                        <label><input type="checkbox" value="8" checked> Gen 8</label>
-                        <label><input type="checkbox" value="9" checked> Gen 9</label>
-                    </div>
-                </div>
-
-                <div class="setup-group" style="margin-top: 10px;">
-                    <label>Lendários:</label>
-                    <select id="online-legendary-rule">
-                        <option value="yes" selected>Sim</option>
-                        <option value="no">Não</option>
-                        <option value="only">Somente Lendários</option>
-                    </select>
-                </div>
-
-                <div class="setup-group" style="margin-top: 10px;">
-                    <label>Mega Evoluções:</label>
-                    <select id="online-mega-rule">
-                        <option value="yes" selected>Sim</option>
-                        <option value="no">Não</option>
-                    </select>
-                </div>
-
-                <button class="btn" style="margin-top:10px; background:#27ae60;"
-                    onclick="window.Setup.startOnlineGame()">🚀 INICIAR JOGO (TODOS)</button>
-            </div>
-
-            <button class="btn btn-secondary" style="margin-top:15px;" onclick="location.reload()">Voltar</button>
-        </div>
-
-        <div id="menu-phase-setup" style="display:none;">
-            <div
-                style="margin-bottom:15px; padding-bottom:15px; border-bottom:1px solid rgba(255,255,255,0.2); display: flex; flex-direction: column; gap: 8px; align-items: center;">
-                <p style="font-size:0.9rem; color:#f1c40f; margin-bottom: 5px; text-align: center; font-weight: bold;">
-                    Continuar Jornada</p>
-                <div style="display: flex; gap: 10px; width: 100%;">
-                    <button class="btn" style="background:#2980b9; flex: 1; margin: 0;"
-                        onclick="window.Game.loadGame()">📂 Carregar do Navegador</button>
-                    <button class="btn" style="background:#27ae60; flex: 1; margin: 0;"
-                        onclick="document.getElementById('file-input').click()">📂 Importar Arquivo</button>
+            <section class="trainer-offline-continue" aria-labelledby="offline-continue-title">
+                <div><p id="offline-continue-title">Continuar uma jornada</p><small>Use um save salvo no navegador ou em arquivo.</small></div>
+                <div class="trainer-offline-save-actions">
+                    <button type="button" onclick="window.Game.loadGame()"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 5h16v14H4zM8 5V3h8v2M8 14h8M8 10h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Carregar save</span></button>
+                    <button type="button" onclick="document.getElementById('file-input').click()"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 16V4m0 0L8 8m4-4 4 4M5 14v5h14v-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Importar arquivo</span></button>
                 </div>
                 <input type="file" id="file-input" style="display:none" onchange="window.Game.importSave(this)">
-            </div>
+            </section>
 
-            <div class="setup-group">
-                <label>Número de Jogadores:</label>
-                <select id="num-players" onchange="window.Setup.updateSlots()">
-                    <option value="2">2 Jogadores</option>
-                    <option value="3">3 Jogadores</option>
-                    <option value="4">4 Jogadores</option>
-                    <option value="5">5 Jogadores</option>
-                    <option value="6">6 Jogadores</option>
-                    <option value="7">7 Jogadores</option>
-                    <option value="8">8 Jogadores</option>
-                </select>
-            </div>
-            <div class="setup-group">
-                <label>Tamanho do Mapa:</label>
-                <select id="map-size">
-                    <option value="7">Micro (7x7)</option>
-                    <option value="10" selected>Pequeno (10x10)</option>
-                    <option value="20">Médio (20x20)</option>
-                    <option value="30">Grande (30x30)</option>
-                </select>
-            </div>
-
-            <div class="setup-group">
-                <label>Gerações:</label>
-                <div id="offline-gen-select"
-                    style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; font-size: 0.8rem; margin-bottom: 10px;">
-                    <label><input type="checkbox" value="1" checked> Gen 1</label>
-                    <label><input type="checkbox" value="2" checked> Gen 2</label>
-                    <label><input type="checkbox" value="3" checked> Gen 3</label>
-                    <label><input type="checkbox" value="4" checked> Gen 4</label>
-                    <label><input type="checkbox" value="5" checked> Gen 5</label>
-                    <label><input type="checkbox" value="6" checked> Gen 6</label>
-                    <label><input type="checkbox" value="7" checked> Gen 7</label>
-                    <label><input type="checkbox" value="8" checked> Gen 8</label>
-                    <label><input type="checkbox" value="9" checked> Gen 9</label>
+            <section class="trainer-offline-settings" aria-labelledby="offline-settings-title">
+                <div class="trainer-offline-section-title"><span class="trainer-offline-section-mark" aria-hidden="true"></span><h2 id="offline-settings-title">Configuração da partida</h2></div>
+                <div class="trainer-offline-setting-grid">
+                    <label class="trainer-offline-setting" for="num-players"><span>Número de jogadores</span><select id="num-players" onchange="window.Setup.updateSlots()"><option value="2">2 jogadores</option><option value="3">3 jogadores</option><option value="4">4 jogadores</option><option value="5">5 jogadores</option><option value="6">6 jogadores</option><option value="7">7 jogadores</option><option value="8">8 jogadores</option></select></label>
+                    <label class="trainer-offline-setting" for="map-size"><span>Tamanho do mapa</span><select id="map-size"><option value="7">Micro (7×7)</option><option value="10" selected>Pequeno (10×10)</option><option value="20">Médio (20×20)</option><option value="30">Grande (30×30)</option></select></label>
                 </div>
-            </div>
 
-            <div class="setup-group">
-                <label>Lendários:</label>
-                <select id="offline-legendary-rule">
-                    <option value="yes" selected>Sim</option>
-                    <option value="no">Não</option>
-                    <option value="only">Somente Lendários</option>
-                </select>
-            </div>
+                <fieldset class="trainer-offline-generations"><legend>Gerações disponíveis</legend><div id="offline-gen-select"><label><input type="checkbox" value="1" checked><span>Gen 1</span></label><label><input type="checkbox" value="2" checked><span>Gen 2</span></label><label><input type="checkbox" value="3" checked><span>Gen 3</span></label><label><input type="checkbox" value="4" checked><span>Gen 4</span></label><label><input type="checkbox" value="5" checked><span>Gen 5</span></label><label><input type="checkbox" value="6" checked><span>Gen 6</span></label><label><input type="checkbox" value="7" checked><span>Gen 7</span></label><label><input type="checkbox" value="8" checked><span>Gen 8</span></label><label><input type="checkbox" value="9" checked><span>Gen 9</span></label></div></fieldset>
 
-            <div class="setup-group">
-                <label>Mega Evoluções:</label>
-                <select id="offline-mega-rule">
-                    <option value="yes" selected>Sim</option>
-                    <option value="no">Não</option>
-                </select>
-            </div>
+                <div class="trainer-offline-setting-grid trainer-offline-rules">
+                    <label class="trainer-offline-setting" for="offline-legendary-rule"><span>Lendários</span><select id="offline-legendary-rule"><option value="yes" selected>Permitidos</option><option value="no">Não permitir</option><option value="only">Somente lendários</option></select></label>
+                    <label class="trainer-offline-setting" for="offline-mega-rule"><span>Mega Evoluções</span><select id="offline-mega-rule"><option value="yes" selected>Ativadas</option><option value="no">Desativadas</option></select></label>
+                </div>
+            </section>
 
-            <div id="player-slots-container"></div>
-            <button id="btn-start-game" class="btn" onclick="window.Setup.start()">🚀 INICIAR NOVA JORNADA</button>
-            <button class="btn btn-secondary" style="margin-top:10px;" onclick="location.reload()">Voltar</button>
-        </div>
+            <section class="trainer-offline-players" aria-labelledby="offline-players-title"><div class="trainer-offline-section-title"><span class="trainer-offline-section-mark" aria-hidden="true"></span><h2 id="offline-players-title">Treinadores</h2></div><div id="player-slots-container"></div></section>
+
+            <button id="btn-start-game" class="trainer-offline-start" onclick="window.Setup.start()"><span>Iniciar nova jornada</span><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h13M13 7l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+            <button type="button" class="trainer-offline-back" onclick="location.reload()"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m14 6-6 6 6 6M8 12h11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Voltar ao menu</span></button>
+        </section>
     </div>
 
     <div id="game-container">
@@ -1418,16 +1329,23 @@
     </div>
 
     <!-- ROOMS HUB MODAL -->
-    <div id="rooms-hub-modal" class="modal">
-        <div class="modal-content" style="max-width: 500px; background: #2c3e50;">
-            <h2 id="rooms-hub-title" style="margin-bottom: 15px; color: #f1c40f;">Hub de Salas</h2>
-            <div id="rooms-hub-container"
-                style="display: flex; flex-direction: column; gap: 10px; max-height: 400px; overflow-y: auto; padding: 5px;">
-                <!-- Cards will be injected here -->
-            </div>
-            <button class="btn" style="background:#e74c3c; margin-top: 15px;"
-                onclick="document.getElementById('rooms-hub-modal').style.display='none'">Fechar</button>
-        </div>
+    <div id="rooms-hub-modal" class="modal rooms-hub-modal">
+        <section class="modal-content rooms-hub-dialog" role="dialog" aria-modal="true" aria-labelledby="rooms-hub-title">
+            <header class="rooms-hub-header">
+                <div>
+                    <p class="rooms-hub-kicker">Salas online</p>
+                    <h2 id="rooms-hub-title">Hub de Salas</h2>
+                    <p id="rooms-hub-subtitle">Escolha uma sala para continuar sua jornada.</p>
+                </div>
+                <button type="button" class="rooms-hub-close" aria-label="Fechar" onclick="document.getElementById('rooms-hub-modal').style.display='none'">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                </button>
+            </header>
+            <div id="rooms-hub-container" class="rooms-hub-list" aria-live="polite"></div>
+            <footer class="rooms-hub-footer">
+                <button type="button" class="rooms-hub-dismiss" onclick="document.getElementById('rooms-hub-modal').style.display='none'">Voltar</button>
+            </footer>
+        </section>
     </div>
 
     <!-- SAVE GAME MODAL -->
