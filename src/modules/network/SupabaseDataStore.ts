@@ -114,7 +114,8 @@ export class SupabaseDataStore {
             map_size: mapSize,
             generations: settings.generations || [1, 2, 3, 4, 5, 6, 7, 8, 9],
             legendaries_rule: settings.legendaries || 'yes',
-            megas_enabled: settings.megas !== false
+            megas_enabled: settings.megas !== false,
+            max_lives: Number(settings.maxLives || 0)
         }).eq('id', roomId);
     }
 
@@ -158,7 +159,8 @@ export class SupabaseDataStore {
         const settings = {
             generations: room.generations || [1, 2, 3, 4, 5, 6, 7, 8, 9],
             legendaries: room.legendaries_rule || 'yes',
-            megas: room.megas_enabled !== false
+            megas: room.megas_enabled !== false,
+            maxLives: Number(room.max_lives || 0)
         };
 
         const [{ data: tiles }, { data: activeGyms }, { data: gymRows }] = await Promise.all([
@@ -200,6 +202,7 @@ export class SupabaseDataStore {
             y: player.y,
             gold: player.gold,
             skip_turns: player.skipTurns || 0,
+            lives: Number.isFinite(player.lives) ? player.lives : null,
             badges_count: (player.badges || []).filter(Boolean).length
         }).eq('id', id);
 
@@ -276,6 +279,8 @@ export class SupabaseDataStore {
             player.y = pd.y;
             player.gold = pd.gold;
             player.skipTurns = pd.skip_turns || 0;
+            player.lives = pd.lives ?? (Number((window as any).Game?.settings?.maxLives) || 3);
+            player.cosmetics = pd.cosmetics || null;
             player.badges = [false, false, false, false, false, false, false, false];
             (pd.player_badges || []).forEach((badge: any) => {
                 if (badge.gym_id >= 0 && badge.gym_id < 8) player.badges[badge.gym_id] = true;

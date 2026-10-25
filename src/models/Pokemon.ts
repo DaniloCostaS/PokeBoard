@@ -1,6 +1,7 @@
 import { POKEDEX } from '../constants/pokedex';
 import type { Player } from './Player';
 import { MAPA_MEGAS } from '../constants/mapaMegas';
+import { ProfileTracker } from '../modules/profile/ProfileTracker';
 
 export class Pokemon {
     id: number; name: string; type: string; secondType: string; 
@@ -488,6 +489,7 @@ export class Pokemon {
                     
                     player.pokedexData[this.id].seen += 1;
                     player.pokedexData[this.id].caught += 1;
+                    ProfileTracker.evolved(player, this);
                     
                     const Network = (window as any).Network;
                     if (Network && Network.isOnline) {

@@ -56,8 +56,19 @@
     box-sizing: border-box;
 }
 
-/* Face 1: uma pokébola grande no centro */
+/* Face 1: uma pokébola grande no centro (sem a grade 3x3, que empurrava a bola para fora do meio) */
+.pb-dice .dice-face[data-value="1"] .dice-pips {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pb-dice .dice-face[data-value="1"] .dice-pip:not(.is-active) {
+    display: none;
+}
+
 .pb-dice .dice-face[data-value="1"] .dice-pip.is-active {
+    flex: none;
     width: 52px;
     height: 52px;
     border-width: 3px;

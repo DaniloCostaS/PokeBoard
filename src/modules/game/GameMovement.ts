@@ -7,6 +7,7 @@ import { GameUI } from './GameUI';
 import { GameEvents } from './GameEvents';
 import { GameDialog } from '../ui/GameDialog';
 import { ScreenKit } from '../ui/ScreenKit';
+import { ProfileTracker } from '../profile/ProfileTracker';
 
 export class GameMovement {
     /** true enquanto o diálogo de insígnias/campeão está aberto (bloqueia rolagens repetidas). */
@@ -128,6 +129,12 @@ export class GameMovement {
         this.animateDice(result, playerId);
     }
 
+    // Pausa de animação; com a aba em segundo plano não espera (o navegador seguraria o timer e a jogada travaria)
+    private static wait(ms: number): Promise<void> {
+        if (document.hidden) return Promise.resolve();
+        return new Promise(r => setTimeout(r, ms));
+    }
+
     static async animateDice(result: number, playerId: number) {
         (window as any).PBBoard?.previewReach?.(playerId); // casas alcançáveis (no online, também para quem assiste)
         // Nova animação visual no centro do tabuleiro
@@ -136,7 +143,7 @@ export class GameMovement {
         const die = document.getElementById('d20-display')!;
         for (let i = 0; i < 5; i++) {
             die.innerText = `${Math.floor(Math.random() * 6) + 1}`;
-            await new Promise(r => setTimeout(r, 50));
+            await this.wait(50);
         }
         die.innerText = `${result}`;
 
@@ -250,12 +257,12 @@ export class GameMovement {
         }, 100);
 
         // Ao parar: a face do resultado brilha, o número salta e o primeiro Pokémon do jogador comemora
-        await new Promise(r => setTimeout(r, 1500));
+        await this.wait(1500);
         dice3d.querySelector('.face-top')?.classList.add('is-result');
         (window as any).PBBoard?.reachResult?.(result);
         const cheer = this.diceCheer(board, result);
 
-        await new Promise(r => setTimeout(r, 700));
+        await this.wait(700);
 
         container.remove();
         shadow.remove();
@@ -340,10 +347,11 @@ export class GameMovement {
             p.x = nextCoord.x;
             p.y = nextCoord.y;
             this.performVisualStep(pId, p.x, p.y);
-            await new Promise(r => setTimeout(r, 150));
+            await this.wait(150);
         }
 
         if (stepsWalked > 0) {
+            ProfileTracker.add(p, 'steps', stepsWalked);
             const QuestManagerObj = (window as any).QuestManager || (window as any).modules?.QuestManager;
             if (QuestManagerObj) QuestManagerObj.checkProgress(p, 'WALK_STEPS', stepsWalked);
         }

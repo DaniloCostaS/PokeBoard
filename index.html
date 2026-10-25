@@ -47,7 +47,7 @@
                     <span class="trainer-brand-name">POKÉBOARD</span>
                 </div>
 
-                <div class="trainer-menu-profile">
+                <div class="trainer-menu-profile" role="button" tabindex="0" title="Abrir meu perfil" onclick="window.ProfileScreen.open()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.ProfileScreen.open()}">
                     <span class="trainer-profile-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" focusable="false"><circle cx="12" cy="8" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5.4 20c.7-3.3 3-5 6.6-5s5.9 1.7 6.6 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M4 4.5h2M18 4.5h2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
                     </span>
@@ -84,13 +84,17 @@
             </div>
 
             <nav class="trainer-menu-utilities" aria-label="Opções da conta">
+                <button type="button" class="trainer-utility-link trainer-profile-link" onclick="window.ProfileScreen.open()">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="8" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5.4 20c.7-3.3 3-5 6.6-5s5.9 1.7 6.6 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                    <span>Meu perfil · Pokédex · Conquistas</span>
+                </button>
                 <a href="./manual.html" target="_blank" class="trainer-utility-link">
                     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H12v16H6.5A2.5 2.5 0 0 0 4 21.5v-16ZM20 5.5A2.5 2.5 0 0 0 17.5 3H12v16h5.5a2.5 2.5 0 0 1 2.5 2.5v-16Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
                     <span>Manual e regras</span>
                 </a>
                 <button type="button" class="trainer-logout-button" onclick="window.Setup.logout()">
                     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M10 5H5v14h5M14 8l4 4-4 4M8 12h10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                    <span>Trocar conta</span>
+                    <span>Sair da conta</span>
                 </button>
             </nav>
         </section>
@@ -115,21 +119,38 @@
                 <p class="trainer-login-intro">Entre para acessar o menu e reunir sua equipe.</p>
             </header>
 
+            <div class="trainer-auth-tabs" role="tablist" aria-label="Entrar ou criar conta">
+                <button type="button" role="tab" id="auth-tab-login" class="trainer-auth-tab is-active" aria-selected="true" onclick="window.Setup.setAuthMode('login')">Entrar</button>
+                <button type="button" role="tab" id="auth-tab-signup" class="trainer-auth-tab" aria-selected="false" onclick="window.Setup.setAuthMode('signup')">Criar conta</button>
+            </div>
+
             <form class="trainer-login-form" onsubmit="window.Setup.loginOnline(); return false;" novalidate>
                 <div class="trainer-field">
+                    <label for="login-email">E-mail</label>
+                    <div class="trainer-input-wrap">
+                        <svg class="trainer-input-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <rect x="3.5" y="5.5" width="17" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/>
+                            <path d="m4.5 7 7.5 6 7.5-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <input type="email" id="login-email" class="trainer-input" placeholder="voce@email.com" autocomplete="email" required aria-describedby="login-feedback" oninput="window.Setup.clearLoginFeedback()">
+                    </div>
+                </div>
+
+                <div class="trainer-field" id="signup-username-field" hidden>
                     <label for="login-username">Nome de Treinador</label>
                     <div class="trainer-input-wrap">
                         <svg class="trainer-input-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/>
                             <path d="M4.6 8.5h14.8M12 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
                         </svg>
-                        <input type="text" id="login-username" class="trainer-input" placeholder="Ex.: BlazerKen" maxlength="15" autocomplete="username" required aria-describedby="login-feedback" oninput="window.Setup.clearLoginFeedback()">
+                        <input type="text" id="login-username" class="trainer-input" placeholder="Ex.: BlazerKen" minlength="3" maxlength="15" autocomplete="nickname" aria-describedby="login-feedback" oninput="window.Setup.clearLoginFeedback()">
                     </div>
                 </div>
 
                 <div class="trainer-field">
                     <div class="trainer-label-row">
                         <label for="login-password">Senha</label>
+                        <button type="button" id="login-forgot" class="trainer-link-button" onclick="window.Setup.forgotPassword()">Esqueci a senha</button>
                     </div>
                     <div class="trainer-input-wrap">
                         <svg class="trainer-input-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -149,7 +170,7 @@
                 <p id="login-feedback" class="trainer-login-feedback" role="alert" aria-live="polite" hidden></p>
 
                 <button type="submit" id="btn-login-enter" class="trainer-login-submit">
-                    <span>Entrar no PokéBoard</span>
+                    <span id="btn-login-label">Entrar no PokéBoard</span>
                     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <path d="M5 12h13M13 7l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
@@ -206,10 +227,8 @@
 
             <div id="online-lobby-controls" class="trainer-online-controls">
                 <section class="trainer-online-create" aria-labelledby="create-room-title">
-                    <div class="trainer-online-section-title"><span class="trainer-online-section-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M4 20V10l8-6 8 6v10H4Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 20v-5h6v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span><span><strong id="create-room-title">Criar uma sala</strong><small>Defina um apelido para compartilhar com a equipe.</small></span></div>
-                    <label class="trainer-online-field-label" for="custom-room-code">Apelido da sala</label>
-                    <input type="text" id="custom-room-code" placeholder="Ex.: LIGA-DA-PRAIA" maxlength="20" autocomplete="off">
-                    <button id="btn-create-room" class="trainer-online-primary" onclick="window.Network.createRoom()"><span>Criar sala</span><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h13M13 7l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+                    <div class="trainer-online-section-title"><span class="trainer-online-section-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M4 20V10l8-6 8 6v10H4Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 20v-5h6v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span><span><strong id="create-room-title">Criar uma sala</strong><small>Escolha nome, senha e regras antes de abrir a sala.</small></span></div>
+                    <button id="btn-create-room" class="trainer-online-primary" onclick="window.Setup.openCreateRoom()"><span>Criar sala</span><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h13M13 7l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
                 </section>
 
                 <div class="trainer-online-divider"><span>ou entre em uma sala</span></div>
@@ -233,14 +252,50 @@
             <div id="online-lobby-list" class="scroll-list trainer-online-player-list" style="display:none;"></div>
 
             <section id="host-controls" class="trainer-online-host" style="display:none;" aria-labelledby="host-controls-title">
-                <h2 id="host-controls-title">Configurações da sala</h2>
-                <div class="trainer-online-setting"><label for="online-map-size">Tamanho do mapa</label><select id="online-map-size"><option value="7">Micro (7×7)</option><option value="10" selected>Pequeno (10×10)</option><option value="20">Médio (20×20)</option><option value="30">Grande (30×30)</option></select></div>
-                <div class="trainer-online-setting"><label>Gerações</label><div id="online-gen-select" class="trainer-online-generations"><label><input type="checkbox" value="1" checked> Gen 1</label><label><input type="checkbox" value="2" checked> Gen 2</label><label><input type="checkbox" value="3" checked> Gen 3</label><label><input type="checkbox" value="4" checked> Gen 4</label><label><input type="checkbox" value="5" checked> Gen 5</label><label><input type="checkbox" value="6" checked> Gen 6</label><label><input type="checkbox" value="7" checked> Gen 7</label><label><input type="checkbox" value="8" checked> Gen 8</label><label><input type="checkbox" value="9" checked> Gen 9</label></div></div>
-                <div class="trainer-online-rules"><div class="trainer-online-setting"><label for="online-legendary-rule">Lendários</label><select id="online-legendary-rule"><option value="yes" selected>Sim</option><option value="no">Não</option><option value="only">Somente lendários</option></select></div><div class="trainer-online-setting"><label for="online-mega-rule">Mega Evoluções</label><select id="online-mega-rule"><option value="yes" selected>Sim</option><option value="no">Não</option></select></div></div>
+                <h2 id="host-controls-title">Regras da sala</h2>
+                <div id="room-rules-summary" class="trainer-room-summary"></div>
+                <p class="trainer-room-hint">Para mudar as regras, volte: a sala é excluída e você ajusta antes de gerar de novo.</p>
                 <button class="trainer-online-start" onclick="window.Setup.startOnlineGame()">Iniciar jogo para todos</button>
+                <button type="button" class="trainer-room-danger" onclick="window.Network.cancelDraftRoom()">Voltar e excluir sala</button>
+            </section>
+
+            <section id="guest-controls" class="trainer-online-host" style="display:none;" aria-label="Sala">
+                <h2>Regras da sala</h2>
+                <div id="room-rules-summary-guest" class="trainer-room-summary"></div>
+                <button type="button" class="trainer-room-danger" onclick="window.Network.leaveLobby()">Sair da sala</button>
             </section>
 
             <button type="button" class="trainer-online-back" onclick="location.reload()"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m14 6-6 6 6 6M8 12h11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Voltar ao menu</span></button>
+        </section>
+
+        <section id="menu-phase-create" class="trainer-online-card trainer-create-card" style="display:none;" aria-labelledby="create-title">
+            <div class="trainer-online-glow" aria-hidden="true"></div>
+            <header class="trainer-online-header">
+                <p class="trainer-online-eyebrow">Nova sala</p>
+                <h1 id="create-title">Monte sua sala</h1>
+                <p>Nada é criado até você tocar em <b>Gerar sala</b>.</p>
+            </header>
+
+            <form class="trainer-create-form" onsubmit="window.Network.generateRoom(); return false;" novalidate>
+                <label class="trainer-online-field-label" for="custom-room-code">Apelido da sala</label>
+                <input type="text" id="custom-room-code" placeholder="Ex.: LIGA-DA-PRAIA" maxlength="20" autocomplete="off" required>
+
+                <label class="trainer-online-field-label" for="create-room-password">Senha <small>(opcional: só entra quem souber)</small></label>
+                <input type="password" id="create-room-password" placeholder="Deixe vazio para sala aberta" maxlength="64" autocomplete="new-password">
+
+                <div class="trainer-online-setting"><label for="online-map-size">Tamanho do mapa</label><select id="online-map-size"><option value="7">Micro (7×7)</option><option value="10" selected>Pequeno (10×10)</option><option value="20">Médio (20×20)</option><option value="30">Grande (30×30)</option></select></div>
+                <div class="trainer-online-setting"><label>Gerações</label><div id="online-gen-select" class="trainer-online-generations"><label><input type="checkbox" value="1" checked> Gen 1</label><label><input type="checkbox" value="2" checked> Gen 2</label><label><input type="checkbox" value="3" checked> Gen 3</label><label><input type="checkbox" value="4" checked> Gen 4</label><label><input type="checkbox" value="5" checked> Gen 5</label><label><input type="checkbox" value="6" checked> Gen 6</label><label><input type="checkbox" value="7" checked> Gen 7</label><label><input type="checkbox" value="8" checked> Gen 8</label><label><input type="checkbox" value="9" checked> Gen 9</label></div></div>
+                <div class="trainer-online-rules">
+                    <div class="trainer-online-setting"><label for="online-legendary-rule">Lendários</label><select id="online-legendary-rule"><option value="yes" selected>Sim</option><option value="no">Não</option><option value="only">Somente lendários</option></select></div>
+                    <div class="trainer-online-setting"><label for="online-mega-rule">Mega Evoluções</label><select id="online-mega-rule"><option value="yes" selected>Sim</option><option value="no">Não</option></select></div>
+                    <div class="trainer-online-setting"><label for="online-lives-rule">Vidas</label><select id="online-lives-rule"><option value="3" selected>3 vidas</option><option value="5">5 vidas</option><option value="1">1 vida</option><option value="0">Sem vidas (clássico)</option></select></div>
+                </div>
+                <p class="trainer-room-hint">Vidas: derrota total cura a equipe e você continua na mesma casa. Sem vidas, volta para a cidade e perde 2 turnos.</p>
+
+                <button type="submit" id="btn-generate-room" class="trainer-online-start">Gerar sala</button>
+            </form>
+
+            <button type="button" class="trainer-online-back" onclick="window.Setup.closeCreateRoom()"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m14 6-6 6 6 6M8 12h11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Voltar</span></button>
         </section>
 
         <section id="menu-phase-setup" class="trainer-offline-card" style="display:none;" aria-labelledby="offline-title">
@@ -276,6 +331,7 @@
                 <div class="trainer-offline-setting-grid trainer-offline-rules">
                     <label class="trainer-offline-setting" for="offline-legendary-rule"><span>Lendários</span><select id="offline-legendary-rule"><option value="yes" selected>Permitidos</option><option value="no">Não permitir</option><option value="only">Somente lendários</option></select></label>
                     <label class="trainer-offline-setting" for="offline-mega-rule"><span>Mega Evoluções</span><select id="offline-mega-rule"><option value="yes" selected>Ativadas</option><option value="no">Desativadas</option></select></label>
+                    <label class="trainer-offline-setting" for="offline-lives-rule"><span>Vidas</span><select id="offline-lives-rule"><option value="3" selected>3 vidas</option><option value="5">5 vidas</option><option value="1">1 vida</option><option value="0">Sem vidas (clássico)</option></select></label>
                 </div>
             </section>
 

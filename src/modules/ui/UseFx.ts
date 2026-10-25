@@ -1,5 +1,6 @@
 import { CARDS_DB, CARD_RARITIES, SHOP_ITEMS } from '../../constants';
 import { GameState } from '../game/GameState';
+import { ProfileTracker } from '../profile/ProfileTracker';
 
 // Animações ao usar cartas e itens. Só visual: não altera estado do jogo.
 // Online: quem usou avisa a sala (CARD_FX / ITEM_FX) e os outros veem a mesma animação.
@@ -54,6 +55,7 @@ export class UseFx {
     /** Chamado onde a carta é consumida com sucesso (CardEffects / batalha). */
     static cardPlayed(cardId: string, player: any) {
         if (!cardId || !player) return;
+        ProfileTracker.add(player, 'cards_used');
         this.relay('CARD_FX', { cardId });
         this.showCard(cardId, player);
     }
@@ -125,6 +127,7 @@ export class UseFx {
     /** Chamado quando um item do tabuleiro é aplicado com sucesso. */
     static itemUsed(player: any, item: any, targetIdx: number) {
         if (!player || !item) return;
+        ProfileTracker.add(player, 'items_used');
         this.relay('ITEM_FX', { itemId: item.id, targetIdx: Number.isFinite(targetIdx) ? targetIdx : -1 });
         this.showItem(player, item.id, targetIdx);
     }
