@@ -1,0 +1,446 @@
+/* ==========================================================================
+   Mochila (tabuleiro e batalha): bolsos, grade de espaços e detalhe do item
+   ========================================================================== */
+.pb-bag {
+    --bag-red: #c4432b;
+    --bag-red-dark: #8f2a18;
+    --bag-leather: #2a1f1a;
+    display: grid;
+    gap: 12px;
+    color: var(--pb-text);
+    font-family: var(--pb-font);
+    text-align: left;
+}
+
+/* Cabeçalho com a mochila desenhada */
+.pb-bag-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.pb-bag-art {
+    position: relative;
+    flex: 0 0 auto;
+    width: 46px;
+    height: 50px;
+    background: linear-gradient(160deg, #e0583c, var(--bag-red) 55%, var(--bag-red-dark));
+    border: 2px solid #1b1210;
+    border-radius: 12px 12px 10px 10px;
+    box-shadow: inset 0 -6px 0 rgba(0, 0, 0, 0.18), 0 4px 10px rgba(0, 0, 0, 0.35);
+}
+
+/* Alça */
+.pb-bag-art::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: -9px;
+    width: 20px;
+    height: 12px;
+    margin-left: -10px;
+    border: 3px solid #1b1210;
+    border-bottom: 0;
+    border-radius: 10px 10px 0 0;
+}
+
+.pb-bag-flap {
+    position: absolute;
+    left: -2px;
+    right: -2px;
+    top: -2px;
+    height: 20px;
+    background: linear-gradient(180deg, #f06a4c, #b33a24);
+    border: 2px solid #1b1210;
+    border-radius: 12px 12px 14px 14px;
+}
+
+.pb-bag-buckle {
+    position: absolute;
+    left: 50%;
+    top: 12px;
+    width: 12px;
+    height: 10px;
+    margin-left: -6px;
+    background: #f4c430;
+    border: 2px solid #1b1210;
+    border-radius: 3px;
+}
+
+.pb-bag-pocket {
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    bottom: 6px;
+    height: 13px;
+    background: rgba(0, 0, 0, 0.18);
+    border: 2px solid rgba(27, 18, 16, 0.6);
+    border-radius: 4px 4px 7px 7px;
+}
+
+.pb-bag-title {
+    display: grid;
+    min-width: 0;
+}
+
+.pb-bag-title small {
+    color: var(--pb-text-3);
+    font-size: 0.7rem;
+    font-weight: 650;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.pb-bag-title strong {
+    overflow: hidden;
+    font-size: 1.15rem;
+    font-weight: 800;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pb-bag-total {
+    margin-left: auto;
+    padding: 4px 10px;
+    color: var(--pb-text-2);
+    font-size: 0.75rem;
+    font-weight: 700;
+    background: var(--pb-surface-3);
+    border-radius: 999px;
+}
+
+/* Bolsos (abas) */
+.pb-bag-pockets {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    padding: 6px;
+    background: var(--bag-leather);
+    border: 2px solid #120c0a;
+    border-radius: 12px;
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+.pb-bag-pockets button {
+    position: relative;
+    display: grid;
+    justify-items: center;
+    gap: 2px;
+    min-height: 58px;
+    padding: 6px 4px;
+    color: #c9b8ac;
+    font: 700 0.68rem/1.15 var(--pb-font);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 120ms ease, transform 120ms ease;
+}
+
+.pb-bag-pockets button img {
+    width: 26px;
+    height: 26px;
+    object-fit: contain;
+    image-rendering: pixelated;
+    filter: grayscale(0.6) brightness(0.85);
+    transition: filter 120ms ease, transform 120ms ease;
+}
+
+.pb-bag-pockets button em {
+    position: absolute;
+    top: 4px;
+    right: 5px;
+    min-width: 16px;
+    padding: 1px 4px;
+    color: #fff;
+    font-size: 0.6rem;
+    font-style: normal;
+    background: var(--bag-red);
+    border-radius: 999px;
+}
+
+.pb-bag-pockets button.is-active {
+    color: #fff;
+    background: linear-gradient(180deg, #d9533a, var(--bag-red-dark));
+    border-color: #f06a4c;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 0 #5e1b0f;
+}
+
+.pb-bag-pockets button.is-active img {
+    filter: none;
+    transform: scale(1.12);
+}
+
+.pb-bag-pockets button.is-active em {
+    color: var(--bag-red-dark);
+    background: #fff;
+}
+
+.pb-bag-pockets button:focus-visible,
+.pb-bag-slot:focus-visible {
+    outline: 2px solid #8cc4ef;
+    outline-offset: 2px;
+}
+
+/* Grade de espaços */
+.pb-bag-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    max-height: min(42vh, 330px);
+    padding: 10px;
+    overflow-y: auto;
+    background:
+        repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.02) 0 2px, transparent 2px 6px),
+        #1d1612;
+    border: 2px solid #120c0a;
+    border-radius: 12px;
+    box-shadow: inset 0 3px 10px rgba(0, 0, 0, 0.6);
+    scrollbar-width: thin;
+}
+
+.pb-bag-slot {
+    position: relative;
+    display: grid;
+    place-items: center;
+    aspect-ratio: 1;
+    padding: 0;
+    background: radial-gradient(circle at 50% 40%, #3a2c25, #241a15 70%);
+    border: 2px solid #3d2e26;
+    border-radius: 10px;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.55), inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+    cursor: pointer;
+    transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.pb-bag-slot img {
+    width: 62%;
+    height: 62%;
+    object-fit: contain;
+    image-rendering: pixelated;
+    filter: drop-shadow(0 3px 2px rgba(0, 0, 0, 0.5));
+    pointer-events: none;
+}
+
+.pb-bag-slot:hover:not(.is-empty) {
+    transform: translateY(-2px);
+    border-color: #6b5246;
+}
+
+.pb-bag-slot.is-selected {
+    border-color: #f4c430;
+    box-shadow: 0 0 0 2px rgba(244, 196, 48, 0.35), 0 0 14px rgba(244, 196, 48, 0.35), inset 0 2px 4px rgba(0, 0, 0, 0.55);
+}
+
+.pb-bag-slot.is-selected img {
+    animation: pbBagBob 1.2s ease-in-out infinite;
+}
+
+@keyframes pbBagBob {
+    50% { transform: translateY(-3px); }
+}
+
+.pb-bag-slot.is-locked img {
+    filter: grayscale(0.7) brightness(0.6) drop-shadow(0 3px 2px rgba(0, 0, 0, 0.5));
+}
+
+.pb-bag-slot.is-empty {
+    cursor: default;
+    opacity: 0.45;
+}
+
+.pb-bag-qty {
+    position: absolute;
+    right: 4px;
+    bottom: 3px;
+    padding: 1px 4px;
+    color: #fff;
+    font: 400 0.55rem/1.2 'Press Start 2P', var(--pb-font);
+    background: rgba(0, 0, 0, 0.65);
+    border-radius: 4px;
+}
+
+/* Detalhe do item selecionado */
+.pb-bag-detail {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 10px 12px;
+    min-height: 74px;
+    padding: 12px;
+    background: var(--pb-surface-2);
+    border: 1px solid var(--pb-line);
+    border-radius: var(--pb-radius-lg);
+}
+
+.pb-bag-detail-icon {
+    width: 48px;
+    height: 48px;
+    padding: 6px;
+    object-fit: contain;
+    image-rendering: pixelated;
+    background: #241a15;
+    border: 2px solid #3d2e26;
+    border-radius: 10px;
+}
+
+.pb-bag-detail-text strong {
+    font-size: 0.98rem;
+}
+
+.pb-bag-detail-text strong span {
+    color: var(--pb-text-3);
+    font-weight: 600;
+}
+
+.pb-bag-detail-text p {
+    margin: 3px 0 0;
+    color: var(--pb-text-2);
+    font-size: 0.84rem;
+    line-height: 1.4;
+}
+
+.pb-bag-reason {
+    display: block;
+    margin-top: 4px;
+    color: #f2c38a;
+    font-size: 0.76rem;
+}
+
+.modal-overlay .pb-bag-use,
+#battle-bag .pb-bag-use {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-height: 44px;
+    margin: 0;
+}
+
+.pb-bag-empty {
+    grid-column: 1 / -1;
+    margin: 0;
+    color: var(--pb-text-3);
+    font-size: 0.86rem;
+    text-align: center;
+}
+
+/* Encaixe nos contêineres existentes */
+#board-inventory-modal .stats-modal-box > div:first-child h3 {
+    visibility: hidden;
+}
+
+#board-inventory-modal .stats-modal-box > div:first-child {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    z-index: 2;
+    margin: 0 !important;
+}
+
+#board-inventory-modal .stats-modal-box {
+    position: relative;
+}
+
+#board-inventory-modal .pb-bag-head {
+    padding-right: 48px;
+}
+
+/* Espaços com tamanho máximo para a grade não crescer demais em telas largas */
+.pb-bag-grid {
+    grid-template-columns: repeat(4, minmax(0, 92px));
+    justify-content: center;
+}
+
+#battle-bag .pb-bag {
+    width: 100%;
+    max-width: 520px;
+    margin: 0 auto;
+}
+
+#battle-bag > .btn {
+    max-width: 520px;
+    align-self: center;
+}
+
+/* Na batalha o espaço é menor: a grade rola e nada fica por baixo do "Cancelar" */
+#battle-bag > * {
+    flex-shrink: 0;
+}
+
+#battle-bag .pb-bag-grid {
+    max-height: 168px;
+}
+
+/* Desktop: a caixa da batalha é baixa, então grade e detalhe ficam lado a lado */
+@media (min-width: 760px) {
+    #battle-bag .pb-bag {
+        max-width: 720px;
+        grid-template-columns: minmax(0, 1fr) 230px;
+        align-items: start;
+    }
+
+    #battle-bag .pb-bag-head,
+    #battle-bag .pb-bag-pockets {
+        grid-column: 1 / -1;
+    }
+
+    #battle-bag .pb-bag-detail {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        text-align: center;
+        align-self: stretch;
+    }
+
+    #battle-bag > .btn {
+        max-width: 720px;
+    }
+}
+
+#board-inventory-list {
+    display: block !important;
+    padding: 0 !important;
+    overflow: visible !important;
+}
+
+#battle-bag {
+    display: none;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px !important;
+    overflow-y: auto;
+}
+
+#battle-bag[style*="block"] {
+    display: flex !important;
+}
+
+#battle-bag > h3 {
+    display: none;
+}
+
+#battle-bag-list {
+    display: block !important;
+}
+
+#battle-bag .btn {
+    width: 100%;
+    margin: 0 !important;
+}
+
+@media (max-width: 480px) {
+    .pb-bag-pockets button span {
+        font-size: 0.6rem;
+    }
+
+    .pb-bag-grid {
+        max-height: 36vh;
+        gap: 6px;
+        padding: 8px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pb-bag-slot.is-selected img {
+        animation: none;
+    }
+}

@@ -19,6 +19,7 @@ import { GLOBAL_EVENTS } from '../../constants/globalEvents';
 import { MAPA_MEGAS } from '../../constants/mapaMegas';
 import { BoardRenderer } from '../board/BoardRenderer';
 import { CardHand } from '../cards/CardHand';
+import { Backpack } from '../ui/Backpack';
 import { GameFeel } from '../ui/GameFeel';
 import { GameDialog } from '../ui/GameDialog';
 
@@ -1588,32 +1589,20 @@ export class GameUI {
     static openInventoryModal(pId: number, readOnly: boolean = false) {
         const p = GameState.players[pId];
         const list = document.getElementById('board-inventory-list')!;
-        list.innerHTML = '';
         const canUse = (!readOnly && GameState.canAct() && GameState.turn === pId);
+        const boardTypes = ['heal', 'revive', 'boost', 'mega', 'hold'];
 
-        Object.keys(p.items).forEach(key => {
-            if (p.items[key] > 0) {
-                const item = SHOP_ITEMS.find(i => i.id === key);
-                if (item) {
-                    const d = document.createElement('div');
-                    d.className = 'shop-item';
-                    let btnHTML = '';
-                    if (canUse && (item.type === 'heal' || item.type === 'revive' || item.type === 'boost' || item.type === 'mega' || item.type === 'hold')) {
-                        btnHTML = `<button class="btn btn-mini" style="width:auto;" onclick="window.Game.useItemBoard('${key}', ${pId})">Usar</button>`;
-                    }
-                    d.innerHTML = `
-                        <div style="display:flex; align-items:center; gap:8px; flex:1; min-width:0;">
-                            <img src="/assets/img/Itens/${item.icon}" class="item-icon-mini" style="flex-shrink:0;">
-                            <div style="display:flex; flex-direction:column; min-width:0;">
-                                <span style="font-weight:600;">${item.name} <span style="color:#7f8c8d; font-weight:400;">x${p.items[key]}</span></span>
-                                <span style="font-size:0.72em; color:#a0aec0; line-height:1.3; white-space:normal;">${item.desc}</span>
-                            </div>
-                        </div>
-                        ${btnHTML}
-                    `;
-                    list.appendChild(d);
-                }
-            }
+        Backpack.render(list, {
+            ownerName: p.name,
+            items: p.items,
+            usable: (item) => {
+                if (!boardTypes.includes(item.type)) return { ok: false, reason: 'Pokébolas só servem em batalhas contra Pokémon selvagens.' };
+                if (readOnly) return { ok: false, reason: 'Feche a loja e abra a mochila pelo seu card para usar.' };
+                if (!canUse) return { ok: false, reason: 'Só dá para usar itens na sua vez.' };
+                return { ok: true };
+            },
+            actionLabel: (item) => item.type === 'hold' ? 'Equipar' : 'Usar',
+            onUse: (key) => (window as any).Game.useItemBoard(key, pId)
         });
         document.getElementById('board-inventory-modal')!.style.display = 'flex';
     }

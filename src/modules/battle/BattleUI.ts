@@ -6,6 +6,7 @@ import { SHOP_ITEMS, CARD_RARITIES } from '../../constants';
 import { GameState } from '../game/GameState';
 import { GameUI } from '../game/GameUI';
 import { GameFeel } from '../ui/GameFeel';
+import { Backpack } from '../ui/Backpack';
 import { GameDialog } from '../ui/GameDialog';
 
 export class BattleUI {
@@ -388,24 +389,31 @@ export class BattleUI {
         }
 
         const isMegaOrMew = (!BattleCore.isPvP && BattleCore.activeMon && ((BattleCore.activeMon as any).isTemp || (BattleCore.activeMon as any).isMegaEvolution));
+        const isTrainerBattle = BattleCore.isPvP || BattleCore.isNPC || BattleCore.isGym;
         const list = document.getElementById('battle-bag-list')!;
-        list.innerHTML = '';
 
-        Object.keys(BattleCore.player!.items).forEach(key => {
-            if (BattleCore.player!.items[key] > 0) {
-                const item = SHOP_ITEMS.find(i => i.id === key);
-                if (item) {
-                    if (isMegaOrMew && item.type !== 'capture') return;
-                    const btn = document.createElement('button');
-                    btn.className = 'btn';
-                    btn.innerHTML = `<img src="/assets/img/Itens/${item.icon}" class="item-icon-mini"> ${item.name} x${BattleCore.player!.items[key]}`;
-                    btn.onclick = () => BattleCore.useItem(key, item);
-                    list.appendChild(btn);
+        // Mesmas regras de BattleCore.useItem, explicadas no próprio item
+        Backpack.render(list, {
+            ownerName: BattleCore.player!.name,
+            items: BattleCore.player!.items,
+            defaultPocket: isTrainerBattle ? 'medicine' : 'balls',
+            usable: (item) => {
+                if (item.type === 'capture') {
+                    return isTrainerBattle ? { ok: false, reason: 'Não dá para capturar Pokémon de treinadores.' } : { ok: true };
                 }
-            }
+                if (BattleCore.isChampion) return { ok: false, reason: 'As regras da Liga proíbem itens no desafio do Campeão.' };
+                if (item.type === 'revive') return { ok: false, reason: 'Não dá para reviver Pokémon durante a batalha.' };
+                if (item.type !== 'heal') return { ok: false, reason: 'Este item é usado fora da batalha, pela mochila do tabuleiro.' };
+                if (isMegaOrMew) return { ok: false, reason: 'Mega Evoluções e Mew não podem receber itens de cura.' };
+                const mon = BattleCore.activeMon;
+                if (mon && mon.isFainted()) return { ok: false, reason: 'O Pokémon em campo está desmaiado.' };
+                if (mon && mon.currentHp >= mon.maxHp) return { ok: false, reason: 'O HP já está cheio.' };
+                return { ok: true };
+            },
+            actionLabel: (item) => item.type === 'capture' ? 'Lançar' : 'Usar',
+            onUse: (key, item) => BattleCore.useItem(key, item)
         });
 
-        if (list.innerHTML === '') list.innerHTML = "<em>Nenhum item compatível no momento...</em>";
         document.getElementById('battle-bag')!.style.display = 'block';
     }
 
