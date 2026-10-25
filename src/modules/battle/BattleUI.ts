@@ -8,6 +8,7 @@ import { GameUI } from '../game/GameUI';
 import { GameFeel } from '../ui/GameFeel';
 import { Backpack } from '../ui/Backpack';
 import { GameDialog } from '../ui/GameDialog';
+import { ScreenKit } from '../ui/ScreenKit';
 
 export class BattleUI {
     static currentBattleId: string | null = null;
@@ -17,55 +18,19 @@ export class BattleUI {
         const modal = document.getElementById('pkmn-select-modal')!;
         const list = document.getElementById('pkmn-select-list')!;
 
-        document.getElementById('select-title')!.innerHTML = title;
+        // Título vem com emoji no início (🏛️/👤/🐾/🏆): o cabeçalho já tem ícone próprio
+        document.getElementById('select-title')!.innerHTML = title.replace(/^\s*\p{Extended_Pictographic}️?\s*/u, '');
         list.innerHTML = '';
 
         BattleCore.plyTeamList.forEach((mon) => {
-            const div = document.createElement('div');
-            div.className = `mon-select-item ${mon.isFainted() ? 'disabled' : ''}`;
-            
-            const isShiny = mon.isShiny;
-            const heldItemData = mon.heldItem ? SHOP_ITEMS.find(i => i.id === mon.heldItem) : null;
-            const heldItemHTML = heldItemData ? `<img src="/assets/img/Itens/${heldItemData.icon}" style="width:20px; height:20px; margin-left:8px; vertical-align: middle; filter: drop-shadow(0 0 2px rgba(255,255,255,0.8));" title="Segurando: ${heldItemData.name}">` : '';
-            const vinculoIcon = mon.vinculoSupremo ? `<span style="font-size:16px; margin-left:8px; vertical-align: middle;" title="Vínculo Supremo">🤝</span>` : '';
-            const happinessIcon = mon.happiness === 100 ? `<span style="font-size:16px; margin-left:8px; vertical-align: middle;" title="Vínculo Afetivo (100% Felicidade)">💖</span>` : '';
-
-            div.style.cssText = `
-                display: flex; 
-                align-items: center; 
-                gap: 12px; 
-                text-align: left; 
-                width: 100%; 
-                justify-content: flex-start;
-                border: 1px solid ${isShiny ? '#f1c40f' : '#555'};
-                background: ${isShiny ? 'rgba(241, 196, 15, 0.1)' : 'transparent'};
-                padding: 8px;
-                border-radius: 6px;
-                box-sizing: border-box;
-            `;
-
-            div.innerHTML = `
-                <img src="${mon.getSprite()}" width="50" style="object-fit:contain; filter: drop-shadow(0 0 3px ${isShiny ? '#f1c40f' : 'transparent'});">
-                <div style="display:flex; flex-direction:column; gap:4px; flex:1;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
-                        <b style="font-size:1.1rem; color:${isShiny ? '#f1c40f' : '#fff'}; display:flex; align-items:center;">
-                            ${mon.name} ${isShiny ? '✨' : ''}
-                            ${heldItemHTML}
-                            ${vinculoIcon}
-                            ${happinessIcon}
-                        </b>
-                        <span style="font-size:0.9rem; font-weight:bold; color:#f1c40f; background:rgba(0,0,0,0.5); padding:2px 6px; border-radius:4px;">Lv.${mon.level}</span>
-                    </div>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap:4px; font-size:0.8rem; color:#ecf0f1; background:rgba(0,0,0,0.3); padding:4px; border-radius:4px; text-align:center;">
-                        <span title="HP Atual / Máx">❤️ ${mon.currentHp}/${mon.maxHp}</span>
-                        <span title="Ataque">⚔️ ${mon.atk}</span>
-                        <span title="Defesa">🛡️ ${mon.def}</span>
-                        <span title="Velocidade">💨 ${mon.speed}</span>
-                    </div>
-                </div>
-            `;
-            if (!mon.isFainted()) div.onclick = () => { modal.style.display = 'none'; BattleCore.startRound(mon); };
-            list.appendChild(div);
+            const fainted = mon.isFainted();
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'pb-monpick';
+            btn.disabled = fainted;
+            btn.innerHTML = ScreenKit.monRow(mon, { note: fainted ? 'Desmaiado: não pode lutar' : '' });
+            if (!fainted) btn.onclick = () => { modal.style.display = 'none'; BattleCore.startRound(mon); };
+            list.appendChild(btn);
         });
         modal.style.display = 'flex';
     }
@@ -319,62 +284,7 @@ export class BattleUI {
         const listContainer = document.getElementById('team-view-list')!;
         listContainer.innerHTML = '';
 
-        player.team.forEach((p: any) => {
-            const isShiny = p.isShiny;
-            const spriteUrl = p.getSprite();
-            const colors: any = { "Normal": "#A8A77A", "Fogo": "#EE8130", "Água": "#6390F0", "Elétrico": "#F7D02C", "Grama": "#7AC74C", "Gelo": "#96D9D6", "Lutador": "#C22E28", "Veneno": "#A33EA1", "Terra": "#E2BF65", "Voador": "#A98FF3", "Psíquico": "#F95587", "Inseto": "#A6B91A", "Pedra": "#B6A136", "Fantasma": "#735797", "Dragão": "#6F35FC", "Noturno": "#705746", "Aço": "#B7B7CE", "Fada": "#D685AD" };
-            const bgColor = colors[p.type] || '#555';
-
-            const card = document.createElement('div');
-            card.style.cssText = `
-                background: linear-gradient(180deg, ${bgColor}44 0%, rgba(9,24,29,0.74) 100%);
-                border: 1px solid ${isShiny ? '#f1c40f' : bgColor};
-                border-radius: 16px;
-                padding: 10px;
-                text-align: center;
-                cursor: pointer;
-                transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-                width: 140px;
-                box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 10px 20px rgba(0,0,0,0.4);
-                backdrop-filter: blur(8px);
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                position: relative;
-            `;
-
-            card.onmouseover = () => {
-                card.style.transform = 'translateY(-2px)';
-                card.style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.15), 0 15px 30px rgba(0,0,0,0.6)';
-            };
-            card.onmouseout = () => {
-                card.style.transform = 'translateY(0)';
-                card.style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.1), 0 10px 20px rgba(0,0,0,0.4)';
-            };
-
-            const megaIcon = p.megaStone ? `<img src="/assets/img/megaStone.png" style="width:16px; position:absolute; top:8px; right:8px; filter: drop-shadow(0 0 4px #fff);" title="Mega Evoluído!">` : '';
-            const vinculoIcon = p.vinculoSupremo ? `<span style="font-size:14px; position:absolute; top:8px; left:8px; filter: drop-shadow(0 0 4px #fff);" title="Vínculo Supremo">🤝</span>` : '';
-            const happinessIcon = p.happiness === 100 ? `<span style="font-size:14px; position:absolute; top:8px; left:${p.vinculoSupremo ? '26px' : '8px'}; filter: drop-shadow(0 0 4px #fff);" title="Vínculo Afetivo (100% Felicidade)">💖</span>` : '';
-
-            card.innerHTML = `
-                ${vinculoIcon}
-                ${happinessIcon}
-                ${megaIcon}
-                <div style="font-size: 0.75rem; font-weight: 800; color: #fff; background: rgba(0,0,0,0.4); padding: 3px 8px; border-radius: 999px; margin-bottom: 5px; border: 1px solid rgba(255,255,255,0.1); letter-spacing: 0.5px;">Lv.${p.level}</div>
-                <img src="${spriteUrl}" style="width: 70px; height: 70px; object-fit: contain; filter: drop-shadow(0 0 8px ${isShiny ? '#f1c40f' : 'transparent'}); margin: 5px 0;">
-                <div style="font-weight: 800; color: #fff; margin-top: 5px; font-size: 0.95rem; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">${p.name}</div>
-                <div style="color: ${isShiny ? '#f1c40f' : '#ccc'}; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: center; gap: 3px; margin-top: 3px;">
-                    ${isShiny ? '✨ Shiny' : p.type}
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; width: 100%; margin-top: 10px; font-size: 0.75rem; color: #e7f2ee; background: rgba(0,0,0,0.3); padding: 6px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
-                    <div title="HP Atual / Máx" style="display:flex; align-items:center; gap:3px;">❤️ ${p.currentHp}/${p.maxHp}</div>
-                    <div title="Ataque" style="display:flex; align-items:center; gap:3px;">⚔️ ${p.atk}</div>
-                    <div title="Defesa" style="display:flex; align-items:center; gap:3px;">🛡️ ${p.def}</div>
-                    <div title="Velocidade" style="display:flex; align-items:center; gap:3px;">💨 ${p.speed}</div>
-                </div>
-            `;
-            listContainer.appendChild(card);
-        });
+        listContainer.innerHTML = player.team.map((p: any) => ScreenKit.monRow(p)).join('');
 
         modal.style.display = 'flex';
     }

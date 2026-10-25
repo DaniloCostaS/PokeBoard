@@ -383,17 +383,73 @@
     font-variant-numeric: tabular-nums;
 }
 
+/* Barra de EXP no estilo dos jogos, alinhada com a de HP */
+.pb-xp-row {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 4px;
+}
+
+.pb-xp-label {
+    padding: 1px 2px;
+    color: #7cc4ff;
+    font: 400 0.4rem/1.2 'Press Start 2P', var(--pb-font);
+    background: #22324a;
+    border-radius: 3px;
+}
+
 .pb-xp {
-    height: 3px;
-    margin-left: 22px;
+    height: 5px;
     overflow: hidden;
     background: #0d141a;
-    border-radius: 2px;
+    border: 1px solid #000;
+    border-radius: 3px;
 }
 
 .pb-xp-fill {
     height: 100%;
-    background: linear-gradient(90deg, #4aa3ff, #7cc4ff);
+    background: linear-gradient(90deg, #3a8ee8, #7cc4ff);
+    border-radius: 2px;
+}
+
+/* "+N EXP" e "Lv ↑" subindo da linha do Pokémon */
+.pb-xp-pop {
+    position: absolute;
+    right: 8px;
+    top: -9px;
+    z-index: 2;
+    padding: 2px 5px;
+    color: #cfe8ff;
+    font: 400 0.45rem/1.3 'Press Start 2P', var(--pb-font);
+    white-space: nowrap;
+    background: rgba(20, 50, 90, 0.92);
+    border: 1px solid #4aa3ff;
+    border-radius: 4px;
+    pointer-events: none;
+    animation: pbXpPop 1.6s ease forwards;
+}
+
+.pb-xp-pop.is-level {
+    color: #1a1406;
+    background: #ffd76a;
+    border-color: #fff3b0;
+}
+
+@keyframes pbXpPop {
+    0% { opacity: 0; transform: translateY(6px) scale(0.8); }
+    15% { opacity: 1; transform: translateY(-4px) scale(1.08); }
+    75% { opacity: 1; transform: translateY(-10px); }
+    100% { opacity: 0; transform: translateY(-16px); }
+}
+
+#game-container .pb-party.pb-level-up {
+    animation: pbLevelUpRow 1s ease;
+}
+
+@keyframes pbLevelUpRow {
+    25% { box-shadow: 0 0 0 2px #ffd76a, 0 0 18px rgba(255, 215, 106, 0.6) !important; }
 }
 
 .pb-party-stats {

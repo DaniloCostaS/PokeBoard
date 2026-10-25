@@ -22,6 +22,7 @@ import { CardHand } from '../cards/CardHand';
 import { Backpack } from '../ui/Backpack';
 import { GameFeel } from '../ui/GameFeel';
 import { GameDialog } from '../ui/GameDialog';
+import { ScreenKit } from '../ui/ScreenKit';
 
 
 export class GameUI {
@@ -96,7 +97,10 @@ export class GameUI {
                             <div class="pb-hp-track"><div class="pb-hp-fill ${(window as any).Battle?.getHpColor(m.currentHp, m.maxHp)}" style="width:${hpPct}%"></div></div>
                             <span class="pb-hp-num">${m.currentHp}/${m.maxHp}</span>
                         </div>
-                        <div class="pb-xp" title="XP ${Math.floor(m.currentXp)}/${m.maxXp}"><div class="pb-xp-fill" style="width:${xpPct}%"></div></div>
+                        <div class="pb-xp-row" title="EXP ${Math.floor(m.currentXp)}/${m.maxXp}">
+                            <span class="pb-xp-label">EXP</span>
+                            <div class="pb-xp"><div class="pb-xp-fill" style="width:${xpPct}%"></div></div>
+                        </div>
                         <div class="pb-party-stats"><span><b>ATQ</b>${m.atk}</span><span><b>DEF</b>${m.def}</span><span><b>VEL</b>${m.speed}</span></div>
                     </div>
                 </div>`;
@@ -709,11 +713,8 @@ export class GameUI {
         if (countSpan) countSpan.innerText = `${GameState.cardLogs.length} jogada${GameState.cardLogs.length > 1 ? 's' : ''}`;
 
         container.innerHTML = GameState.cardLogs.map(entry => {
-            const cardData = CARDS_DB.find(c => c.name === entry.card) || { rarity: 'Comum' as any, desc: '' };
-            let rarityColor = '#95a5a6';
-            if (cardData.rarity === 'Rara') rarityColor = '#3498db';
-            if (cardData.rarity === 'Épica') rarityColor = '#9b59b6';
-            if (cardData.rarity === 'Lendária') rarityColor = '#f1c40f';
+            const cardData: any = CARDS_DB.find(c => c.name === entry.card) || { rarity: 'Comum' as any, desc: '' };
+            const rarityColor = CARD_RARITIES[cardData.rarity]?.color || '#9aa8b4';
 
             const attackerP = GameState.players.find(p => p.name === entry.attacker);
             const targetP = GameState.players.find(p => p.name === entry.target);
@@ -722,26 +723,22 @@ export class GameUI {
             const tgtAvatar = targetP ? targetP.avatar : (entry.target === 'Si mesmo' || entry.target === entry.attacker ? atkAvatar : '/assets/img/Treinadores/Red.png');
 
             return `
-            <div class="card-log-entry" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px; position: relative;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-                    <span style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; color: #bdc3c7;">Rodada ${entry.round}</span>
-                    <span style="border: 1px solid ${rarityColor}; color: ${rarityColor}; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; text-transform: uppercase;">${cardData.rarity}</span>
+            <div class="card-log-entry pb-cardlog" style="--rc:${rarityColor}">
+                <div class="pb-cardlog-top">
+                    <span class="pb-cardlog-round">R${entry.round}</span>
+                    <span class="pb-cardlog-rarity">${String(cardData.rarity).toUpperCase()}</span>
                 </div>
-                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                    <div style="width: 36px; height: 36px; display: flex; justify-content: center; align-items: center; background: rgba(0,0,0,0.3); border-radius: 6px; font-size: 1.2rem;">✨</div>
-                    <div style="flex: 1; min-width: 0;">
-                        <div style="color: #f1c40f; font-weight: bold; font-size: 0.95rem;">${entry.card}</div>
-                        <div style="color: #9ca3af; font-size: 0.75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;" title="${cardData.desc}">${cardData.desc}</div>
+                <div class="pb-cardlog-card">
+                    <i class="pb-ico pb-ico-cards" aria-hidden="true"></i>
+                    <div>
+                        <strong>${entry.card}</strong>
+                        <small title="${cardData.desc}">${cardData.desc}</small>
                     </div>
                 </div>
-                <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.2); padding: 5px 8px; border-radius: 6px;">
-                    <div style="display: flex; align-items: center; gap: 5px; font-size: 0.8rem; font-weight: bold; color: #fff; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                        <img src="${atkAvatar}" style="width: 20px; height: 20px; border-radius: 50%; object-fit: cover;"> ${entry.attacker}
-                    </div>
-                    <span style="color: #7f8c8d; font-size: 0.8rem; flex-shrink: 0;">→</span>
-                    <div style="display: flex; align-items: center; gap: 5px; font-size: 0.8rem; font-weight: bold; color: #e74c3c; max-width: 45%; justify-content: flex-end; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                        <img src="${tgtAvatar}" style="width: 20px; height: 20px; border-radius: 50%; object-fit: cover;"> ${entry.target}
-                    </div>
+                <div class="pb-cardlog-who">
+                    <span><img src="${atkAvatar}" alt="">${entry.attacker}</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                    <span class="is-target"><img src="${tgtAvatar}" alt="">${entry.target}</span>
                 </div>
             </div>`;
         }).join('');
@@ -1040,16 +1037,15 @@ export class GameUI {
             modal.style.zIndex = '9999';
             document.body.appendChild(modal);
         }
+        const ev = GameState.currentGlobalEvent;
+        const roundsLeft = Math.max(0, GameState.eventEndRound - GameState.round);
+        const close = "document.getElementById('event-details-modal').style.display='none'";
         modal.innerHTML = `
-            <div style="text-align: center; max-width: 500px; width: 90%; height: auto; background: rgba(20, 20, 20, 0.95); border: 2px solid #f1c40f; color: #fff; border-radius: 16px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); overflow-y: auto;">
-                <h3 style="color:#f1c40f; font-size: 1.5rem; margin-top: 0; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                    <span>${GameState.currentGlobalEvent.icon}</span> 
-                    <span>${GameState.currentGlobalEvent.name}</span>
-                </h3>
-                <p style="font-size: 1.1rem; line-height: 1.6; margin: 20px 0; color: #ecf0f1;">
-                    ${GameState.currentGlobalEvent.desc}
-                </p>
-                <button class="btn btn-secondary mt-15" style="padding: 10px 25px; font-size: 1rem; border-radius: 8px;" onclick="document.getElementById('event-details-modal').style.display='none'">Fechar</button>
+            <div class="modal-box pb-screen pb-screen--dialog pb-event-detail">
+                ${ScreenKit.head({ icon: 'event', iconHTML: `<span class="pb-event-pick-ico">${ev.icon}</span>`, kicker: 'Evento global', title: ev.name, actions: ScreenKit.closeX(close) })}
+                <p class="pb-event-detail-desc">${ev.desc}</p>
+                <div class="pb-event-detail-left"><small>Termina em</small><b>${roundsLeft}</b><span>rodada(s)</span></div>
+                <button class="btn btn-secondary stats-close-btn" onclick="${close}">Fechar</button>
             </div>
         `;
         modal.style.display = 'flex';
@@ -1418,9 +1414,9 @@ export class GameUI {
         // Removido override dinâmico para respeitar estilos premium do HTML
 
         list.style.display = 'grid';
-        list.style.gridTemplateColumns = 'repeat(auto-fill, minmax(220px, 1fr))';
-        list.style.gap = '25px';
-        list.style.padding = '20px';
+        list.style.gridTemplateColumns = 'repeat(auto-fill, minmax(150px, 1fr))';
+        list.style.gap = '10px';
+        list.style.padding = '4px';
         list.style.width = '100%';
 
         const typeFilter = (document.getElementById('item-library-type-filter') as HTMLSelectElement)?.value || 'all';
@@ -1439,7 +1435,7 @@ export class GameUI {
 
         filtered.forEach(item => {
             const d = document.createElement('div');
-            d.style.cssText = "display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); width: 100%; box-sizing: border-box; position: relative; border: 1px solid #556;";
+            d.className = `pb-itemlib-card pb-itemlib-card--${item.type}`;
 
             const typeLabel = item.type === 'heal' ? 'Cura' :
                 item.type === 'revive' ? 'Reviver' :
@@ -1448,18 +1444,12 @@ export class GameUI {
                             item.type === 'boost' ? 'Boost' :
                                 item.type === 'hold' ? 'Segurar' : (item.type as string).toUpperCase();
 
-            const borderColor = item.type === 'mega' ? '#f1c40f' : '#3498db';
-
             d.innerHTML = `
-                <div style="position: absolute; top: -5px; right: -5px; background: ${borderColor}; color: #fff; padding: 2px 6px; font-size: 0.7rem; border-radius: 10px; font-weight: bold; border: 1px solid #222; text-shadow: 1px 1px 0 #000; box-shadow: 0 2px 4px rgba(0,0,0,0.5); z-index: 10;">
-                    ${typeLabel.toUpperCase()}
-                </div>
-                <div style="display:flex; justify-content:center; align-items:center; width:100%; height:80px; margin-bottom:10px;">
-                    <img src="/assets/img/Itens/${item.icon}" alt="${item.name}" style="max-height: 100%; max-width: 100%; object-fit: contain; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4));">
-                </div>
-                <div style="margin-top: 8px; font-size: 1rem; text-align: center; color: #f1c40f; font-weight:bold;">${item.name}</div>
-                <div style="font-size: 0.85rem; color: #edf2f4; margin-top:5px; text-align:center; flex-grow:1;">${item.desc}</div>
-                <div style="margin-top: 10px; font-size: 0.9rem; color: #2ecc71; font-weight:bold; background:rgba(0,0,0,0.3); padding:4px 10px; border-radius:4px; width:100%; text-align:center;">💰 ${item.price} G</div>
+                <span class="pb-itemlib-tag">${typeLabel.toUpperCase()}</span>
+                <div class="pb-itemlib-slot"><img src="/assets/img/Itens/${item.icon}" alt="${item.name}" loading="lazy"></div>
+                <strong class="pb-itemlib-name">${item.name}</strong>
+                <p class="pb-itemlib-desc">${item.desc}</p>
+                <div class="pb-itemlib-price"><i aria-hidden="true"></i>${item.price} G</div>
             `;
             list.appendChild(d);
         });
@@ -1885,58 +1875,27 @@ export class GameUI {
         list.innerHTML = '';
         const p = GameState.getCurrentPlayer();
 
+        const makeRow = (mon: Pokemon, onPick: () => void, opts: Parameters<typeof ScreenKit.monRow>[1]) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'pb-monpick';
+            btn.innerHTML = ScreenKit.monRow(mon, { hp: 'max', ...opts });
+            btn.onclick = onPick;
+            list.appendChild(btn);
+        };
+
         p.team.forEach((currP: Pokemon, idx: number) => {
-            const div = document.createElement('div');
-            div.className = 'swap-item';
-
-            const isShiny = currP.isShiny;
-            div.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 15px; width: 100%; padding: 5px;">
-                    <img src="${currP.getSprite()}" width="50" style="filter: drop-shadow(0 0 3px ${isShiny ? '#f1c40f' : 'transparent'});">
-                    <div style="text-align: left; line-height: 1.4; flex-grow: 1;">
-                        <b style="font-size: 1.1rem; color: ${isShiny ? '#f1c40f' : '#fff'};">${currP.name} ${isShiny ? '✨' : ''}</b> 
-                        <small style="color: #f1c40f; font-weight: bold;">Lv.${currP.level}</small><br>
-                        
-                        <div style="font-size: 0.85rem; color: #ecf0f1; margin-top: 4px; display: flex; gap: 10px;">
-                            <span>❤️ <b>${currP.maxHp}</b></span>
-                            <span>⚔️ <b>${currP.atk}</b></span>
-                            <span>🛡️ <b>${currP.def}</b></span>
-                            <span>💨 <b>${currP.speed}</b></span>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            div.onclick = () => GameEvents.executeSwap(idx, newMon);
-            list.appendChild(div);
+            makeRow(currP, () => GameEvents.executeSwap(idx, newMon), { note: 'Soltar este Pokémon' });
         });
 
-        const divNew = document.createElement('div');
-        divNew.className = 'swap-item new-mon';
+        const sep = document.createElement('div');
+        sep.className = 'pb-monlist-sep';
+        sep.textContent = 'Recém-capturado';
+        list.appendChild(sep);
 
-        const isNewShiny = newMon.isShiny;
-        divNew.innerHTML = `
-            <div style="display: flex; align-items: center; gap: 15px; width: 100%; padding: 8px; background-color: rgba(231, 76, 60, 0.15); border: 2px dashed #e74c3c; border-radius: 8px; box-sizing: border-box;">
-                <img src="${newMon.getSprite()}" width="50" style="filter: drop-shadow(0 0 3px ${isNewShiny ? '#f1c40f' : 'transparent'});">
-                <div style="text-align: left; line-height: 1.4; flex-grow: 1;">
-                    <b style="font-size: 1.1rem; color: #e74c3c;">${newMon.name} (NOVO) ${isNewShiny ? '✨' : ''}</b> 
-                    <small style="color: #f1c40f; font-weight: bold;">Lv.${newMon.level}</small><br>
-                    
-                    <div style="font-size: 0.85rem; color: #ecf0f1; margin-top: 4px; display: flex; gap: 10px;">
-                        <span>❤️ <b>${newMon.maxHp}</b></span>
-                        <span>⚔️ <b>${newMon.atk}</b></span>
-                        <span>🛡️ <b>${newMon.def}</b></span>
-                        <span>💨 <b>${newMon.speed}</b></span>
-                    </div>
-                    <small style="color: #e74c3c; font-weight: bold; display: block; margin-top: 5px; cursor: pointer;">❌ Clique aqui para soltar e não capturar este</small>
-                </div>
-            </div>
-        `;
+        makeRow(newMon, () => GameEvents.executeSwap(-1, newMon), { cls: 'is-new', badge: 'NOVO', note: 'Soltar o novo e manter o time como está' });
 
-        divNew.onclick = () => GameEvents.executeSwap(-1, newMon);
-        list.appendChild(divNew);
-
-        modal.style.display = 'block';
+        modal.style.display = 'flex';
     }
 
     static openLixeira(selectMode: boolean = false) {
@@ -1999,25 +1958,24 @@ export class GameUI {
         if (!modal) {
             modal = document.createElement('div');
             modal.id = 'player-mastery-modal';
-            modal.style.cssText = "position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.85); display:flex; justify-content:center; align-items:center; z-index:15000;";
+            modal.className = 'modal-overlay';
+            modal.style.zIndex = '15000';
             modal.onclick = (e) => { if (e.target === modal) modal!.style.display = 'none'; };
 
             const content = document.createElement('div');
-            content.style.cssText = "background: #1a1a1d; width: 90%; max-width: 600px; max-height: 90vh; border-radius: 15px; border: 3px solid #3498db; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 0 30px rgba(52, 152, 219, 0.5);";
-
+            content.className = 'modal-box pb-screen pb-mastery';
             content.innerHTML = `
-                <div style="background: linear-gradient(135deg, #2c3e50, #3498db); padding: 15px; text-align: center; color: white; border-bottom: 2px solid #2980b9; display: flex; justify-content: space-between; align-items: center;">
-                    <div style="display:flex; align-items:center; gap: 15px;">
-                        <img id="mastery-avatar" src="" style="width: 50px; height: 50px; border-radius: 50%; border: 2px solid #fff; object-fit: cover;">
-                        <h2 style="margin: 0; font-size: 1.5rem; text-shadow: 1px 1px 2px #000;">Maestria de Tipagem</h2>
+                <header class="pb-screen-head">
+                    <span class="pb-stats-avatar pb-mastery-avatar"><img id="mastery-avatar" src="" alt=""></span>
+                    <div class="pb-screen-title">
+                        <small id="mastery-kicker">Treinador</small>
+                        <h3>Maestria de tipagem</h3>
                     </div>
-                    <button onclick="document.getElementById('player-mastery-modal').style.display='none'" style="background: #e74c3c; border: none; color: white; width: 35px; height: 35px; border-radius: 50%; font-weight: bold; cursor: pointer; font-size: 1.1rem; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">✕</button>
-                </div>
-                <div style="padding: 10px; background: #2c3e50; color: #bdc3c7; font-size: 0.9rem; text-align: center; border-bottom: 1px solid #34495e;">
-                    Derrote Pokémon selvagens ou de inimigos para subir sua maestria! Cada nível aumenta seu dano em +1% com habilidades daquele tipo.
-                </div>
-                <div id="mastery-list" style="padding: 20px; overflow-y: auto; flex-grow: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px;">
-                </div>
+                    ${ScreenKit.closeX("document.getElementById('player-mastery-modal').style.display='none'")}
+                </header>
+                <p class="pb-screen-lead">Derrote Pokémon selvagens ou de inimigos para subir sua maestria. Cada nível aumenta em +1% o dano dos golpes daquele tipo.</p>
+                <div id="mastery-summary" class="pb-mastery-summary"></div>
+                <div id="mastery-list" class="pb-mastery-grid"></div>
             `;
             modal.appendChild(content);
             document.body.appendChild(modal);
@@ -2025,6 +1983,8 @@ export class GameUI {
 
         const avatarImg = document.getElementById('mastery-avatar') as HTMLImageElement;
         avatarImg.src = p.avatar;
+        (avatarImg.parentElement as HTMLElement).style.setProperty('--pc', PLAYER_COLORS[pId % PLAYER_COLORS.length]);
+        document.getElementById('mastery-kicker')!.textContent = `Treinador ${p.name}`;
 
         const list = document.getElementById('mastery-list')!;
         list.innerHTML = '';
@@ -2046,23 +2006,24 @@ export class GameUI {
             }
         }
 
-        for (const type of Object.keys(typeColors)) {
+        const types = Object.keys(typeColors);
+        const unlocked = types.filter(t => typeMastery[t] > 0);
+        const best = [...unlocked].sort((a, b) => typeMastery[b] - typeMastery[a])[0];
+        document.getElementById('mastery-summary')!.innerHTML = `
+            <div class="pb-mastery-chip"><small>Tipos dominados</small><b>${unlocked.length}/${types.length}</b></div>
+            <div class="pb-mastery-chip"><small>Melhor tipo</small>${best ? `<span class="pb-mastery-type" style="--tc:${typeColors[best]}">${best}</span><b>+${typeMastery[best]}%</b>` : '<em>Nenhum ainda</em>'}</div>`;
+
+        const maxMastery = Math.max(1, ...types.map(t => typeMastery[t]));
+        for (const type of types) {
             const mastery = typeMastery[type];
-            const color = typeColors[type];
             const d = document.createElement('div');
-
-            const isUnlocked = mastery > 0;
-            const filterStyle = isUnlocked ? '' : 'filter: grayscale(100%) opacity(0.5);';
-
-            d.style.cssText = `display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.3); border: 2px solid ${isUnlocked ? color : '#555'}; padding: 10px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); ${filterStyle}`;
+            d.className = `pb-mastery-tile ${mastery > 0 ? 'is-on' : 'is-off'}`;
+            d.style.setProperty('--tc', typeColors[type]);
             d.innerHTML = `
-                <div style="background-color:${color}; color:white; padding:4px 10px; border-radius:4px; font-size:0.85rem; text-shadow:1px 1px 1px rgba(0,0,0,0.5); font-weight: bold; width: 100%; text-align: center; box-sizing: border-box; margin-bottom: 8px;">${type}</div>
-                <div style="font-size: 1.2rem; font-weight: bold; color: ${isUnlocked ? '#fff' : '#777'}; display: flex; align-items: baseline; gap: 4px;">
-                    Lv.${mastery}
-                </div>
-                <div style="font-size: 0.75rem; color: ${isUnlocked ? '#2ecc71' : '#777'}; margin-top: 4px;">
-                    ${mastery > 0 ? `+${mastery}% Dano` : 'Sem Bônus'}
-                </div>
+                <span class="pb-mastery-type">${type}</span>
+                <b class="pb-mastery-lv">Lv${mastery}</b>
+                <span class="pb-mastery-bonus">${mastery > 0 ? `+${mastery}% dano` : 'Sem bônus'}</span>
+                <em><u style="width:${Math.round((mastery / maxMastery) * 100)}%"></u></em>
             `;
             list.appendChild(d);
         }
@@ -2082,6 +2043,51 @@ export class GameUI {
 
         const maxScore = Math.max(1, (sorted[0]?.stats?.cardsSuffered || 0) + (sorted[0]?.stats?.turnsLost || 0));
 
+        // Ícones em SVG (traço) para os blocos de números
+        const ICONS: Record<string, string> = {
+            hit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 17.5L3 6V3h3l11.5 11.5"/><path d="M13 19l6-6M16 16l4 4M19 21l2-2"/></svg>',
+            fx: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>',
+            shield: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5" stroke-linecap="round"/></svg>',
+            time: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12M6 21h12M7 3c0 5 10 5 10 9s-10 4-10 9M17 3c0 5-10 5-10 9s10 4 10 9"/></svg>',
+            card: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><rect x="7" y="3" width="12" height="16" rx="2"/><path d="M5 6.5v12A2.5 2.5 0 0 0 7.5 21H15"/></svg>',
+            target: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.5"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4" stroke-linecap="round"/></svg>'
+        };
+        const statOf = (p: any) => p.stats || { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
+        const sumRec = (r: any) => (r && typeof r === 'object' && !Array.isArray(r)) ? Object.values(r as Record<string, number>).reduce((s: number, v: number) => s + (Number(v) || 0), 0) : 0;
+        const maxOf = (fn: (p: any) => number) => Math.max(1, ...GameState.players.map(fn));
+        const maxes = {
+            hit: maxOf(p => statOf(p).cardsSuffered || 0),
+            fx: maxOf(p => sumRec(statOf(p).effectsReceived)),
+            shield: maxOf(p => sumRec(statOf(p).cardsDefended)),
+            time: maxOf(p => statOf(p).turnsLost || 0)
+        };
+        const colorOf = (p: any) => PLAYER_COLORS[Math.max(0, GameState.players.indexOf(p)) % PLAYER_COLORS.length];
+        const avatarHTML = (p: any, cls = '') => `<span class="pb-stats-avatar ${cls}" style="--pc:${colorOf(p)}"><img src="${p.avatar}" alt=""></span>`;
+
+        // Destaques: alvo preferido (mais cartas sofridas) e mais ofensivo
+        const topBy = (fn: (p: any) => number) => {
+            const best = [...GameState.players].sort((a, b) => fn(b) - fn(a))[0];
+            return best && fn(best) > 0 ? best : null;
+        };
+        const favTarget = topBy(p => statOf(p).cardsSuffered || 0);
+        const topAttacker = topBy(p => statOf(p).cardsUsed || 0);
+        const highlight = (p: any, label: string, value: string, icon: string, tone: string) => `
+            <div class="pb-stats-spot pb-stats-spot--${tone}" style="--pc:${colorOf(p)}">
+                ${avatarHTML(p)}
+                <div class="pb-stats-spot-text">
+                    <small><i class="pb-stats-ico">${icon}</i>${label}</small>
+                    <strong>${p.name}</strong>
+                    <span>${value}</span>
+                </div>
+            </div>`;
+        const spot = document.createElement('div');
+        spot.className = 'pb-stats-spots';
+        spot.innerHTML = (favTarget || topAttacker)
+            ? `${favTarget ? highlight(favTarget, 'Alvo preferido', `<b>${statOf(favTarget).cardsSuffered}</b> cartas sofridas`, ICONS.target, 'target') : ''}
+               ${topAttacker ? highlight(topAttacker, 'Mais ofensivo', `<b>${statOf(topAttacker).cardsUsed}</b> cartas ofensivas`, ICONS.card, 'attack') : ''}`
+            : `<div class="pb-stats-empty pb-stats-empty--wide"><i class="pb-stats-ico">${ICONS.card}</i>Nenhuma carta ofensiva jogada ainda. Os destaques aparecem aqui.</div>`;
+        list.appendChild(spot);
+
         sorted.forEach((p, rank) => {
             const stats = p.stats || { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
             const effectsRecord: Record<string, number> = (stats.effectsReceived && typeof stats.effectsReceived === 'object' && !Array.isArray(stats.effectsReceived))
@@ -2093,8 +2099,9 @@ export class GameUI {
             const totalScore = stats.cardsSuffered + stats.turnsLost;
             const pct = Math.round((totalScore / maxScore) * 100);
 
-            const rankEmoji = rank === 0 ? '🔴' : rank === 1 ? '🟠' : rank === 2 ? '🟡' : '⚪';
-            const barColor = rank === 0 ? '#e74c3c' : rank === 1 ? '#e67e22' : '#f1c40f';
+            // Sem sofrimento registrado não há pódio: todos ficam com a medalha neutra
+            const medal = totalScore === 0 ? 'plain' : rank === 0 ? 'gold' : rank === 1 ? 'silver' : rank === 2 ? 'bronze' : 'plain';
+            const heat = pct >= 67 ? 'high' : pct >= 34 ? 'mid' : 'low';
 
             const getRarityColor = (name: string, defaultColor: string) => {
                 const card = CARDS_DB.find(c => c.name === name);
@@ -2117,55 +2124,50 @@ export class GameUI {
                 return fallbacks[name] || defaultColor;
             };
 
-            const effectTagsHTML = Object.entries(effectsRecord).map(([name, count]) => {
-                const color = getRarityColor(name, '#555');
-                return `<span style="background:${color}; color:white; font-size:0.68rem; padding:2px 7px; border-radius:12px; display:inline-flex; align-items:center; gap:3px;">${name} <b style="background:rgba(0,0,0,0.3); padding:0 4px; border-radius:8px;">${count}x</b></span>`;
-            }).join('');
+            const tagHTML = ([name, count]: [string, number], fallback: string) =>
+                `<span class="pb-stats-tag" style="--rc:${getRarityColor(name, fallback)}">${name}<b>x${count}</b></span>`;
+            const effectTagsHTML = Object.entries(effectsRecord).sort((a, b) => b[1] - a[1]).map(e => tagHTML(e, '#7f8c8d')).join('');
+            const defendTagsHTML = Object.entries(defendedRecord).sort((a, b) => b[1] - a[1]).map(e => tagHTML(e, '#2f8f57')).join('');
 
-            const defendTagsHTML = Object.entries(defendedRecord).map(([name, count]) => {
-                const color = getRarityColor(name, '#27ae60');
-                return `<span style="background:${color}; color:white; font-size:0.68rem; padding:2px 7px; border-radius:12px; display:inline-flex; align-items:center; gap:3px;">${name} <b style="background:rgba(0,0,0,0.3); padding:0 4px; border-radius:8px;">${count}x</b></span>`;
-            }).join('');
+            const tile = (key: 'hit' | 'fx' | 'shield' | 'time', value: number, label: string) => `
+                <div class="pb-stats-tile pb-stats-tile--${key}">
+                    <i class="pb-stats-ico">${ICONS[key]}</i>
+                    <b>${value}</b>
+                    <span>${label}</span>
+                    <em><u style="width:${Math.round((value / maxes[key]) * 100)}%"></u></em>
+                </div>`;
 
             const row = document.createElement('div');
-            row.style.cssText = `background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 12px 15px; text-align: left;`;
+            row.className = `pb-stats-card pb-stats-card--${medal}${p === favTarget ? ' is-target' : ''}`;
+            row.style.setProperty('--pc', colorOf(p));
             row.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                    <img src="${p.avatar}" style="width: 36px; height: 36px; border-radius: 50%; border: 2px solid ${barColor};">
-                    <div style="flex: 1;">
-                        <div style="font-weight: bold; font-size: 1rem; color: #fff;">${rankEmoji} ${p.name}</div>
-                        <div style="font-size: 0.75rem; color: #aaa;">Sofrimento: <b style="color: ${barColor}">${totalScore}</b></div>
+                <div class="pb-stats-card-head">
+                    <span class="pb-stats-medal" title="${rank + 1}º no ranking de sofrimento">${rank + 1}</span>
+                    ${avatarHTML(p)}
+                    <div class="pb-stats-who">
+                        <strong>${p.name}</strong>
+                        <span class="pb-stats-chips">
+                            ${p === favTarget ? '<span class="pb-status pb-status--target">ALVO</span>' : ''}
+                            <span class="pb-stats-offense" title="Cartas ofensivas usadas"><i class="pb-stats-ico">${ICONS.card}</i><b>${stats.cardsUsed}</b> ofensivas</span>
+                        </span>
                     </div>
-                    <div style="font-size: 0.85rem; font-weight: bold; color: #dda0dd;" title="Cartas ofensivas usadas">${stats.cardsUsed} 🃏 ofensivas</div>
-                </div>
-                <div style="background: rgba(0,0,0,0.3); border-radius: 20px; height: 8px; overflow: hidden; margin-bottom: 10px;">
-                    <div style="background: ${barColor}; width: ${pct}%; height: 100%; border-radius: 20px; transition: width 0.5s;"></div>
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 6px; font-size: 0.78rem; text-align: center; margin-bottom: 8px;">
-                    <div style="background: rgba(231,76,60,0.3); border-radius: 6px; padding: 6px 4px;">
-                        <div style="font-size: 1rem;">🗡️</div>
-                        <div style="color: #ff8a80; font-weight: bold;">${stats.cardsSuffered}</div>
-                        <div style="color: #888; font-size: 0.68rem;">Sofridas</div>
-                    </div>
-                    <div style="background: rgba(243,156,18,0.3); border-radius: 6px; padding: 6px 4px;">
-                        <div style="font-size: 1rem;">⚡</div>
-                        <div style="color: #ffd54f; font-weight: bold;">${totalEffects}</div>
-                        <div style="color: #888; font-size: 0.68rem;">Efeitos</div>
-                    </div>
-                    <div style="background: rgba(39,174,96,0.3); border-radius: 6px; padding: 6px 4px;">
-                        <div style="font-size: 1rem;">🛡️</div>
-                        <div style="color: #2ecc71; font-weight: bold;">${totalDefended}</div>
-                        <div style="color: #888; font-size: 0.68rem;">Defendidas</div>
-                    </div>
-                    <div style="background: rgba(231,76,60,0.25); border-radius: 6px; padding: 6px 4px;">
-                        <div style="font-size: 1rem;">⏳</div>
-                        <div style="color: #ff5252; font-weight: bold;">${stats.turnsLost}</div>
-                        <div style="color: #888; font-size: 0.68rem;">Turnos Perdidos</div>
+                    <div class="pb-stats-score" title="Cartas sofridas + turnos perdidos">
+                        <small>Sofrimento</small>
+                        <b>${totalScore}</b>
                     </div>
                 </div>
-                ${totalEffects > 0 ? `<div style="margin-top:4px; margin-bottom:6px;"><div style="color:#888; font-size:0.7rem; margin-bottom:5px;">💥 Efeitos recebidos:</div><div style="display:flex; flex-wrap:wrap; gap:5px;">${effectTagsHTML}</div></div>` : ''}
-                ${totalDefended > 0 ? `<div style="margin-top:4px;"><div style="color:#888; font-size:0.7rem; margin-bottom:5px;">🛡️ Defesas usadas:</div><div style="display:flex; flex-wrap:wrap; gap:5px;">${defendTagsHTML}</div></div>` : ''}
-                ${totalEffects === 0 && totalDefended === 0 ? `<div style="color:#555; font-size:0.72rem; text-align:center; padding-top:4px;">Nenhum efeito ou defesa registrado ainda 😌</div>` : ''}
+                <div class="pb-stats-meter pb-stats-meter--${heat}" role="meter" aria-valuemin="0" aria-valuemax="${maxScore}" aria-valuenow="${totalScore}" aria-label="Sofrimento">
+                    <span>DOR</span><em><u style="width:${pct}%"></u></em>
+                </div>
+                <div class="pb-stats-tiles">
+                    ${tile('hit', stats.cardsSuffered, 'Sofridas')}
+                    ${tile('fx', totalEffects, 'Efeitos')}
+                    ${tile('shield', totalDefended, 'Defendidas')}
+                    ${tile('time', stats.turnsLost, 'Turnos perdidos')}
+                </div>
+                ${totalEffects > 0 ? `<div class="pb-stats-group"><h5><i class="pb-stats-ico">${ICONS.fx}</i>Efeitos recebidos</h5><div class="pb-stats-tags">${effectTagsHTML}</div></div>` : ''}
+                ${totalDefended > 0 ? `<div class="pb-stats-group"><h5><i class="pb-stats-ico">${ICONS.shield}</i>Defesas usadas</h5><div class="pb-stats-tags">${defendTagsHTML}</div></div>` : ''}
+                ${totalEffects === 0 && totalDefended === 0 ? `<div class="pb-stats-empty">Nenhum efeito ou defesa registrado ainda</div>` : ''}
             `;
             list.appendChild(row);
         });

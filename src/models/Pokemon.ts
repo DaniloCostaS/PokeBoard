@@ -338,11 +338,14 @@ export class Pokemon {
     _applyXp(amount: number, player: Player) {
         (window as any).Game.sendGlobalLog(`💹 ${this.name} ganhou ${amount} XP!`);
         this.currentXp += amount; 
+        const levelBefore = this.level;
         
         while(this.currentXp >= this.maxXp && this.level < 25) { 
             this.currentXp -= this.maxXp; 
             this.levelUp(player); 
         } 
+        // Só visual: barra de XP e "subiu de nível" na batalha/HUD
+        (window as any).GameFeel?.onXp?.(this, amount, this.level - levelBefore);
     }
 
     levelUp(player: Player | null) { 

@@ -10,6 +10,7 @@ import './modules/ui/UseFx';
 import './dialog.css'
 import './cinematics.css'
 import './board.css'
+import './screens.css'
 import './modules/ui/Cinematics';
 import { GameDialog } from './modules/ui/GameDialog';
 import { Setup } from './core/Setup';
@@ -116,7 +117,8 @@ function initModalBackdropDismissal() {
             'quests-swap-modal',
             'pkmn-select-modal',
             'battle-confirm-modal',
-            'type-selection-modal'
+            'type-selection-modal',
+            'dice-choice-modal'
         ]);
 
         if (NON_DISMISSIBLE_MODALS.has(modalId)) {

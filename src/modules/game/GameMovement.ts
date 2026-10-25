@@ -6,6 +6,7 @@ import { GameState } from './GameState';
 import { GameUI } from './GameUI';
 import { GameEvents } from './GameEvents';
 import { GameDialog } from '../ui/GameDialog';
+import { ScreenKit } from '../ui/ScreenKit';
 
 export class GameMovement {
     /** true enquanto o diálogo de insígnias/campeão está aberto (bloqueia rolagens repetidas). */
@@ -449,16 +450,25 @@ export class GameMovement {
         if (!modal) {
             modal = document.createElement('div');
             modal.id = 'dice-choice-modal';
-            modal.style.cssText = "position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.85); display:flex; justify-content:center; align-items:center; z-index:9999;";
+            modal.className = 'modal-overlay';
+            modal.style.zIndex = '9999';
             document.body.appendChild(modal);
         }
 
         modal.innerHTML = `
-            <div style="background:#2b2d42; border:3px solid #8d99ae; border-radius:12px; padding:25px; color:white; text-align:center; box-shadow:0 10px 25px rgba(0,0,0,0.8);">
-                <h3 style="margin-top:0; color:#edf2f4; border-bottom:1px solid #8d99ae; padding-bottom:10px;">Re-Roll! Escolha seu destino:</h3>
-                <div style="display:flex; justify-content:center; gap:20px; margin-top:20px;">
-                    <button class="btn" style="font-size:2rem; padding:20px 40px; background:#e74c3c; border:none; border-radius:8px; color:white; cursor:pointer;" onclick="window.Game.chooseDice(${r1})">🎲 ${r1}</button>
-                    <button class="btn" style="font-size:2rem; padding:20px 40px; background:#3498db; border:none; border-radius:8px; color:white; cursor:pointer;" onclick="window.Game.chooseDice(${r2})">🎲 ${r2}</button>
+            <div class="modal-box pb-screen pb-screen--dialog pb-dice-choice">
+                ${ScreenKit.head({ icon: 'dice', kicker: 'Carta Re-roll', title: 'Escolha seu destino' })}
+                <p class="pb-screen-lead">Você rolou dois dados. Fique com o resultado que preferir.</p>
+                <div class="pb-dice-choice-row">
+                    <button type="button" class="pb-die-pick" onclick="window.Game.chooseDice(${r1})" aria-label="Andar ${r1} casas">
+                        ${ScreenKit.diceFace(r1)}
+                        <span>Andar <b>${r1}</b></span>
+                    </button>
+                    <span class="pb-dice-choice-or">ou</span>
+                    <button type="button" class="pb-die-pick" onclick="window.Game.chooseDice(${r2})" aria-label="Andar ${r2} casas">
+                        ${ScreenKit.diceFace(r2)}
+                        <span>Andar <b>${r2}</b></span>
+                    </button>
                 </div>
             </div>
         `;

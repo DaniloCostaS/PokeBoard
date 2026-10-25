@@ -16,6 +16,7 @@ export class GameFeel {
     private static bannerTimer: number | undefined;
     private static lastRank = new Map<number, number>();
     private static goldTweens = new Map<number, { from: number; to: number; start: number }>();
+    private static lastXp = new Map<string, { lv: number; xp: number; pct: number }>();
     private static goldRaf = 0;
 
     private static tweenValue(tw: { from: number; to: number; start: number }, now: number) {
@@ -75,6 +76,8 @@ export class GameFeel {
             }
             if (rank) this.lastRank.set(p.id, rank);
         });
+        this.animateHudXp();
+
         // O HUD é recriado a cada update: reaplica o valor intermediário das contagens em andamento
         this.goldTweens.forEach((tw, id) => {
             const el = document.querySelector<HTMLElement>(`[data-pb-gold="${id}"]`);
@@ -235,7 +238,8 @@ export class GameFeel {
         'Pedra': { color: '#c9b46a', shape: 'rock' }, 'Fantasma': { color: '#9c7bd6', shape: 'ghost' },
         'Dragão': { color: '#8f6bff', shape: 'slash' }, 'Noturno': { color: '#8a7466', shape: 'slash' },
         'Aço': { color: '#d4d7e6', shape: 'impact' }, 'Fada': { color: '#ffb3dc', shape: 'sparkle' },
-        'heal': { color: '#7ee2a4', shape: 'sparkle' }
+        'heal': { color: '#7ee2a4', shape: 'sparkle' },
+        'level': { color: '#ffd76a', shape: 'sparkle' }
     };
 
     private static spawnImpact(target: HTMLElement | null, type: string) {
@@ -299,6 +303,88 @@ export class GameFeel {
     }
 
     // Lê a mensagem do golpe para chamar atenção a acertos especiais, como nos jogos
+    // ------------------------------------------------------------------
+    // Experiência
+    // ------------------------------------------------------------------
+    /**
+     * HUD: compara o EXP de cada Pokémon com a leitura anterior (funciona para ganhos locais e
+     * para os que chegam do online) e anima a barra, com "+N EXP" ou "Lv ↑" na linha.
+     */
+    private static animateHudXp() {
+        const slots = document.querySelectorAll<HTMLElement>('#game-container .player-slot');
+        GameState.players.forEach((p, idx) => {
+            const rows = slots[idx]?.querySelectorAll<HTMLElement>('.pb-party');
+            p.team.forEach((mon: any, slot: number) => {
+                const key = `${p.id}:${slot}:${mon.id}`;
+                const pct = Math.max(0, Math.min(100, (mon.currentXp / mon.maxXp) * 100));
+                const prev = this.lastXp.get(key);
+                this.lastXp.set(key, { lv: mon.level, xp: mon.currentXp, pct });
+                const row = rows?.[slot];
+                if (!prev || !row) return;
+                const leveled = mon.level > prev.lv;
+                if (!leveled && mon.currentXp <= prev.xp) return;
+
+                const fill = row.querySelector<HTMLElement>('.pb-xp-fill');
+                const xpRow = row.querySelector<HTMLElement>('.pb-xp-row');
+                if (fill && !reducedMotion()) {
+                    const frames = leveled
+                        ? [{ width: `${prev.pct}%` }, { width: '100%', offset: 0.45 }, { width: '0%', offset: 0.46 }, { width: `${pct}%` }]
+                        : [{ width: `${prev.pct}%` }, { width: `${pct}%` }];
+                    fill.animate(frames, { duration: leveled ? 1100 : 700, easing: 'ease-out' });
+                }
+                if (xpRow) {
+                    const pop = document.createElement('span');
+                    pop.className = `pb-xp-pop${leveled ? ' is-level' : ''}`;
+                    pop.textContent = leveled ? `Lv ${mon.level}!` : `+${Math.round(mon.currentXp - prev.xp)} EXP`;
+                    row.appendChild(pop);
+                    window.setTimeout(() => pop.remove(), 1700);
+                }
+                if (leveled) this.restartClass(row, 'pb-level-up');
+            });
+        });
+    }
+
+    /** Chamado por Pokemon._applyXp: na batalha, mostra o ganho na barra de EXP do Pokémon em campo. */
+    static onXp(mon: any, amount: number, levelsGained: number) {
+        const Battle = (window as any).Battle;
+        if (!Battle?.active || Battle.activeMon !== mon) return;
+        const scene = document.querySelector('#battle-modal .battle-scene') as HTMLElement | null;
+        const bar = document.getElementById('ply-xp');
+        if (!scene || !bar) return;
+
+        const pct = Math.max(0, Math.min(100, (mon.currentXp / mon.maxXp) * 100));
+        if (!reducedMotion()) {
+            const from = bar.style.width || '0%';
+            const frames = levelsGained > 0
+                ? [{ width: from }, { width: '100%', offset: 0.45 }, { width: '0%', offset: 0.46 }, { width: `${pct}%` }]
+                : [{ width: from }, { width: `${pct}%` }];
+            bar.animate(frames, { duration: levelsGained > 0 ? 1200 : 700, easing: 'ease-out' });
+        }
+
+        const b = bar.getBoundingClientRect();
+        const s = scene.getBoundingClientRect();
+        const tag = document.createElement('span');
+        tag.className = 'pb-battle-xp';
+        tag.textContent = `+${amount} EXP`;
+        tag.style.left = `${b.left - s.left + b.width / 2}px`;
+        tag.style.top = `${b.top - s.top}px`;
+        scene.appendChild(tag);
+        window.setTimeout(() => tag.remove(), 1400);
+
+        if (levelsGained > 0) {
+            window.setTimeout(() => {
+                scene.querySelectorAll('.pb-callout').forEach(n => n.remove());
+                const el = document.createElement('div');
+                el.className = 'pb-callout pb-callout--level';
+                el.textContent = `${mon.name} subiu para o Lv.${mon.level}!`;
+                scene.appendChild(el);
+                this.spawnImpact(document.getElementById('ply-img'), 'level');
+                this.restartClass(document.getElementById('ply-img'), 'pb-level-glow');
+                window.setTimeout(() => el.remove(), 1600);
+            }, 550);
+        }
+    }
+
     static onBattleLog(msg: string) {
         if (!msg || !document.getElementById('battle-modal')?.style.display.includes('flex')) return;
         let callout = '';

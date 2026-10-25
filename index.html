@@ -417,8 +417,9 @@
     <div id="xp-rules-modal" class="modal-overlay">
         <div
             style="width: 500px; max-width: 95%; max-height: 90vh; overflow-y: auto; background: rgba(20, 20, 20, 0.95); border: 2px solid #f1c40f; color: #fff; border-radius: 16px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box; text-align: left;">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px; margin-bottom: 15px;">
-                <h3 style="color: #f1c40f; margin: 0; font-family: 'Outfit', sans-serif;">Regras de XP & Nível</h3>
+            <div class="pb-rules-head">
+                <span class="pb-screen-icon pb-screen-icon--rule" aria-hidden="true"><i class="pb-ico pb-ico-star"></i></span>
+                <div class="pb-screen-title"><small>Poképédia</small><h3>Regras de XP e nível</h3></div>
                 <div class="modal-header-actions">
                     <button class="modal-btn-icon back-btn" title="Voltar para a Poképédia" onclick="window.returnToPokepedia('xp-rules-modal')">←</button>
                     <button class="modal-btn-icon close-btn" title="Fechar" onclick="document.getElementById('xp-rules-modal').style.display='none'">✕</button>
@@ -435,15 +436,16 @@
                 <li><strong>Ações Extras:</strong> Fuga +2 XP | Captura +5 XP de Bônus</li>
             </ul>
             <button class="btn btn-secondary mt-15" style="width: 100%;"
-                onclick="window.returnToPokepedia('xp-rules-modal')">⬅ Voltar para a Poképédia</button>
+                onclick="window.returnToPokepedia('xp-rules-modal')">Voltar para a Poképédia</button>
         </div>
     </div>
 
     <div id="combat-rules-modal" class="modal-overlay">
         <div
             style="width: 550px; max-width: 95%; max-height: 90vh; overflow-y: auto; background: rgba(20, 20, 20, 0.95); border: 2px solid #f1c40f; color: #fff; border-radius: 16px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box; text-align: left;">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px; margin-bottom: 15px;">
-                <h3 style="color: #e74c3c; margin: 0; font-family: 'Outfit', sans-serif;">Nova Mecânica de Combate 2.1</h3>
+            <div class="pb-rules-head">
+                <span class="pb-screen-icon pb-screen-icon--rule" aria-hidden="true"><i class="pb-ico pb-ico-bolt"></i></span>
+                <div class="pb-screen-title"><small>Poképédia · Combate 2.1</small><h3>Regras de combate</h3></div>
                 <div class="modal-header-actions">
                     <button class="modal-btn-icon back-btn" title="Voltar para a Poképédia" onclick="window.returnToPokepedia('combat-rules-modal')">←</button>
                     <button class="modal-btn-icon close-btn" title="Fechar" onclick="document.getElementById('combat-rules-modal').style.display='none'">✕</button>
@@ -463,15 +465,16 @@
                 <li><strong>Sorte (Dado d6):</strong> 1:(-2), 2:(-1), 3:(0), 4:(+2), 5:(+3), 6:(+5 Crítico💥).</li>
             </ul>
             <button class="btn btn-secondary mt-15" style="width: 100%;"
-                onclick="window.returnToPokepedia('combat-rules-modal')">⬅ Voltar para a Poképédia</button>
+                onclick="window.returnToPokepedia('combat-rules-modal')">Voltar para a Poképédia</button>
         </div>
     </div>
 
     <div id="capture-rules-modal" class="modal-overlay">
         <div
             style="width: 550px; max-width: 95%; max-height: 90vh; overflow-y: auto; background: rgba(20, 20, 20, 0.95); border: 2px solid #f1c40f; color: #fff; border-radius: 16px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box; text-align: left;">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px; margin-bottom: 15px;">
-                <h3 style="color: #e67e22; margin: 0; font-family: 'Outfit', sans-serif;">Regras de Captura</h3>
+            <div class="pb-rules-head">
+                <span class="pb-screen-icon pb-screen-icon--rule" aria-hidden="true"><i class="pb-ico pb-ico-ball"></i></span>
+                <div class="pb-screen-title"><small>Poképédia</small><h3>Regras de captura</h3></div>
                 <div class="modal-header-actions">
                     <button class="modal-btn-icon back-btn" title="Voltar para a Poképédia" onclick="window.returnToPokepedia('capture-rules-modal')">←</button>
                     <button class="modal-btn-icon close-btn" title="Fechar" onclick="document.getElementById('capture-rules-modal').style.display='none'">✕</button>
@@ -494,15 +497,16 @@
                 <li><strong>Limite Máximo:</strong> 95% (Exceto Master/Eventos)</li>
             </ul>
             <button class="btn btn-secondary mt-15" style="width: 100%;"
-                onclick="window.returnToPokepedia('capture-rules-modal')">⬅ Voltar para a Poképédia</button>
+                onclick="window.returnToPokepedia('capture-rules-modal')">Voltar para a Poképédia</button>
         </div>
     </div>
 
     <div id="happiness-rules-modal" class="modal-overlay">
         <div
             style="width: 550px; max-width: 95%; max-height: 90vh; overflow-y: auto; background: rgba(20, 20, 20, 0.95); border: 2px solid #ff9ff3; color: #fff; border-radius: 16px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box; text-align: left;">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px; margin-bottom: 15px;">
-                <h3 style="color: #ff9ff3; margin: 0; font-family: 'Outfit', sans-serif;">Felicidade & Vínculo</h3>
+            <div class="pb-rules-head">
+                <span class="pb-screen-icon pb-screen-icon--rule" aria-hidden="true"><i class="pb-ico pb-ico-heart"></i></span>
+                <div class="pb-screen-title"><small>Poképédia</small><h3>Felicidade e vínculo</h3></div>
                 <div class="modal-header-actions">
                     <button class="modal-btn-icon back-btn" title="Voltar para a Poképédia" onclick="window.returnToPokepedia('happiness-rules-modal')">←</button>
                     <button class="modal-btn-icon close-btn" title="Fechar" onclick="document.getElementById('happiness-rules-modal').style.display='none'">✕</button>
@@ -511,8 +515,8 @@
             <ul style="font-size: 0.9rem; line-height: 1.6; color: #ddd;">
                 <li><strong>O que é:</strong> A felicidade representa o vínculo afetivo entre você e seu Pokémon,
                     variando de 0% a 100%.</li>
-                <li><strong>⭐ Bônus de 100%:</strong> Ao atingir 100% de felicidade, o Pokémon ganha um **bônus de +5%
-                    em todos os status** (HP Máximo, Ataque, Defesa e Velocidade).</li>
+                <li><strong>⭐ Bônus de 100%:</strong> Ao atingir 100% de felicidade, o Pokémon ganha um <strong>bônus de +5%
+                    em todos os status</strong> (HP Máximo, Ataque, Defesa e Velocidade).</li>
                 <li><strong>💔 Perda de Bônus:</strong> Se a felicidade cair abaixo de 100%, o bônus de status é perdido
                     imediatamente.</li>
                 <hr style="border-color: rgba(255,255,255,0.1); margin: 12px 0;">
@@ -535,17 +539,16 @@
                     sua felicidade é travada em 100% e nunca poderá ser reduzida.</li>
             </ul>
             <button class="btn btn-secondary mt-15" style="width: 100%;"
-                onclick="window.returnToPokepedia('happiness-rules-modal')">⬅ Voltar para a Poképédia</button>
+                onclick="window.returnToPokepedia('happiness-rules-modal')">Voltar para a Poképédia</button>
         </div>
     </div>
 
     <div id="lixeira-modal" class="modal-overlay">
         <div
             style="width: 800px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: rgba(20, 20, 20, 0.95); border: 2px solid #f1c40f; color: #fff; border-radius: 16px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box;">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px; margin-bottom: 10px;">
-                <h3
-                    style="color: #f1c40f; margin: 0; display: flex; align-items: center; gap: 8px; font-family: 'Outfit', sans-serif;">
-                    Lixeira (Pokémon Abandonados)</h3>
+            <div class="pb-rules-head">
+                <span class="pb-screen-icon pb-screen-icon--trash" aria-hidden="true"><i class="pb-ico pb-ico-trash"></i></span>
+                <div class="pb-screen-title"><small>Pokémon abandonados</small><h3>Lixeira</h3></div>
                 <button class="modal-btn-icon close-btn" title="Fechar" onclick="document.getElementById('lixeira-modal').style.display='none'">✕</button>
             </div>
             <p style="font-size: 0.9rem; color: #aaa; margin: 0 0 15px 0;">Estes Pokémon foram descartados pelos
@@ -574,23 +577,35 @@
     </div>
 
     <div id="team-view-modal" class="modal-overlay" style="z-index: 2500;">
-        <div class="modal-box stats-modal-box" style="width: 95%; max-width: 600px; text-align: center;">
-            <h3 style="color: #f1c40f; text-shadow: 0 0 10px rgba(241,196,15,0.5); margin-bottom: 10px;">Seu Time
-                Atual</h3>
-            <div id="team-view-list"
-                style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 15px; margin-bottom: 15px;">
-            </div>
+        <div class="modal-box stats-modal-box pb-screen pb-screen--narrow">
+            <header class="pb-screen-head">
+                <span class="pb-screen-icon pb-screen-icon--ball" aria-hidden="true"><i></i></span>
+                <div class="pb-screen-title">
+                    <small>Batalha</small>
+                    <h3>Seu time atual</h3>
+                </div>
+                <button class="pb-icon-btn pb-screen-x" aria-label="Fechar"
+                    onclick="document.getElementById('team-view-modal').style.display='none'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+            </header>
+            <div id="team-view-list" class="pb-monlist"></div>
             <button class="btn btn-secondary stats-close-btn"
                 onclick="document.getElementById('team-view-modal').style.display='none'">Fechar</button>
         </div>
     </div>
 
     <div id="player-stats-modal" class="modal-overlay" style="z-index: 2500;">
-        <div class="modal-box stats-modal-box">
-            <h3 style="color: #f1c40f; text-shadow: 0 0 10px rgba(241,196,15,0.5); margin-bottom: 5px;">Painel de
-                Dano Estatístico</h3>
-            <p style="color: #aaa; font-size: 0.85rem; margin-top: 0;">Quem está sofrendo mais nessa partida?</p>
-            <div id="player-stats-list" class="stats-player-list"></div>
+        <div class="modal-box stats-modal-box pb-screen pb-stats-screen">
+            <header class="pb-screen-head">
+                <span class="pb-screen-icon pb-screen-icon--stats" aria-hidden="true"><i></i><i></i><i></i></span>
+                <div class="pb-screen-title">
+                    <small>Estatísticas da partida</small>
+                    <h3>Painel de dano estatístico</h3>
+                </div>
+                <button class="pb-icon-btn pb-screen-x" aria-label="Fechar"
+                    onclick="document.getElementById('player-stats-modal').style.display='none'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+            </header>
+            <p class="pb-screen-lead">Quem está sofrendo mais nessa partida?</p>
+            <div id="player-stats-list" class="pb-stats-list"></div>
             <button class="btn btn-secondary stats-close-btn"
                 onclick="document.getElementById('player-stats-modal').style.display='none'">Fechar</button>
         </div>
@@ -634,63 +649,29 @@
     </div>
 
     <div id="pokepedia-modal" class="modal-overlay" style="z-index: 2500; display: none;">
-        <div style="width: 650px; max-width: 95%; height: auto; max-height: 90vh; display: flex; flex-direction: column; background: rgba(20, 20, 20, 0.95); border: 2px solid #f1c40f; color: #fff; border-radius: 16px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box;"
-            class="modal-box">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px; margin-bottom: 15px;">
-                <h3
-                    style="color: #f1c40f; margin: 0; display: flex; align-items: center; gap: 8px; font-family: 'Outfit', sans-serif;">
-                    Poképédia</h3>
-                <button class="modal-btn-icon close-btn" title="Fechar" onclick="document.getElementById('pokepedia-modal').style.display='none'">✕</button>
+        <div class="modal-box pb-screen pb-pedia">
+            <header class="pb-screen-head">
+                <span class="pb-screen-icon pb-screen-icon--book" aria-hidden="true"><i></i></span>
+                <div class="pb-screen-title">
+                    <small>Biblioteca do treinador</small>
+                    <h3>Poképédia</h3>
+                </div>
+                <button class="pb-icon-btn pb-screen-x" aria-label="Fechar" onclick="document.getElementById('pokepedia-modal').style.display='none'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+            </header>
+
+            <p class="pb-screen-lead">Escolha o manual que deseja consultar.</p>
+
+            <div class="pb-pedia-grid">
+                <button class="pb-pedia-tile" onclick="document.getElementById('pokepedia-modal').style.display='none'; window.Game.openCardLibrary()"><span class="pb-pedia-ico"><i class="pb-ico pb-ico-cards"></i></span><span><b>Cartas</b><small>Todas as cartas e raridades</small></span></button>
+                <button class="pb-pedia-tile" onclick="document.getElementById('pokepedia-modal').style.display='none'; window.Game.openItemLibrary()"><span class="pb-pedia-ico"><i class="pb-ico pb-ico-bag"></i></span><span><b>Itens</b><small>Remédios, bolas e especiais</small></span></button>
+                <button class="pb-pedia-tile" onclick="document.getElementById('pokepedia-modal').style.display='none'; window.QuestManager.openQuestLibrary()"><span class="pb-pedia-ico"><i class="pb-ico pb-ico-quest"></i></span><span><b>Missões</b><small>Objetivos e recompensas</small></span></button>
+                <button class="pb-pedia-tile" onclick="document.getElementById('pokepedia-modal').style.display='none'; window.Game.openCaptureRules()"><span class="pb-pedia-ico"><i class="pb-ico pb-ico-ball"></i></span><span><b>Regras de captura</b><small>Chances e bônus das bolas</small></span></button>
+                <button class="pb-pedia-tile" onclick="document.getElementById('pokepedia-modal').style.display='none'; window.Game.openCombatRules()"><span class="pb-pedia-ico"><i class="pb-ico pb-ico-bolt"></i></span><span><b>Regras de combate</b><small>Dano, esquiva e críticos</small></span></button>
+                <button class="pb-pedia-tile" onclick="document.getElementById('pokepedia-modal').style.display='none'; document.getElementById('happiness-rules-modal').style.display='flex'"><span class="pb-pedia-ico"><i class="pb-ico pb-ico-heart"></i></span><span><b>Felicidade</b><small>Vínculo e bônus de status</small></span></button>
+                <button class="pb-pedia-tile" onclick="document.getElementById('pokepedia-modal').style.display='none'; window.Game.openXpRules()"><span class="pb-pedia-ico"><i class="pb-ico pb-ico-star"></i></span><span><b>XP e nível</b><small>Como seu time evolui</small></span></button>
+                <button class="pb-pedia-tile" onclick="window.open('/manual.html', '_blank')"><span class="pb-pedia-ico"><i class="pb-ico pb-ico-dex"></i></span><span><b>Manual do treinador</b><small>Guia completo (nova aba)</small></span></button>
             </div>
-
-            <p style="text-align: center; color: #bdc3c7; font-size: 0.95rem; margin-bottom: 20px;">
-                Bem-vindo à Poképédia! Escolha o manual que deseja consultar:
-            </p>
-
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                <button class="btn"
-                    style="margin:0; padding: 15px; font-size: 1.05rem; border:none; background: linear-gradient(135deg, #1abc9c, #16a085); color: #fff; font-weight: bold; border-radius: 10px; box-shadow: 0 4px 15px rgba(26, 188, 156, 0.3); transition: transform 0.2s;"
-                    onmouseover="this.style.transform='translateY(-2px)'"
-                    onmouseout="this.style.transform='translateY(0)'"
-                    onclick="document.getElementById('pokepedia-modal').style.display='none'; window.Game.openCardLibrary()">Ver Todas as Cartas</button>
-                <button class="btn"
-                    style="margin:0; padding: 15px; font-size: 1.05rem; border:none; background: linear-gradient(135deg, #3498db, #2980b9); color: #fff; font-weight: bold; border-radius: 10px; box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3); transition: transform 0.2s;"
-                    onmouseover="this.style.transform='translateY(-2px)'"
-                    onmouseout="this.style.transform='translateY(0)'"
-                    onclick="document.getElementById('pokepedia-modal').style.display='none'; window.Game.openItemLibrary()">Ver Todos os Itens</button>
-                <button class="btn"
-                    style="margin:0; padding: 15px; font-size: 1.05rem; border:none; background: linear-gradient(135deg, #e67e22, #d35400); color: #fff; font-weight: bold; border-radius: 10px; box-shadow: 0 4px 15px rgba(230, 126, 34, 0.3); transition: transform 0.2s;"
-                    onmouseover="this.style.transform='translateY(-2px)'"
-                    onmouseout="this.style.transform='translateY(0)'"
-                    onclick="document.getElementById('pokepedia-modal').style.display='none'; window.QuestManager.openQuestLibrary()">Ver Todas as Missões</button>
-                <button class="btn"
-                    style="margin:0; padding: 15px; font-size: 1.05rem; border:none; background: linear-gradient(135deg, #9b59b6, #8e44ad); color: #fff; font-weight: bold; border-radius: 10px; box-shadow: 0 4px 15px rgba(155, 89, 182, 0.3); transition: transform 0.2s;"
-                    onmouseover="this.style.transform='translateY(-2px)'"
-                    onmouseout="this.style.transform='translateY(0)'"
-                    onclick="document.getElementById('pokepedia-modal').style.display='none'; window.Game.openCaptureRules()">Regras de Captura</button>
-                <button class="btn"
-                    style="margin:0; padding: 15px; font-size: 1.05rem; border:none; background: linear-gradient(135deg, #e74c3c, #c0392b); color: #fff; font-weight: bold; border-radius: 10px; box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3); transition: transform 0.2s;"
-                    onmouseover="this.style.transform='translateY(-2px)'"
-                    onmouseout="this.style.transform='translateY(0)'"
-                    onclick="document.getElementById('pokepedia-modal').style.display='none'; window.Game.openCombatRules()">Regras de Combate</button>
-                <button class="btn"
-                    style="margin:0; padding: 15px; font-size: 1.05rem; border:none; background: linear-gradient(135deg, #ff9ff3, #f368e0); color: #fff; font-weight: bold; border-radius: 10px; box-shadow: 0 4px 15px rgba(255, 159, 243, 0.3); transition: transform 0.2s;"
-                    onmouseover="this.style.transform='translateY(-2px)'"
-                    onmouseout="this.style.transform='translateY(0)'"
-                    onclick="document.getElementById('pokepedia-modal').style.display='none'; document.getElementById('happiness-rules-modal').style.display='flex'">Felicidade Pokémon</button>
-                <button class="btn"
-                    style="margin:0; padding: 15px; font-size: 1.05rem; border:none; background: linear-gradient(135deg, #f1c40f, #d4ac0d); color: #2c3e50; font-weight: bold; border-radius: 10px; box-shadow: 0 4px 15px rgba(241, 196, 15, 0.3); transition: transform 0.2s;"
-                    onmouseover="this.style.transform='translateY(-2px)'"
-                    onmouseout="this.style.transform='translateY(0)'"
-                    onclick="document.getElementById('pokepedia-modal').style.display='none'; window.Game.openXpRules()">Regras de XP & Nível</button>
-                <button class="btn"
-                    style="margin:0; padding: 15px; font-size: 1.05rem; border:none; background: linear-gradient(135deg, #2c3e50, #1a252f); color: #00f2fe; font-weight: bold; border-radius: 10px; border: 1px solid rgba(0, 242, 254, 0.3); box-shadow: 0 4px 15px rgba(0, 242, 254, 0.15); transition: transform 0.2s;"
-                    onmouseover="this.style.transform='translateY(-2px)'"
-                    onmouseout="this.style.transform='translateY(0)'"
-                    onclick="window.open('/manual.html', '_blank')">Manual do Treinador</button>
-            </div>
-
-            <button class="btn btn-secondary mt-15" style="margin-top: 25px; border-radius: 8px;"
+            <button class="btn btn-secondary stats-close-btn"
                 onclick="document.getElementById('pokepedia-modal').style.display='none'">Fechar</button>
         </div>
     </div>
@@ -782,10 +763,9 @@
     <div id="pokedex-modal" class="modal-overlay" style="z-index: 1500;">
         <div
             style="width: 850px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: rgba(20, 20, 20, 0.95); border: 2px solid #f1c40f; color: #fff; border-radius: 16px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box;">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px; margin-bottom: 10px;">
-                <h2
-                    style="color: #f1c40f; margin: 0; display: flex; align-items: center; gap: 8px;">
-                    Pokédex Regional</h2>
+            <div class="pb-rules-head">
+                <span class="pb-screen-icon pb-screen-icon--rule" aria-hidden="true"><i class="pb-ico pb-ico-dex"></i></span>
+                <div class="pb-screen-title"><small>Registro do treinador</small><h3>Pokédex regional</h3></div>
                 <button class="modal-btn-icon close-btn" title="Fechar" onclick="document.getElementById('pokedex-modal').style.display='none'">✕</button>
             </div>
             <div id="pokedex-list" class="scroll-list"
@@ -836,10 +816,9 @@
     <div id="library-modal" class="modal-overlay">
         <div style="width: 1200px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: rgba(20, 20, 20, 0.95); border: 2px solid #f1c40f; color: #fff; border-radius: 16px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box;"
             class="modal-box">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px; margin-bottom: 15px;">
-                <h3
-                    style="color: #f1c40f; margin: 0; display: flex; align-items: center; gap: 8px; font-family: 'Outfit', sans-serif;">
-                    Biblioteca de Cartas</h3>
+            <div class="pb-rules-head">
+                <span class="pb-screen-icon pb-screen-icon--rule" aria-hidden="true"><i class="pb-ico pb-ico-cards"></i></span>
+                <div class="pb-screen-title"><small>Poképédia</small><h3>Biblioteca de cartas</h3></div>
                 <div class="modal-header-actions">
                     <button class="modal-btn-icon back-btn" title="Voltar para a Poképédia" onclick="window.returnToPokepedia('library-modal')">←</button>
                     <button class="modal-btn-icon close-btn" title="Fechar" onclick="document.getElementById('library-modal').style.display='none'">✕</button>
@@ -868,16 +847,15 @@
             </div>
             <div id="library-list" class="scroll-list" style="flex: 1; overflow-y: auto;"></div>
             <button class="btn btn-secondary mt-15" style="width: 100%;"
-                onclick="window.returnToPokepedia('library-modal')">⬅ Voltar para a Poképédia</button>
+                onclick="window.returnToPokepedia('library-modal')">Voltar para a Poképédia</button>
         </div>
     </div>
     <div id="item-library-modal" class="modal-overlay">
         <div style="width: 1200px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: rgba(20, 20, 20, 0.95); border: 2px solid #f1c40f; color: #fff; border-radius: 16px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box;"
             class="modal-box">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px; margin-bottom: 15px;">
-                <h3
-                    style="color: #f1c40f; margin: 0; display: flex; align-items: center; gap: 8px; font-family: 'Outfit', sans-serif;">
-                    Enciclopédia de Itens</h3>
+            <div class="pb-rules-head">
+                <span class="pb-screen-icon pb-screen-icon--rule" aria-hidden="true"><i class="pb-ico pb-ico-bag"></i></span>
+                <div class="pb-screen-title"><small>Poképédia</small><h3>Enciclopédia de itens</h3></div>
                 <div class="modal-header-actions">
                     <button class="modal-btn-icon back-btn" title="Voltar para a Poképédia" onclick="window.returnToPokepedia('item-library-modal')">←</button>
                     <button class="modal-btn-icon close-btn" title="Fechar" onclick="document.getElementById('item-library-modal').style.display='none'">✕</button>
@@ -898,7 +876,7 @@
             </div>
             <div id="item-library-list" class="scroll-list" style="flex: 1; overflow-y: auto;"></div>
             <button class="btn btn-secondary mt-15" style="width: 100%;"
-                onclick="window.returnToPokepedia('item-library-modal')">⬅ Voltar para a Poképédia</button>
+                onclick="window.returnToPokepedia('item-library-modal')">Voltar para a Poképédia</button>
         </div>
     </div>
     <div id="battle-cards-modal" class="modal-overlay" style="z-index: 1200;">
@@ -917,29 +895,27 @@
     </div>
 
     <div id="swap-modal" class="modal-overlay" style="z-index: 1300;">
-        <div
-            style="width: 500px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: rgba(20, 20, 20, 0.95); border: 2px solid #f1c40f; color: #fff; border-radius: 16px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box;">
-            <h3
-                style="color: #f1c40f; margin-top: 0; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px; display: flex; align-items: center; gap: 8px; font-family: 'Outfit', sans-serif;">
-                Time Cheio!</h3>
-            <p style="color: #aaa; margin: 10px 0 5px 0;">Seu time já tem 6 Pokémons.</p>
-            <p style="font-size:0.9rem; color: #e74c3c; margin: 0 0 15px 0;">Clique em um Pokémon para
-                <strong>SOLTAR</strong> (abandonar) e manter o resto.
-            </p>
-            <div id="swap-list" class="scroll-list"
-                style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 5px;">
-            </div>
+        <div class="modal-box pb-screen pb-screen--narrow">
+            <header class="pb-screen-head">
+                <span class="pb-screen-icon pb-screen-icon--ball" aria-hidden="true"><i></i></span>
+                <div class="pb-screen-title">
+                    <small>Seu time já tem 6 Pokémon</small>
+                    <h3>Time cheio</h3>
+                </div>
+            </header>
+            <p class="pb-screen-lead">Toque no Pokémon que você quer <strong>soltar</strong>. Os outros continuam no time.</p>
+            <div id="swap-list" class="pb-monlist"></div>
         </div>
     </div>
     <div id="pkmn-select-modal" class="modal-overlay z-high">
-        <div
-            style="width: 500px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: rgba(20, 20, 20, 0.95); border: 2px solid #f1c40f; color: #fff; border-radius: 16px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box;">
-            <h3 id="select-title"
-                style="color: #f1c40f; margin-top: 0; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px; display: flex; align-items: center; gap: 8px; font-family: 'Outfit', sans-serif;">
-                Escolha</h3>
-            <div id="pkmn-select-list" class="scroll-list text-left"
-                style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 5px;">
-            </div>
+        <div class="modal-box pb-screen pb-screen--narrow">
+            <header class="pb-screen-head">
+                <span class="pb-screen-icon pb-screen-icon--ball" aria-hidden="true"><i></i></span>
+                <div class="pb-screen-title">
+                    <h3 id="select-title">Escolha</h3>
+                </div>
+            </header>
+            <div id="pkmn-select-list" class="pb-monlist"></div>
         </div>
     </div>
 
@@ -1267,32 +1243,37 @@
     </div>
 
     <div id="type-selection-modal" class="modal-overlay" style="z-index: 5000;">
-        <div class="modal-box"
-            style="max-width: 500px; height: auto; max-height: 85vh; background: #1a1a2e; color: white; border: 2px solid #3498db;">
-            <h2 class="title-highlight">Lure Type: Selecione o Tipo</h2>
-            <p class="subtitle" style="color: #bdc3c7;">Escolha o tipo de Pokémon que você deseja atrair nos próximos 2
-                encontros.</p>
-            <div id="type-selection-grid"
-                style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; padding: 10px;">
+        <div class="modal-box pb-screen pb-screen--narrow">
+            <header class="pb-screen-head">
+                <span class="pb-screen-icon pb-screen-icon--rule" aria-hidden="true"><i class="pb-ico pb-ico-ball"></i></span>
+                <div class="pb-screen-title">
+                    <small>Carta Lure Type</small>
+                    <h3>Escolha o tipo</h3>
+                </div>
+            </header>
+            <p class="pb-screen-lead">Pokémon desse tipo serão atraídos nos próximos 2 encontros.</p>
+            <div id="type-selection-grid" class="pb-type-grid">
                 <!-- Tipos serão gerados via JS -->
             </div>
-            <button class="btn btn-secondary mt-15" style="background: #34495e; border: none;"
+            <button class="btn btn-secondary"
                 onclick="document.getElementById('type-selection-modal').style.display='none'">Cancelar</button>
         </div>
     </div>
 
     <div id="event-selection-modal" class="modal-overlay" style="z-index: 5000; display: none;">
-        <div class="modal-box"
-            style="max-width: 600px; width: 90%; height: auto; max-height: 85vh; background: #1a1a2e; color: white; border: 2px solid #f1c40f; display: flex; flex-direction: column;">
-            <h2 class="title-highlight" style="color: #f1c40f; border-bottom: 2px solid #f1c40f; padding-bottom: 10px;">
-                Modulador de Eventos</h2>
-            <p class="subtitle" style="color: #bdc3c7; margin-top: 10px; margin-bottom: 15px;">Escolha o novo Evento
-                Global que ficará ativo no tabuleiro:</p>
-            <div id="event-selection-list" class="scroll-list"
-                style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; max-height: 50vh; padding: 5px;">
+        <div class="modal-box pb-screen pb-screen--narrow">
+            <header class="pb-screen-head">
+                <span class="pb-screen-icon pb-screen-icon--rule" aria-hidden="true"><i class="pb-ico pb-ico-bolt"></i></span>
+                <div class="pb-screen-title">
+                    <small>Modulador de eventos</small>
+                    <h3>Escolha o evento global</h3>
+                </div>
+            </header>
+            <p class="pb-screen-lead">O evento escolhido fica ativo no tabuleiro para todos os jogadores.</p>
+            <div id="event-selection-list" class="pb-event-list">
                 <!-- Eventos serão gerados via JS -->
             </div>
-            <button class="btn btn-secondary mt-15" style="background: #34495e; border: none; margin-top: 15px;"
+            <button class="btn btn-secondary"
                 onclick="document.getElementById('event-selection-modal').style.display='none'">Cancelar</button>
         </div>
     </div>
