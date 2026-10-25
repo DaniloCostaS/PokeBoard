@@ -1,0 +1,162 @@
+/* ==========================================================================
+   Mão de cartas em leque
+   ========================================================================== */
+.pb-hand {
+    display: flex;
+    justify-content: safe center;
+    align-items: flex-end;
+    min-height: 0;
+    padding: 52px 28px 18px;
+    overflow-x: auto;
+    overflow-y: visible;
+    scrollbar-width: thin;
+    scroll-padding: 0 40px;
+}
+
+.pb-hand-card {
+    position: relative;
+    flex: 0 0 auto;
+    width: clamp(88px, 22vw, 124px);
+    aspect-ratio: 2.5 / 3.5;
+    margin: 0 0 0 calc(clamp(88px, 22vw, 124px) * var(--overlap, 0.4) * -1);
+    padding: 0;
+    background: #0d141a;
+    border: 3px solid var(--rarity, #8d99ae);
+    border-radius: 9px;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.45);
+    cursor: pointer;
+    transform: translateY(var(--lift, 0)) rotate(var(--rot, 0));
+    transform-origin: 50% 120%;
+    transition: transform 180ms cubic-bezier(0.2, 0.8, 0.3, 1), box-shadow 180ms ease;
+}
+
+.pb-hand-card:first-child {
+    margin-left: 0;
+}
+
+.pb-hand-card img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 6px;
+    pointer-events: none;
+    user-select: none;
+}
+
+.pb-hand-card:hover {
+    transform: translateY(calc(var(--lift, 0) - 12px)) rotate(var(--rot, 0));
+}
+
+.pb-hand-card.is-selected {
+    z-index: 100 !important;
+    transform: translateY(-24px) rotate(0) scale(1.1);
+    box-shadow: 0 0 0 2px #fff, 0 16px 30px rgba(0, 0, 0, 0.55);
+}
+
+.pb-hand-card:focus-visible {
+    outline: 2px solid #8cc4ef;
+    outline-offset: 3px;
+}
+
+.pb-hand-lock {
+    position: absolute;
+    left: 50%;
+    bottom: 6px;
+    padding: 2px 6px;
+    color: #1a1406;
+    font: 700 0.6rem/1.2 var(--pb-font);
+    white-space: nowrap;
+    background: var(--pb-amber);
+    border-radius: 999px;
+    transform: translateX(-50%);
+}
+
+.pb-hand-detail {
+    display: grid;
+    gap: 8px;
+    padding: 14px;
+    text-align: left;
+    background: var(--pb-surface-2);
+    border: 1px solid var(--pb-line);
+    border-radius: var(--pb-radius-lg);
+}
+
+.pb-hand-hint {
+    margin: 0;
+    color: var(--pb-text-3);
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+.pb-hand-detail-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 8px;
+}
+
+.pb-hand-detail-head strong {
+    margin-right: 4px;
+    color: var(--pb-text);
+    font-size: 1.05rem;
+}
+
+.pb-hand-tag {
+    padding: 2px 8px;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    background: var(--rarity, var(--pb-surface-3));
+    border-radius: 999px;
+}
+
+.pb-hand-tag--type {
+    color: var(--pb-text-2);
+    background: var(--pb-surface-3);
+}
+
+.pb-hand-detail p {
+    margin: 0;
+    color: var(--pb-text-2);
+    font-size: 0.88rem;
+    line-height: 1.45;
+}
+
+.pb-hand-actions {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 8px;
+}
+
+.pb-hand-actions .btn {
+    margin: 0;
+}
+
+/* Carta voando da mão para o centro da tela */
+.pb-card-flight {
+    position: fixed;
+    z-index: 10050;
+    object-fit: cover;
+    border-radius: 8px;
+    box-shadow: 0 0 0 3px #fff, 0 20px 40px rgba(0, 0, 0, 0.6);
+    pointer-events: none;
+    transform-origin: center;
+}
+
+.pb-hand.is-scrollable {
+    justify-content: flex-start;
+}
+
+@media (max-width: 1000px) {
+    .pb-hand {
+        padding: 48px 20px 14px;
+        margin: 0 -14px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pb-hand-card {
+        transition: none;
+    }
+}

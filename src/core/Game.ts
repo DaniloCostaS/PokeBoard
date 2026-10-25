@@ -27,8 +27,6 @@ export class Game {
     static get globalChampion() { return GameState.globalChampion; }
     static set globalChampion(val) { GameState.globalChampion = val; }
 
-    static get traps() { return GameState.traps; }
-    static set traps(val) { GameState.traps = val; }
 
     static get lixeira() { return GameState.lixeira; }
     static set lixeira(val) { GameState.lixeira = val; }
@@ -77,7 +75,6 @@ export class Game {
     // ==========================================
     static updateHUD() { GameUI.updateHUD(); }
     static renderBoard() { GameUI.renderBoard(); }
-    static renderTraps(newTraps?: any[]) { GameUI.renderTraps(newTraps); }
     static moveVisuals() { GameUI.moveVisuals(); }
     static renderChampionBanner() { (GameUI as any).renderChampionBanner(); }
 
@@ -157,7 +154,6 @@ export class Game {
     static checkTurnControl() { GameEvents.checkTurnControl(); }
     static iniciarTurno() { GameEvents.iniciarTurno(); }
     static getLastCityCoord(p: Player) { return GameEvents.getLastCityCoord(p); }
-    static placeTrap(x: number, y: number, ownerId: number) { (GameMovement as any).placeTrap(x, y, ownerId); }
 
     static addItem(player: Player, itemId: string, amount: number = 1) { GameEvents.addItem(player, itemId, amount); }
     static useItemBoard(key: string, pId: number) { GameEvents.useItemBoard(key, pId); }

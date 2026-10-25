@@ -3,6 +3,8 @@ import { GameState } from '../game/GameState';
 import { Player } from '../../models/Player';
 import { GameUI } from '../game/GameUI';
 import { Network } from '../../systems/Network';
+import { GameDialog } from '../ui/GameDialog';
+import { ScreenKit } from '../ui/ScreenKit';
 
 export interface ActiveQuest {
     questId: number;
@@ -36,13 +38,19 @@ export class QuestManager {
             if (!questId) {
                 // Se foi aleatório e já tem, pega outra
                 quest = QUESTS_DB.find(q => !player.activeQuests.find(aq => aq.questId === q.id));
-                if (!quest) return; // Tem todas as quests
+                if (!quest) { if (endsTurn) (window as any).Game?.nextTurn(); return; } // Tem todas as quests: não prende o turno
             } else {
                 return; // Já tem essa quest específica
             }
         }
 
         if (player.activeQuests.length >= 3) {
+            // A CPU não clica no modal de troca: mantém as missões atuais e segue o turno (antes o jogo travava
+            // quando uma CPU com 3 missões caía no resultado "missão" da casa de Evento)
+            if (player.isCPU) {
+                GameUI.showGlobalAlert(`📜 ${player.name} encontrou a missão "${quest.name}", mas já tem 3 missões ativas e manteve as atuais.`, player.name, true, endsTurn);
+                return;
+            }
             this.openSwapModal(player, quest, endsTurn);
             return;
         }
@@ -166,6 +174,7 @@ export class QuestManager {
         player.activeQuests = player.activeQuests.filter(q => q.questId !== activeQuest.questId);
 
         GameUI.sendGlobalLog(`🎉 ${player.name} completou a missão [${questDef.name}] e recebeu: ${questDef.rewardDesc}!`);
+        (window as any).Cinematics?.quest(player, questDef.name, questDef.rewardDesc);
         GameUI.showGlobalAlert(`🎉 MISSÃO CONCLUÍDA!\n\n${questDef.name}\nVocê recebeu: ${questDef.rewardDesc}`, player.name, true, false);
         GameUI.updateHUD();
     }
@@ -173,6 +182,22 @@ export class QuestManager {
     static removeQuest(player: Player, questId: number) {
         if (!player.activeQuests) return;
         player.activeQuests = player.activeQuests.filter(q => q.questId !== questId);
+    }
+
+    /** Cartão de missão no visual do jogo (faixa de raridade, recompensa e rodapé livre). */
+    static questCardHTML(q: QuestData, extra: string, footer: string): string {
+        const rarityColors: Record<string, string> = { 'Comum': '#9aa8b4', 'Incomum': '#2fb560', 'Rara': '#3a80bf', 'Épica': '#8e5bc4', 'Lendária': '#e0a92e' };
+        return `
+            <article class="pb-quest" style="--rc:${rarityColors[q.rarity] || '#9aa8b4'}">
+                <header class="pb-quest-head">
+                    <i class="pb-ico pb-ico-quest" aria-hidden="true"></i>
+                    <strong>${q.name}</strong>
+                    <span class="pb-quest-rarity">${q.rarity.toUpperCase()}</span>
+                </header>
+                <p class="pb-quest-desc">${q.desc}${extra ? `<br>${extra}` : ''}</p>
+                <div class="pb-quest-reward"><small>Recompensa</small><span>${q.rewardDesc}</span></div>
+                ${footer}
+            </article>`;
     }
 
     static openQuestsModal(player: Player) {
@@ -183,15 +208,10 @@ export class QuestManager {
             modal.className = 'modal-overlay';
             modal.style.zIndex = '9999';
             modal.innerHTML = `
-                <div class="modal-content" style="width: 500px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: rgba(20, 20, 20, 0.95); border: 2px solid #f1c40f; color: #fff; border-radius: 16px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
-                        <h3 style="color: #f1c40f; margin: 0; display: flex; align-items: center; gap: 8px; font-family: 'Outfit', sans-serif;">
-                            📜 Minhas Missões
-                        </h3>
-                        <button class="modal-btn-icon close-btn" title="Fechar" onclick="document.getElementById('quests-modal').style.display='none'">✕</button>
-                    </div>
-                    <div id="quests-list" class="scroll-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; margin-top: 10px; padding-right: 5px;"></div>
-                    <button class="btn btn-secondary" style="margin-top: 15px; width: 100%;" onclick="document.getElementById('quests-modal').style.display='none'">Fechar</button>
+                <div class="modal-content pb-screen pb-screen--narrow">
+                    ${ScreenKit.head({ icon: 'quest', iconHTML: ScreenKit.QUEST_ICON, kicker: 'Diário do treinador', title: 'Minhas missões', actions: ScreenKit.closeX("document.getElementById('quests-modal').style.display='none'") })}
+                    <div id="quests-list" class="pb-quest-list"></div>
+                    <button class="btn btn-secondary stats-close-btn" onclick="document.getElementById('quests-modal').style.display='none'">Fechar</button>
                 </div>
             `;
             document.body.appendChild(modal);
@@ -201,7 +221,7 @@ export class QuestManager {
         list.innerHTML = '';
 
         if (!player.activeQuests || player.activeQuests.length === 0) {
-            list.innerHTML = '<p style="text-align:center; color:#bdc3c7;">Você não tem missões ativas.</p>';
+            list.innerHTML = '<p class="pb-stats-empty">Você não tem missões ativas.</p>';
         } else {
             player.activeQuests.forEach(aq => {
                 const q = QUESTS_DB.find(def => def.id === aq.questId);
@@ -211,65 +231,26 @@ export class QuestManager {
                         const NetworkObj = (window as any).Network;
                         const isMyPlayer = !NetworkObj?.isOnline || NetworkObj.myPlayerId === player.id;
                         if (isMyPlayer) {
-                            completeBtn = `<button class="btn" style="margin-top: 15px; width: 100%; background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%); color: white; font-weight: bold; font-size: 0.9rem; border: none; box-shadow: 0 4px 10px rgba(46, 204, 113, 0.3);" onclick="window.QuestManager.claimReward(${player.id}, ${q.id})">✅ REIVINDICAR RECOMPENSA</button>`;
+                            completeBtn = `<button class="btn btn-start-turn pb-quest-claim" onclick="window.QuestManager.claimReward(${player.id}, ${q.id})">Reivindicar recompensa</button>`;
                         } else {
-                            completeBtn = `<button class="btn" disabled style="margin-top: 15px; width: 100%; background: #555; color: #aaa; font-weight: bold; font-size: 0.9rem; border: none; cursor: not-allowed;">✅ CONCLUÍDA (AGUARDANDO)</button>`;
+                            completeBtn = `<button class="btn btn-secondary pb-quest-claim" disabled>Concluída (aguardando)</button>`;
                         }
                     }
 
-                    const borderColors: Record<string, string> = { 'Comum': '#bdc3c7', 'Incomum': '#2ecc71', 'Rara': '#3498db', 'Épica': '#9b59b6', 'Lendária': '#f1c40f' };
-                    const bColor = borderColors[q.rarity] || '#f1c40f';
+                    const bar = (label: string, val: number, target: number) => {
+                        const p = Math.min(100, Math.floor((val / target) * 100));
+                        return `
+                            <div class="pb-quest-progress ${p === 100 ? 'is-done' : ''}">
+                                <div class="pb-quest-progress-top"><span>${label}</span><b>${val}/${target}</b></div>
+                                <div class="pb-quest-bar"><u style="width:${p}%"></u></div>
+                            </div>`;
+                    };
+                    const progressHTML = q.multiTargets
+                        ? q.multiTargets.map((mt: any) => bar(mt.label, aq.data ? (aq.data[mt.key] || 0) : 0, mt.target)).join('')
+                        : bar('Progresso', aq.progress, q.target);
 
-                    let progressHTML = '';
-                    if (q.multiTargets) {
-                        q.multiTargets.forEach((mt: any) => {
-                            const val = aq.data ? (aq.data[mt.key] || 0) : 0;
-                            const tPct = Math.min(100, Math.floor((val / mt.target) * 100));
-                            progressHTML += `
-                                <div style="margin-top: 10px;">
-                                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #ddd; margin-bottom: 4px;">
-                                        <span>${mt.label}</span>
-                                        <span style="color: ${tPct === 100 ? '#2ecc71' : '#bdc3c7'}; font-weight: bold;">${val} / ${mt.target}</span>
-                                    </div>
-                                    <div style="background: rgba(0,0,0,0.4); height: 8px; border-radius: 4px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05);">
-                                        <div style="width: ${tPct}%; background: ${tPct === 100 ? '#2ecc71' : '#3498db'}; height: 100%; box-shadow: 0 0 10px ${tPct === 100 ? '#2ecc71' : '#3498db'}; transition: width 0.3s ease;"></div>
-                                    </div>
-                                </div>
-                            `;
-                        });
-                    } else {
-                        const pct = Math.min(100, Math.floor((aq.progress / q.target) * 100));
-                        progressHTML = `
-                            <div style="margin-top: 10px;">
-                                <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #ddd; margin-bottom: 4px;">
-                                    <span>Progresso</span>
-                                    <span style="color: ${pct === 100 ? '#2ecc71' : '#bdc3c7'}; font-weight: bold;">${aq.progress} / ${q.target}</span>
-                                </div>
-                                <div style="background: rgba(0,0,0,0.4); height: 8px; border-radius: 4px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05);">
-                                    <div style="width: ${pct}%; background: ${pct === 100 ? '#2ecc71' : '#3498db'}; height: 100%; box-shadow: 0 0 10px ${pct === 100 ? '#2ecc71' : '#3498db'}; transition: width 0.3s ease;"></div>
-                                </div>
-                            </div>
-                        `;
-                    }
-
-                    list.innerHTML += `
-                        <div style="display: flex; flex-direction: column; background: rgba(0,0,0,0.3); border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.4); width: 100%; box-sizing: border-box; position: relative; border: 1px solid rgba(255,255,255,0.05); transition: transform 0.2s; overflow: visible;">
-                            <div style="background: ${bColor}; color: #fff; padding: 8px 15px; font-weight: bold; text-shadow: 1px 1px 0 rgba(0,0,0,0.5); display: flex; justify-content: space-between; align-items: center; border-radius: 8px 8px 0 0;">
-                                <span style="font-size: 1.05rem; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; max-width: 80%;">${q.name}</span>
-                                <span style="font-size: 0.65rem; background: rgba(0,0,0,0.4); padding: 3px 8px; border-radius: 12px; letter-spacing: 0.5px;">${q.rarity.toUpperCase()}</span>
-                            </div>
-                            <div style="padding: 15px; display: flex; flex-direction: column;">
-                                <p style="font-size: 0.9rem; color: #ddd; margin: 0 0 12px 0; line-height: 1.5;">${q.desc}${aq.data?.specificType ? `<br><b style="color:#f1c40f;">Tipo sorteado: ${aq.data.specificType}</b>` : ''}</p>
-                                <div style="background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 6px; border: 1px dashed rgba(255,255,255,0.1); margin-bottom: 4px;">
-                                    <div style="font-size: 0.85rem; color: #2ecc71; font-weight: bold; display: flex; align-items: center; gap: 5px;">
-                                        <span>🎁</span> <span>${q.rewardDesc}</span>
-                                    </div>
-                                </div>
-                                ${progressHTML}
-                                ${completeBtn}
-                            </div>
-                        </div>
-                    `;
+                    const extra = aq.data?.specificType ? `<span class="pb-quest-type">Tipo sorteado: <b>${aq.data.specificType}</b></span>` : '';
+                    list.innerHTML += QuestManager.questCardHTML(q, extra, progressHTML + completeBtn);
                 }
             });
         }
@@ -288,30 +269,26 @@ export class QuestManager {
         }
 
         let html = `
-            <div class="modal-content" style="max-width: 500px; background: #2c3e50; color: white;">
-                <h2>⚠️ Limite de Missões Atingido</h2>
-                <p>Você já possui 3 missões ativas. Qual missão você deseja abandonar para aceitar a nova?</p>
-                
-                <div style="background: rgba(46, 204, 113, 0.2); border: 1px solid #2ecc71; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
-                    <strong>NOVA MISSÃO: ${newQuest.name}</strong><br>
-                    <span style="font-size:0.85rem">${newQuest.desc}</span><br>
-                    <span style="font-size:0.8rem; color:#f1c40f">Recompensa: ${newQuest.rewardDesc}</span>
-                </div>
-                
-                <div id="quests-swap-list" style="text-align: left;">
+            <div class="modal-content pb-screen pb-screen--narrow">
+                ${ScreenKit.head({ icon: 'quest', iconHTML: ScreenKit.QUEST_ICON, kicker: 'Você já tem 3 missões ativas', title: 'Limite de missões' })}
+                <p class="pb-screen-lead">Escolha uma missão para abandonar e aceitar a nova, ou mantenha as atuais.</p>
+                <div class="pb-monlist-sep">Nova missão</div>
+                ${QuestManager.questCardHTML(newQuest, '', '')}
+                <div class="pb-monlist-sep">Missões atuais</div>
+                <div id="quests-swap-list" class="pb-quest-list">
         `;
 
         player.activeQuests.forEach((aq) => {
             const q = QUESTS_DB.find(def => def.id === aq.questId);
             if (q) {
                 html += `
-                    <div style="background: rgba(0,0,0,0.3); padding: 10px; margin-bottom: 10px; border-radius: 8px; display:flex; justify-content: space-between; align-items: center;">
+                    <div class="pb-quest-swap-row">
                         <div>
-                            <strong style="color: #e74c3c;">${q.name}</strong><br>
-                            <span style="font-size:0.85rem">${q.desc}</span><br>
-                            <span style="font-size:0.8rem; color:#bdc3c7">Progresso: ${aq.progress}/${q.target}</span>
+                            <strong>${q.name}</strong>
+                            <span>${q.desc}</span>
+                            <small>Progresso <b>${aq.progress}/${q.target}</b></small>
                         </div>
-                        <button class="btn btn-danger btn-sm" onclick="window.QuestManager.swapQuest(${player.id}, ${q.id}, ${newQuest.id}, ${endsTurn})">Abandonar</button>
+                        <button class="btn btn-roll" onclick="window.QuestManager.swapQuest(${player.id}, ${q.id}, ${newQuest.id}, ${endsTurn})">Abandonar</button>
                     </div>
                 `;
             }
@@ -319,7 +296,7 @@ export class QuestManager {
 
         html += `
                 </div>
-                <button class="btn btn-secondary" style="margin-top: 10px; width: 100%;" onclick="window.QuestManager.cancelSwap(${endsTurn})">Manter Missões Atuais</button>
+                <button class="btn btn-secondary" onclick="window.QuestManager.cancelSwap(${endsTurn})">Manter missões atuais</button>
             </div>
         `;
         
@@ -381,15 +358,15 @@ export class QuestManager {
         // Check if it's player's turn
         const currentPlayer = Game.getCurrentPlayer();
         if (!currentPlayer || currentPlayer.id !== playerId) {
-            return alert("Você só pode concluir missões durante o seu próprio turno!");
+            return GameDialog.toast("Você só pode concluir missões durante o seu próprio turno!", { tone: 'warning' });
         }
 
         if (!GameState.turnStarted) {
-            return alert("Você só pode concluir missões após iniciar o seu turno! Cuidado para não queimar etapas.");
+            return GameDialog.toast("Inicie o seu turno antes de concluir missões.", { tone: 'warning' });
         }
 
         if (NetworkObj && NetworkObj.isOnline && NetworkObj.myPlayerId !== playerId) {
-            return alert("Você não pode concluir missões de outro jogador.");
+            return GameDialog.toast("Você não pode concluir missões de outro jogador.", { tone: 'warning' });
         }
 
         const player = Game.players.find((p: any) => p.id === playerId);
@@ -421,18 +398,10 @@ export class QuestManager {
             modal.className = 'modal-overlay';
             modal.style.zIndex = '9999';
             modal.innerHTML = `
-                <div class="modal-content" style="width: 1200px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: rgba(20, 20, 20, 0.95); border: 2px solid #f1c40f; color: #fff; border-radius: 16px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
-                        <h3 style="color: #f1c40f; margin: 0; display: flex; align-items: center; gap: 8px; font-family: 'Outfit', sans-serif;">
-                            📜 Biblioteca de Missões
-                        </h3>
-                        <div class="modal-header-actions">
-                            <button class="modal-btn-icon back-btn" title="Voltar para a Poképédia" onclick="window.returnToPokepedia('quest-library-modal')">←</button>
-                            <button class="modal-btn-icon close-btn" title="Fechar" onclick="document.getElementById('quest-library-modal').style.display='none'">✕</button>
-                        </div>
-                    </div>
-                    <div id="quest-library-list" class="scroll-list" style="flex: 1; overflow-y: auto;"></div>
-                    <button class="btn btn-secondary" style="margin-top: 15px; width: 100%;" onclick="window.returnToPokepedia('quest-library-modal')">⬅ Voltar para a Poképédia</button>
+                <div class="modal-content pb-screen pb-screen--wide">
+                    ${ScreenKit.head({ icon: 'quest', iconHTML: ScreenKit.QUEST_ICON, kicker: 'Poképédia', title: 'Biblioteca de missões', actions: `<div class="pb-screen-actions">${ScreenKit.backBtn("window.returnToPokepedia('quest-library-modal')", 'Voltar para a Poképédia')}${ScreenKit.closeX("document.getElementById('quest-library-modal').style.display='none'")}</div>` })}
+                    <div id="quest-library-list" class="pb-quest-grid"></div>
+                    <button class="btn btn-secondary" onclick="window.returnToPokepedia('quest-library-modal')">Voltar para a Poképédia</button>
                 </div>
             `;
             document.body.appendChild(modal);
@@ -441,38 +410,11 @@ export class QuestManager {
         const list = document.getElementById('quest-library-list')!;
         list.innerHTML = '';
         
-        list.style.display = 'grid';
-        list.style.gridTemplateColumns = 'repeat(auto-fill, minmax(280px, 1fr))';
-        list.style.gap = '20px';
-        list.style.padding = '10px';
-        list.style.width = '100%';
-        list.style.boxSizing = 'border-box';
-        
-        const borderColors: Record<string, string> = { 'Comum': '#bdc3c7', 'Incomum': '#2ecc71', 'Rara': '#3498db', 'Épica': '#9b59b6', 'Lendária': '#f1c40f' };
-
-        QUESTS_DB.forEach(q => {
-            const bColor = borderColors[q.rarity] || '#f1c40f';
-            list.innerHTML += `
-                <div style="display: flex; flex-direction: column; background: rgba(0,0,0,0.3); border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.4); width: 100%; height: 100%; min-height: 200px; box-sizing: border-box; position: relative; border: 1px solid rgba(255,255,255,0.05); transition: transform 0.2s; overflow: visible;">
-                    <div style="background: ${bColor}; color: #fff; padding: 8px 15px; font-weight: bold; text-shadow: 1px 1px 0 rgba(0,0,0,0.5); display: flex; justify-content: space-between; align-items: center; border-radius: 8px 8px 0 0;">
-                        <span style="font-size: 1.1rem; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; max-width: 80%;">${q.name}</span>
-                        <span style="font-size: 0.65rem; background: rgba(0,0,0,0.4); padding: 3px 8px; border-radius: 12px; letter-spacing: 0.5px;">${q.rarity.toUpperCase()}</span>
-                    </div>
-                    <div style="padding: 15px; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
-                        <p style="font-size: 0.9rem; color: #ddd; margin: 0 0 12px 0; line-height: 1.5;">${q.desc}</p>
-                        <div style="background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); margin-top: auto;">
-                            <div style="font-size: 0.85rem; color: #2ecc71; font-weight: bold; margin-bottom: 6px; display: flex; align-items: center; gap: 5px;">
-                                <span>🎁</span> <span>${q.rewardDesc}</span>
-                            </div>
-                            <div style="font-size: 0.75rem; color: #888; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 6px; display: flex; justify-content: space-between;">
-                                <span>Meta: <b style="color: #aaa;">${q.target}</b></span>
-                                <span>Gatilho: <b style="color: #aaa;">${q.triggerType}</b></span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        });
+        list.innerHTML = QUESTS_DB.map(q => QuestManager.questCardHTML(q, '', `
+            <footer class="pb-quest-meta">
+                <span>Meta <b>${q.target}</b></span>
+                <span>Gatilho <code>${q.triggerType}</code></span>
+            </footer>`)).join('');
 
         modal.style.display = 'flex';
     }

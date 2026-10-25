@@ -247,6 +247,15 @@ export class SupabaseDataStore {
     static async replaceKeyValues(table: 'player_effects' | 'player_stats', playerId: string, record: any) {
         const rows = flattenRecord(record).map(row => ({ player_id: playerId, key: row.key, value: row.value }));
         if (rows.length) await supabase.from(table).upsert(rows, { onConflict: 'player_id,key' });
+
+        // Remove chaves apagadas localmente (ex: delete effects.lureType), senão voltariam no próximo refresh
+        const staleDelete = supabase.from(table).delete().eq('player_id', playerId);
+        if (rows.length) {
+            const keyList = rows.map(row => `"${row.key.replace(/"/g, '\\"')}"`).join(',');
+            await staleDelete.not('key', 'in', `(${keyList})`);
+        } else {
+            await staleDelete;
+        }
     }
 
     static async replacePokedex(playerId: string, pokedexData: any) {
@@ -347,10 +356,6 @@ export class SupabaseDataStore {
         }));
     }
 
-    static async saveTraps(roomId: string, traps: any[]) {
-        await supabase.from('room_traps').delete().eq('room_id', roomId);
-        if (traps.length) await supabase.from('room_traps').insert(traps.map(trap => ({ room_id: roomId, x: trap.x, y: trap.y, owner_local_index: trap.ownerId })));
-    }
 
     static async saveDiscardPile(roomId: string, mons: any[]) {
         await supabase.from('room_discarded_pokemons').delete().eq('room_id', roomId);

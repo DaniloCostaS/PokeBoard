@@ -1,5 +1,6 @@
 import { BattleUI } from './BattleUI';
 import { BattleCalc } from './BattleCalc';
+import { GameFeel } from '../ui/GameFeel';
 import { Player } from '../../models/Player';
 import { Pokemon } from '../../models/Pokemon';
 import { Network, db } from '../../systems/Network';
@@ -12,6 +13,7 @@ import { GameState } from '../game/GameState';
 import { CPUController } from '../game/CPUController';
 import { SHOP_ITEMS } from '../../constants';
 import type { ItemData } from '../../constants';
+import { GameDialog } from '../ui/GameDialog';
 
 export class BattleCore {
     static active: boolean = false;
@@ -76,12 +78,13 @@ export class BattleCore {
 
                 const NetworkObj = (window as any).Network || Network;
                 if (NetworkObj.isOnline) {
-                    NetworkObj.syncPlayers([player.id, enemyPlayer.id]);
+                    NetworkObj.syncPlayerObjects([player, enemyPlayer]);
                 }
             } else {
-                const pkmnCount = 1 + Math.floor((Game.round || 1) / 20);
                 let myAlive = player.team.filter(p => !p.isFainted());
                 let oppAlive = enemyPlayer.team.filter(p => !p.isFainted());
+                // Todos contra todos; se um lado tiver menos Pokémon vivos, o outro luta com a mesma quantidade
+                const pkmnCount = Math.max(1, Math.min(myAlive.length, oppAlive.length));
 
                 myAlive = myAlive.sort(() => Math.random() - 0.5).slice(0, pkmnCount);
                 oppAlive = oppAlive.sort(() => Math.random() - 0.5).slice(0, pkmnCount);
@@ -90,7 +93,6 @@ export class BattleCore {
                 this.oppTeamList = oppAlive;
             }
             this.opponent = this.oppTeamList[0];
-            if (enemyPlayer.effects.curse) { BattleUI.logBattle(`☠️ ${enemyPlayer.name} está amaldiçoado! (Dano reduzido)`); }
         }
         else if (isGym) {
             if (Game.currentGlobalEvent?.id === 'GYM_RUSH') {
@@ -187,6 +189,7 @@ export class BattleCore {
             setTimeout(() => BattleUI.logBattle("🌪️ A Tempestade de Areia corta os Pokémons em campo!", true), 1000);
         }
 
+        (window as any).Cinematics?.battleIntro(this, _label, npcImage);
         if (this.isPvP) {
             this.startRound(this.plyTeamList[0]);
         } else {
@@ -249,10 +252,23 @@ export class BattleCore {
         this.oppTeamList.sort(() => Math.random() - 0.5);
         this.opponent = this.oppTeamList[0];
 
+        // Tempestade de Areia vale para "qualquer batalha" (o setup normal aplica; o Campeão não passa por ele)
+        if (GameState.currentGlobalEvent?.id === 'SANDSTORM') {
+            const hurtSand = (mon: Pokemon) => {
+                if (!['Pedra', 'Terra', 'Aço'].includes(mon.type) && (!mon.secondType || !['Pedra', 'Terra', 'Aço'].includes(mon.secondType))) {
+                    mon.currentHp = Math.max(1, Math.floor(mon.currentHp * 0.9));
+                }
+            };
+            this.plyTeamList.forEach(hurtSand);
+            this.oppTeamList.forEach(hurtSand);
+            setTimeout(() => BattleUI.logBattle("🌪️ A Tempestade de Areia corta os Pokémons em campo!", true), 1000);
+        }
+
         this.battleTitle = `[R: ${GameState.round}] 🏆 CAMPEÃO ATUAL: ${championData.name.toUpperCase()} 🏆`;
 
         const contextTitle = `🏆 <b>DESAFIO AO CAMPEÃO ${championData.name.toUpperCase()}!</b><br><small style="color:#f1c40f; font-size:0.9rem;">Escolha seu Pokémon para a Batalha Final!</small>`;
         BattleUI.openSelectionModal(contextTitle);
+        (window as any).Cinematics?.battleIntro(this);
 
         // Iniciar o log de batalha isolado
         BattleUI.startBattleLog(`🏆 ${player.name} desafiou o Campeão ${championData.name.toUpperCase()} para o combate final!`);
@@ -356,7 +372,8 @@ export class BattleCore {
                             if ((this.player.items[b] || 0) > 0) {
                                 const ItemObj = SHOP_ITEMS.find((i: any) => i.id === b);
                                 if (ItemObj) {
-                                    this.player.items[b]--;
+                                    // Zona Safari: Pokébolas não são gastas (igual ao humano em useItem)
+                                    if ((window as any).Game?.currentGlobalEvent?.id !== 'SAFARI_ZONE') this.player.items[b]--;
                                     this.attemptCapture(ItemObj);
                                     return;
                                 }
@@ -436,7 +453,8 @@ export class BattleCore {
 
             if (ev === 'TOXIC_SMOG') {
                 const toxicHurt = (mon: Pokemon) => {
-                    if (mon.currentHp > 0 && !['Venenoso', 'Aço'].includes(mon.type) && (!mon.secondType || !['Venenoso', 'Aço'].includes(mon.secondType))) {
+                    // O tipo no Pokédex é 'Veneno' (não 'Venenoso'): sem isso os Venenosos também sufocavam
+                    if (mon.currentHp > 0 && !['Veneno', 'Aço'].includes(mon.type) && (!mon.secondType || !['Veneno', 'Aço'].includes(mon.secondType))) {
                         const dmg = Math.ceil(mon.maxHp * 0.1);
                         mon.currentHp = Math.max(1, mon.currentHp - dmg);
                         return dmg;
@@ -472,11 +490,6 @@ export class BattleCore {
                 this.activeEffects.cpuPlayedCardThisRound = false;
             }
 
-            if (this.isPvP && NetworkObj.isOnline) {
-                NetworkObj.syncPlayerState();
-                if (this.enemyPlayer) NetworkObj.syncSpecificPlayer(this.enemyPlayer.id);
-            }
-
             if (this.isPvP) {
                 setTimeout(() => this.autoAttackNext(), 1500);
             }
@@ -487,7 +500,7 @@ export class BattleCore {
                     this.isAutoPvE = false;
                     const btn = document.getElementById('btn-auto-pve');
                     if (btn) {
-                        btn.innerText = "⚡ Auto Atacar";
+                        btn.innerText = "Auto atacar";
                         btn.classList.remove('active-auto');
                     }
                 }
@@ -534,6 +547,12 @@ export class BattleCore {
         const myMon = this.activeMon;
         const oppMon = this.opponent;
         if (!myMon || !oppMon) return;
+
+        // Mesmas restrições do humano: Campeão, EMP, Maldição no ginásio e Mega/Mew no PvE
+        const GameRef = (window as any).Game;
+        if (this.isChampion || GameRef?.currentGlobalEvent?.id === 'EMP') return;
+        if (this.isGym && p.effects.curse) return;
+        if (!this.isPvP && ((myMon as any).isTemp || (myMon as any).isMegaEvolution)) return;
 
         const myHpPct = myMon.currentHp / myMon.maxHp;
         const oppHpPct = oppMon.currentHp / oppMon.maxHp;
@@ -608,10 +627,13 @@ export class BattleCore {
         // 11. DESTINO SELADO (destiny): Recompensas dobradas se vencer (se o próximo ataque vai matar)
         if (!cardToPlay && cardIds.includes('destiny') && !this.activeEffects.destiny) {
             let willKill = false;
+            // A previsão não pode gastar cargas de Crítico/Foco: o cálculo altera activeEffects, então restaura depois
+            const effectsBeforePrediction = { ...this.activeEffects };
             try {
                 const calc = BattleCalc.calculateDamage(myMon, oppMon, true);
                 if (calc.damage >= oppMon.currentHp) willKill = true;
             } catch (e) {}
+            this.activeEffects = effectsBeforePrediction;
             if (willKill) {
                 cardToPlay = 'destiny';
             }
@@ -626,9 +648,16 @@ export class BattleCore {
         }
 
         if (cardToPlay) {
-            this.cardsUsedThisBattle++;
             this.activeEffects.cpuPlayedCardThisRound = true;
-            
+
+            // No PvP passa pelo mesmo caminho do humano, para a Interferência do adversário valer contra a CPU
+            const BattleFacade = (window as any).Battle;
+            if (this.isPvP && BattleFacade?.useCard) {
+                BattleFacade.useCard(cardToPlay);
+                return;
+            }
+
+            this.cardsUsedThisBattle++;
             const CardsObj = (window as any).Cards || Cards;
             if (CardsObj) {
                 CardsObj.activate(cardToPlay, targetArg);
@@ -703,8 +732,7 @@ export class BattleCore {
                 msg: logMsg 
             });
             if (this.isPvP && this.enemyPlayer) {
-                NetworkObj.sendAction('PVP_SYNC_DAMAGE', { targetId: this.enemyPlayer.id, team: this.enemyPlayer.team, gold: this.enemyPlayer.gold });
-                NetworkObj.syncSpecificPlayer(this.enemyPlayer.id);
+                NetworkObj.sendAction('PVP_SYNC_DAMAGE', { targetId: this.enemyPlayer.id, team: NetworkObj.getSanitizedTeam(this.enemyPlayer.team), gold: this.enemyPlayer.gold });
             }
         }
 
@@ -814,7 +842,7 @@ export class BattleCore {
                 this.activeEffects.counter--;
                 BattleUI.updateUI();
                 if (this.isPvP && this.enemyPlayer && NetworkObj.isOnline) {
-                    NetworkObj.syncSpecificPlayer(this.enemyPlayer.id);
+                    NetworkObj.syncPlayerObjects([this.enemyPlayer]);
                 }
             }
         }
@@ -842,7 +870,7 @@ export class BattleCore {
                     BattleUI.logBattle(`💰 Moeda de Amuleto! +100G para ${this.enemyPlayer.name} (Total: ${this.enemyPlayer.gold}G)`);
                 }
 
-                if (NetworkObj.isOnline) NetworkObj.syncSpecificPlayer(this.enemyPlayer.id);
+                if (NetworkObj.isOnline) NetworkObj.syncPlayerObjects([this.enemyPlayer]);
             }
             BattleUI.updateUI();
             if (NetworkObj.isOnline) NetworkObj.syncPlayerState();
@@ -881,7 +909,7 @@ export class BattleCore {
             if (NetworkObj.isOnline) {
                 NetworkObj.syncPlayerState();
                 if (this.isPvP && this.enemyPlayer) {
-                    NetworkObj.syncSpecificPlayer(this.enemyPlayer.id);
+                    NetworkObj.syncPlayerObjects([this.enemyPlayer]);
                 }
             }
         }
@@ -891,7 +919,7 @@ export class BattleCore {
         this.isAutoPvE = false;
         const btn = document.getElementById('btn-auto-pve');
         if (btn) {
-            btn.innerText = "⚡ Auto Atacar";
+            btn.innerText = "Auto atacar";
             btn.classList.remove('active-auto');
         }
 
@@ -903,14 +931,14 @@ export class BattleCore {
                 if (isOppMega) {
                     BattleUI.logBattle("🧬 A Mega Evolução inimiga foi derrotada, mas o Pokémon original retornou e continua a lutar!");
                 } else {
-                    BattleUI.logBattle("🧬 O Mew inimigo foi derrotado, mas o Pokémon original retornou e continua a lutar!");
+                    BattleUI.logBattle("🧬 O Mewtwo inimigo foi derrotado, mas o Pokémon original retornou e continua a lutar!");
                 }
                 BattleUI.updateUI();
                 this.processingAction = false;
                 BattleUI.updateButtons();
                 const NetworkObj = (window as any).Network || Network;
                 if (NetworkObj.isOnline && this.isPvP && this.enemyPlayer) {
-                    NetworkObj.syncSpecificPlayer(this.enemyPlayer.id);
+                    NetworkObj.syncPlayerObjects([this.enemyPlayer]);
                 }
 
                 if (this.activeEffects.stunOpponent) this.activeEffects.stunOpponent = 0;
@@ -943,6 +971,8 @@ export class BattleCore {
             if (oldName) (this.opponent as any)._npcName = oldName;
 
             if (this.activeEffects.stunOpponent) this.activeEffects.stunOpponent = 0;
+            // Escudo Protetor vale só até o seu Pokémon vencer ou ser derrotado
+            if (this.activeEffects.guard) this.activeEffects.guard = false;
 
             BattleUI.logBattle(`Rival enviou ${nextOpp.name}!`, true);
             if (nextOpp.happiness === 100) {
@@ -968,7 +998,7 @@ export class BattleCore {
         this.isAutoPvE = false;
         const btn = document.getElementById('btn-auto-pve');
         if (btn) {
-            btn.innerText = "⚡ Auto Atacar";
+            btn.innerText = "Auto atacar";
             btn.classList.remove('active-auto');
         }
 
@@ -976,7 +1006,7 @@ export class BattleCore {
             const isMega = (this.activeMon as any).isMegaEvolution;
 
             if (isMega) BattleUI.logBattle("🧬 A Mega Evolução não resistiu e o Pokémon original retornou à batalha!");
-            else BattleUI.logBattle("🧬 O Mew aliado foi derrotado e o Pokémon original retornou à batalha!");
+            else BattleUI.logBattle("🧬 O Mewtwo aliado foi derrotado e o Pokémon original retornou à batalha!");
 
             this.revertMew();
             BattleUI.updateUI();
@@ -991,6 +1021,8 @@ export class BattleCore {
             }
         }
         (this as any).pokemonFaintedThisBattle = true;
+        // Escudo Protetor vale só até o seu Pokémon vencer ou ser derrotado
+        if (this.activeEffects.guard) this.activeEffects.guard = false;
         const nextPly = this.plyTeamList.find(p => !p.isFainted());
         if (nextPly) {
             this.activeMon!.removeHappiness(10);
@@ -1143,7 +1175,7 @@ export class BattleCore {
         } else if (this.isGym) {
             gain = (Game.currentGlobalEvent?.id === 'GOLD_RUSH') ? 2000 : 1000;
             Game.sendGlobalLog(`💰 [Extrato] ${this.player!.name} recebeu +${gain}G (Líder de Ginásio).`);
-            if (!this.player!.badges[this.gymId - 1]) { this.player!.badges[this.gymId - 1] = true; msg += ` Insígnia ${this.gymId}!`; }
+            if (!this.player!.badges[this.gymId - 1]) { this.player!.badges[this.gymId - 1] = true; msg += ` Insígnia ${this.gymId}!`; (window as any).Cinematics?.badge(this.player, this.gymId); }
             if (Game.currentGlobalEvent?.id === 'GYM_RUSH' && CardsObj) { CardsObj.draw(this.player!); msg += ` e ganhou 1 Carta do Desafio!`; }
 
             if (MapSystem.size === 7) {
@@ -1193,15 +1225,19 @@ export class BattleCore {
         this.player!.gold += gain;
         Game.sendGlobalLog(`💰 [Extrato] Novo Saldo de ${this.player!.name}: ${this.player!.gold}G.`);
 
-        if (NetworkObj.isOnline) {
-            NetworkObj.syncPlayerState();
-            if (this.isPvP && this.enemyPlayer) {
-                NetworkObj.syncSpecificPlayer(this.enemyPlayer.id);
-                NetworkObj.sendAction('PVP_SYNC_DAMAGE', { targetId: this.enemyPlayer.id, team: this.enemyPlayer.team, gold: this.enemyPlayer.gold, badges: this.enemyPlayer.badges, resetPos: true, skipTurn: true });
-                Game.handleTotalDefeat(this.enemyPlayer);
+        if (this.isPvP && this.enemyPlayer) {
+            this.preparePvpResolution();
+            // Derrota Total do defensor (cidade, cura 100%, +2 turnos) aplicada ANTES de persistir; handleTotalDefeat já salva o derrotado
+            Game.handleTotalDefeat(this.enemyPlayer);
+            if (NetworkObj.isOnline) {
+                NetworkObj.syncPlayerObjects([this.player!]);
+                NetworkObj.sendAction('PVP_SYNC_DAMAGE', this.buildPvpResultPayload(this.enemyPlayer, this.player!));
             }
+        } else if (NetworkObj.isOnline) {
+            NetworkObj.syncPlayerState();
         }
 
+        GameFeel.battleResult(true, this.player!.id);
         setTimeout(() => {
             BattleUI.logBattle(`🏆 ${msg}`, true);
             setTimeout(() => { Game.sendGlobalLog(`${this.player?.name} venceu! ${msg}`); }, 200);
@@ -1213,6 +1249,7 @@ export class BattleCore {
     static lose() {
         const Game = (window as any).Game;
         const NetworkObj = (window as any).Network || Network;
+        if (NetworkObj.isOnline && this.player && this.player.id !== NetworkObj.myPlayerId) return;
         if (this.isGym || this.isChampion) this.player!.effects.curse = false;
         this.revertMew();
         let msg = "DERROTA... ";
@@ -1257,14 +1294,26 @@ export class BattleCore {
                 }
             }
 
+            // Em PvP só uma fração do time luta, então isDefeated() não serve: toda derrota do atacante é Derrota Total
+            msg += ` ${this.enemyPlayer.name} venceu!`;
+            this.preparePvpResolution();
+            Game.handleTotalDefeat(this.player!);
             if (NetworkObj.isOnline) {
-                if (NetworkObj.syncPlayers) NetworkObj.syncPlayers([this.player!.id, this.enemyPlayer.id]);
-                else { NetworkObj.syncPlayerState(); NetworkObj.syncSpecificPlayer(this.enemyPlayer.id); }
-                NetworkObj.sendAction('PVP_SYNC_DAMAGE', { targetId: this.enemyPlayer.id, team: this.enemyPlayer.team, gold: this.enemyPlayer.gold, badges: this.enemyPlayer.badges, resetPos: false, skipTurn: false });
+                NetworkObj.syncPlayerObjects([this.enemyPlayer]);
+                NetworkObj.sendAction('PVP_SYNC_DAMAGE', this.buildPvpResultPayload(this.player!, this.enemyPlayer));
             }
 
+            GameFeel.battleResult(false, this.player!.id);
+            setTimeout(() => {
+                BattleUI.logBattle(`💀 ${msg}`, true);
+                setTimeout(() => { Game.sendGlobalLog(`${this.player?.name} perdeu e recuou para o último Centro Pokémon!`); }, 200);
+            }, 500);
+
+            setTimeout(() => { this.end(false); Game.moveVisuals(); }, 2500);
+            return;
         } else {
-            if (!this.isGym && Game.currentGlobalEvent?.id === 'ROCKET') {
+            // Invasão Rocket: só em derrotas para Selvagem/NPC (Líder e Campeão não contam)
+            if (!this.isGym && !this.isChampion && Game.currentGlobalEvent?.id === 'ROCKET') {
                 const stealableTeam = this.player!.team.filter(p => !p.vinculoSupremo && p.happiness < 100);
                 if (this.player!.team.length > 3 && stealableTeam.length > 0) {
                     const stolenMonObj = stealableTeam[Math.floor(Math.random() * stealableTeam.length)];
@@ -1301,16 +1350,55 @@ export class BattleCore {
         this.player!.y = city.y;
         this.player!.skipTurns += 1;
 
-        if (this.isPvP && this.enemyPlayer) msg += ` ${this.enemyPlayer.name} venceu!`;
-
         if (NetworkObj.isOnline) NetworkObj.syncPlayerState();
 
+        GameFeel.battleResult(false, this.player!.id);
         setTimeout(() => {
             BattleUI.logBattle(`💀 ${msg}`, true);
             setTimeout(() => { Game.sendGlobalLog(`${this.player?.name} perdeu e recuou para o último Centro Pokémon!`); }, 200);
         }, 500);
 
         setTimeout(() => { this.end(false); Game.moveVisuals(); }, 2500);
+    }
+
+    // Desfaz efeitos temporários do defensor (Mega/Mew e Ressonância) e garante que Game.players aponte
+    // para os mesmos objetos da batalha, para que nenhuma gravação por id salve uma cópia desatualizada
+    static preparePvpResolution() {
+        if (!this.enemyPlayer) return;
+        this.revertOpponentMew();
+        this.enemyPlayer.team.forEach(mon => {
+            if ((mon as any).isResonant) {
+                mon.recalculateStats(false);
+                (mon as any).isResonant = false;
+                (mon as any).resonantBonus = 0;
+            }
+        });
+
+        const Game = (window as any).Game;
+        [this.player, this.enemyPlayer].forEach(battlePlayer => {
+            if (!battlePlayer) return;
+            const idx = Game.players.findIndex((p: any) => p.id === battlePlayer.id);
+            if (idx >= 0) Game.players[idx] = battlePlayer;
+        });
+    }
+
+    // Estado final consolidado do PvP, enviado pelo dono do turno para os outros clientes apenas atualizarem a tela
+    static buildPvpResultPayload(loser: Player, winner: Player) {
+        const NetworkObj = (window as any).Network || Network;
+        return {
+            targetId: loser.id,
+            winnerId: winner.id,
+            gold: loser.gold,
+            winnerGold: winner.gold,
+            x: loser.x,
+            y: loser.y,
+            skipTurns: loser.skipTurns,
+            team: NetworkObj.getSanitizedTeam(loser.team),
+            winnerTeam: NetworkObj.getSanitizedTeam(winner.team),
+            badges: loser.badges,
+            winnerBadges: winner.badges,
+            resetPos: true
+        };
     }
 
     static end(isRemote: boolean) {
@@ -1335,6 +1423,7 @@ export class BattleCore {
 
         this.activeEffects = {};
         document.getElementById('battle-modal')!.style.display = 'none';
+        GameFeel.battleExit();
 
         if (!isRemote) {
             if (NetworkObj.isOnline) {
@@ -1350,7 +1439,7 @@ export class BattleCore {
     }
 
     static run() {
-        if (this.isPvP || this.isNPC || this.isGym) return alert("Não pode fugir de treinadores!");
+        if (this.isPvP || this.isNPC || this.isGym) return GameDialog.toast("Não dá para fugir de uma batalha contra treinadores!", { tone: 'warning' });
         this.processingAction = true;
         BattleUI.updateButtons();
 
@@ -1450,33 +1539,34 @@ export class BattleCore {
             return;
         }
 
-        if (this.isChampion) return alert("🚫 As regras da Liga proíbem o uso de Itens de Cura no Desafio do Campeão!");
-        if (data.type === 'revive') return alert("Você não pode reviver Pokémon durante a batalha!");
+        if (this.isChampion) return GameDialog.toast("As regras da Liga proíbem o uso de itens de cura no Desafio do Campeão!", { tone: 'warning' });
+        if (data.type === 'revive') return GameDialog.toast("Você não pode reviver Pokémon durante a batalha!", { tone: 'warning' });
 
         const isMegaOrMew = (!this.isPvP && this.activeMon && ((this.activeMon as any).isTemp || (this.activeMon as any).isMegaEvolution));
-        if (isMegaOrMew && data.type !== 'capture') return alert("🧬 É proibido usar itens de cura/buff em Mega Evoluções ou Mews no PvE.");
+        if (isMegaOrMew && data.type !== 'capture') return GameDialog.toast("É proibido usar itens de cura/buff em Mega Evoluções ou Mews no PvE.", { tone: 'warning' });
 
         const NetworkObj = (window as any).Network || Network;
         document.getElementById('battle-bag')!.style.display = 'none';
 
         if (data.type === 'capture') {
-            if (this.isPvP || this.isNPC || this.isGym) return alert("Não pode capturar pokémons de treinadores!");
+            if (this.isPvP || this.isNPC || this.isGym) return GameDialog.toast("Não dá para capturar Pokémon de treinadores!", { tone: 'warning' });
             const Game = (window as any).Game;
             if (Game.currentGlobalEvent?.id !== 'SAFARI_ZONE') this.player!.items[key]--;
-            else BattleUI.logBattle("🌳 SAFARI ZONE: Pokébofas são infinitas!", true);
+            else BattleUI.logBattle("🌳 SAFARI ZONE: Pokébolas são infinitas!", true);
 
             this.processingAction = true;
             BattleUI.updateButtons();
             this.attemptCapture(data);
         }
         else if (data.type === 'heal') {
-            if (this.activeMon!.isFainted()) return alert("O Pokémon está desmaiado!");
-            if (this.activeMon!.currentHp >= this.activeMon!.maxHp) return alert("HP já está cheio!");
+            if (this.activeMon!.isFainted()) return GameDialog.toast("O Pokémon está desmaiado!", { tone: 'warning' });
+            if (this.activeMon!.currentHp >= this.activeMon!.maxHp) return GameDialog.toast("O HP já está cheio!", { tone: 'info' });
 
             this.player!.items[key]--;
             this.processingAction = true;
             BattleUI.updateButtons();
 
+            (window as any).UseFx?.battleItem?.(key);
             this.activeMon!.heal(data.val!);
             this.activeMon!.addHappiness(1);
             BattleUI.logBattle(`💊 Usou ${data.name}! Recuperou HP.`, true);
@@ -1575,6 +1665,7 @@ export class BattleCore {
 
         Game.sendGlobalLog(`✨ ${this.player?.name} capturou um ${this.opponent!.name}!`);
         this.revertMew();
+        (window as any).Cinematics?.capture(this.player, this.opponent);
         
         const QuestManagerObj = (window as any).QuestManager || (window as any).modules?.QuestManager;
         if (QuestManagerObj && this.player) {
@@ -1674,7 +1765,7 @@ export class BattleCore {
     static performMegaEvolution(megaId: number) {
         const NetworkObj = (window as any).Network || Network;
         const megaData = POKEDEX.find((p: any) => p.id === megaId);
-        if (!megaData) return alert("Dados da Mega Evolução não encontrados!");
+        if (!megaData) return GameDialog.toast("Dados da Mega Evolução não encontrados!", { tone: 'danger' });
 
         this.activeEffects.mewOriginal = this.player!.team[this.player!.team.indexOf(this.activeMon!)];
         this.activeEffects.mewIndex = this.player!.team.indexOf(this.activeMon!);
@@ -1765,7 +1856,7 @@ export class BattleCore {
         BattleUI.updateUI();
 
         if (NetworkObj.isOnline) {
-            if (this.isPvP && this.enemyPlayer) NetworkObj.syncSpecificPlayer(this.enemyPlayer.id);
+            if (this.isPvP && this.enemyPlayer) NetworkObj.syncPlayerObjects([this.enemyPlayer]);
             else if (!this.isPvP) NetworkObj.sendAction('BATTLE_OPP_SWITCH', { nextOpp: NetworkObj.getSanitizedTeam([megaMon])[0] });
         }
     }
@@ -1861,12 +1952,12 @@ export class BattleCore {
         const btn = document.getElementById('btn-auto-pve');
         if (btn) {
             if (this.isAutoPvE) {
-                btn.innerText = "🛑 Parar Auto";
+                btn.innerText = "Parar auto";
                 btn.classList.add('active-auto');
                 BattleUI.logBattle("⚡ Modo Automático ativado!", true);
                 if (!this.processingAction) this.attack();
             } else {
-                btn.innerText = "⚡ Auto Atacar";
+                btn.innerText = "Auto atacar";
                 btn.classList.remove('active-auto');
                 BattleUI.logBattle("⚡ Modo Automático pausado.", true);
             }

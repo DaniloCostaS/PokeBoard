@@ -41,7 +41,7 @@ export class Player {
         lastBonusRound?: number;
         escapedGym?: boolean;
         offensiveCardsUsed?: number;
-        robinHoodApplied?: boolean;
+        robinHoodApplied?: boolean | number; // eventEndRound da Ajuda Humanitária já recebida (1x por ocorrência do evento)
         moonwalker?: number;
         lureType?: { type: string, count: number };
         playedLegendary?: boolean;
@@ -92,7 +92,7 @@ export class Player {
                 const possibleCards = validCards.filter((c: any) => c.rarity === targetRarity);
                 const finalPool = possibleCards.length > 0 ? possibleCards : validCards;
                 const randomCard = finalPool[Math.floor(Math.random() * finalPool.length)];
-                this.cards.push(randomCard);
+                this.cards.push({ ...randomCard }); // cópia: evita compartilhar isProtected com o CARDS_DB
             }
 
             // remover depois, começar con todas as cartas.

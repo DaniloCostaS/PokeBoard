@@ -1,0 +1,399 @@
+/* ==========================================================================
+   Animações de batalha no estilo Pokémon: sprites animados, investida,
+   impacto por tipo, entrada do Pokémon e falas de acerto.
+   ========================================================================== */
+
+/* Sprites animados (GIF do Showdown): o tamanho vem do JS, proporcional ao GIF */
+#battle-modal .pokemon-battle-img.pb-anim-sprite {
+    max-width: 120px;
+    max-height: 104px;
+    object-fit: contain;
+    align-self: flex-end;
+    image-rendering: pixelated;
+}
+
+/* Com o Pokémon de costas, o treinador fica atrás dele, à esquerda, e os dois não se sobrepõem */
+#battle-modal #ply-img.pb-anim-sprite {
+    margin-left: 46px;
+}
+
+#battle-modal .battler-images:has(#ply-img.pb-anim-sprite) #ply-trainer-img {
+    right: auto;
+    left: -34px;
+    z-index: 1;
+}
+
+/* Investida do atacante */
+#battle-modal #ply-img.pb-lunge-ply {
+    animation: pbLungePly 360ms cubic-bezier(0.3, 0.7, 0.4, 1);
+}
+
+#battle-modal #opp-img.pb-lunge-opp {
+    animation: pbLungeOpp 360ms cubic-bezier(0.3, 0.7, 0.4, 1);
+}
+
+@keyframes pbLungePly {
+    0% { transform: translate(0, 0); }
+    35% { transform: translate(34px, -16px) scale(1.06); }
+    100% { transform: translate(0, 0); }
+}
+
+@keyframes pbLungeOpp {
+    0% { transform: translate(0, 0); }
+    35% { transform: translate(-34px, 16px) scale(1.06); }
+    100% { transform: translate(0, 0); }
+}
+
+/* Entrada do Pokémon (sai da pokébola) */
+#battle-modal .pokemon-battle-img.pb-sendout {
+    animation: pbSendOut 520ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+
+@keyframes pbSendOut {
+    0% { opacity: 0; transform: scale(0.1); filter: brightness(6) saturate(0); }
+    45% { opacity: 1; filter: brightness(3) saturate(0); }
+    100% { opacity: 1; transform: scale(1); filter: none; }
+}
+
+.pb-sendout-flash {
+    position: absolute;
+    z-index: 4;
+    width: 18px;
+    height: 18px;
+    margin: -9px 0 0 -9px;
+    pointer-events: none;
+    background: radial-gradient(circle, #fff 0 35%, rgba(255, 255, 255, 0) 70%);
+    border-radius: 50%;
+    animation: pbSendOutFlash 600ms ease-out forwards;
+}
+
+@keyframes pbSendOutFlash {
+    0% { opacity: 1; transform: scale(0.5); }
+    60% { opacity: 0.9; transform: scale(5); }
+    100% { opacity: 0; transform: scale(7); }
+}
+
+/* Experiência na batalha */
+#battle-modal #ply-xp {
+    background: linear-gradient(90deg, #3a8ee8, #7cc4ff) !important;
+}
+
+.pb-battle-xp {
+    position: absolute;
+    z-index: 7;
+    padding: 2px 6px;
+    color: #cfe8ff;
+    font: 400 0.6rem/1.3 'Press Start 2P', var(--pb-font);
+    white-space: nowrap;
+    background: rgba(20, 50, 90, 0.9);
+    border: 1px solid #4aa3ff;
+    border-radius: 4px;
+    pointer-events: none;
+    transform: translate(-50%, -100%);
+    animation: pbBattleXp 1.4s ease forwards;
+}
+
+@keyframes pbBattleXp {
+    0% { opacity: 0; transform: translate(-50%, -60%) scale(0.8); }
+    15% { opacity: 1; transform: translate(-50%, -120%) scale(1.05); }
+    80% { opacity: 1; transform: translate(-50%, -170%); }
+    100% { opacity: 0; transform: translate(-50%, -200%); }
+}
+
+.pb-callout--level {
+    color: #1a1406 !important;
+    background: #ffd76a !important;
+    border-color: #fff3b0 !important;
+}
+
+#battle-modal .pokemon-battle-img.pb-level-glow {
+    animation: pbLevelGlow 1s ease;
+}
+
+@keyframes pbLevelGlow {
+    30% { filter: brightness(1.8) drop-shadow(0 0 12px #ffd76a); transform: scale(1.08); }
+}
+
+/* Mega Evolução */
+#battle-modal .pokemon-battle-img.pb-mega-in {
+    animation: pbMegaIn 1.1s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+@keyframes pbMegaIn {
+    0% { opacity: 0; transform: scale(0.4); filter: brightness(5) saturate(0); }
+    55% { opacity: 1; transform: scale(1.25); filter: brightness(3) hue-rotate(180deg); }
+    100% { opacity: 1; transform: scale(1); filter: none; }
+}
+
+.pb-mega-orb {
+    position: absolute;
+    z-index: 6;
+    width: 40px;
+    height: 40px;
+    margin: -20px 0 0 -20px;
+    pointer-events: none;
+    border-radius: 50%;
+    background: conic-gradient(#ff5f6d, #ffc371, #f9f871, #7ee2a4, #5fa8ff, #b388ff, #ff5f6d);
+    filter: blur(1px);
+    animation: pbMegaOrb 1.2s ease-out forwards;
+}
+
+@keyframes pbMegaOrb {
+    0% { opacity: 0.95; transform: scale(0.3) rotate(0); }
+    45% { opacity: 0.9; transform: scale(3.2) rotate(240deg); }
+    100% { opacity: 0; transform: scale(5) rotate(420deg); }
+}
+
+/* --------------------------------------------------------------------------
+   Impacto por tipo
+   -------------------------------------------------------------------------- */
+.pb-impact {
+    position: absolute;
+    z-index: 6;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+.pb-impact::before {
+    content: "";
+    position: absolute;
+    left: -28px;
+    top: -28px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--fx) 0 30%, transparent 70%);
+    opacity: 0;
+    animation: pbImpactCore 420ms ease-out forwards;
+}
+
+@keyframes pbImpactCore {
+    0% { opacity: 0.95; transform: scale(0.3); }
+    100% { opacity: 0; transform: scale(1.8); }
+}
+
+.pb-impact i {
+    position: absolute;
+    left: -5px;
+    top: -5px;
+    width: 10px;
+    height: 10px;
+    background: var(--fx);
+    border-radius: 50%;
+    opacity: 0;
+    animation: pbParticle 640ms cubic-bezier(0.15, 0.7, 0.3, 1) var(--delay) forwards;
+}
+
+@keyframes pbParticle {
+    0% { opacity: 1; transform: translate(0, 0) rotate(0) scale(1); }
+    100% { opacity: 0; transform: translate(var(--dx), var(--dy)) rotate(var(--rot)) scale(0.4); }
+}
+
+/* Fogo: chamas que sobem */
+.pb-impact--fire i {
+    width: 12px;
+    height: 16px;
+    border-radius: 50% 50% 50% 50% / 65% 65% 35% 35%;
+    background: linear-gradient(#ffe07a, var(--fx) 60%, #d6453d);
+    animation-name: pbFlame;
+}
+
+@keyframes pbFlame {
+    0% { opacity: 1; transform: translate(0, 0) scale(1); }
+    100% { opacity: 0; transform: translate(calc(var(--dx) * 0.6), calc(var(--dy) * 0.4 - 46px)) scale(0.3); }
+}
+
+/* Água e veneno: bolhas */
+.pb-impact--water i,
+.pb-impact--bubble i {
+    background: transparent;
+    border: 2px solid var(--fx);
+}
+
+/* Elétrico: raios em zigue-zague */
+.pb-impact--bolt i {
+    width: 8px;
+    height: 22px;
+    border-radius: 0;
+    clip-path: polygon(40% 0, 100% 0, 60% 42%, 100% 42%, 20% 100%, 40% 55%, 0 55%);
+    animation-duration: 420ms;
+}
+
+/* Grama e inseto: folhas girando */
+.pb-impact--leaf i {
+    width: 12px;
+    height: 7px;
+    border-radius: 0 100% 0 100%;
+}
+
+/* Gelo: cristais */
+.pb-impact--ice i {
+    width: 9px;
+    height: 9px;
+    border-radius: 1px;
+    transform: rotate(45deg);
+    box-shadow: 0 0 6px var(--fx);
+}
+
+/* Terra e pedra: pedaços */
+.pb-impact--rock i {
+    width: 9px;
+    height: 8px;
+    border-radius: 2px;
+    background: linear-gradient(135deg, #f1e2b0, var(--fx) 60%, #6b5a2c);
+}
+
+/* Voador: lufadas de vento */
+.pb-impact--wind i {
+    width: 22px;
+    height: 4px;
+    border-radius: 4px;
+    opacity: 0.8;
+}
+
+/* Psíquico: anéis expandindo */
+.pb-impact--ring i {
+    left: -20px;
+    top: -20px;
+    width: 40px;
+    height: 40px;
+    background: transparent;
+    border: 3px solid var(--fx);
+    animation-name: pbRing;
+    animation-duration: 600ms;
+}
+
+@keyframes pbRing {
+    0% { opacity: 1; transform: scale(0.2); }
+    100% { opacity: 0; transform: scale(2.2); }
+}
+
+/* Fantasma: fumaça que sobe ondulando */
+.pb-impact--ghost i {
+    width: 16px;
+    height: 16px;
+    background: radial-gradient(circle, var(--fx), transparent 70%);
+    animation-name: pbGhost;
+    animation-duration: 820ms;
+}
+
+@keyframes pbGhost {
+    0% { opacity: 0.9; transform: translate(0, 0) scale(0.6); }
+    100% { opacity: 0; transform: translate(calc(var(--dx) * 0.5), calc(var(--dy) * 0.3 - 40px)) scale(1.6); }
+}
+
+/* Dragão e noturno: cortes em diagonal */
+.pb-impact--slash i {
+    left: -36px;
+    top: -2px;
+    width: 72px;
+    height: 4px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, transparent, var(--fx) 30%, #fff 50%, var(--fx) 70%, transparent);
+    transform: rotate(-35deg);
+    animation-name: pbSlash;
+    animation-duration: 360ms;
+}
+
+.pb-impact--slash i:nth-child(2) { top: -14px; }
+.pb-impact--slash i:nth-child(3) { top: 10px; }
+
+@keyframes pbSlash {
+    0% { opacity: 0; transform: rotate(-35deg) scaleX(0); }
+    40% { opacity: 1; transform: rotate(-35deg) scaleX(1); }
+    100% { opacity: 0; transform: rotate(-35deg) scaleX(1.1); }
+}
+
+/* Fada e cura: estrelinhas */
+.pb-impact--sparkle i {
+    width: 12px;
+    height: 12px;
+    border-radius: 0;
+    clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+}
+
+/* Normal, lutador e aço: estrela de impacto */
+.pb-impact--impact::after {
+    content: "";
+    position: absolute;
+    left: -24px;
+    top: -24px;
+    width: 48px;
+    height: 48px;
+    background: #fff;
+    clip-path: polygon(50% 0, 60% 35%, 98% 20%, 68% 50%, 98% 80%, 60% 65%, 50% 100%, 40% 65%, 2% 80%, 32% 50%, 2% 20%, 40% 35%);
+    opacity: 0;
+    animation: pbStar 300ms ease-out forwards;
+}
+
+@keyframes pbStar {
+    0% { opacity: 1; transform: scale(0.4) rotate(0); }
+    100% { opacity: 0; transform: scale(1.4) rotate(20deg); }
+}
+
+/* --------------------------------------------------------------------------
+   Falas de acerto ("É super efetivo!", "Golpe crítico!")
+   -------------------------------------------------------------------------- */
+.pb-callout {
+    position: absolute;
+    left: 50%;
+    top: 42%;
+    z-index: 7;
+    padding: 8px 14px;
+    color: #fff;
+    font: 400 0.78rem/1.3 'Press Start 2P', var(--pb-font);
+    white-space: nowrap;
+    background: rgba(13, 20, 26, 0.88);
+    border: 2px solid #fff;
+    border-radius: 6px;
+    box-shadow: 0 4px 0 rgba(0, 0, 0, 0.35);
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    animation: pbCallout 1.3s ease forwards;
+}
+
+.pb-callout--super { border-color: #ffb347; color: #ffd38a; }
+.pb-callout--crit { border-color: #ff6b5e; color: #ffb0a8; }
+.pb-callout--weak { border-color: #8fa3b3; color: #c9d4dc; }
+.pb-callout--miss { border-color: #9ad7ff; color: #cdeeff; }
+
+@keyframes pbCallout {
+    0% { opacity: 0; transform: translate(-50%, -30%) scale(0.85); }
+    12% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+    20% { transform: translate(-50%, -50%) scale(1); }
+    80% { opacity: 1; }
+    100% { opacity: 0; transform: translate(-50%, -60%); }
+}
+
+@media (max-width: 480px) {
+    .pb-callout {
+        font-size: 0.62rem;
+    }
+
+    #battle-modal .pokemon-battle-img.pb-anim-sprite {
+        max-width: 92px;
+        max-height: 84px;
+    }
+
+    #battle-modal #ply-img.pb-anim-sprite {
+        margin-left: 30px;
+    }
+
+    #battle-modal .battler-images:has(#ply-img.pb-anim-sprite) #ply-trainer-img {
+        left: -18px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pb-impact,
+    .pb-sendout-flash {
+        display: none;
+    }
+
+    #battle-modal .pokemon-battle-img.pb-sendout,
+    #battle-modal #ply-img.pb-lunge-ply,
+    #battle-modal #opp-img.pb-lunge-opp {
+        animation: none;
+    }
+}

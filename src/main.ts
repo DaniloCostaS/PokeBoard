@@ -1,4 +1,18 @@
 import './style.css'
+import './ui.css'
+import './battle.css'
+import './cards.css'
+import './dice.css'
+import './backpack.css'
+import './hud.css'
+import './usefx.css'
+import './modules/ui/UseFx';
+import './dialog.css'
+import './cinematics.css'
+import './board.css'
+import './screens.css'
+import './modules/ui/Cinematics';
+import { GameDialog } from './modules/ui/GameDialog';
 import { Setup } from './core/Setup';
 import { Game } from './core/Game';
 import { Shop } from './systems/Shop';
@@ -8,6 +22,11 @@ import { Cards } from './systems/Cards';
 import { QuestManager } from './modules/quests/QuestManager';
 import { GameEvents } from './modules/game/GameEvents';
 import { TypeTooltip } from './modules/ui/TypeTooltip';
+import { MobileLayout } from './modules/ui/MobileLayout';
+import { Settings } from './modules/ui/Settings';
+import { DemoMode } from './modules/ui/DemoMode';
+import { Presence } from './modules/ui/Presence';
+import { PwaSetup } from './modules/ui/PwaSetup';
 
 declare global {
     interface Window {
@@ -33,62 +52,10 @@ declare global {
 window.TypeTooltip = TypeTooltip;
 
 // --- CUSTOM GLOBAL ALERT OVERRIDE ---
-// Replaces the native blocking alert() with a custom on-screen toast
-const activeToasts: HTMLElement[] = [];
-window.alert = function(msg: string) {
-    const toast = document.createElement('div');
-    toast.style.cssText = `
-        position: fixed;
-        left: 50%;
-        transform: translateX(-50%);
-        background: rgba(30, 35, 55, 0.95);
-        color: #edf2f4;
-        padding: 15px 25px;
-        border-radius: 10px;
-        z-index: 10000;
-        font-size: 1.15rem;
-        box-shadow: 0 8px 25px rgba(0,0,0,0.6);
-        text-align: center;
-        max-width: 80%;
-        font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        border: 2px solid #ef233c;
-        transition: top 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        pointer-events: none;
-    `;
-    toast.innerHTML = msg;
-    document.body.appendChild(toast);
-    
-    activeToasts.push(toast);
-    
-    // Reposition all active toasts (stacking from top)
-    activeToasts.forEach((t, i) => {
-        const offset = 20 + (i * 70);
-        t.style.top = `${offset}px`;
-    });
-    
-    // Animação de entrada
-    toast.animate([
-        { opacity: 0, transform: 'translate(-50%, -30px)' },
-        { opacity: 1, transform: 'translate(-50%, 0)' }
-    ], { duration: 400, easing: 'ease-out' });
-
-    setTimeout(() => {
-        const anim = toast.animate([
-            { opacity: 1, transform: 'translate(-50%, 0)' },
-            { opacity: 0, transform: 'translate(-50%, -30px)' }
-        ], { duration: 300, easing: 'ease-in' });
-        
-        anim.onfinish = () => {
-            toast.remove();
-            const idx = activeToasts.indexOf(toast);
-            if (idx > -1) activeToasts.splice(idx, 1);
-            // Reposition remaining
-            activeToasts.forEach((t, i) => {
-                const offset = 20 + (i * 70);
-                t.style.top = `${offset}px`;
-            });
-        };
-    }, 4500); // Exibe por 4.5 segundos
+// Rede de segurança: qualquer alert() que sobrar vira um toast do jogo (texto puro, não bloqueante).
+// Use GameDialog.toast/alert/confirm diretamente no código novo.
+window.alert = function(msg?: any) {
+    GameDialog.toast(msg);
 };
 
 // Bindings Globais
@@ -105,7 +72,7 @@ window.GameEvents = GameEvents;
 window.openInventory = (id, readOnly = false) => Game.openInventoryModal(id, readOnly);
 window.openPlayerBadges = (id) => Game.openPlayerBadgesModal(id);
 window.openCards = (id) => { 
-    if(Network.isOnline && id !== Network.myPlayerId) return alert("Privado!"); 
+    if(Network.isOnline && id !== Network.myPlayerId) return GameDialog.toast("As cartas dos outros jogadores são privadas.", { tone: 'warning' });
     Cards.showPlayerCards(id); 
 };
 window.openCardLibrary = () => Game.openCardLibrary();
@@ -150,7 +117,8 @@ function initModalBackdropDismissal() {
             'quests-swap-modal',
             'pkmn-select-modal',
             'battle-confirm-modal',
-            'type-selection-modal'
+            'type-selection-modal',
+            'dice-choice-modal'
         ]);
 
         if (NON_DISMISSIBLE_MODALS.has(modalId)) {
@@ -200,6 +168,11 @@ document.addEventListener('DOMContentLoaded', () => {
     Setup.checkCachedLogin();
     initModalBackdropDismissal();
     TypeTooltip.init();
+    MobileLayout.init();
+    Settings.init();
+    if (DemoMode.shouldStart()) setTimeout(() => DemoMode.start(), 300);
+    Presence.init();
+    PwaSetup.init();
 });
 
 if (document.readyState === "complete" || document.readyState === "interactive") {
@@ -207,4 +180,9 @@ if (document.readyState === "complete" || document.readyState === "interactive")
     Setup.checkCachedLogin();
     initModalBackdropDismissal();
     TypeTooltip.init();
+    MobileLayout.init();
+    Settings.init();
+    if (DemoMode.shouldStart()) setTimeout(() => DemoMode.start(), 300);
+    Presence.init();
+    PwaSetup.init();
 }

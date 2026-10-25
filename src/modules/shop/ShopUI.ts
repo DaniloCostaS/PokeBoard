@@ -37,12 +37,7 @@ export class ShopUI {
             div.style.borderBottom = '1px solid rgba(255, 255, 255, 0.08)';
             div.style.gap = '12px';
 
-            const btnBg = priceMulti === 2 
-                ? 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)' 
-                : 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)';
-            const btnShadow = priceMulti === 2
-                ? '0 2px 8px rgba(231, 76, 60, 0.4)'
-                : '0 2px 8px rgba(52, 152, 219, 0.4)';
+            const canAfford = p.gold >= finalPrice;
 
             div.innerHTML = `
                 <div style="display:flex; align-items:center; gap:12px; flex:1; min-width:0;">
@@ -52,7 +47,7 @@ export class ShopUI {
                         <span style="font-size:0.75rem; color:#a0aec0; line-height:1.4; white-space:normal; margin-top: 2px;">${item.desc}</span>
                     </div>
                 </div>
-                <button class="btn" style="width:auto; min-width: 80px; height: 34px; padding: 0 12px; margin: 0; background: ${btnBg}; color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 0.85rem; box-shadow: ${btnShadow}; transition: transform 0.1s, filter 0.1s;" onclick="window.Shop.buy('${item.id}', ${finalPrice})">
+                <button class="btn ${canAfford ? 'btn-roll' : 'btn-secondary'} pb-price-btn${priceMulti === 2 ? ' is-inflated' : ''}" onclick="window.Shop.buy('${item.id}', ${finalPrice})" title="${priceMulti === 2 ? 'Preço dobrado pela Invasão Rocket' : 'Comprar'}">
                     ${finalPrice}G
                 </button>
             `;

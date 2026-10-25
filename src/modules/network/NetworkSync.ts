@@ -3,6 +3,48 @@ import { Player } from '../../models/Player';
 import { SupabaseDataStore } from './SupabaseDataStore';
 
 export class NetworkSync {
+    // Fila de gravação por jogador: garante que saves do mesmo jogador cheguem ao banco na ordem em que foram disparados
+    private static saveChains = new Map<number, Promise<void>>();
+    private static pendingSaves = new Map<number, number>();
+
+    // Enquanto este cliente tiver gravações pendentes de um jogador, o estado local dele é o mais recente
+    static hasPendingSave(playerId: number): boolean {
+        return (this.pendingSaves.get(playerId) || 0) > 0;
+    }
+
+    // Apenas o dono do turno pode gravar no banco (evita race conditions entre clientes)
+    static canSyncDatabase(): boolean {
+        if (!NetworkState.isOnline) return true;
+        if (NetworkState.isSpectator) return false;
+        const Game = (window as any).Game;
+        if (Game && typeof Game.canAct === 'function') {
+            return Game.canAct();
+        }
+        return true;
+    }
+
+    private static warnBlockedWrite() {
+        console.warn('[NetworkSync] Gravação cancelada: Apenas o jogador do turno pode salvar dados no banco.');
+    }
+
+    private static enqueueSave(player: Player, playerIdDb?: string): Promise<void> {
+        const previous = this.saveChains.get(player.id) || Promise.resolve();
+        this.pendingSaves.set(player.id, (this.pendingSaves.get(player.id) || 0) + 1);
+        const next = previous
+            .catch(() => { })
+            .then(() => SupabaseDataStore.savePlayer(player, playerIdDb))
+            .catch(e => console.error(`[NetworkSync] Erro ao salvar ${player.name}`, e))
+            .finally(() => this.pendingSaves.set(player.id, Math.max(0, (this.pendingSaves.get(player.id) || 1) - 1)));
+        this.saveChains.set(player.id, next);
+        return next;
+    }
+
+    // Salva os objetos informados (não busca em Game.players, que pode ter sido substituído por um refresh do realtime)
+    static syncPlayerObjects(players: Player[], force: boolean = false) {
+        if (!NetworkState.isOnline) return;
+        if (!force && !this.canSyncDatabase()) { this.warnBlockedWrite(); return; }
+        players.forEach(player => { if (player) this.enqueueSave(player); });
+    }
 
     static getSanitizedTeam(team: any[]) {
         if (!team) return [];
@@ -64,6 +106,7 @@ export class NetworkSync {
     // Antigo sync global, migrado para update pontual do room_players
     static async syncPlayerStateAsync() {
         if (!NetworkState.isOnline || !NetworkState.currentRoomId) return;
+        if (!this.canSyncDatabase()) { this.warnBlockedWrite(); return; }
         const Game = (window as any).Game;
 
         const p = Game.players.find((pl: any) => pl.id === NetworkState.myPlayerId) || Game.players[NetworkState.myPlayerId];
@@ -72,11 +115,12 @@ export class NetworkSync {
         const playerIdDb = NetworkState.myPlayerIdDb;
         if (!playerIdDb) return;
 
-        await SupabaseDataStore.savePlayer(p, playerIdDb);
+        await this.enqueueSave(p, playerIdDb);
     }
 
     static async syncTeam() {
         if (!NetworkState.isOnline || !NetworkState.myPlayerIdDb) return;
+        if (!this.canSyncDatabase()) { this.warnBlockedWrite(); return; }
         const Game = (window as any).Game;
         const p = Game.players.find((pl: any) => pl.id === NetworkState.myPlayerId);
         if (!p || !p.team) return;
@@ -91,6 +135,7 @@ export class NetworkSync {
     // Sincronizações Específicas
     static async syncPlayerPosition(x: number, y: number) {
         if (!NetworkState.isOnline) return;
+        if (!this.canSyncDatabase()) { this.warnBlockedWrite(); return; }
         await supabase
             .from('room_players')
             .update({ x, y })
@@ -100,6 +145,7 @@ export class NetworkSync {
 
     static async syncPlayerGold(gold: number) {
         if (!NetworkState.isOnline) return;
+        if (!this.canSyncDatabase()) { this.warnBlockedWrite(); return; }
         await supabase
             .from('room_players')
             .update({ gold })
@@ -107,22 +153,19 @@ export class NetworkSync {
             .eq('local_index', NetworkState.myPlayerIdLocal);
     }
 
-    static syncSpecificPlayer(targetId: number) {
-        const Game = (window as any).Game;
-        const player = Game.players.find((p: any) => p.id === targetId);
-        if (player) SupabaseDataStore.savePlayer(player);
+    // force: usado apenas pelas ferramentas de ADMIN HOST, que podem agir fora do próprio turno
+    static syncSpecificPlayer(targetId: number, force: boolean = false) {
+        this.syncPlayers([targetId], force);
     }
 
-    static syncPlayers(ids: number[]) {
+    static syncPlayers(ids: number[], force: boolean = false) {
         const Game = (window as any).Game;
-        ids.forEach(id => {
-            const player = Game.players.find((p: any) => p.id === id);
-            if (player) SupabaseDataStore.savePlayer(player);
-        });
+        const players = ids.map(id => Game.players.find((p: any) => p.id === id)).filter(Boolean);
+        this.syncPlayerObjects(players, force);
     }
 
     static async syncLogs(logs: any[]) {
-        if (!NetworkState.isOnline) return;
+        if (!NetworkState.isOnline || NetworkState.isSpectator) return;
         // Pega o último log adicionado (que está no index 0 devido ao unshift)
         if (logs.length > 0) {
             await SupabaseDataStore.insertRoomLog(NetworkState.currentRoomId, logs[0]);
@@ -130,12 +173,12 @@ export class NetworkSync {
     }
 
     static async syncCardLogs(logs: any[]) {
-        if (!NetworkState.isOnline) return;
+        if (!NetworkState.isOnline || NetworkState.isSpectator) return;
         if (logs.length > 0) await SupabaseDataStore.insertCardLog(NetworkState.currentRoomId, logs[0]);
     }
 
     static async syncTurn(newTurn: number, newRound: number = 1) {
-        if (!NetworkState.isOnline) return;
+        if (!NetworkState.isOnline || NetworkState.isSpectator) return;
         await supabase
             .from('rooms')
             .update({ current_turn: newTurn, current_round: newRound })
@@ -143,7 +186,7 @@ export class NetworkSync {
     }
 
     static syncLixeira() {
-        if (!NetworkState.isOnline) return;
+        if (!NetworkState.isOnline || NetworkState.isSpectator) return;
         const Game = (window as any).Game;
         SupabaseDataStore.saveDiscardPile(NetworkState.currentRoomId, Game.lixeira || []);
     }

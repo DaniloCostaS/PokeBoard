@@ -5,8 +5,12 @@ import { Battle } from '../../systems/Battle';
 import { GameState } from './GameState';
 import { GameUI } from './GameUI';
 import { GameEvents } from './GameEvents';
+import { GameDialog } from '../ui/GameDialog';
+import { ScreenKit } from '../ui/ScreenKit';
 
 export class GameMovement {
+    /** true enquanto o diálogo de insígnias/campeão está aberto (bloqueia rolagens repetidas). */
+    static badgeDialogOpen = false;
 
     static forceDice(val: number) {
         GameState.forcedDiceValue = val;
@@ -36,17 +40,37 @@ export class GameMovement {
         const targetBadges = MapSystem.size === 7 ? 4 : 8;
 
         if (badgesCount === targetBadges) {
+            // Evita abrir o mesmo diálogo duas vezes com toques repetidos no botão de rolar
+            if (GameMovement.badgeDialogOpen) return;
             if (MapSystem.size === 7) {
-                alert("🏆 PARABÉNS! Você conseguiu as 4 Insígnias e venceu o jogo!");
+                // Avisa os outros jogadores na hora; o diálogo local não pode atrasar o anúncio da vitória
                 const NetworkObj = (window as any).Network;
                 if (NetworkObj && NetworkObj.isOnline) {
                     NetworkObj.sendAction('GAME_WIN', { winnerId: p.id });
+                }
+                if (!p.isCPU) {
+                    GameMovement.badgeDialogOpen = true;
+                    try {
+                        await GameDialog.alert("Você conseguiu as 4 insígnias e venceu o jogo!", { title: 'Parabéns, campeão!', okLabel: 'Continuar' });
+                    } finally { GameMovement.badgeDialogOpen = false; }
                 }
                 GameEvents.triggerVictory(p.id);
                 return;
             }
             if (GameState.globalChampion) {
-                const querLutar = confirm(`🏆 VOCÊ TEM AS 8 INSÍGNIAS!\n\nDeseja desafiar o Campeão Atual (${GameState.globalChampion.name}) agora?\n\n(Regras: Sem itens, sem cartas. Vencer = Fim de Jogo!)\n\nClique OK para Lutar ou Cancelar para rolar o dado e se preparar mais.`);
+                const champion = GameState.globalChampion;
+                let querLutar = true; // CPU sempre aceita o desafio (nunca espera por um humano)
+                if (!p.isCPU) {
+                    GameMovement.badgeDialogOpen = true;
+                    try {
+                        querLutar = await GameDialog.confirm(
+                            `Deseja desafiar o campeão atual (${champion.name}) agora?\n\nRegras: sem itens e sem cartas. Vencer encerra o jogo!\n\nSe preferir, role o dado e se prepare mais.`,
+                            { title: 'Você tem as 8 insígnias!', okLabel: 'Desafiar campeão', cancelLabel: 'Rolar o dado' }
+                        );
+                    } finally { GameMovement.badgeDialogOpen = false; }
+                    // O estado pode ter mudado enquanto o diálogo estava aberto
+                    if (GameState.hasRolled || GameState.getCurrentPlayer() !== p) return;
+                }
 
                 if (querLutar) {
                     const BattleObj = (window as any).Battle || Battle;
@@ -54,17 +78,23 @@ export class GameMovement {
                     return;
                 }
             } else {
-                alert("🏆 PARABÉNS! Você conseguiu as 8 Insígnias e é o Primeiro Campeão da Liga!");
                 const NetworkObj = (window as any).Network;
                 if (NetworkObj && NetworkObj.isOnline) {
                     NetworkObj.saveGlobalChampion(p);
                     NetworkObj.sendAction('GAME_WIN', { winnerId: p.id });
+                }
+                if (!p.isCPU) {
+                    GameMovement.badgeDialogOpen = true;
+                    try {
+                        await GameDialog.alert("Você conseguiu as 8 insígnias e é o primeiro campeão da Liga!", { title: 'Parabéns, campeão!', okLabel: 'Continuar' });
+                    } finally { GameMovement.badgeDialogOpen = false; }
                 }
                 GameEvents.triggerVictory(p.id);
                 return;
             }
         }
 
+        (window as any).PBBoard?.previewReach?.(GameState.players.indexOf(p)); // prévia visual (lê o estado antes de consumir dado mágico/lentidão)
         GameState.hasRolled = true;
         let result = 0;
 
@@ -90,7 +120,8 @@ export class GameMovement {
 
         const NetworkObj = (window as any).Network || Network;
         if (NetworkObj.isOnline) {
-            NetworkObj.sendAction('ROLL', { result: result });
+            // O bônus de movimento (Tênis) vai junto para os outros animarem a caminhada certa
+            NetworkObj.sendAction('ROLL', { result: result, bonus: GameState.bonusMovement || 0 });
         }
 
         const playerId = NetworkObj.isOnline ? NetworkObj.myPlayerId : GameState.turn;
@@ -98,15 +129,16 @@ export class GameMovement {
     }
 
     static async animateDice(result: number, playerId: number) {
+        (window as any).PBBoard?.previewReach?.(playerId); // casas alcançáveis (no online, também para quem assiste)
         // Nova animação visual no centro do tabuleiro
         await this.showDiceAnimation(result);
 
         const die = document.getElementById('d20-display')!;
         for (let i = 0; i < 5; i++) {
-            die.innerText = `🎲 ${Math.floor(Math.random() * 6) + 1}`;
+            die.innerText = `${Math.floor(Math.random() * 6) + 1}`;
             await new Promise(r => setTimeout(r, 50));
         }
-        die.innerText = `🎲 ${result}`;
+        die.innerText = `${result}`;
 
         GameUI.log(`${GameState.players[playerId].name} tirou ${result}`);
 
@@ -115,6 +147,12 @@ export class GameMovement {
 
         if (ev === 'SPATIAL_RIFT') {
             const p = GameState.players[playerId];
+            // Online, só quem rolou sorteia o destino; os outros recebem a posição pelo sync do room_players
+            // (antes cada cliente sorteava uma casa diferente e o peão "pulava" duas vezes)
+            if (NetworkObj.isOnline && playerId !== NetworkObj.myPlayerId) {
+                GameUI.log(`🌌 FENDA ESPACIAL! ${p.name} foi teletransportado!`);
+                return;
+            }
             const totalTiles = MapSystem.size * MapSystem.size;
             const randomIdx = Math.floor(Math.random() * totalTiles);
             const targetCoord = MapSystem.getCoord(randomIdx);
@@ -158,7 +196,7 @@ export class GameMovement {
         if (!board) return;
 
         const container = document.createElement('div');
-        container.className = 'dice-container dice-throwing';
+        container.className = 'dice-container dice-throwing pb-dice';
 
         const shadow = document.createElement('div');
         shadow.className = 'dice-shadow';
@@ -183,7 +221,7 @@ export class GameMovement {
                 return `<span class="dice-pip${activePips.has(position) ? ' is-active' : ''}"></span>`;
             }).join('') : `<span class="dice-number">${value}</span>`;
 
-            return `<div class="dice-face face-${role}" aria-label="Dado ${value}"><div class="dice-pips">${pips}</div></div>`;
+            return `<div class="dice-face face-${role}" data-value="${value}" aria-label="Dado ${value}"><div class="dice-pips">${pips}</div></div>`;
         };
 
         const visibleValues = [1, 2, 3, 4, 5, 6].filter(value => value !== result);
@@ -211,10 +249,35 @@ export class GameMovement {
             dice3d.style.transform = finalTransform;
         }, 100);
 
-        await new Promise(r => setTimeout(r, 1900));
+        // Ao parar: a face do resultado brilha, o número salta e o primeiro Pokémon do jogador comemora
+        await new Promise(r => setTimeout(r, 1500));
+        dice3d.querySelector('.face-top')?.classList.add('is-result');
+        (window as any).PBBoard?.reachResult?.(result);
+        const cheer = this.diceCheer(board, result);
+
+        await new Promise(r => setTimeout(r, 700));
 
         container.remove();
         shadow.remove();
+        window.setTimeout(() => cheer.forEach(el => el.remove()), 600);
+    }
+
+    private static diceCheer(board: HTMLElement, result: number): HTMLElement[] {
+        const label = document.createElement('div');
+        label.className = 'pb-dice-result';
+        label.textContent = String(result);
+        board.appendChild(label);
+
+        const roller = GameState.players[GameState.turn];
+        const mon = roller?.team.find(m => !m.isFainted()) || roller?.team[0];
+        if (!mon) return [label];
+        const sprite = document.createElement('img');
+        sprite.className = 'pb-dice-mon';
+        sprite.alt = '';
+        sprite.src = mon.getSprite();
+        sprite.onerror = () => sprite.remove();
+        board.appendChild(sprite);
+        return [label, sprite];
     }
 
     static async movePlayerLogic(steps: number, pId: number) {
@@ -228,8 +291,8 @@ export class GameMovement {
             GameUI.log("👟 Bônus de movimento aplicado!");
         }
 
-        let hitTrap = false;
         let stepsWalked = 0;
+        (window as any).PBBoard?.previewPath?.((window as any).PBBoard.pathFrom(p.x, p.y, steps, (p.effects?.moonwalker || 0) > 0));
 
         for (let i = 0; i < steps; i++) {
             let currentIdx = MapSystem.getIndex(p.x, p.y);
@@ -251,6 +314,7 @@ export class GameMovement {
                         let lapGold = 500;
                         if (GameState.currentGlobalEvent?.id === 'GOLD_RUSH') lapGold *= 2;
                         p.gold += lapGold;
+                        (window as any).Cinematics?.lap(p, lapGold);
 
                         const CardsObj = (window as any).Cards || Cards;
                         CardsObj.draw(p);
@@ -262,8 +326,8 @@ export class GameMovement {
                             }
                         });
 
-                        GameUI.sendGlobalLog(`🚩 ${p.name} completou uma volta! Ganhou 500G, 2 Cartas e +1 Level para todo o time!`);
-                        GameUI.sendGlobalLog(`💰 [Extrato] ${p.name} recebeu +500G (Volta no Tabuleiro).`);
+                        GameUI.sendGlobalLog(`🚩 ${p.name} completou uma volta! Ganhou ${lapGold}G, 2 Cartas e +1 Level para todo o time!`);
+                        GameUI.sendGlobalLog(`💰 [Extrato] ${p.name} recebeu +${lapGold}G (Volta no Tabuleiro).`);
                         GameUI.sendGlobalLog(`💰 [Extrato] Novo Saldo: ${p.gold}G.`);
 
                         GameUI.updateHUD();
@@ -277,64 +341,6 @@ export class GameMovement {
             p.y = nextCoord.y;
             this.performVisualStep(pId, p.x, p.y);
             await new Promise(r => setTimeout(r, 150));
-
-            const trapIdx = GameState.traps.findIndex(t => t.x === p.x && t.y === p.y && t.ownerId !== p.id);
-            if (trapIdx > -1) {
-                hitTrap = true;
-
-                const trap = GameState.traps[trapIdx];
-                const owner = GameState.players.find(op => op.id === trap.ownerId);
-
-                let stolenGold = 0;
-                if (p.gold > 0) {
-                    let tax = 0.20;
-                    if (GameState.currentGlobalEvent?.id === 'BLOOD_MOON') tax = 0.40;
-
-                    stolenGold = Math.floor(p.gold * tax);
-                    if (stolenGold === 0 && p.gold > 0) stolenGold = 1;
-
-                    p.gold -= stolenGold;
-                    if (owner) owner.gold += stolenGold;
-                }
-
-                p.skipTurns += 1;
-                GameState.traps.splice(trapIdx, 1);
-                GameUI.renderTraps();
-                GameUI.updateHUD();
-
-                if (!NetworkObj.isOnline || pId === NetworkObj.myPlayerId) {
-                    if (NetworkObj.isOnline) {
-                        if (owner && stolenGold > 0) {
-                            NetworkObj.syncPlayers([p.id, owner.id]);
-                        } else {
-                            NetworkObj.syncPlayerState();
-                        }
-                    }
-
-                    if (NetworkObj.isOnline) {
-                        NetworkObj.sendAction('SYNC_TRAPS', { traps: GameState.traps });
-                    }
-
-                    let msg = `🪤 ${p.name} caiu numa armadilha! Punição: +1 turno sem jogar`;
-                    if (stolenGold > 0 && owner) {
-                        msg += ` e perdeu ${stolenGold}G para ${owner.name}!`;
-                        GameUI.sendGlobalLog(`💰 [Extrato] Transferência de ${stolenGold}G de ${p.name} para ${owner.name} (Armadilha).`);
-                        GameUI.sendGlobalLog(`💰 [Extrato] Novo Saldo de ${p.name}: ${p.gold}G.`);
-                        GameUI.sendGlobalLog(`💰 [Extrato] Novo Saldo de ${owner.name}: ${owner.gold}G.`);
-                    } else {
-                        msg += `!`;
-                    }
-                    GameUI.sendGlobalLog(msg);
-
-                    GameState.pendingTileEvent = true;
-                    GameUI.showGlobalAlert(msg, p.name, true, false);
-
-                    if (NetworkObj.isOnline) {
-                        NetworkObj.sendAction('SHOW_ALERT', { msg: msg, playerName: p.name, endsTurn: false });
-                    }
-                }
-                break;
-            }
         }
 
         if (stepsWalked > 0) {
@@ -350,9 +356,7 @@ export class GameMovement {
                 }
             }
 
-            if (!hitTrap) {
-                GameEvents.handleTile(p);
-            }
+            GameEvents.handleTile(p);
             if (NetworkObj.isOnline) NetworkObj.syncPlayerState();
         }
     }
@@ -362,6 +366,12 @@ export class GameMovement {
         if (!p) return;
         p.x = x;
         p.y = y;
+        const board = (window as any).PBBoard;
+        if (board && !board.failed) {
+            board.flashTile(x, y);
+            GameUI.moveVisuals();
+            return;
+        }
         const tile = document.getElementById(`tile-${x}-${y}`);
         if (tile) {
             tile.classList.add('step-highlight');
@@ -378,16 +388,25 @@ export class GameMovement {
         if (!modal) {
             modal = document.createElement('div');
             modal.id = 'dice-choice-modal';
-            modal.style.cssText = "position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.85); display:flex; justify-content:center; align-items:center; z-index:9999;";
+            modal.className = 'modal-overlay';
+            modal.style.zIndex = '9999';
             document.body.appendChild(modal);
         }
 
         modal.innerHTML = `
-            <div style="background:#2b2d42; border:3px solid #8d99ae; border-radius:12px; padding:25px; color:white; text-align:center; box-shadow:0 10px 25px rgba(0,0,0,0.8);">
-                <h3 style="margin-top:0; color:#edf2f4; border-bottom:1px solid #8d99ae; padding-bottom:10px;">Re-Roll! Escolha seu destino:</h3>
-                <div style="display:flex; justify-content:center; gap:20px; margin-top:20px;">
-                    <button class="btn" style="font-size:2rem; padding:20px 40px; background:#e74c3c; border:none; border-radius:8px; color:white; cursor:pointer;" onclick="window.Game.chooseDice(${r1})">🎲 ${r1}</button>
-                    <button class="btn" style="font-size:2rem; padding:20px 40px; background:#3498db; border:none; border-radius:8px; color:white; cursor:pointer;" onclick="window.Game.chooseDice(${r2})">🎲 ${r2}</button>
+            <div class="modal-box pb-screen pb-screen--dialog pb-dice-choice">
+                ${ScreenKit.head({ icon: 'dice', kicker: 'Carta Re-roll', title: 'Escolha seu destino' })}
+                <p class="pb-screen-lead">Você rolou dois dados. Fique com o resultado que preferir.</p>
+                <div class="pb-dice-choice-row">
+                    <button type="button" class="pb-die-pick" onclick="window.Game.chooseDice(${r1})" aria-label="Andar ${r1} casas">
+                        ${ScreenKit.diceFace(r1)}
+                        <span>Andar <b>${r1}</b></span>
+                    </button>
+                    <span class="pb-dice-choice-or">ou</span>
+                    <button type="button" class="pb-die-pick" onclick="window.Game.chooseDice(${r2})" aria-label="Andar ${r2} casas">
+                        ${ScreenKit.diceFace(r2)}
+                        <span>Andar <b>${r2}</b></span>
+                    </button>
                 </div>
             </div>
         `;

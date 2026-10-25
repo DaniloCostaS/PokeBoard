@@ -16,9 +16,9 @@ export const SHOP_ITEMS: ItemData[] = [
 
     // --- CAPTURA (CAPTURE) ---
     { id: 'pokeball', name: 'Pokébola', desc: "Captura um Pokémon Selvagem", icon: 'pokeball.png', price: 100, type: 'capture', rate: 15 },
-    { id: 'greatball', name: 'Great Ball', desc: "Captura um Pokémon Selvagem com +20% de chance", icon: 'greatBall.png', price: 200, type: 'capture', rate: 30 },
-    { id: 'ultraball', name: 'Ultra Ball', desc: "Captura um Pokémon Selvagem com +40% de chance", icon: 'ultraBall.png', price: 400, type: 'capture', rate: 50 },
-    { id: 'masterball', name: 'Master Ball', desc: "Captura um Pokémon Selvagem com 100% de chance", icon: 'masterBall.png', price: 2500, type: 'capture', rate: 100 },
+    { id: 'greatball', name: 'Great Ball', desc: "Captura um Pokémon Selvagem com +20% de chance", icon: 'greatball.png', price: 200, type: 'capture', rate: 30 },
+    { id: 'ultraball', name: 'Ultra Ball', desc: "Captura um Pokémon Selvagem com +40% de chance", icon: 'ultraball.png', price: 400, type: 'capture', rate: 50 },
+    { id: 'masterball', name: 'Master Ball', desc: "Captura um Pokémon Selvagem com 100% de chance", icon: 'masterball.png', price: 2500, type: 'capture', rate: 100 },
 
     // --- ESPECIAIS ---
     { id: 'megastone', name: 'Mega Stone', desc: "Permite a Mega Evolução", icon: 'MegaStone.png', price: 5000, type: 'mega' },

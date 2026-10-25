@@ -302,10 +302,18 @@ export class Pokemon {
             if ((player.effects.doubleXp && player.effects.doubleXp > 0) || Game.currentGlobalEvent?.id === 'EXP_BURST') {
                 finalAmount *= 2;
                 usedEffect = true;
+                // Carta Double XP: conta por ganho de XP ("próximos 5 ganhos"), não por turno
+                if (player.effects.doubleXp && player.effects.doubleXp > 0) {
+                    player.effects.doubleXp--;
+                    if (player.effects.doubleXp === 0) Game.sendGlobalLog(`📉 O efeito Double XP de ${player.name} acabou.`);
+                }
             }
 
             if (player.effects.expShare && player.effects.expShare > 0) {
                 usedEffect = true;
+                // Carta Exp Share: conta por ganho de XP ("próximos 5 ganhos"), não por turno
+                player.effects.expShare--;
+                if (player.effects.expShare === 0) Game.sendGlobalLog(`📉 O efeito Exp. Share de ${player.name} acabou.`);
                 
                 const aliveTeam = player.team.filter(p => !p.isFainted());
                 
@@ -330,11 +338,14 @@ export class Pokemon {
     _applyXp(amount: number, player: Player) {
         (window as any).Game.sendGlobalLog(`💹 ${this.name} ganhou ${amount} XP!`);
         this.currentXp += amount; 
+        const levelBefore = this.level;
         
         while(this.currentXp >= this.maxXp && this.level < 25) { 
             this.currentXp -= this.maxXp; 
             this.levelUp(player); 
         } 
+        // Só visual: barra de XP e "subiu de nível" na batalha/HUD
+        (window as any).GameFeel?.onXp?.(this, amount, this.level - levelBefore);
     }
 
     levelUp(player: Player | null) { 
@@ -447,7 +458,7 @@ export class Pokemon {
 
                 if (!canEvolve) return false;
 
-                const oldName = this.name; 
+                const oldName = this.name; const oldId = this.id;
                 const triggeredAt = this.evoData.trigger; 
                 
                 this.id = next.id; 
@@ -493,7 +504,8 @@ export class Pokemon {
 
                     const msgEvo = `✨ Inacreditável! ${oldName} evoluiu para ${this.name}! (HP Restaurado)`;
 
-                    Game.sendGlobalLog(msgEvo); 
+                    Game.sendGlobalLog(msgEvo);
+                    (window as any).Cinematics?.evolution(player, oldId, oldName, this);
 
                     if (Battle && Battle.active) {
                         Battle.logBattle(msgEvo, true);

@@ -3,6 +3,7 @@ import { BattleUI } from '../modules/battle/BattleUI';
 import { Player } from '../models/Player';
 import { Pokemon } from '../models/Pokemon';
 import { Cards } from './Cards';
+import { GameDialog } from '../modules/ui/GameDialog';
 
 export class Battle {
 
@@ -111,6 +112,7 @@ export class Battle {
         const p = Game.players.find((pl: any) => pl.id === payload.pId) || Game.players[payload.pId];
         if (!p) return;
 
+        if (!BattleCore.active) setTimeout(() => (window as any).Cinematics?.battleIntro(BattleCore), 0);
         BattleCore.active = true;
         BattleCore.player = p;
         BattleCore.currentTerrain = payload.currentTerrain || 1;
@@ -211,28 +213,34 @@ export class Battle {
     static logBattle(msg: string, sync: boolean = false) { BattleUI.logBattle(msg, sync); }
     static async animateCaptureSequence(ballIcon: string, isSuccess: boolean) { await BattleUI.animateCaptureSequence(ballIcon, isSuccess); }
 
-    static useCard(cardId: string) {
+    static async useCard(cardId: string) {
         if (BattleCore.isGym && BattleCore.player!.effects.curse) {
             const Game = (window as any).Game;
             Game.showGlobalAlert("😈 Sua mochila foi selada pela Maldição! Você não pode usar cartas nesta Batalha de Ginásio!", BattleCore.player!.name, true, false);
             return;
         }
 
-        if (BattleCore.cardsUsedThisBattle >= 3) return alert("🚫 Você já usou o limite máximo de 3 cartas nesta batalha!");
+        if (BattleCore.cardsUsedThisBattle >= 3) return GameDialog.toast("Você já usou o limite máximo de 3 cartas nesta batalha!", { tone: 'warning' });
         const Network = (window as any).Network;
         const Game = (window as any).Game;
 
-        if (BattleCore.isPvP && BattleCore.enemyPlayer) {
-            const enemyHasJam = BattleCore.enemyPlayer.cards.findIndex((c: any) => c.id === 'jam');
-            if (enemyHasJam > -1) {
+        // Interferência só reage a cartas usadas CONTRA o dono dela (atordoar ou aumentar o dano no Pokémon dele);
+        // cura, proteção e outras cartas em benefício próprio passam normalmente
+        const cardsAgainstOpponent = ['status', 'crit', 'focus', 'sniper'];
+        if (BattleCore.isPvP && BattleCore.enemyPlayer && cardsAgainstOpponent.includes(cardId)) {
+            // Interferência protegida pelo Cadeado não ativa (mesma regra da defesa automática no tabuleiro)
+            const enemyHasJam = BattleCore.enemyPlayer.cards.findIndex((c: any) => c.id === 'jam' && !c.isProtected);
+            const myCardIdx = BattleCore.player!.cards.findIndex((c: any) => c.id === cardId && !c.isProtected);
+            if (enemyHasJam > -1 && myCardIdx > -1) {
                 BattleCore.cardsUsedThisBattle++;
                 BattleCore.enemyPlayer.cards.splice(enemyHasJam, 1);
-                const myCardIdx = BattleCore.player!.cards.findIndex((c: any) => c.id === cardId);
                 let cardName = "uma carta";
                 if (myCardIdx > -1) {
                     cardName = BattleCore.player!.cards[myCardIdx].name;
                     BattleCore.player!.cards.splice(myCardIdx, 1);
                 }
+                (window as any).UseFx?.cardBlocked?.(cardId, BattleCore.player!);
+                (window as any).UseFx?.cardPlayed?.('jam', BattleCore.enemyPlayer);
 
                 document.getElementById('battle-cards-modal')!.style.display = 'none';
                 Game.updateHUD();
@@ -242,14 +250,24 @@ export class Battle {
                 Game.showGlobalAlert(jamMsg, BattleCore.player!.name, true, false);
 
                 if (Network.isOnline) {
-                    Network.syncPlayers([BattleCore.player!.id, BattleCore.enemyPlayer.id]);
+                    Network.syncPlayerObjects([BattleCore.player!, BattleCore.enemyPlayer]);
                     Network.sendAction('SHOW_ALERT', { msg: jamMsg, playerName: BattleCore.player!.name, endsTurn: false });
                 }
                 return;
             }
         }
         BattleCore.cardsUsedThisBattle++;
-        Cards.activate(cardId);
+        const player = BattleCore.player!;
+        const countBefore = player.cards.filter((c: any) => c.id === cardId).length;
+        await Cards.activate(cardId);
+        // Uso inválido/cancelado não gasta uma das 3 cartas da batalha. Master Ball e Sequestro abrem
+        // uma escolha e só consomem a carta depois; com o modal aberto o uso continua contando.
+        const consumedNow = player.cards.filter((c: any) => c.id === cardId).length < countBefore;
+        const flowOpen = (cardId === 'master' && document.getElementById('ball-choice-modal')?.style.display === 'flex')
+            || (cardId === 'illegal_adoption' && document.getElementById('pkmn-select-modal')?.style.display === 'flex');
+        if (!consumedNow && !flowOpen && BattleCore.active && BattleCore.cardsUsedThisBattle > 0) {
+            BattleCore.cardsUsedThisBattle--;
+        }
     }
 }
 

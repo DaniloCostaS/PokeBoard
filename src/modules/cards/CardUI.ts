@@ -2,6 +2,7 @@ import { CardEffects } from './CardEffects';
 import { CARD_RARITIES } from '../../constants';
 import { MAPA_MEGAS } from '../../constants/mapaMegas';
 import { GLOBAL_EVENTS } from '../../constants/globalEvents';
+import { GameDialog } from '../ui/GameDialog';
 
 export class CardUI {
     static openTargetSelection(cardId: string) {
@@ -292,7 +293,7 @@ export class CardUI {
         });
 
         if (!hasMega) {
-            alert("Nenhum de seus Pokémon possui uma Mega Pedra equipada para ser recuperada!");
+            GameDialog.toast("Nenhum de seus Pokémon possui uma Mega Pedra equipada para ser recuperada!", { tone: 'warning' });
             return;
         }
 
@@ -562,7 +563,7 @@ export class CardUI {
 
         let buttonsHTML = '';
         balls.forEach(b => {
-            buttonsHTML += `<button class="btn" style="margin:5px; padding:15px 30px; background:#e74c3c;" onclick="window.Cards.executeMasterCard('${b.id}')">🎒 ${b.name} (x${b.count})</button>`;
+            buttonsHTML += `<button class="btn" style="margin:5px; padding:15px 30px; background:#e74c3c;" onclick="window.Cards.executeMasterCard('${b.id}')">${b.name} (x${b.count})</button>`;
         });
 
         buttonsHTML += `<button class="btn btn-secondary" style="margin-top:15px;" onclick="document.getElementById('ball-choice-modal').style.display='none'">Cancelar</button>`;
@@ -588,11 +589,16 @@ export class CardUI {
 
         player.team.forEach((mon: any, index: number) => {
             const div = document.createElement('div');
-            div.className = `mon-select-item`;
-            div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>Lv.${mon.level}</small>`;
-            div.onclick = () => {
-                this.continueTradeFlow(player, target, index);
-            };
+            if (!CardEffects.canLoseByCard(mon)) {
+                div.className = `mon-select-item disabled`;
+                div.innerHTML = `<img src="${mon.getSprite()}" width="40" style="filter: grayscale(100%);"><b>${mon.name}</b> <small>Vínculo Supremo</small>`;
+            } else {
+                div.className = `mon-select-item`;
+                div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>Lv.${mon.level}</small>`;
+                div.onclick = () => {
+                    this.continueTradeFlow(player, target, index);
+                };
+            }
             list.appendChild(div);
         });
 
@@ -614,12 +620,17 @@ export class CardUI {
 
         target.team.forEach((mon: any, index: number) => {
             const div = document.createElement('div');
-            div.className = `mon-select-item`;
-            div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>Lv.${mon.level}</small>`;
-            div.onclick = () => {
-                modal.style.display = 'none';
-                CardEffects.executeTrade(player, target, myChoice, index);
-            };
+            if (!CardEffects.canLoseByCard(mon)) {
+                div.className = `mon-select-item disabled`;
+                div.innerHTML = `<img src="${mon.getSprite()}" width="40" style="filter: grayscale(100%);"><b>${mon.name}</b> <small>Vínculo Supremo</small>`;
+            } else {
+                div.className = `mon-select-item`;
+                div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>Lv.${mon.level}</small>`;
+                div.onclick = () => {
+                    modal.style.display = 'none';
+                    CardEffects.executeTrade(player, target, myChoice, index);
+                };
+            }
             list.appendChild(div);
         });
 
@@ -639,9 +650,9 @@ export class CardUI {
 
         player.team.forEach((mon: any, index: number) => {
             const div = document.createElement('div');
-            if (mon.isTemp || mon.isMegaEvolution) {
+            if (!CardEffects.canLoseByCard(mon)) {
                 div.className = `mon-select-item disabled`;
-                div.innerHTML = `<img src="${mon.getSprite()}" width="40" style="filter: grayscale(100%);"><b>${mon.name}</b> <small style="color:red;">Bloqueado</small>`;
+                div.innerHTML = `<img src="${mon.getSprite()}" width="40" style="filter: grayscale(100%);"><b>${mon.name}</b> <small style="color:red;">${mon.vinculoSupremo ? 'Vínculo Supremo' : 'Bloqueado'}</small>`;
             } else {
                 div.className = `mon-select-item`;
                 div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>Lv.${mon.level}</small>`;
@@ -707,11 +718,9 @@ export class CardUI {
         grid.innerHTML = '';
         Object.keys(typeColors).forEach(type => {
             const btn = document.createElement('button');
-            btn.className = 'btn';
-            btn.style.background = typeColors[type];
-            btn.style.fontSize = '0.75rem';
-            btn.style.padding = '10px 5px';
-            btn.style.border = '2px solid rgba(0,0,0,0.2)';
+            btn.type = 'button';
+            btn.className = 'pb-type-pick';
+            btn.style.setProperty('--tc', typeColors[type]);
             btn.innerText = type;
             btn.onclick = () => {
                 modal.style.display = 'none';
@@ -723,47 +732,58 @@ export class CardUI {
         modal.style.display = 'flex';
     }
 
+    /** Cabeçalho das telas de sacrifício/fusão (dentro da lista do modal da mochila). */
+    static cardPickerHead(kicker: string, title: string, lead: string, counterId: string, counterText: string): string {
+        return `
+            <div class="pb-cardpick-head">
+                <span class="pb-screen-icon pb-screen-icon--rule" aria-hidden="true"><i class="pb-ico pb-ico-cards"></i></span>
+                <div class="pb-screen-title"><small>${kicker}</small><h3>${title}</h3></div>
+            </div>
+            <p class="pb-screen-lead">${lead}</p>
+            <div id="${counterId}" class="pb-cardpick-counter">${counterText}</div>`;
+    }
+
+    /** Carta selecionável (checkbox real escondido, para manter a lógica de seleção). */
+    static cardPickerItem(c: any, index: number, checkboxClass: string, onchange: string): string {
+        const rarity = CARD_RARITIES[c.rarity];
+        const color = rarity ? rarity.color : '#9aa8b4';
+        const safeId = String(c.id).replace(/[^\w-]/g, '');
+        return `
+            <label class="pb-cardpick" style="--rc:${color}" title="${c.name}">
+                <input type="checkbox" class="${checkboxClass}" data-index="${index}" onchange="${onchange}">
+                <span class="pb-cardpick-art"><img src="/assets/img/Cartas/thumbs/${safeId}.webp" alt="" loading="lazy" onerror="this.onerror=null;this.src='/assets/img/Cartas/${safeId}.jpg'"></span>
+                <span class="pb-cardpick-name">${c.name}</span>
+                <span class="pb-cardpick-rarity">${String(c.rarity).toUpperCase()}</span>
+            </label>`;
+    }
+
     static openSacrificeModal() {
         const Game = (window as any).Game;
         const Network = (window as any).Network;
         const player = Game.getCurrentPlayer();
 
-        if (Network.isOnline && player.id !== Network.myPlayerId) return alert("Você só pode sacrificar cartas no seu próprio turno!");
-        if (!Game.canAct()) return alert("Aguarde sua vez para realizar ações.");
-        if (player.cards.length < 2) return alert("Você precisa de pelo menos 2 cartas para realizar um sacrifício.");
+        if (Network.isOnline && player.id !== Network.myPlayerId) return GameDialog.toast("Você só pode sacrificar cartas no seu próprio turno!", { tone: 'warning' });
+        if (!Game.canAct()) return GameDialog.toast("Aguarde sua vez para realizar ações.", { tone: 'warning' });
+        if (player.cards.length < 2) return GameDialog.toast("Você precisa de pelo menos 2 cartas para realizar um sacrifício.", { tone: 'warning' });
 
         const list = document.getElementById('board-inventory-list')!;
         const modal = document.getElementById('board-inventory-modal') || document.getElementById('board-cards-modal');
 
         if (modal) modal.style.display = 'flex';
-        list.innerHTML = `<h3 style="width:100%; text-align:center; color:#e74c3c;">Selecione 2 Cartas para Sacrificar</h3>
-                          <div id="sacrifice-counter" style="width:100%; text-align:center; margin-bottom:10px;">Selecionado: 0/2</div>`;
+        list.innerHTML = CardUI.cardPickerHead('Sacrifício', 'Escolha 2 cartas', 'Troque 2 cartas por 1 carta aleatória. Cartas protegidas não aparecem.', 'sacrifice-counter', 'Selecionado: 0/2');
 
-        player.cards.forEach((c: any, index: number) => {
-            if (c.isProtected) return;
-            const d = document.createElement('div');
-            d.className = 'card-item';
-            let rarityColor = '#bdc3c7';
-            if (c.rarity === 'Épica') rarityColor = '#9b59b6';
-            if (c.rarity === 'Rara') rarityColor = '#3498db';
-            if (c.rarity === 'Incomum') rarityColor = '#2ecc71';
-
-            d.innerHTML = `
-                <div class="card-info" style="display:flex; align-items:center; gap:10px;">
-                    <input type="checkbox" class="sacrifice-checkbox" data-index="${index}" style="transform: scale(1.5); cursor:pointer;" onchange="window.Cards.updateSacrificeCount()">
-                    <span class="card-name">${c.icon} ${c.name} <span style="font-size: 0.7rem; color: #fff; background: ${rarityColor}; padding: 2px 6px; border-radius: 4px; margin-left: 5px;">${c.rarity.toUpperCase()}</span></span>
-                </div>
-            `;
-            list.appendChild(d);
-        });
+        const grid = document.createElement('div');
+        grid.className = 'pb-cardpick-grid';
+        grid.innerHTML = player.cards
+            .map((c: any, index: number) => c.isProtected ? '' : CardUI.cardPickerItem(c, index, 'sacrifice-checkbox', 'window.Cards.updateSacrificeCount()'))
+            .join('');
+        list.appendChild(grid);
 
         const btnContainer = document.createElement('div');
-        btnContainer.style.width = '100%';
-        btnContainer.style.textAlign = 'center';
-        btnContainer.style.marginTop = '15px';
+        btnContainer.className = 'pb-cardpick-actions';
         btnContainer.innerHTML = `
-            <button class="btn" style="background-color:#e67e22;" onclick="window.Cards.confirmSacrifice()">🔥 SACRIFICAR</button>
             <button class="btn btn-secondary" onclick="document.getElementById('${modal?.id}').style.display='none'">Cancelar</button>
+            <button class="btn btn-roll" onclick="window.Cards.confirmSacrifice()">Sacrificar</button>
         `;
         list.appendChild(btnContainer);
 
@@ -772,7 +792,7 @@ export class CardUI {
             const counter = document.getElementById('sacrifice-counter');
             if (counter) counter.innerText = `Selecionado: ${checks.length}/2`;
             if (checks.length > 2) {
-                alert("Selecione apenas 2 cartas!");
+                GameDialog.toast("Selecione apenas 2 cartas!", { tone: 'warning' });
                 (window.event?.target as HTMLInputElement).checked = false;
                 if (counter) counter.innerText = `Selecionado: 2/2`;
             }
@@ -784,44 +804,28 @@ export class CardUI {
         const Network = (window as any).Network;
         const player = Game.getCurrentPlayer();
 
-        if (Network.isOnline && player.id !== Network.myPlayerId) return alert("Você só pode fundir cartas no seu próprio turno!");
-        if (!Game.canAct()) return alert("Aguarde sua vez para realizar ações.");
-        if (player.cards.length < 4) return alert("Você precisa de pelo menos 4 cartas para realizar uma fusão.");
+        if (Network.isOnline && player.id !== Network.myPlayerId) return GameDialog.toast("Você só pode fundir cartas no seu próprio turno!", { tone: 'warning' });
+        if (!Game.canAct()) return GameDialog.toast("Aguarde sua vez para realizar ações.", { tone: 'warning' });
+        if (player.cards.length < 4) return GameDialog.toast("Você precisa de pelo menos 4 cartas para realizar uma fusão.", { tone: 'warning' });
 
         const list = document.getElementById('board-inventory-list')!;
         const modal = document.getElementById('board-inventory-modal') || document.getElementById('board-cards-modal');
 
         if (modal) modal.style.display = 'flex';
-        list.innerHTML = `<h3 style="width:100%; text-align:center; color:#2ecc71;">Selecione Cartas da MESMA raridade</h3>
-                          <p style="width:100%; text-align:center; font-size:0.8rem; color:#7f8c8d; margin-top:-10px;">Comum: 2 ➡ Inc | Incomum: 3 ➡ Rara | Rara: 4 ➡ Épica | Épica: 4 ➡ Lendária</p>
-                          <div id="merge-counter" style="width:100%; text-align:center; margin-bottom:10px;">Selecionado: 0/-</div>`;
+        list.innerHTML = CardUI.cardPickerHead('Fusão', 'Cartas da mesma raridade', 'Comum: 2 → Incomum · Incomum: 3 → Rara · Rara: 4 → Épica · Épica: 4 → Lendária', 'merge-counter', 'Selecionado: 0/-');
 
-        player.cards.forEach((c: any, index: number) => {
-            if (c.isProtected) return;
-            const d = document.createElement('div');
-            d.className = 'card-item';
-            let rarityColor = '#bdc3c7';
-            if (c.rarity === 'Épica') rarityColor = '#9b59b6';
-            if (c.rarity === 'Rara') rarityColor = '#3498db';
-            if (c.rarity === 'Incomum') rarityColor = '#2ecc71';
-            if (c.rarity === 'Lendária') rarityColor = '#f1c40f';
-
-            d.innerHTML = `
-                <div class="card-info" style="display:flex; align-items:center; gap:10px;">
-                    <input type="checkbox" class="merge-checkbox" data-index="${index}" style="transform: scale(1.5); cursor:pointer;" onchange="window.Cards.updateMergeCount()">
-                    <span class="card-name">${c.icon} ${c.name} <span style="font-size: 0.7rem; color: #fff; background: ${rarityColor}; padding: 2px 6px; border-radius: 4px; margin-left: 5px;">${c.rarity.toUpperCase()}</span></span>
-                </div>
-            `;
-            list.appendChild(d);
-        });
+        const grid = document.createElement('div');
+        grid.className = 'pb-cardpick-grid';
+        grid.innerHTML = player.cards
+            .map((c: any, index: number) => c.isProtected ? '' : CardUI.cardPickerItem(c, index, 'merge-checkbox', 'window.Cards.updateMergeCount()'))
+            .join('');
+        list.appendChild(grid);
 
         const btnContainer = document.createElement('div');
-        btnContainer.style.width = '100%';
-        btnContainer.style.textAlign = 'center';
-        btnContainer.style.marginTop = '15px';
+        btnContainer.className = 'pb-cardpick-actions';
         btnContainer.innerHTML = `
-            <button class="btn" style="background-color:#2ecc71;" onclick="window.Cards.confirmMerge()">💎 FUNDIR CARTAS</button>
             <button class="btn btn-secondary" onclick="document.getElementById('${modal?.id}').style.display='none'">Cancelar</button>
+            <button class="btn btn-start-turn" onclick="window.Cards.confirmMerge()">Fundir cartas</button>
         `;
         list.appendChild(btnContainer);
 
@@ -843,7 +847,7 @@ export class CardUI {
 
             if (counter) counter.innerText = `Selecionado: ${checks.length}/${checks.length > 0 ? reqAmount : '-'}`;
             if (checks.length > reqAmount) {
-                alert(`Para a raridade selecionada, selecione apenas ${reqAmount} cartas!`);
+                GameDialog.toast(`Para a raridade selecionada, selecione apenas ${reqAmount} cartas!`, { tone: 'warning' });
                 (window.event?.target as HTMLInputElement).checked = false;
                 if (counter) counter.innerText = `Selecionado: ${reqAmount}/${reqAmount}`;
             }
@@ -895,7 +899,7 @@ export class CardUI {
         });
 
         if (!hasProtectable) {
-            alert("Você não tem cartas válidas para proteger!");
+            GameDialog.toast("Você não tem cartas válidas para proteger!", { tone: 'warning' });
             if (modal) modal.style.display = 'none';
             return;
         }
@@ -957,40 +961,13 @@ export class CardUI {
         list.innerHTML = '';
 
         GLOBAL_EVENTS.forEach((ev: any) => {
-            const div = document.createElement('div');
-            div.className = 'mon-select-item';
-            div.style.cssText = `
-                display: flex; 
-                flex-direction: column; 
-                align-items: flex-start; 
-                gap: 5px; 
-                padding: 12px; 
-                border: 1px solid #444; 
-                border-radius: 8px; 
-                background: rgba(255,255,255,0.03); 
-                cursor: pointer; 
-                transition: background 0.2s, border-color 0.2s;
-                text-align: left;
-                width: 100%;
-                box-sizing: border-box;
-            `;
-
+            const div = document.createElement('button');
+            div.type = 'button';
+            div.className = 'pb-event-pick';
             div.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <span style="font-size: 1.4rem;">${ev.icon}</span>
-                    <b style="font-size: 1.1rem; color: #f1c40f;">${ev.name}</b>
-                </div>
-                <div style="font-size: 0.8rem; color: #ccc; line-height: 1.3;">${ev.desc}</div>
+                <span class="pb-event-pick-ico" aria-hidden="true">${ev.icon}</span>
+                <span><b>${ev.name}</b><small>${ev.desc}</small></span>
             `;
-
-            div.onmouseover = () => {
-                div.style.background = 'rgba(241, 196, 15, 0.1)';
-                div.style.borderColor = '#f1c40f';
-            };
-            div.onmouseout = () => {
-                div.style.background = 'rgba(255,255,255,0.03)';
-                div.style.borderColor = '#444';
-            };
 
             div.onclick = () => {
                 modal.style.display = 'none';

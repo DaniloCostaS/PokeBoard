@@ -98,7 +98,8 @@ export class CPUController {
 
             switch (cardId) {
                 case 'time':
-                    conditionMet = true;
+                    // Turno extra não acumula
+                    conditionMet = !(p.effects && p.effects.extraTurn);
                     break;
                 case 'grande_assalto':
                     conditionMet = Game.players.some((pl: any) => pl.id !== p.id && ((pl.gold || 0) > 150 || (pl.cards?.length || 0) > 1 || Object.values(pl.items || {}).reduce((s: number, v: any) => s + v, 0) > 1));
@@ -190,7 +191,8 @@ export class CPUController {
                     break;
                 }
                 case 'boost':
-                    conditionMet = true;
+                    // O bônus não acumula
+                    conditionMet = !Game.bonusMovement && !Game.hasRolled;
                     break;
                 case 'shiny':
                     conditionMet = !(p.effects && p.effects.lureShiny);
@@ -468,21 +470,26 @@ export class CPUController {
         setTimeout(() => {
             const Game = (window as any).Game;
             
+            // Invasão Rocket dobra os preços da Loja (o humano já pagava em dobro pela ShopUI)
+            const ballPrice = GameState.currentGlobalEvent?.id === 'ROCKET' ? 200 : 100;
+            // Tempestade EMP fecha o comércio da cidade (loja, cartas, missões); a cura continua liberada
+            const empActive = GameState.currentGlobalEvent?.id === 'EMP';
+
             // 1. Compra Pokébolas silenciosamente até ter 5
-            while (p.gold >= 100 && (p.items['pokeball'] || 0) < 5) {
-                p.gold -= 100;
+            while (!empActive && p.gold >= ballPrice && (p.items['pokeball'] || 0) < 5) {
+                p.gold -= ballPrice;
                 p.items['pokeball'] = (p.items['pokeball'] || 0) + 1;
                 if (Game.sendGlobalLog) Game.sendGlobalLog(`🛒 ${p.name} comprou: Pokébola!`);
             }
 
             // 2. Compra Carta se sobrar mais de 500G
-            if (p.gold >= 500) {
+            if (p.gold >= 500 && !empActive) {
                 GameEvents.handleCityChoice('card');
             }
 
             // 3. Verifica se precisa curar
             const needsHeal = p.team.some(mon => mon.currentHp < mon.maxHp || mon.isFainted());
-            
+
             setTimeout(() => {
                 if (needsHeal) {
                     GameEvents.handleCityChoice('heal');

@@ -3945,6 +3945,95 @@ body {
     background: #f6d578;
 }
 
+.rooms-hub-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    padding: 4px;
+    background: rgba(2, 12, 21, 0.32);
+    border-radius: 10px;
+}
+
+.rooms-hub-tab {
+    min-height: 34px;
+    color: #a4b7bf;
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 700;
+    background: transparent;
+    border: 0;
+    border-radius: 7px;
+    cursor: pointer;
+}
+
+.rooms-hub-tab.is-active {
+    color: #eaf7fc;
+    background: rgba(58, 143, 195, 0.55);
+}
+
+.rooms-hub-tab:focus-visible {
+    outline: 2px solid #a9e1ef;
+    outline-offset: 2px;
+}
+
+.rooms-hub-tab-panel {
+    display: grid;
+    gap: 10px;
+}
+
+.rooms-hub-card--watch {
+    border-color: rgba(167, 139, 250, 0.34);
+}
+
+.rooms-hub-card--watch .rooms-hub-card-header p {
+    color: #c4b5fd;
+}
+
+.rooms-hub-card--watch .rooms-hub-card-badge {
+    color: #ddd6fe;
+    background: rgba(139, 92, 246, 0.16);
+}
+
+.rooms-hub-card--watch .rooms-hub-card-action {
+    background: rgba(124, 58, 237, 0.7);
+    border-color: rgba(196, 181, 253, 0.42);
+}
+
+.rooms-hub-card--watch .rooms-hub-card-action:hover {
+    background: rgba(139, 92, 246, 0.9);
+}
+
+.spectator-banner {
+    position: fixed;
+    top: 10px;
+    left: 50%;
+    z-index: 2500;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    max-width: calc(100vw - 32px);
+    padding: 6px 8px 6px 14px;
+    color: #ede9fe;
+    font-size: 0.8rem;
+    font-weight: 700;
+    background: rgba(46, 16, 101, 0.92);
+    border: 1px solid rgba(196, 181, 253, 0.45);
+    border-radius: 999px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+    transform: translateX(-50%);
+}
+
+.spectator-banner button {
+    padding: 4px 10px;
+    color: #ede9fe;
+    font: inherit;
+    font-size: 0.72rem;
+    background: rgba(139, 92, 246, 0.35);
+    border: 1px solid rgba(196, 181, 253, 0.45);
+    border-radius: 999px;
+    cursor: pointer;
+}
+
 .rooms-hub-footer {
     padding: 14px 20px 20px;
     border-top: 1px solid rgba(174, 207, 221, 0.12);
@@ -6815,4 +6904,4 @@ body {
 .poke-type-badge:hover {
     filter: brightness(1.25);
     transform: translateY(-1px);
-}
+}

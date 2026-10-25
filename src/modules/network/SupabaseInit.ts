@@ -14,6 +14,8 @@ export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseKey);
 export class NetworkState {
     static isOnline: boolean = false;
     static isHost: boolean = false;
+    // Espectador: assiste uma partida em andamento sem ocupar vaga, sem ver cartas e sem gravar nada
+    static isSpectator: boolean = false;
 
     // Agora usando UUID do PostgreSQL para identificar o jogador no BD
     static myPlayerIdDb: string = "";

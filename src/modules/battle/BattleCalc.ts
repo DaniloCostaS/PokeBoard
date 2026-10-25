@@ -150,36 +150,40 @@ export class BattleCalc {
             if (currentTypeMulti > bestMulti) bestMulti = currentTypeMulti;
         });
 
-        let finalMulti = bestMulti;
+        // Clima multiplica o dano final (+25% vale +25% também em golpes super efetivos, como diz o evento)
+        let weatherMulti = 1;
         const Game = (window as any).Game;
         const ev = Game.currentGlobalEvent?.id;
         let weatherSign = "";
 
         if (ev === 'DROUGHT') {
-            if (atkTypes.includes('Fogo') || atkTypes.includes('Grama')) { finalMulti += 0.25; weatherSign = "[Sol☀️]"; }
-            if (atkTypes.includes('Água')) { finalMulti -= 0.25; weatherSign = "[Sol🥵]"; }
+            if (atkTypes.includes('Fogo') || atkTypes.includes('Grama')) { weatherMulti += 0.25; weatherSign = "[Sol☀️]"; }
+            if (atkTypes.includes('Água')) { weatherMulti -= 0.25; weatherSign = "[Sol🥵]"; }
         } else if (ev === 'RAIN') {
-            if (atkTypes.includes('Água') || atkTypes.includes('Elétrico')) { finalMulti += 0.25; weatherSign = "[Chuva🌧️]"; }
-            if (atkTypes.includes('Fogo')) { finalMulti -= 0.25; weatherSign = "[Chuva💧]"; }
+            if (atkTypes.includes('Água') || atkTypes.includes('Elétrico')) { weatherMulti += 0.25; weatherSign = "[Chuva🌧️]"; }
+            if (atkTypes.includes('Fogo')) { weatherMulti -= 0.25; weatherSign = "[Chuva💧]"; }
         } else if (ev === 'WINTER_STORM') {
-            if (atkTypes.includes('Gelo')) { finalMulti += 0.50; weatherSign = "[Gelo❄️]"; }
-            else { finalMulti -= 0.20; weatherSign = "[Frio🧊]"; }
+            if (atkTypes.includes('Gelo')) { weatherMulti += 0.50; weatherSign = "[Gelo❄️]"; }
+            else { weatherMulti -= 0.20; weatherSign = "[Frio🧊]"; }
         } else if (ev === 'MYSTIC_AURA') {
-            if (atkTypes.includes('Psíquico') || atkTypes.includes('Fada')) { finalMulti += 0.50; weatherSign = "[Mistíco✨]"; }
+            if (atkTypes.includes('Psíquico') || atkTypes.includes('Fada')) { weatherMulti += 0.50; weatherSign = "[Mistíco✨]"; }
         } else if (ev === 'BLOOD_MOON') {
-            if (atkTypes.includes('Fantasma') || atkTypes.includes('Noturno')) { finalMulti += 0.20; weatherSign = "[Lua🌑]"; }
+            if (atkTypes.includes('Fantasma') || atkTypes.includes('Noturno')) { weatherMulti += 0.20; weatherSign = "[Lua🌑]"; }
         } else if (ev === 'BERSERK_MODE') {
-            finalMulti *= 2.0;
+            weatherMulti *= 2.0;
             weatherSign = "[💢BERSERK!]";
         }
+
+        const finalMulti = bestMulti * weatherMulti;
 
         finalDamage = Math.floor(finalDamage * finalMulti);
 
         if (finalMulti !== 1.0) auditLog += ` | Mult. Vantagem/Clima x${finalMulti.toFixed(2)}`;
 
-        if (finalMulti >= 1.5) logDetails += " 🔥!";
+        // Efetividade de tipo (sem o clima) decide o "super efetivo" / "não muito efetivo"
+        if (bestMulti >= 1.5) logDetails += " 🔥!";
         else if (finalMulti > 1.0) logDetails += " ⚔️";
-        else if (finalMulti < 1.0) logDetails += " 🛡️.";
+        else if (bestMulti < 1.0) logDetails += " 🛡️.";
         logDetails += weatherSign;
 
         finalDamage = Math.max(0, Math.floor(finalDamage));
@@ -199,7 +203,7 @@ export class BattleCalc {
             }
         } else {
             if (BattleCore.activeEffects.guard) { finalDamage = Math.floor(finalDamage / 2); logDetails += " [🛡️]"; auditLog += ` | Carta Guard /2`; }
-            if (BattleCore.enemyPlayer && BattleCore.enemyPlayer.effects.curse) { finalDamage = Math.floor(finalDamage / 2); auditLog += ` | Maldição Inimiga /2`; }
+            // Maldição só reduz o dano contra Líder de Ginásio / Campeão (descrição da carta), não em PvP
         }
 
         let reflectedAmount = 0;

@@ -1,0 +1,7 @@
+/* Tabuleiro em PixiJS: o clima/eventos globais são desenhados no canvas (BoardWeather).
+   Desliga as camadas CSS antigas (#board-wrapper.weather-*::after), que continuam valendo
+   só no tabuleiro em DOM (sem WebGL). */
+#board-wrapper.pb-pixi::after {
+    display: none !important;
+    animation: none !important;
+}
