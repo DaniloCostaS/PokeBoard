@@ -476,7 +476,10 @@ export class NetworkActions {
         if (action.playerId === NetworkState.myPlayerId) return;
 
         switch (action.type) {
-            case 'ROLL': Game.animateDice(action.payload.result, action.playerId); break;
+            case 'ROLL':
+                GameState.bonusMovement = Number(action.payload?.bonus) > 0 ? Number(action.payload.bonus) : 0;
+                Game.animateDice(action.payload.result, action.playerId);
+                break;
             case 'MOVE_ANIMATION': Game.performVisualStep(action.payload.playerId, action.payload.x, action.payload.y); break;
             case 'BATTLE_START': 
                 if (Battle.active && Battle.player && Battle.player.id === NetworkState.myPlayerId) {
@@ -536,7 +539,6 @@ export class NetworkActions {
                 // Um aviso antigo confirmado depois que a vez passou não pode fechar o aviso do jogador atual
                 if (action.playerId === GameState.turn) Game.closeGlobalAlert();
                 break;
-            case 'SYNC_TRAPS': Game.renderTraps(action.payload.traps || []); break;
             case 'GAME_WIN': Game.triggerVictory(action.payload.winnerId); break;
             case 'EMOTE': Presence.showEmote(action.playerId, action.payload?.emoji); break;
             case 'CELEBRATE': (window as any).Cinematics?.fromRemote?.(action.payload, action.playerId); break;
@@ -547,7 +549,6 @@ export class NetworkActions {
                 const fx = action.payload || {};
                 if (!board || !Number.isFinite(fx.x) || !Number.isFinite(fx.y)) break;
                 if (fx.kind === 'land') board.onLand?.(fx.x, fx.y, fx.type, !!fx.pvp);
-                else if (fx.kind === 'trap') board.trapFx?.(fx.x, fx.y);
                 break;
             }
             case 'PRESENCE': Presence.showStatus(action.playerId, action.payload?.status ?? null); break;

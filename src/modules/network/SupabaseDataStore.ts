@@ -356,10 +356,6 @@ export class SupabaseDataStore {
         }));
     }
 
-    static async saveTraps(roomId: string, traps: any[]) {
-        await supabase.from('room_traps').delete().eq('room_id', roomId);
-        if (traps.length) await supabase.from('room_traps').insert(traps.map(trap => ({ room_id: roomId, x: trap.x, y: trap.y, owner_local_index: trap.ownerId })));
-    }
 
     static async saveDiscardPile(roomId: string, mons: any[]) {
         await supabase.from('room_discarded_pokemons').delete().eq('room_id', roomId);

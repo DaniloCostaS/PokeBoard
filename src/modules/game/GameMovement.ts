@@ -120,7 +120,8 @@ export class GameMovement {
 
         const NetworkObj = (window as any).Network || Network;
         if (NetworkObj.isOnline) {
-            NetworkObj.sendAction('ROLL', { result: result });
+            // O bônus de movimento (Tênis) vai junto para os outros animarem a caminhada certa
+            NetworkObj.sendAction('ROLL', { result: result, bonus: GameState.bonusMovement || 0 });
         }
 
         const playerId = NetworkObj.isOnline ? NetworkObj.myPlayerId : GameState.turn;
@@ -290,7 +291,6 @@ export class GameMovement {
             GameUI.log("👟 Bônus de movimento aplicado!");
         }
 
-        let hitTrap = false;
         let stepsWalked = 0;
         (window as any).PBBoard?.previewPath?.((window as any).PBBoard.pathFrom(p.x, p.y, steps, (p.effects?.moonwalker || 0) > 0));
 
@@ -341,66 +341,6 @@ export class GameMovement {
             p.y = nextCoord.y;
             this.performVisualStep(pId, p.x, p.y);
             await new Promise(r => setTimeout(r, 150));
-
-            const trapIdx = GameState.traps.findIndex(t => t.x === p.x && t.y === p.y && t.ownerId !== p.id);
-            if (trapIdx > -1) {
-                hitTrap = true;
-                (window as any).PBBoard?.trapFx?.(p.x, p.y);
-                if ((window as any).Network?.isOnline) (window as any).Network.sendAction('BOARD_FX', { kind: 'trap', x: p.x, y: p.y });
-
-                const trap = GameState.traps[trapIdx];
-                const owner = GameState.players.find(op => op.id === trap.ownerId);
-
-                let stolenGold = 0;
-                if (p.gold > 0) {
-                    let tax = 0.20;
-                    if (GameState.currentGlobalEvent?.id === 'BLOOD_MOON') tax = 0.40;
-
-                    stolenGold = Math.floor(p.gold * tax);
-                    if (stolenGold === 0 && p.gold > 0) stolenGold = 1;
-
-                    p.gold -= stolenGold;
-                    if (owner) owner.gold += stolenGold;
-                }
-
-                p.skipTurns += 1;
-                GameState.traps.splice(trapIdx, 1);
-                GameUI.renderTraps();
-                GameUI.updateHUD();
-
-                if (!NetworkObj.isOnline || pId === NetworkObj.myPlayerId) {
-                    if (NetworkObj.isOnline) {
-                        if (owner && stolenGold > 0) {
-                            NetworkObj.syncPlayers([p.id, owner.id]);
-                        } else {
-                            NetworkObj.syncPlayerState();
-                        }
-                    }
-
-                    if (NetworkObj.isOnline) {
-                        NetworkObj.sendAction('SYNC_TRAPS', { traps: GameState.traps });
-                    }
-
-                    let msg = `🪤 ${p.name} caiu numa armadilha! Punição: +1 turno sem jogar`;
-                    if (stolenGold > 0 && owner) {
-                        msg += ` e perdeu ${stolenGold}G para ${owner.name}!`;
-                        GameUI.sendGlobalLog(`💰 [Extrato] Transferência de ${stolenGold}G de ${p.name} para ${owner.name} (Armadilha).`);
-                        GameUI.sendGlobalLog(`💰 [Extrato] Novo Saldo de ${p.name}: ${p.gold}G.`);
-                        GameUI.sendGlobalLog(`💰 [Extrato] Novo Saldo de ${owner.name}: ${owner.gold}G.`);
-                    } else {
-                        msg += `!`;
-                    }
-                    GameUI.sendGlobalLog(msg);
-
-                    GameState.pendingTileEvent = true;
-                    GameUI.showGlobalAlert(msg, p.name, true, false);
-
-                    if (NetworkObj.isOnline) {
-                        NetworkObj.sendAction('SHOW_ALERT', { msg: msg, playerName: p.name, endsTurn: false });
-                    }
-                }
-                break;
-            }
         }
 
         if (stepsWalked > 0) {
@@ -416,9 +356,7 @@ export class GameMovement {
                 }
             }
 
-            if (!hitTrap) {
-                GameEvents.handleTile(p);
-            }
+            GameEvents.handleTile(p);
             if (NetworkObj.isOnline) NetworkObj.syncPlayerState();
         }
     }

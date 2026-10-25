@@ -6,15 +6,14 @@ import { boardTextures } from './BoardTextures';
 // Prévia das casas alcançáveis enquanto o dado gira: cada casa possível ganha um selo com o(s) valor(es)
 // do dado que levam até ela. Puramente visual, calculado sem mexer no estado do jogo.
 
-export type ReachOption = { x: number; y: number; dice: number[]; trap: boolean; steps: number };
+export type ReachOption = { x: number; y: number; dice: number[]; steps: number };
 export type ReachPlan = { pid: number; rift: boolean; backwards: boolean; options: ReachOption[] };
 
 /**
  * Simula o movimento para cada valor possível do dado, na mesma ordem do GameMovement:
  *   dado: Dado Mágico (forcedDiceValue) > Lentidão (effects.slow → 1) > 1..6
  *   evento: FENDA ESPACIAL teleporta (sem caminho) · VENTO A FAVOR ×2 · AREIA MOVEDIÇA ÷2 (mín. 1)
- *   depois soma o bônus de movimento (Tênis), anda para trás com Moon Walker, dá a volta no fim
- *   e para na primeira armadilha de outro jogador no caminho.
+ *   depois soma o bônus de movimento (Tênis), anda para trás com Moon Walker e dá a volta no fim.
  */
 export function computeReach(pid: number): ReachPlan | null {
     const p = GameState.players[pid];
@@ -38,17 +37,15 @@ export function computeReach(pid: number): ReachPlan | null {
         if (ev === 'DOUBLE_STEP') steps = d * 2;
         else if (ev === 'QUICKSAND') steps = Math.max(1, Math.floor(d / 2));
         steps += bonus;
-        let i = start, trap = false, walked = 0;
+        let i = start, walked = 0;
         for (let k = 0; k < steps; k++) {
             i = backwards ? (i - 1 + total) % total : (i + 1) % total;
             walked++;
-            const c = MapSystem.getCoord(i);
-            if (GameState.traps.some(t => t.x === c.x && t.y === c.y && t.ownerId !== p.id)) { trap = true; break; }
         }
         let opt = byTile.get(i);
         if (!opt) {
             const c = MapSystem.getCoord(i);
-            opt = { x: c.x, y: c.y, dice: [], trap, steps: walked };
+            opt = { x: c.x, y: c.y, dice: [], steps: walked };
             byTile.set(i, opt);
             plan.options.push(opt);
         }
@@ -62,7 +59,7 @@ const diceLabel = (d: number[]) => d.length >= 3 && d[d.length - 1] - d[0] === d
 
 type Mark = { node: Container; plate: Graphics; glow: Sprite; tag: Container; badge: Graphics; label: Text; tagMax: number; opt: ReachOption | null; order: number };
 
-const COLOR = 0x7fe0ff, TRAP = 0xff5a4a, PICK = 0xffd34d;
+const COLOR = 0x7fe0ff, PICK = 0xffd34d;
 const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
 
 export class BoardReach {
@@ -166,14 +163,14 @@ export class BoardReach {
             m.node.visible = true;
             m.node.alpha = 0;
             m.node.position.set(opt.x * T + T / 2, opt.y * T + T / 2);
-            const tint = opt.trap ? TRAP : COLOR;
+            const tint = COLOR;
             m.plate.tint = tint;
             m.glow.tint = tint;
             const text = diceLabel(opt.dice);
             m.label.text = text;
             m.label.style.fontSize = text.length > 1 ? 26 : 30;
             m.label.scale.set(1);
-            m.label.style.fill = opt.trap ? 0xffffff : 0x10202a;
+            m.label.style.fill = 0x10202a;
             // Selo redondo no canto; rótulos longos ("1–3", "2·4") viram uma faixa no topo, dentro da casa
             const h = T * 0.48, maxW = T - 8;
             if (m.label.width + 14 > maxW) m.label.scale.set((maxW - 14) / m.label.width);
@@ -183,8 +180,8 @@ export class BoardReach {
             // Em casas pequenas na tela o selo cresce um pouco (a faixa nunca passa da largura da casa)
             m.tagMax = bx === 0 ? (T - 2) / w : 1.45;
             m.badge.clear()
-                .roundRect(-w / 2, -h / 2, w, h, h / 2).fill(opt.trap ? 0xc93a2e : 0xffffff)
-                .roundRect(-w / 2, -h / 2, w, h, h / 2).stroke({ width: 3.5, color: opt.trap ? 0xffe0d8 : 0x10202a });
+                .roundRect(-w / 2, -h / 2, w, h, h / 2).fill(0xffffff)
+                .roundRect(-w / 2, -h / 2, w, h, h / 2).stroke({ width: 3.5, color: 0x10202a });
         });
     }
 
@@ -244,7 +241,7 @@ export class BoardReach {
                 const k = Math.min(1, (now - this.pickedAt) / 260);
                 if (isPick) {
                     sc *= this.reduced ? 1 : 1 + Math.sin(k * Math.PI) * 0.25;
-                    if (k > 0 && !m.opt.trap) { m.plate.tint = PICK; m.glow.tint = PICK; }
+                    if (k > 0) { m.plate.tint = PICK; m.glow.tint = PICK; }
                 } else alpha *= 1 - k;
             } else if (i === scan) sc *= 1.12;
             m.node.alpha = alpha * (1 - fadeK);

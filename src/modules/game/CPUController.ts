@@ -472,12 +472,11 @@ export class CPUController {
             
             // Invasão Rocket dobra os preços da Loja (o humano já pagava em dobro pela ShopUI)
             const ballPrice = GameState.currentGlobalEvent?.id === 'ROCKET' ? 200 : 100;
-            // Tempestade EMP fecha o Centro Pokémon (cura/compra de carta): handleCityChoice só mostra um aviso
-            // que não encerra o turno, e a CPU ficava travada na cidade
+            // Tempestade EMP fecha o comércio da cidade (loja, cartas, missões); a cura continua liberada
             const empActive = GameState.currentGlobalEvent?.id === 'EMP';
 
             // 1. Compra Pokébolas silenciosamente até ter 5
-            while (p.gold >= ballPrice && (p.items['pokeball'] || 0) < 5) {
+            while (!empActive && p.gold >= ballPrice && (p.items['pokeball'] || 0) < 5) {
                 p.gold -= ballPrice;
                 p.items['pokeball'] = (p.items['pokeball'] || 0) + 1;
                 if (Game.sendGlobalLog) Game.sendGlobalLog(`🛒 ${p.name} comprou: Pokébola!`);
@@ -492,7 +491,7 @@ export class CPUController {
             const needsHeal = p.team.some(mon => mon.currentHp < mon.maxHp || mon.isFainted());
 
             setTimeout(() => {
-                if (needsHeal && !empActive) {
+                if (needsHeal) {
                     GameEvents.handleCityChoice('heal');
                 } else {
                     GameState.isCityEvent = false;

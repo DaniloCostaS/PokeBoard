@@ -137,7 +137,7 @@ export class BoardRenderer {
                 });
                 app.canvas.classList.add('pb-board-canvas');
                 host.appendChild(app.canvas);
-                // Ordem: casas → selvagens → armadilhas → grading/noite → luzes → brilhos → caminho → peões → efeitos
+                // Ordem: casas → selvagens → marcações → grading/noite → luzes → brilhos → caminho → peões → efeitos
                 this.world.addChild(this.tileLayer, this.wildLayer, this.markLayer, this.gradeLayer, this.glowLayer, this.worldFxLayer, this.reachLayer, this.pathLayer, this.dustLayer, this.tokenLayer, this.fxLayer);
                 app.stage.addChild(this.world, this.screenLayer);
                 this.weather = new BoardWeather(P, { grade: this.gradeLayer, glow: this.glowLayer, worldFx: this.worldFxLayer, screen: this.screenLayer }, T);
@@ -203,7 +203,6 @@ export class BoardRenderer {
         });
 
         this.fitCamera(true);
-        this.renderTraps();
         this.syncTokens(true);
         this.weather?.rebuild();
         this.ambient?.rebuild();
@@ -254,24 +253,6 @@ export class BoardRenderer {
         if (t === TILE.GYM) {
             this.tileLayer.addChild(new P.Graphics().rect(px + 2, py + 2, T - 4, T - 4).stroke({ width: 3, color: 0xe0a92e }));
         }
-    }
-
-    static renderTraps() {
-        if (!this.ready) return;
-        this.markLayer.removeChildren().forEach(c => c.destroy());
-        GameState.traps.forEach(trap => {
-            const g = new P.Graphics();
-            const px = trap.x * T + 4, py = trap.y * T + 4, s = T - 8, dash = 8;
-            for (let i = 0; i < s; i += dash * 2) {
-                const len = Math.min(dash, s - i);
-                g.moveTo(px + i, py).lineTo(px + i + len, py);
-                g.moveTo(px + i, py + s).lineTo(px + i + len, py + s);
-                g.moveTo(px, py + i).lineTo(px, py + i + len);
-                g.moveTo(px + s, py + i).lineTo(px + s, py + i + len);
-            }
-            g.stroke({ width: 3, color: 0xd6453d });
-            this.markLayer.addChild(g);
-        });
     }
 
     // ------------------------------------------------------------------
@@ -814,32 +795,6 @@ export class BoardRenderer {
         });
     }
 
-    // Armadilha: mandíbulas vermelhas se fecham + tremida
-    static trapFx(x: number, y: number) {
-        if (!this.ready) return;
-        this.ambient?.clearPath(true);
-        this.reach?.fade();
-        const cx = x * T + T / 2, cy = y * T + T / 2;
-        this.tileGlow(x, y, 0xff2a1a, 0.6, 500);
-        for (const side of [-1, 1]) {
-            const jaw = new P.Graphics();
-            const w = T * 0.84, th = T * 0.1;
-            jaw.rect(-w / 2, -th / 2, w, th).fill(0xd6453d);
-            for (let i = 0; i < 5; i++) {
-                const tx = -w / 2 + (w / 5) * (i + 0.5);
-                jaw.poly([tx - T * 0.06, 0, tx + T * 0.06, 0, tx, side * -T * 0.13]).fill(0xffe0d8);
-            }
-            jaw.position.set(cx, cy + side * T * 0.42);
-            this.fxLayer.addChild(jaw);
-            this.addFx(jaw, 650, (t, n) => {
-                const k = Math.min(1, t / 0.18);
-                n.y = cy + side * lerp(T * 0.42, T * 0.08, k * k);
-                n.alpha = t > 0.6 ? 1 - (t - 0.6) / 0.4 : 1;
-            });
-        }
-        window.setTimeout(() => { this.burst(x, y, 0xff4a3a, 16); if (!this.reducedMotion()) this.shake(9, 300); }, 120);
-    }
-
     // Choque PvP: dois cortes cruzados + clarão
     static pvpFx(x: number, y: number) {
         if (!this.ready) return;
@@ -1059,7 +1014,6 @@ export class BoardRenderer {
             const g = this.gymAt(x, y);
             text = g ? `Ginásio ${g.type.join(' / ')} · Líder ${g.leaderName} · Insígnia ${g.gid}` : 'Ginásio';
         }
-        if (GameState.traps.some(tr => tr.x === x && tr.y === y)) text += ' · Armadilha!';
         if (here.length) text += `\n${here.join(', ')}`;
         return text;
     }

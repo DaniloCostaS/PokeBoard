@@ -224,7 +224,10 @@ export class Battle {
         const Network = (window as any).Network;
         const Game = (window as any).Game;
 
-        if (BattleCore.isPvP && BattleCore.enemyPlayer) {
+        // Interferência só reage a cartas usadas CONTRA o dono dela (atordoar ou aumentar o dano no Pokémon dele);
+        // cura, proteção e outras cartas em benefício próprio passam normalmente
+        const cardsAgainstOpponent = ['status', 'crit', 'focus', 'sniper'];
+        if (BattleCore.isPvP && BattleCore.enemyPlayer && cardsAgainstOpponent.includes(cardId)) {
             // Interferência protegida pelo Cadeado não ativa (mesma regra da defesa automática no tabuleiro)
             const enemyHasJam = BattleCore.enemyPlayer.cards.findIndex((c: any) => c.id === 'jam' && !c.isProtected);
             const myCardIdx = BattleCore.player!.cards.findIndex((c: any) => c.id === cardId && !c.isProtected);

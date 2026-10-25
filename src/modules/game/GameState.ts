@@ -32,7 +32,6 @@ export class GameState {
     static turnStarted: boolean = false; // Jogador deve clicar "Iniciar Turno" antes de agir
     static forcedDiceValue: number = 0;
     static bonusMovement: number = 0;
-    static traps: { x: number, y: number, ownerId: number }[] = [];
     static pendingHealItem: string | null = null;
     static gymTeams: { [id: number]: number[] } = {};
     static pendingCardAnimation: { id: string, player: string } | null = null;
@@ -262,7 +261,6 @@ export class GameState {
         this.turnStarted = false;
         this.forcedDiceValue = 0;
         this.bonusMovement = 0;
-        this.traps = [];
         this.pendingHealItem = null;
         this.gymTeams = {};
         this.pendingCardAnimation = null;

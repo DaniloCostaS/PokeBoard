@@ -205,6 +205,13 @@ export class GameEvents {
             GameState.isCityEvent = true;
             const cityGold = document.getElementById('city-gold-display');
             if (cityGold) cityGold.innerText = `Saldo: ${p.gold}G`;
+            // Tempestade EMP: a cidade só cura; botões de compra ficam desativados
+            const empActive = GameState.currentGlobalEvent?.id === 'EMP';
+            document.querySelectorAll<HTMLButtonElement>('#city-modal [onclick*="handleCityChoice"]').forEach(btn => {
+                const isHeal = (btn.getAttribute('onclick') || '').includes("'heal'");
+                btn.disabled = empActive && !isHeal;
+                btn.title = btn.disabled ? 'Comércio fechado pela Tempestade EMP' : '';
+            });
             document.getElementById('city-modal')!.style.display = 'flex';
             CPUController.handleCity(p);
         }
@@ -415,8 +422,9 @@ export class GameEvents {
         const player = GameState.getCurrentPlayer();
         const NetworkObj = (window as any).Network || Network;
 
-        if (GameState.currentGlobalEvent?.id === 'EMP' && c !== 'shop') {
-            GameUI.showGlobalAlert("📡 A Tempestade Eletromagnética derrubou a energia do Centro Pokémon! Cura e Compra de Cartas inoperantes.", player.name, true, false);
+        // Tempestade EMP: sem comércio na cidade (loja, cartas e missões); a cura continua funcionando
+        if (GameState.currentGlobalEvent?.id === 'EMP' && c !== 'heal') {
+            if (!player.isCPU) GameDialog.toast("A Tempestade EMP fechou o comércio da cidade: aqui só dá para curar o time.", { tone: 'warning' });
             return;
         }
 

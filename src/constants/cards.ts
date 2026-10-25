@@ -22,7 +22,7 @@ export const CARDS_DB: CardData[] = [
     { id: 'status', name: "Ataque Surpresa", icon: "⚡", desc: "Aplica um efeito de atordoamento no pokémon do inimigo. Ele não atacará por 2 turnos", type: 'battle', rarity: 'Comum' },
     { id: 'heal', name: "Poção Máxima", icon: "💊", desc: "Recupera 100% do HP durante a batalha.", type: 'battle', rarity: 'Rara' },
     { id: 'counter', name: "Contra-Ataque", icon: "🔁", desc: "Reflete 100% do dano recebido dos próximos 3 ataques.", type: 'battle', rarity: 'Comum' },
-    { id: 'mew', name: "DNA de Mew", icon: "🧬", desc: "Invoca um MEW para lutar ao seu lado nessa batalha (O nivel dele será o mesmo do seu pokémon ativo).", type: 'battle', rarity: 'Rara' },
+    { id: 'mew', name: "DNA de Mewtwo", icon: "🧬", desc: "Invoca um MEWTWO para lutar ao seu lado nessa batalha (O nivel dele será o mesmo do seu pokémon ativo).", type: 'battle', rarity: 'Rara' },
 
     // Outras Cartas
     { id: 'master', name: "Master Ball", icon: "🟣", desc: "Captura 100% garantida usando qualquer pokebola (Só pode ser usado se tiver pokebola).", type: 'battle', rarity: 'Rara' },

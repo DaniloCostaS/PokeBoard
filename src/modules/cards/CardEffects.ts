@@ -103,12 +103,56 @@ export class CardEffects {
         return false;
     }
 
+    /** Motivo pelo qual a carta ofensiva não teria efeito no alvo (null = teria efeito). */
+    static whyNoEffect(cardId: string, player: any, target: any): string | null {
+        const totalGyms = MapSystem.size === 7 ? 4 : 8;
+        switch (cardId) {
+            case 'rocket': {
+                const stealable = target.cards.filter((c: any) => c.rarity !== 'Lendária' && !c.isProtected);
+                return stealable.length ? null : `${target.name} não tem cartas que possam ser roubadas.`;
+            }
+            case 'bag': {
+                const total = Object.values(target.items || {}).reduce((sum: number, v: any) => sum + (v || 0), 0);
+                return total > 0 ? null : `${target.name} não tem itens para perder.`;
+            }
+            case 'troques':
+                if (!this.tradeableIndices(player.team).length) return 'Todos os seus Pokémon têm Vínculo Supremo: não há quem trocar.';
+                return this.tradeableIndices(target.team).length ? null : `Os Pokémon de ${target.name} têm Vínculo Supremo e não podem ser trocados.`;
+            case 'new_leader': {
+                const myBadges = player.badges.filter((b: boolean) => b).length;
+                if (myBadges >= (MapSystem.size === 7 ? 3 : 7)) return null; // a própria carta explica a regra da Liga
+                let stealable = 0;
+                for (let i = 0; i < totalGyms; i++) if (target.badges[i] && !player.badges[i]) stealable++;
+                return stealable ? null : `${target.name} não tem nenhuma Insígnia nova para você roubar.`;
+            }
+            case 'steal_mega_stone':
+                return target.team.some((m: any) => m.megaStone && !m.vinculoSupremo && m.happiness !== 100) ? null : `${target.name} não tem Mega Pedra que possa ser destruída.`;
+            case 'ash_goodbye':
+                return target.team.length > 1 && target.team.some((m: any) => !m.vinculoSupremo && m.happiness !== 100) ? null : `${target.name} não tem Pokémon que possa ser removido.`;
+            default:
+                return null;
+        }
+    }
+
+    // Vínculo Supremo: o Pokémon nunca sai do time por efeito de carta (só se o dono trocar por uma captura)
+    static canLoseByCard(mon: any) {
+        return !!mon && !mon.vinculoSupremo && !mon.isTemp && !mon.isMegaEvolution;
+    }
+
+    static tradeableIndices(team: any[]) {
+        return team.map((mon: any, i: number) => (this.canLoseByCard(mon) ? i : -1)).filter((i: number) => i !== -1);
+    }
+
     static async executeTrade(player: any, target: any, myChoice: number, hisChoice: number) {
         const Game = (window as any).Game;
         const Network = (window as any).Network;
 
         const myMon = player.team[myChoice];
         const hisMon = target.team[hisChoice];
+        if (!this.canLoseByCard(myMon) || !this.canLoseByCard(hisMon)) {
+            if (!player.isCPU) GameDialog.toast("Pokémon com Vínculo Supremo não pode ser trocado por carta.", { tone: 'warning' });
+            return;
+        }
 
         player.team[myChoice] = hisMon;
         target.team[hisChoice] = myMon;
@@ -162,6 +206,10 @@ export class CardEffects {
 
         const myMon = player.team[myChoice];
         const hisMon = Battle.oppTeamList[hisChoice];
+        if (!this.canLoseByCard(myMon) || !hisMon) {
+            if (!player.isCPU) GameDialog.toast("Pokémon com Vínculo Supremo não pode ser entregue no Sequestro.", { tone: 'warning' });
+            return;
+        }
 
         player.team[myChoice] = hisMon;
         Battle.oppTeamList[hisChoice] = myMon;
@@ -372,9 +420,9 @@ export class CardEffects {
             // Troca forçada / Destruir Mega Pedra: o alvo da CPU precisa ser definido ANTES da checagem
             // de defesa automática (senão Pokémon Fiel / Bolinha Perdida / Interferência nunca disparavam contra a CPU)
             if (cardId === 'troques') {
-                const opponents = Game.players.filter((pl: any) => pl.id !== player.id && pl.team.length > 0);
+                const opponents = this.tradeableIndices(player.team).length === 0 ? [] : Game.players.filter((pl: any) => pl.id !== player.id && this.tradeableIndices(pl.team).length > 0);
                 if (opponents.length > 0) {
-                    const getBestMonStats = (pl: any) => Math.max(...pl.team.map((m: any) => m.maxHp + m.atk + m.def + m.speed));
+                    const getBestMonStats = (pl: any) => Math.max(...pl.team.filter((m: any) => this.canLoseByCard(m)).map((m: any) => m.maxHp + m.atk + m.def + m.speed));
                     opponents.sort((a: any, b: any) => getBestMonStats(b) - getBestMonStats(a));
                     actualTargetId = opponents[0].id;
                 }
@@ -410,6 +458,12 @@ export class CardEffects {
             const targetP = Game.players.find((p: any) => p.id === actualTargetId);
 
             if (targetP) {
+                // A defesa do alvo só é gasta se o ataque teria efeito; senão a carta nem é usada
+                const noEffect = this.whyNoEffect(cardId, player, targetP);
+                if (noEffect) {
+                    if (!player.isCPU) GameDialog.toast(noEffect, { tone: 'warning' });
+                    return;
+                }
                 const wasBlocked = await this.checkAutoDefense(player, targetP, cardId, cardData.name);
                 if (wasBlocked) return;
                 player.effects.offensiveCardsUsed = (player.effects.offensiveCardsUsed || 0) + 1;
@@ -456,10 +510,7 @@ export class CardEffects {
                         const nextIdx = (currentIdx + v) % totalTiles;
                         const coord = MapSystemClass.getCoord(nextIdx);
                         const tileType = MapSystemClass.grid[coord.y][coord.x];
-                        
-                        const hasTrap = Game.traps.some((t: any) => t.x === coord.x && t.y === coord.y && t.ownerId !== player.id);
-                        if (hasTrap) continue;
-                        
+
                         if (tileType === TILE.GYM) {
                             const gymId = MapSystemClass.gymLocations[`${coord.x},${coord.y}`];
                             if (gymId && !player.badges[gymId - 1]) {
@@ -472,17 +523,7 @@ export class CardEffects {
                     
                     if (gymValue !== -1) num = gymValue;
                     else if (cityValue !== -1) num = cityValue;
-                    else {
-                        for (let v = 20; v >= 1; v--) {
-                            const nextIdx = (currentIdx + v) % totalTiles;
-                            const coord = MapSystemClass.getCoord(nextIdx);
-                            const hasTrap = Game.traps.some((t: any) => t.x === coord.x && t.y === coord.y && t.ownerId !== player.id);
-                            if (!hasTrap) {
-                                num = v;
-                                break;
-                            }
-                        }
-                    }
+                    else num = 20;
                     if (num === 0) num = 20;
                 } else {
                     const val = await GameDialog.prompt("Escolha o valor do dado (1-20):", { title: 'Dado mágico', inputMode: 'numeric', placeholder: '1-20', okLabel: 'Usar valor' });
@@ -527,7 +568,6 @@ export class CardEffects {
                     break;
                 }
                 effectLog = "👟 Tênis ativados! Andará +6 casas nesta rolagem."; Game.bonusMovement = 6; break;
-            case 'trap': Game.placeTrap(player.x, player.y, player.id); effectLog = `🪤 Uma armadilha foi montada no chão!`; break;
 
             case 'swap':
                 if (actualTargetId !== null) {
@@ -627,41 +667,26 @@ export class CardEffects {
 
             case 'troques':
                 if (player.isCPU) {
-                    // Alvo já escolhido antes da checagem de defesa automática
+                    // Alvo já escolhido antes da checagem de defesa automática (só oponentes com Pokémon sem Vínculo)
                     const target = actualTargetId !== null ? Game.players.find((pl: any) => pl.id === actualTargetId) : null;
-                    if (target) {
-
+                    const mine = this.tradeableIndices(player.team);
+                    const theirs = target ? this.tradeableIndices(target.team) : [];
+                    if (target && mine.length && theirs.length) {
                         const getStats = (mon: any) => mon.maxHp + mon.atk + mon.def + mon.speed;
-                        
-                        let myChoiceIdx = 0;
-                        let worstStats = getStats(player.team[0]);
-                        for (let i = 1; i < player.team.length; i++) {
-                            const st = getStats(player.team[i]);
-                            if (st < worstStats) {
-                                worstStats = st;
-                                myChoiceIdx = i;
-                            }
-                        }
-                        
-                        let hisChoiceIdx = 0;
-                        let bestStats = getStats(target.team[0]);
-                        for (let i = 1; i < target.team.length; i++) {
-                            const st = getStats(target.team[i]);
-                            if (st > bestStats) {
-                                bestStats = st;
-                                hisChoiceIdx = i;
-                            }
-                        }
-                        
+                        const myChoiceIdx = mine.reduce((best: number, i: number) => getStats(player.team[i]) < getStats(player.team[best]) ? i : best, mine[0]);
+                        const hisChoiceIdx = theirs.reduce((best: number, i: number) => getStats(target.team[i]) > getStats(target.team[best]) ? i : best, theirs[0]);
                         this.executeTrade(player, target, myChoiceIdx, hisChoiceIdx);
-                        consumed = false;
-                    } else {
-                        consumed = false;
                     }
+                    consumed = false;
                 } else {
                     if (actualTargetId !== null) {
                         const target = Game.players.find((p: any) => p.id === actualTargetId);
-                        if (target) { CardUI.startTradeFlow(player, target); consumed = false; }
+                        if (target && !this.tradeableIndices(player.team).length) {
+                            GameDialog.toast("Todos os seus Pokémon têm Vínculo Supremo: não há quem trocar.", { tone: 'warning' });
+                        } else if (target && !this.tradeableIndices(target.team).length) {
+                            GameDialog.toast(`Os Pokémon de ${target.name} têm Vínculo Supremo e não podem ser trocados.`, { tone: 'warning' });
+                        } else if (target) { CardUI.startTradeFlow(player, target); }
+                        consumed = false;
                     } else { CardUI.openTargetSelection(cardId); consumed = false; }
                 }
                 break;
@@ -675,17 +700,15 @@ export class CardEffects {
                 const battleModalAdoption = document.getElementById('battle-cards-modal');
                 if (battleModalAdoption) battleModalAdoption.style.display = 'none';
 
+                if (!this.tradeableIndices(player.team).length) {
+                    if (!player.isCPU) GameDialog.toast("Todos os seus Pokémon têm Vínculo Supremo: não há quem entregar.", { tone: 'warning' });
+                    consumed = false;
+                    break;
+                }
                 if (player.isCPU) {
                     const getStats = (mon: any) => mon.maxHp + mon.atk + mon.def + mon.speed;
-                    let myChoiceIdx = 0;
-                    let worstStats = getStats(player.team[0]);
-                    for (let i = 1; i < player.team.length; i++) {
-                        const st = getStats(player.team[i]);
-                        if (st < worstStats) {
-                            worstStats = st;
-                            myChoiceIdx = i;
-                        }
-                    }
+                    const mine = this.tradeableIndices(player.team);
+                    const myChoiceIdx = mine.reduce((best: number, i: number) => getStats(player.team[i]) < getStats(player.team[best]) ? i : best, mine[0]);
                     let hisChoiceIdx = 0;
                     let bestStats = getStats(Battle.oppTeamList[0]);
                     for (let i = 1; i < Battle.oppTeamList.length; i++) {
@@ -1028,7 +1051,13 @@ export class CardEffects {
                             }
                         }
                     }
-                    if (foundTarget) targetId = foundTarget;
+                    if (foundTarget) {
+                        targetId = foundTarget;
+                        // 1ª escolha da CPU conta no limite de 3 cartas ofensivas por turno, como a do humano
+                        if (player.effects.ashGoodbyeRemaining === undefined) {
+                            player.effects.offensiveCardsUsed = (player.effects.offensiveCardsUsed || 0) + 1;
+                        }
+                    }
                 }
                 if (targetId !== null) {
                     const tId = targetId.targetId;

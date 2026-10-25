@@ -648,9 +648,16 @@ export class BattleCore {
         }
 
         if (cardToPlay) {
-            this.cardsUsedThisBattle++;
             this.activeEffects.cpuPlayedCardThisRound = true;
-            
+
+            // No PvP passa pelo mesmo caminho do humano, para a Interferência do adversário valer contra a CPU
+            const BattleFacade = (window as any).Battle;
+            if (this.isPvP && BattleFacade?.useCard) {
+                BattleFacade.useCard(cardToPlay);
+                return;
+            }
+
+            this.cardsUsedThisBattle++;
             const CardsObj = (window as any).Cards || Cards;
             if (CardsObj) {
                 CardsObj.activate(cardToPlay, targetArg);
@@ -924,7 +931,7 @@ export class BattleCore {
                 if (isOppMega) {
                     BattleUI.logBattle("🧬 A Mega Evolução inimiga foi derrotada, mas o Pokémon original retornou e continua a lutar!");
                 } else {
-                    BattleUI.logBattle("🧬 O Mew inimigo foi derrotado, mas o Pokémon original retornou e continua a lutar!");
+                    BattleUI.logBattle("🧬 O Mewtwo inimigo foi derrotado, mas o Pokémon original retornou e continua a lutar!");
                 }
                 BattleUI.updateUI();
                 this.processingAction = false;
@@ -999,7 +1006,7 @@ export class BattleCore {
             const isMega = (this.activeMon as any).isMegaEvolution;
 
             if (isMega) BattleUI.logBattle("🧬 A Mega Evolução não resistiu e o Pokémon original retornou à batalha!");
-            else BattleUI.logBattle("🧬 O Mew aliado foi derrotado e o Pokémon original retornou à batalha!");
+            else BattleUI.logBattle("🧬 O Mewtwo aliado foi derrotado e o Pokémon original retornou à batalha!");
 
             this.revertMew();
             BattleUI.updateUI();
@@ -1305,7 +1312,8 @@ export class BattleCore {
             setTimeout(() => { this.end(false); Game.moveVisuals(); }, 2500);
             return;
         } else {
-            if (!this.isGym && Game.currentGlobalEvent?.id === 'ROCKET') {
+            // Invasão Rocket: só em derrotas para Selvagem/NPC (Líder e Campeão não contam)
+            if (!this.isGym && !this.isChampion && Game.currentGlobalEvent?.id === 'ROCKET') {
                 const stealableTeam = this.player!.team.filter(p => !p.vinculoSupremo && p.happiness < 100);
                 if (this.player!.team.length > 3 && stealableTeam.length > 0) {
                     const stolenMonObj = stealableTeam[Math.floor(Math.random() * stealableTeam.length)];

@@ -589,11 +589,16 @@ export class CardUI {
 
         player.team.forEach((mon: any, index: number) => {
             const div = document.createElement('div');
-            div.className = `mon-select-item`;
-            div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>Lv.${mon.level}</small>`;
-            div.onclick = () => {
-                this.continueTradeFlow(player, target, index);
-            };
+            if (!CardEffects.canLoseByCard(mon)) {
+                div.className = `mon-select-item disabled`;
+                div.innerHTML = `<img src="${mon.getSprite()}" width="40" style="filter: grayscale(100%);"><b>${mon.name}</b> <small>Vínculo Supremo</small>`;
+            } else {
+                div.className = `mon-select-item`;
+                div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>Lv.${mon.level}</small>`;
+                div.onclick = () => {
+                    this.continueTradeFlow(player, target, index);
+                };
+            }
             list.appendChild(div);
         });
 
@@ -615,12 +620,17 @@ export class CardUI {
 
         target.team.forEach((mon: any, index: number) => {
             const div = document.createElement('div');
-            div.className = `mon-select-item`;
-            div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>Lv.${mon.level}</small>`;
-            div.onclick = () => {
-                modal.style.display = 'none';
-                CardEffects.executeTrade(player, target, myChoice, index);
-            };
+            if (!CardEffects.canLoseByCard(mon)) {
+                div.className = `mon-select-item disabled`;
+                div.innerHTML = `<img src="${mon.getSprite()}" width="40" style="filter: grayscale(100%);"><b>${mon.name}</b> <small>Vínculo Supremo</small>`;
+            } else {
+                div.className = `mon-select-item`;
+                div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>Lv.${mon.level}</small>`;
+                div.onclick = () => {
+                    modal.style.display = 'none';
+                    CardEffects.executeTrade(player, target, myChoice, index);
+                };
+            }
             list.appendChild(div);
         });
 
@@ -640,9 +650,9 @@ export class CardUI {
 
         player.team.forEach((mon: any, index: number) => {
             const div = document.createElement('div');
-            if (mon.isTemp || mon.isMegaEvolution) {
+            if (!CardEffects.canLoseByCard(mon)) {
                 div.className = `mon-select-item disabled`;
-                div.innerHTML = `<img src="${mon.getSprite()}" width="40" style="filter: grayscale(100%);"><b>${mon.name}</b> <small style="color:red;">Bloqueado</small>`;
+                div.innerHTML = `<img src="${mon.getSprite()}" width="40" style="filter: grayscale(100%);"><b>${mon.name}</b> <small style="color:red;">${mon.vinculoSupremo ? 'Vínculo Supremo' : 'Bloqueado'}</small>`;
             } else {
                 div.className = `mon-select-item`;
                 div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>Lv.${mon.level}</small>`;

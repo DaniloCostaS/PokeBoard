@@ -179,7 +179,7 @@ export class BoardAmbient {
             this.pathLayer.addChild(node);
             this.markers.push({ node, x: c.x, y: c.y, born: now, delay: i * 55, gone: 0, last });
         });
-        // Segurança: some sozinho mesmo se o peão parar antes (armadilha, desconexão)
+        // Segurança: some sozinho mesmo se o peão parar antes (desconexão)
         this.pathExpire = now + coords.length * 190 + 2500;
     }
 

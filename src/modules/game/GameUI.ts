@@ -333,31 +333,6 @@ export class GameUI {
         });
     }
 
-    static renderTraps(newTraps?: any[]) {
-        if (!BoardRenderer.failed) {
-            if (newTraps) GameState.traps = newTraps;
-            BoardRenderer.renderTraps();
-            return;
-        }
-        const tiles = document.querySelectorAll('.tile');
-        tiles.forEach(t => {
-            const htmlEl = t as HTMLElement;
-            if (htmlEl.style.border.includes('dashed')) {
-                htmlEl.style.border = "";
-            }
-        });
-
-        if (newTraps) GameState.traps = newTraps;
-
-        GameState.traps.forEach(t => {
-            const tile = document.getElementById(`tile-${t.x}-${t.y}`);
-            if (tile) tile.style.border = "2px dashed red";
-        });
-    }
-
-    // ==========================================
-    // PAINEL ADMINISTRATIVO / SUPORTE HOST
-    // ==========================================
     static currentLogFilter: string = 'all';
 
     static filterLogs(type: string) {
