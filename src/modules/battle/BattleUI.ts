@@ -1,8 +1,9 @@
+import { CardHand } from '../cards/CardHand';
 import { BattleCore } from './BattleCore';
 import { Pokemon } from '../../models/Pokemon';
 import { Network } from '../../systems/Network';
 import { GYM_DATA } from '../../constants/gyms';
-import { SHOP_ITEMS, CARD_RARITIES } from '../../constants';
+import { SHOP_ITEMS } from '../../constants';
 import { GameState } from '../game/GameState';
 import { GameUI } from '../game/GameUI';
 import { GameFeel } from '../ui/GameFeel';
@@ -342,76 +343,67 @@ export class BattleUI {
         }
 
         if (!BattleCore.isPlayerTurn || BattleCore.processingAction) return;
+
+        if (BattleCore.cardsUsedThisBattle >= 3) {
+            return GameDialog.toast("Você já usou o limite máximo de 3 cartas nesta batalha!", { tone: 'warning' });
+        }
+
+        const modalBox = (document.querySelector('#battle-cards-modal .modal-box') || document.querySelector('#battle-cards-modal > div')) as HTMLElement;
+        if (modalBox) {
+            modalBox.style.width = "95%";
+            modalBox.style.maxWidth = "1200px";
+            modalBox.style.maxHeight = "90vh";
+            modalBox.style.padding = "30px";
+            modalBox.style.overflowY = "auto";
+        }
+
+        const p = BattleCore.player!;
         const list = document.getElementById('battle-cards-list')!;
         list.innerHTML = '';
 
-        const modalContent = document.querySelector('#battle-cards-modal .modal-content') as HTMLElement;
-        if (modalContent) {
-            modalContent.style.width = "90%";
-            modalContent.style.maxWidth = "1100px";
-            modalContent.style.maxHeight = "85vh";
-            modalContent.style.padding = "25px";
-            modalContent.style.overflowY = "auto";
+        const isMobile = window.innerWidth <= 1000;
+        list.style.cssText = 'display: flex; flex-direction: column; gap: 12px; width: 100%; padding: 4px 0; overflow: visible;';
+
+        const rarityFilter = (document.getElementById('battle-cards-rarity-filter') as HTMLSelectElement)?.value || 'all';
+        const typeFilter = (document.getElementById('battle-cards-type-filter') as HTMLSelectElement)?.value || 'all';
+
+        let filteredCards = [...p.cards];
+        if (rarityFilter !== 'all') {
+            filteredCards = filteredCards.filter(c => c.rarity === rarityFilter);
+        }
+        if (typeFilter !== 'all') {
+            filteredCards = filteredCards.filter(c => c.type === typeFilter);
         }
 
-        const battleCards = BattleCore.player!.cards.filter(c => c.type === 'battle');
+        const typeOrder: Record<string, number> = { 'battle': 1, 'auto': 2, 'move': 3, 'global': 4 };
+        const rarityOrder: Record<string, number> = { 'Lendária': 0, 'Épica': 1, 'Rara': 2, 'Incomum': 3, 'Comum': 4 };
 
-        if (battleCards.length === 0) {
-            list.innerHTML = "<em>Sem cartas de batalha.</em>";
-            list.style.display = 'block';
+        filteredCards.sort((a, b) => {
+            if (typeOrder[a.type] !== typeOrder[b.type]) return (typeOrder[a.type] || 99) - (typeOrder[b.type] || 99);
+            if (rarityOrder[a.rarity] !== rarityOrder[b.rarity]) return (rarityOrder[a.rarity] || 99) - (rarityOrder[b.rarity] || 99);
+            return a.name.localeCompare(b.name);
+        });
+
+        if (filteredCards.length === 0) {
+            list.innerHTML = `<em style="${isMobile ? '' : 'grid-column: 1/-1;'}">Sem cartas.</em>`;
         } else {
-            list.style.display = 'grid';
-            list.style.gridTemplateColumns = 'repeat(auto-fill, minmax(180px, 1fr))';
-            list.style.gap = '20px';
-            list.style.padding = '20px';
-            list.style.width = '100%';
-
-            battleCards.forEach(c => {
-                const rData = CARD_RARITIES[c.rarity];
-                const borderColor = rData ? rData.color : '#8d99ae';
-                
-                const origIndex = BattleCore.player!.cards.indexOf(c);
-                const isProtected = c.isProtected;
-
-                const d = document.createElement('div');
-                d.style.cssText = "display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); width: 100%; box-sizing: border-box; position: relative;";
-                
-                let style = isProtected ? 'border: 3px solid #f39c12; box-shadow: 0 0 10px #f39c12;' : `border: 3px solid ${borderColor};`;
-                let lockIcon = isProtected ? `<div style="position:absolute; top:40%; left:50%; transform:translate(-50%, -50%); font-size:3rem; text-shadow:2px 2px 5px #000; z-index:5;">🔒</div>` : '';
-
-                d.innerHTML = `
-                    <div style="position: absolute; top: -5px; right: -5px; background: ${borderColor}; color: #fff; padding: 2px 6px; font-size: 0.7rem; border-radius: 10px; font-weight: bold; border: 1px solid #222; text-shadow: 1px 1px 0 #000; box-shadow: 0 2px 4px rgba(0,0,0,0.5); z-index: 10;">
-                        ${c.rarity.toUpperCase()}
-                    </div>
-                    ${lockIcon}
-                    <img class="battle-card-img" src="/assets/img/Cartas/${c.id}.jpg" alt="${c.name}" title="${c.desc}" style="width: 100%; aspect-ratio: 2.5/3.5; object-fit: fill; border-radius: 6px; ${style}; cursor: zoom-in;">
-                `;
-
-                const btn = document.createElement('button');
-                btn.className = 'btn';
-                if (isProtected) {
-                    btn.style.cssText = "width:100%; margin-top:8px; padding:8px; background:#f39c12; border:none; border-radius:4px; color:white; font-weight:bold; cursor:pointer;";
-                    btn.innerText = "Desproteger";
-                    btn.onclick = () => {
-                        const Cards = (window as any).Cards || (window as any).CardEffects;
-                        if (Cards && Cards.unprotectCard) {
-                            Cards.unprotectCard(BattleCore.player!.id, origIndex, false);
-                            this.openCardSelection();
-                        }
-                    };
-                } else {
-                    btn.style.cssText = "width:100%; margin-top:8px; padding:8px; background:#e74c3c; border:none; border-radius:4px; color:white; font-weight:bold; cursor:pointer;";
-                    btn.innerText = "USAR";
-                    btn.onclick = () => {
-                        (window as any).Battle.useCard(c.id);
-                    };
+            CardHand.render(list, p, filteredCards, {
+                isMe: true,
+                isBattle: true,
+                battleCardsLeft: 3 - BattleCore.cardsUsedThisBattle,
+                onZoom: (id) => GameUI.showCardZoom(id),
+                onUse: (cardId, cardEl) => {
+                    CardHand.flyAndUse(cardEl, cardId, () => {
+                        (window as any).Battle.useCard(cardId);
+                    });
+                },
+                onUnprotect: (_card, origIdx) => {
+                    const Cards = (window as any).Cards || (window as any).CardEffects;
+                    if (Cards && Cards.unprotectCard) {
+                        Cards.unprotectCard(p.id, origIdx, false);
+                        BattleUI.openCardSelection();
+                    }
                 }
-                d.appendChild(btn);
-                
-                const imgEl = d.querySelector('.battle-card-img') as HTMLElement;
-                if (imgEl) imgEl.onclick = () => GameUI.showCardZoom(c.id);
-
-                list.appendChild(d);
             });
         }
         document.getElementById('battle-cards-modal')!.style.display = 'flex';
