@@ -27,7 +27,6 @@ export class Setup {
         if (this.loginChecked) return;
         this.loginChecked = true;
         localStorage.removeItem('poke_username'); // login antigo (sem senha de verdade)
-        Account.listenPasswordRecovery();
         const profile = await Account.init().catch(() => null);
         if (profile) this.enterMenu();
     }
@@ -71,8 +70,6 @@ export class Setup {
         document.getElementById('auth-tab-signup')?.setAttribute('aria-selected', String(signup));
         const userField = document.getElementById('signup-username-field');
         if (userField) userField.hidden = !signup;
-        const forgot = document.getElementById('login-forgot');
-        if (forgot) forgot.hidden = signup;
         const label = document.getElementById('btn-login-label');
         if (label) label.textContent = signup ? 'Criar minha conta' : 'Entrar no PokéBoard';
         const pass = document.getElementById('login-password') as HTMLInputElement | null;
@@ -88,13 +85,6 @@ export class Setup {
         feedback.textContent = message;
         feedback.hidden = false;
         feedback.classList.toggle('is-ok', tone === 'ok');
-    }
-
-    static async forgotPassword() {
-        const email = (document.getElementById('login-email') as HTMLInputElement).value.trim();
-        if (!email) { this.showLoginFeedback('Digite seu e-mail acima para receber o link de redefinição.'); return; }
-        const res = await Account.resetPassword(email);
-        this.showLoginFeedback(res.message, res.ok ? 'ok' : 'error');
     }
 
     static showOnlineMenu() {

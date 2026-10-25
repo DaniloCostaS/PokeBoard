@@ -24,6 +24,7 @@ import { GameFeel } from '../ui/GameFeel';
 import { GameDialog } from '../ui/GameDialog';
 import { ScreenKit } from '../ui/ScreenKit';
 import { Cosmetics } from '../profile/Cosmetics';
+import { TurnBar } from '../ui/TurnBar';
 
 
 export class GameUI {
@@ -54,7 +55,8 @@ export class GameUI {
         GameState.players.forEach((p, i) => {
             const rank = ranking.indexOf(p.id) + 1;
             const d = document.createElement('div');
-            d.className = `player-slot ${i === GameState.turn ? 'active' : ''}`;
+            d.className = `player-slot ${i === GameState.turn ? 'active' : ''}${i === TurnBar.mePlayerIndex() ? ' is-me' : ''}`;
+            d.dataset.playerIndex = String(i);
             const playerColor = PLAYER_COLORS[i % PLAYER_COLORS.length];
             d.style.background = `linear-gradient(135deg, ${playerColor}cc 0%, rgba(26, 26, 29, 0.96) 100%)`;
             d.style.borderLeft = `4px solid ${playerColor}`;
@@ -166,6 +168,7 @@ export class GameUI {
 
         const turnPlayer = GameState.players[GameState.turn];
         if (turnPlayer) document.getElementById('turn-indicator')!.innerText = turnPlayer.name;
+        TurnBar.update();
         const elRound = document.getElementById('round-indicator'); if (elRound) elRound.innerText = GameState.round.toString();
         const elRoom = document.getElementById('room-code-indicator');
 

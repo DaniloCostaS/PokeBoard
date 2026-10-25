@@ -74,30 +74,6 @@ export class Account {
         return { ok: true };
     }
 
-    static async resetPassword(email: string): Promise<{ ok: boolean; message: string }> {
-        const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: location.origin });
-        if (error) return { ok: false, message: friendly(error) };
-        return { ok: true, message: 'Se o e-mail existir, enviamos um link para redefinir a senha.' };
-    }
-
-    // Link de "esqueci a senha": o Supabase abre o app com uma sessão de recuperação; pede a nova senha
-    private static recoveryListening = false;
-    static listenPasswordRecovery() {
-        if (this.recoveryListening) return;
-        this.recoveryListening = true;
-        supabase.auth.onAuthStateChange((event) => {
-            if (event !== 'PASSWORD_RECOVERY') return;
-            setTimeout(async () => {
-                const GameDialog = (window as any).GameDialog;
-                const pw = await GameDialog.prompt('Digite sua nova senha (mínimo de 6 caracteres).', { title: 'Nova senha', inputType: 'password', okLabel: 'Salvar' });
-                if (!pw) return;
-                const { error } = await supabase.auth.updateUser({ password: pw });
-                if (error) GameDialog.toast(friendly(error), { tone: 'danger' });
-                else GameDialog.toast('Senha alterada!', { tone: 'success' });
-            }, 0);
-        });
-    }
-
     static async signOut() {
         await supabase.auth.signOut();
         this.profile = null;

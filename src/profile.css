@@ -371,3 +371,77 @@ dl.trainer-room-summary > div {
 #game-container .hud-name-group .pb-trainer-avatar { overflow: visible; }
 #game-container .hud-name-group .pb-lives-badge { overflow: visible; color: #fff; font-size: 0.62rem !important; line-height: 1.2; }
 #game-container .hud-name-group .pb-trainer-title { font-size: 0.66rem !important; color: #e6c15b; }
+
+/* ==========================================================================
+   Barra de turno (sempre visível) + atalho "Meu time"
+   ========================================================================== */
+#pb-turn-bar {
+    --tc: #3a8fc3;
+    position: fixed;
+    top: calc(8px + env(safe-area-inset-top));
+    left: 50%;
+    z-index: 950;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    max-width: calc(100vw - 16px);
+    padding: 5px;
+    color: #fff;
+    background: rgba(13, 20, 26, 0.94);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-left: 4px solid var(--tc);
+    border-radius: 999px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    transform: translateX(-50%);
+    box-sizing: border-box;
+}
+
+#pb-turn-bar button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+#pb-turn-bar button:focus-visible { outline: 2px solid #a9e1ef; outline-offset: 2px; border-radius: 999px; }
+
+.pb-tb-turn { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 0 10px 0 0; }
+.pb-tb-avatar { flex: 0 0 auto; display: inline-flex; width: 36px; height: 36px; padding: 2px; background: var(--tc); border-radius: 50%; box-sizing: border-box; }
+.pb-tb-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #e9eef2; }
+.pb-tb-text { display: grid; min-width: 0; text-align: left; }
+.pb-tb-kicker { color: #9fb4bd; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.pb-tb-name { max-width: 34vw; overflow: hidden; font-size: 0.95rem; font-weight: 800; line-height: 1.15; text-overflow: ellipsis; white-space: nowrap; }
+
+.pb-tb-round { display: grid; justify-items: center; padding: 0 10px; border-left: 1px solid rgba(255, 255, 255, 0.14); border-right: 1px solid rgba(255, 255, 255, 0.14); }
+.pb-tb-round small { color: #9fb4bd; font-size: 0.58rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+.pb-tb-round b { font-size: 0.95rem; line-height: 1.1; }
+
+.pb-tb-me { display: flex; align-items: center; gap: 6px; padding: 3px 12px 3px 3px !important; background: rgba(255, 255, 255, 0.08) !important; border: 1px solid rgba(255, 255, 255, 0.18) !important; border-radius: 999px; }
+.pb-tb-me .pb-tb-avatar { width: 30px; height: 30px; background: var(--mc, #3a8fc3); }
+.pb-tb-me-label { font-size: 0.78rem; font-weight: 800; white-space: nowrap; }
+.pb-tb-me:hover { background: rgba(255, 255, 255, 0.16) !important; }
+.pb-tb-me[hidden] { display: none; }
+
+/* Sua vez: dourado e pulsando */
+#pb-turn-bar.is-mine { background: linear-gradient(90deg, #6b4a06, #2a1e05); border-color: #f2c94c; border-left-color: #f2c94c; box-shadow: 0 0 0 2px rgba(242, 201, 76, 0.35), 0 8px 24px rgba(0, 0, 0, 0.45); }
+#pb-turn-bar.is-mine .pb-tb-kicker { color: #ffe08a; }
+#pb-turn-bar.is-mine .pb-tb-avatar { background: #f2c94c; }
+
+@media (prefers-reduced-motion: no-preference) {
+    #pb-turn-bar.is-mine { animation: pbMyTurn 1.8s ease-in-out infinite; }
+    #pb-turn-bar.is-changed .pb-tb-turn { animation: pbTurnPop 0.6s cubic-bezier(0.2, 0.8, 0.3, 1.4); }
+}
+@keyframes pbMyTurn { 50% { box-shadow: 0 0 0 5px rgba(242, 201, 76, 0.25), 0 0 22px rgba(242, 201, 76, 0.55); } }
+@keyframes pbTurnPop { 0% { transform: scale(0.85); opacity: 0.4; } 100% { transform: scale(1); opacity: 1; } }
+
+/* Card destacado ao ir até ele; o meu card tem marcação própria */
+.player-slot.is-me { outline: 2px solid rgba(255, 255, 255, 0.55); outline-offset: -2px; }
+.player-slot.pb-slot-focus { animation: pbSlotFocus 1.5s ease-out; }
+@keyframes pbSlotFocus { 0%, 40% { box-shadow: 0 0 0 4px #f2c94c, 0 0 26px rgba(242, 201, 76, 0.8); } 100% { box-shadow: 0 0 0 0 transparent; } }
+
+/* Celular: a barra antiga (que sumia ao rolar) dá lugar à barra fixa */
+@media (max-width: 1000px) {
+    #pb-turn-bar { top: calc(6px + env(safe-area-inset-top)); width: calc(100vw - 12px); justify-content: space-between; }
+    .pb-tb-name { max-width: 38vw; }
+    body.pb-has-turnbar #left-panel .turn-section { display: none; }
+    body.pb-has-turnbar #game-container { padding-top: calc(62px + env(safe-area-inset-top)); }
+}
+
+@media (max-width: 380px) {
+    .pb-tb-me-label { display: none; }
+    .pb-tb-me { padding: 3px !important; }
+}

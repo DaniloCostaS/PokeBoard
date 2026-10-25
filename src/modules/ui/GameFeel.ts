@@ -2,6 +2,7 @@ import { GameState } from '../game/GameState';
 import { Network } from '../../systems/Network';
 import { Presence } from './Presence';
 import { Settings } from './Settings';
+import { BattleEventFx } from './BattleEventFx';
 
 // "Game feel": reações visuais e táteis ao que acontece na partida.
 // Tudo aqui é cosmético; nada altera regras nem grava estado.
@@ -117,6 +118,7 @@ export class GameFeel {
     // Batalha
     // ------------------------------------------------------------------
     static battleEnter() {
+        BattleEventFx.start();
         const modal = document.getElementById('battle-modal');
         document.querySelector('#battle-modal .battle-scene')?.classList.remove('pb-defeat', 'pb-victory', 'pb-shake');
         if (!modal || reducedMotion()) return;
@@ -126,6 +128,7 @@ export class GameFeel {
     }
 
     static battleExit() {
+        BattleEventFx.stop();
         document.getElementById('battle-modal')?.classList.remove('pb-battle-enter');
     }
 
@@ -387,6 +390,7 @@ export class GameFeel {
 
     static onBattleLog(msg: string) {
         if (!msg || !document.getElementById('battle-modal')?.style.display.includes('flex')) return;
+        BattleEventFx.onLog(msg);
         let callout = '';
         let tone = '';
         if (/ESQUIVOU/.test(msg)) { callout = 'Esquivou!'; tone = 'miss'; }
