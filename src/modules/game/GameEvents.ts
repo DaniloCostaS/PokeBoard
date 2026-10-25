@@ -498,6 +498,9 @@ export class GameEvents {
         const currentP = GameState.getCurrentPlayer();
         const NetworkObj = (window as any).Network || Network;
         currentP.resetTurnFlags();
+        // Tênis de Corrida / Dado Mágico não usados (ex.: turno encerrado por Troca Rápida ou SAMU) não passam para o próximo jogador
+        GameState.bonusMovement = 0;
+        GameState.forcedDiceValue = 0;
 
         let shouldSyncEffects = false;
 
@@ -515,17 +518,7 @@ export class GameEvents {
                 effectsChanged = true;
             }
 
-            if (currentP.effects.doubleXp && currentP.effects.doubleXp > 0) {
-                currentP.effects.doubleXp--;
-                if (currentP.effects.doubleXp === 0) GameUI.sendGlobalLog(`📉 O efeito Double XP de ${currentP.name} acabou.`);
-                effectsChanged = true;
-            }
-
-            if (currentP.effects.expShare && currentP.effects.expShare > 0) {
-                currentP.effects.expShare--;
-                if (currentP.effects.expShare === 0) GameUI.sendGlobalLog(`📉 O efeito Exp. Share de ${currentP.name} acabou.`);
-                effectsChanged = true;
-            }
+            // Double XP / Exp Share são descontados a cada ganho de XP (Pokemon.gainXp), não por turno
 
             if (currentP.effects.tremembeUserTurns && currentP.effects.tremembeUserTurns > 0) {
                 currentP.effects.tremembeUserTurns--;
@@ -810,12 +803,14 @@ export class GameEvents {
         }
 
         // Robin Hood
-        if (GameState.currentGlobalEvent?.id === 'ROBIN_HOOD' && !currP.effects.robinHoodApplied && currP.skipTurns === 0 && !currP.isProcessingSkip) {
+        // Marca com o eventEndRound da ocorrência: antes era um boolean nunca zerado, e quem recebeu a ajuda uma vez
+        // ficava sem ela em todas as Ajudas Humanitárias seguintes da partida
+        if (GameState.currentGlobalEvent?.id === 'ROBIN_HOOD' && currP.effects.robinHoodApplied !== GameState.eventEndRound && currP.skipTurns === 0 && !currP.isProcessingSkip) {
             if (currP.gold < 200 && currP.cards.length < 2) {
                 currP.gold += 800;
                 const CardsObj = (window as any).Cards || Cards;
                 for (let i = 0; i < 5; i++) CardsObj.draw(currP, true);
-                currP.effects.robinHoodApplied = true;
+                currP.effects.robinHoodApplied = GameState.eventEndRound;
                 const robinMsg = `🎁 AJUDA HUMANITÁRIA! Robin Hood te deu 800G e 5 Cartas!`;
                 GameUI.sendGlobalLog(robinMsg); GameUI.showGlobalAlert(robinMsg, currP.name, true, false);
                 if (NetworkObj.isOnline) NetworkObj.syncPlayerState();
@@ -966,6 +961,7 @@ export class GameEvents {
         if (used) {
             p.items[item.id]--;
             GameUI.updateHUD();
+            (window as any).UseFx?.itemUsed?.(p, item, targetIdx);
             if (!p.isCPU) {
                 GameUI.openInventoryModal(p.id);
             }

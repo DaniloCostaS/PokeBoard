@@ -105,6 +105,9 @@ export class CardHand {
 
     // A carta sai da mão, cresce no centro da tela e some antes do efeito acontecer
     static flyAndUse(cardEl: HTMLElement, cardId: string) {
+        // A carta já faz o voo da mão: a animação genérica de "carta usada" não repete localmente
+        const me = (window as any).Game?.getCurrentPlayer?.();
+        if (me) (window as any).UseFx?.markShown?.(me.id, cardId);
         const img = cardEl.querySelector('img') as HTMLImageElement | null;
         const run = () => (window as any).Cards.activate(cardId);
         if (!img || window.matchMedia('(prefers-reduced-motion: reduce)').matches) { run(); return; }

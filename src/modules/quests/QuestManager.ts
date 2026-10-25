@@ -37,13 +37,19 @@ export class QuestManager {
             if (!questId) {
                 // Se foi aleatório e já tem, pega outra
                 quest = QUESTS_DB.find(q => !player.activeQuests.find(aq => aq.questId === q.id));
-                if (!quest) return; // Tem todas as quests
+                if (!quest) { if (endsTurn) (window as any).Game?.nextTurn(); return; } // Tem todas as quests: não prende o turno
             } else {
                 return; // Já tem essa quest específica
             }
         }
 
         if (player.activeQuests.length >= 3) {
+            // A CPU não clica no modal de troca: mantém as missões atuais e segue o turno (antes o jogo travava
+            // quando uma CPU com 3 missões caía no resultado "missão" da casa de Evento)
+            if (player.isCPU) {
+                GameUI.showGlobalAlert(`📜 ${player.name} encontrou a missão "${quest.name}", mas já tem 3 missões ativas e manteve as atuais.`, player.name, true, endsTurn);
+                return;
+            }
             this.openSwapModal(player, quest, endsTurn);
             return;
         }

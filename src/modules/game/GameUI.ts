@@ -23,14 +23,6 @@ import { Backpack } from '../ui/Backpack';
 import { GameFeel } from '../ui/GameFeel';
 import { GameDialog } from '../ui/GameDialog';
 
-// Ícones de traço simples para os botões do HUD (herdam a cor do texto)
-const svgIcon = (path: string) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg>`;
-const HUD_ICONS = {
-    bag: svgIcon('<path d="M6 8h12l-1 12H7L6 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>'),
-    quest: svgIcon('<path d="M7 4h10v16l-5-3-5 3V4Z"/>'),
-    cards: svgIcon('<rect x="4" y="6" width="11" height="14" rx="2"/><path d="M9 4h9a2 2 0 0 1 2 2v11"/>'),
-    dex: svgIcon('<rect x="5" y="3" width="14" height="18" rx="2"/><circle cx="12" cy="10" r="3"/><path d="M9 17h6"/>')
-};
 
 export class GameUI {
 
@@ -72,90 +64,77 @@ export class GameUI {
                 const actualGymId = GameState.activeGyms ? GameState.activeGyms[b] : (b + 1);
                 const gData = GYM_DATA.find(g => g.id === actualGymId);
                 const imgUrl = gData ? `/assets/img/Insignias/${gData.badgeImg}` : '';
-                const style = isActive ? `background-image: url('${imgUrl}'); background-size: 100% 100%; background-repeat: no-repeat; background-color: transparent;` : `background-color: #ccc;`;
-                badgeHTML += `<div class="badge-slot ${isActive ? 'active' : ''}" style="${style}" title="Insígnia ${b + 1}"></div>`;
+                const style = imgUrl ? `background-image: url('${imgUrl}');` : '';
+                badgeHTML += `<div class="badge-slot ${isActive ? 'active' : ''}" style="${style}" title="${gData ? `Insígnia ${gData.type.join('/')} · ${gData.leaderName}` : `Insígnia ${b + 1}`}${isActive ? ' (conquistada)' : ''}"></div>`;
             }
             badgeHTML += '</div>';
 
             const th = p.team.map((m, slotIndex) => {
-                let auraClass = '';
-                let rarityStyle = '';
                 const total = m.baseTotal || (m.maxHp + m.atk + m.def + m.speed);
+                const tier = m.isLegendary ? 'legend' : total >= 330 ? 'elite' : total >= 280 ? 'strong' : total >= 220 ? 'good' : 'base';
+                const hpPct = Math.max(0, Math.min(100, (m.currentHp / m.maxHp) * 100));
+                const xpPct = Math.max(0, Math.min(100, (m.currentXp / m.maxXp) * 100));
 
-                if (m.isLegendary) {
-                    auraClass = 'aura-legendary';
-                    rarityStyle = 'border: 2px solid #A33EA1; box-shadow: 0 0 5px #A33EA1;';
-                }
-                else {
-                    if (total >= 330) { rarityStyle = 'border: 2px solid #e74c3c; box-shadow: 0 0 5px #e74c3c;'; }
-                    else if (total >= 280) { rarityStyle = 'border: 2px solid #3498db; box-shadow: 0 0 5px #3498db;'; }
-                    else if (total >= 220) { rarityStyle = 'border: 2px solid #2ecc71; box-shadow: 0 0 5px #2ecc71;'; }
-                }
-
-                if (m.isShiny) auraClass = 'aura-shiny';
-
-                const megaIcon = m.megaStone ? `<img src="/assets/img/megaStone.png" style="width:16px; height:16px; margin-left:4px;" title="Mega Pedra Equipada">` : '';
-
+                const megaIcon = m.megaStone ? `<img class="pb-party-tag" src="/assets/img/megaStone.png" title="Mega Pedra equipada" alt="">` : '';
                 const heldItemData = m.heldItem ? SHOP_ITEMS.find(i => i.id === m.heldItem) : null;
-                const itemIcon = heldItemData ? `<img src="/assets/img/Itens/${heldItemData.icon}" style="width:16px; height:16px; margin-left:4px;" title="Item Segurando: ${heldItemData.name}">` : '';
+                const itemIcon = heldItemData ? `<img class="pb-party-tag" src="/assets/img/Itens/${heldItemData.icon}" title="Segurando: ${heldItemData.name}" alt="">` : '';
+                const vinculoIcon = m.vinculoSupremo ? `<span class="pb-party-flag" title="Vínculo Supremo">🤝</span>` : '';
+                const happinessIcon = m.happiness === 100 ? `<span class="pb-party-flag" title="Vínculo Afetivo (100% Felicidade)">💖</span>` : '';
 
-                const vinculoIcon = m.vinculoSupremo ? `<span style="font-size:14px; margin-left:4px;" title="Vínculo Supremo">🤝</span>` : '';
-                const happinessIcon = m.happiness === 100 ? `<span style="font-size:14px; margin-left:4px;" title="Vínculo Afetivo (100% Felicidade)">💖</span>` : '';
-
-                return ` 
-                <div class="poke-card ${m.isFainted() ? 'fainted' : ''}" style="${rarityStyle}; cursor: pointer;" onclick="window.Game.openPokemonDetail(${i}, ${slotIndex})"> 
-                    <img src="${m.getSprite()}" class="poke-card-img ${auraClass}"> 
-                    <div class="poke-card-info"> 
-                        <div class="poke-header"> 
-                            <span>${m.name}</span> 
-                            ${megaIcon}
-                            ${itemIcon}
-                            ${vinculoIcon}
-                            ${happinessIcon}
-                            <span class="poke-lvl">Lv.${m.level}</span> 
-                        </div> 
-                        ${m.getTypeBadgesHTML ? m.getTypeBadgesHTML() : ''}
-                        <div class="bar-container" title="HP"> 
-                            <div class="bar-fill ${(window as any).Battle?.getHpColor(m.currentHp, m.maxHp)}" style="width:${(m.currentHp / m.maxHp) * 100}%"></div> 
-                            <div class="bar-text">${m.currentHp}/${m.maxHp}</div> 
-                        </div> 
-                        <div class="bar-container" title="XP">
-                            <div class="bar-fill xp-bar" style="width:${(m.currentXp / m.maxXp) * 100}%"></div>
-                            <div class="bar-text">${Math.floor(m.currentXp)}/${m.maxXp}</div>
-                        </div> 
-                        <div class="poke-stats"> 
-                            <div class="stat-item">⚔️${m.atk}</div> 
-                            <div class="stat-item">🛡️${m.def}</div> 
-                            <div class="stat-item">💨${m.speed}</div> 
-                        </div> 
-                </div> </div>`;
+                return `
+                <div class="poke-card pb-party pb-tier-${tier} ${m.isShiny ? 'is-shiny' : ''} ${m.isFainted() ? 'fainted' : ''}" onclick="window.Game.openPokemonDetail(${i}, ${slotIndex})" title="${m.name} · Lv.${m.level}">
+                    <div class="pb-party-ball"><img src="${m.getSprite()}" class="poke-card-img" alt="" loading="lazy"></div>
+                    <div class="pb-party-info">
+                        <div class="pb-party-top">
+                            <span class="pb-party-name">${m.name}</span>
+                            ${megaIcon}${itemIcon}${vinculoIcon}${happinessIcon}
+                            <span class="pb-party-lv">Lv${m.level}</span>
+                        </div>
+                        <div class="pb-party-types">${m.getTypeBadgesHTML ? m.getTypeBadgesHTML('flex-start') : ''}</div>
+                        <div class="pb-hp" title="HP ${m.currentHp}/${m.maxHp}">
+                            <span class="pb-hp-label">HP</span>
+                            <div class="pb-hp-track"><div class="pb-hp-fill ${(window as any).Battle?.getHpColor(m.currentHp, m.maxHp)}" style="width:${hpPct}%"></div></div>
+                            <span class="pb-hp-num">${m.currentHp}/${m.maxHp}</span>
+                        </div>
+                        <div class="pb-xp" title="XP ${Math.floor(m.currentXp)}/${m.maxXp}"><div class="pb-xp-fill" style="width:${xpPct}%"></div></div>
+                        <div class="pb-party-stats"><span><b>ATQ</b>${m.atk}</span><span><b>DEF</b>${m.def}</span><span><b>VEL</b>${m.speed}</span></div>
+                    </div>
+                </div>`;
             }).join('');
 
             const totalItems = Object.values(p.items).reduce((sum, val) => sum + val, 0);
             const totalCards = p.cards.length;
 
-            let effectsHTML = `<div style="display:flex; gap:4px; flex-wrap:wrap; margin-top:2px; min-height:18px;">`;
+            // Efeitos ativos como "status" no estilo dos jogos (PAR, LENTO...)
+            const status: { cls: string; label: string; title: string; color?: string }[] = [];
             const protectedCardsCount = p.cards.filter((c: any) => c.isProtected).length;
-            if (protectedCardsCount > 0) effectsHTML += `<span style="background:#f39c12; color:white; font-size:0.65rem; padding:1px 4px; border-radius:4px;" title="Cartas Protegidas">🔒 ${protectedCardsCount}</span>`;
-            if (p.skipTurns > 0) effectsHTML += `<span style="background:#c0392b; color:white; font-size:0.65rem; padding:1px 4px; border-radius:4px;" title="Paralisado">🚫 ${p.skipTurns}</span>`;
-            if (p.effects.slow && p.effects.slow > 0) effectsHTML += `<span style="background:#7f8c8d; color:white; font-size:0.65rem; padding:1px 4px; border-radius:4px;" title="Lentidão">🕸️ ${p.effects.slow}</span>`;
-            if (p.effects.curse) effectsHTML += `<span style="background:#2c3e50; color:#e74c3c; font-size:0.65rem; padding:1px 4px; border-radius:4px; border:1px solid #e74c3c;" title="Amaldiçoado">😈 CURSE</span>`;
-            if (p.effects.lureShiny && p.effects.lureShiny > 0) effectsHTML += `<span style="background:#f1c40f; color:#2c3e50; font-size:0.65rem; padding:1px 4px; border-radius:4px; font-weight:bold;" title="Shiny Lure">✨ ${p.effects.lureShiny}</span>`;
-            if (p.effects.extraTurn) effectsHTML += `<span style="background:#2980b9; color:white; font-size:0.65rem; padding:1px 4px; border-radius:4px;" title="Tempo Parado">⏳ EXTRA</span>`;
-            if (p.effects.doubleXp && p.effects.doubleXp > 0) effectsHTML += `<span style="background:#8e44ad; color:white; font-size:0.65rem; padding:1px 4px; border-radius:4px;" title="Double XP">🚻 ${p.effects.doubleXp}</span>`;
-            if (p.effects.expShare && p.effects.expShare > 0) effectsHTML += `<span style="background:#27ae60; color:white; font-size:0.65rem; padding:1px 4px; border-radius:4px;" title="Exp Share">🤝 ${p.effects.expShare}</span>`;
-            if (p.effects.moonwalker && p.effects.moonwalker > 0) effectsHTML += `<span style="background:#f39c12; color:white; font-size:0.65rem; padding:1px 4px; border-radius:4px;" title="Moonwalker">💃 ${p.effects.moonwalker}</span>`;
+            if (protectedCardsCount > 0) status.push({ cls: 'prot', label: `PROT ${protectedCardsCount}`, title: 'Cartas protegidas' });
+            if (p.skipTurns > 0) status.push({ cls: 'par', label: `PAR ${p.skipTurns}`, title: `Paralisado: perde ${p.skipTurns} turno(s)` });
+            if (p.effects.slow && p.effects.slow > 0) status.push({ cls: 'slow', label: `LENTO ${p.effects.slow}`, title: 'Lentidão: o dado vale 1' });
+            if (p.effects.curse) status.push({ cls: 'curse', label: 'MALD', title: 'Amaldiçoado: dano reduzido e itens bloqueados no ginásio' });
+            if (p.effects.lureShiny && p.effects.lureShiny > 0) status.push({ cls: 'shiny', label: `SHINY ${p.effects.lureShiny}`, title: 'Isca de shiny' });
+            if (p.effects.extraTurn) status.push({ cls: 'extra', label: 'EXTRA', title: 'Joga de novo' });
+            if (p.effects.doubleXp && p.effects.doubleXp > 0) status.push({ cls: 'xp', label: `XP×2 ${p.effects.doubleXp}`, title: 'XP em dobro' });
+            if (p.effects.expShare && p.effects.expShare > 0) status.push({ cls: 'share', label: `EXP ${p.effects.expShare}`, title: 'Exp. Share' });
+            if (p.effects.moonwalker && p.effects.moonwalker > 0) status.push({ cls: 'moon', label: `RÉ ${p.effects.moonwalker}`, title: 'Moonwalker: anda para trás' });
             if (p.effects.lureType && p.effects.lureType.count > 0) {
                 const lType = p.effects.lureType.type;
-                const lColor = typeColors[lType] || '#777';
-                effectsHTML += `<span style="background:${lColor}; color:white; font-size:0.65rem; padding:1px 4px; border-radius:4px; border:1px solid rgba(255,255,255,0.3); font-weight:bold;" title="Lure Type: ${lType}">🧲 ${lType} ${p.effects.lureType.count}</span>`;
+                status.push({ cls: 'lure', label: `ISCA ${p.effects.lureType.count}`, title: `Isca de tipo: ${lType}`, color: typeColors[lType] || '#777' });
             }
-            effectsHTML += `</div>`;
+            const effectsHTML = status.length
+                ? `<div class="pb-status-row">${status.map(st => `<span class="pb-status pb-status--${st.cls}" title="${st.title}"${st.color ? ` style="--st:${st.color}"` : ''}>${st.label}</span>`).join('')}</div>`
+                : '';
 
             d.innerHTML = ` 
-            <div class="hud-header" style="flex-direction:column; align-items:flex-start; gap:0;">
-                <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
-                    <div class="hud-name-group" onclick="window.Game.openPlayerMastery(${i})" style="cursor:pointer;" title="Ver Maestria do Treinador"><span class="pb-rank pb-rank--${rank}" data-pb-rank="${p.id}" title="${rank}º no placar">${rank}º</span><img src="${p.avatar}" class="hud-avatar-img"><span>${p.name}</span></div>
+            <div class="hud-header pb-trainer-card" style="--pc:${playerColor}">
+                <div class="pb-trainer-row">
+                    <div class="hud-name-group" onclick="window.Game.openPlayerMastery(${i})" title="Ver Maestria do Treinador">
+                        <span class="pb-trainer-avatar"><img src="${p.avatar}" class="hud-avatar-img" alt=""></span>
+                        <span class="pb-trainer-text">
+                            <span class="pb-trainer-name">${p.name}</span>
+                            <span class="pb-trainer-meta"><span class="pb-rank pb-rank--${rank}" data-pb-rank="${p.id}" title="${rank}º no placar">${rank}º</span>${i === GameState.turn ? '<span class="pb-turn-chip"><i></i>Na vez</span>' : ''}</span>
+                        </span>
+                    </div>
                     <div class="hud-gold" title="Ouro" data-pb-gold="${p.id}">${p.gold} G</div>
                 </div>
                 ${effectsHTML}
@@ -163,10 +142,10 @@ export class GameUI {
             ${badgeHTML} 
             <div class="hud-team">${th}</div> 
             <div class="hud-actions">
-                <button class="btn btn-secondary btn-mini" onclick="window.Game.openInventoryModal(${i})" title="Mochila" aria-label="Mochila: ${totalItems} itens">${HUD_ICONS.bag}${totalItems}</button>
-                <button class="btn btn-secondary btn-mini" onclick="window.QuestManager.openQuestsModal(window.Game.players[${i}])" title="Missões" aria-label="Missões: ${p.activeQuests ? p.activeQuests.length : 0}">${HUD_ICONS.quest}${p.activeQuests ? p.activeQuests.length : 0}</button>
-                <button class="btn btn-secondary btn-mini" onclick="window.Game.openBoardCards(${i})" title="Cartas" aria-label="Cartas: ${totalCards}">${HUD_ICONS.cards}${totalCards}</button>
-                <button class="btn btn-secondary btn-mini" onclick="window.Game.openPokedex(${i})" title="Pokédex" aria-label="Pokédex">${HUD_ICONS.dex}Dex</button>
+                <button class="btn btn-secondary btn-mini" onclick="window.Game.openInventoryModal(${i})" title="Mochila" aria-label="Mochila: ${totalItems} itens"><i class="pb-ico pb-ico-bag"></i><span>${totalItems}</span></button>
+                <button class="btn btn-secondary btn-mini" onclick="window.QuestManager.openQuestsModal(window.Game.players[${i}])" title="Missões" aria-label="Missões: ${p.activeQuests ? p.activeQuests.length : 0}"><i class="pb-ico pb-ico-quest"></i><span>${p.activeQuests ? p.activeQuests.length : 0}</span></button>
+                <button class="btn btn-secondary btn-mini" onclick="window.Game.openBoardCards(${i})" title="Cartas" aria-label="Cartas: ${totalCards}"><i class="pb-ico pb-ico-cards"></i><span>${totalCards}</span></button>
+                <button class="btn btn-secondary btn-mini" onclick="window.Game.openPokedex(${i})" title="Pokédex" aria-label="Pokédex"><i class="pb-ico pb-ico-dex"></i><span>Dex</span></button>
             </div>`;
             if (i < Math.ceil(GameState.players.length / 2)) left.appendChild(d);
             else right.appendChild(d);
@@ -1009,6 +988,10 @@ export class GameUI {
     }
 
     static playCardCinematic(cardId: string, playerName: string) {
+        // Usa a animação padrão de carta usada (UseFx); o modal antigo fica só como reserva
+        const owner = GameState.players.find(p => p.name === playerName);
+        const UseFxObj = (window as any).UseFx;
+        if (owner && UseFxObj?.showCard) { UseFxObj.showCard(cardId, owner); return; }
         let modal = document.getElementById('card-cinematic');
         if (!modal) {
             modal = document.createElement('div');
@@ -1992,8 +1975,9 @@ export class GameUI {
 
                 if (selectMode) {
                     card.onclick = () => {
-                        GameEvents.rescueFromLixeira(idx);
                         document.getElementById('lixeira-modal')!.style.display = 'none';
+                        // Modo seleção vem da carta Segunda Chance: a carta só é consumida ao confirmar o resgate
+                        (window as any).Cards.activate('adotar_lixeira', idx);
                     };
                 } else {
                     card.onclick = () => {

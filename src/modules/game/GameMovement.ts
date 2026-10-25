@@ -93,6 +93,7 @@ export class GameMovement {
             }
         }
 
+        (window as any).PBBoard?.previewReach?.(GameState.players.indexOf(p)); // prévia visual (lê o estado antes de consumir dado mágico/lentidão)
         GameState.hasRolled = true;
         let result = 0;
 
@@ -126,6 +127,7 @@ export class GameMovement {
     }
 
     static async animateDice(result: number, playerId: number) {
+        (window as any).PBBoard?.previewReach?.(playerId); // casas alcançáveis (no online, também para quem assiste)
         // Nova animação visual no centro do tabuleiro
         await this.showDiceAnimation(result);
 
@@ -143,6 +145,12 @@ export class GameMovement {
 
         if (ev === 'SPATIAL_RIFT') {
             const p = GameState.players[playerId];
+            // Online, só quem rolou sorteia o destino; os outros recebem a posição pelo sync do room_players
+            // (antes cada cliente sorteava uma casa diferente e o peão "pulava" duas vezes)
+            if (NetworkObj.isOnline && playerId !== NetworkObj.myPlayerId) {
+                GameUI.log(`🌌 FENDA ESPACIAL! ${p.name} foi teletransportado!`);
+                return;
+            }
             const totalTiles = MapSystem.size * MapSystem.size;
             const randomIdx = Math.floor(Math.random() * totalTiles);
             const targetCoord = MapSystem.getCoord(randomIdx);
@@ -242,6 +250,7 @@ export class GameMovement {
         // Ao parar: a face do resultado brilha, o número salta e o primeiro Pokémon do jogador comemora
         await new Promise(r => setTimeout(r, 1500));
         dice3d.querySelector('.face-top')?.classList.add('is-result');
+        (window as any).PBBoard?.reachResult?.(result);
         const cheer = this.diceCheer(board, result);
 
         await new Promise(r => setTimeout(r, 700));
@@ -316,8 +325,8 @@ export class GameMovement {
                             }
                         });
 
-                        GameUI.sendGlobalLog(`🚩 ${p.name} completou uma volta! Ganhou 500G, 2 Cartas e +1 Level para todo o time!`);
-                        GameUI.sendGlobalLog(`💰 [Extrato] ${p.name} recebeu +500G (Volta no Tabuleiro).`);
+                        GameUI.sendGlobalLog(`🚩 ${p.name} completou uma volta! Ganhou ${lapGold}G, 2 Cartas e +1 Level para todo o time!`);
+                        GameUI.sendGlobalLog(`💰 [Extrato] ${p.name} recebeu +${lapGold}G (Volta no Tabuleiro).`);
                         GameUI.sendGlobalLog(`💰 [Extrato] Novo Saldo: ${p.gold}G.`);
 
                         GameUI.updateHUD();

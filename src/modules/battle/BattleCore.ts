@@ -93,7 +93,6 @@ export class BattleCore {
                 this.oppTeamList = oppAlive;
             }
             this.opponent = this.oppTeamList[0];
-            if (enemyPlayer.effects.curse) { BattleUI.logBattle(`☠️ ${enemyPlayer.name} está amaldiçoado! (Dano reduzido)`); }
         }
         else if (isGym) {
             if (Game.currentGlobalEvent?.id === 'GYM_RUSH') {
@@ -253,6 +252,18 @@ export class BattleCore {
         this.oppTeamList.sort(() => Math.random() - 0.5);
         this.opponent = this.oppTeamList[0];
 
+        // Tempestade de Areia vale para "qualquer batalha" (o setup normal aplica; o Campeão não passa por ele)
+        if (GameState.currentGlobalEvent?.id === 'SANDSTORM') {
+            const hurtSand = (mon: Pokemon) => {
+                if (!['Pedra', 'Terra', 'Aço'].includes(mon.type) && (!mon.secondType || !['Pedra', 'Terra', 'Aço'].includes(mon.secondType))) {
+                    mon.currentHp = Math.max(1, Math.floor(mon.currentHp * 0.9));
+                }
+            };
+            this.plyTeamList.forEach(hurtSand);
+            this.oppTeamList.forEach(hurtSand);
+            setTimeout(() => BattleUI.logBattle("🌪️ A Tempestade de Areia corta os Pokémons em campo!", true), 1000);
+        }
+
         this.battleTitle = `[R: ${GameState.round}] 🏆 CAMPEÃO ATUAL: ${championData.name.toUpperCase()} 🏆`;
 
         const contextTitle = `🏆 <b>DESAFIO AO CAMPEÃO ${championData.name.toUpperCase()}!</b><br><small style="color:#f1c40f; font-size:0.9rem;">Escolha seu Pokémon para a Batalha Final!</small>`;
@@ -361,7 +372,8 @@ export class BattleCore {
                             if ((this.player.items[b] || 0) > 0) {
                                 const ItemObj = SHOP_ITEMS.find((i: any) => i.id === b);
                                 if (ItemObj) {
-                                    this.player.items[b]--;
+                                    // Zona Safari: Pokébolas não são gastas (igual ao humano em useItem)
+                                    if ((window as any).Game?.currentGlobalEvent?.id !== 'SAFARI_ZONE') this.player.items[b]--;
                                     this.attemptCapture(ItemObj);
                                     return;
                                 }
@@ -441,7 +453,8 @@ export class BattleCore {
 
             if (ev === 'TOXIC_SMOG') {
                 const toxicHurt = (mon: Pokemon) => {
-                    if (mon.currentHp > 0 && !['Venenoso', 'Aço'].includes(mon.type) && (!mon.secondType || !['Venenoso', 'Aço'].includes(mon.secondType))) {
+                    // O tipo no Pokédex é 'Veneno' (não 'Venenoso'): sem isso os Venenosos também sufocavam
+                    if (mon.currentHp > 0 && !['Veneno', 'Aço'].includes(mon.type) && (!mon.secondType || !['Veneno', 'Aço'].includes(mon.secondType))) {
                         const dmg = Math.ceil(mon.maxHp * 0.1);
                         mon.currentHp = Math.max(1, mon.currentHp - dmg);
                         return dmg;
@@ -535,6 +548,12 @@ export class BattleCore {
         const oppMon = this.opponent;
         if (!myMon || !oppMon) return;
 
+        // Mesmas restrições do humano: Campeão, EMP, Maldição no ginásio e Mega/Mew no PvE
+        const GameRef = (window as any).Game;
+        if (this.isChampion || GameRef?.currentGlobalEvent?.id === 'EMP') return;
+        if (this.isGym && p.effects.curse) return;
+        if (!this.isPvP && ((myMon as any).isTemp || (myMon as any).isMegaEvolution)) return;
+
         const myHpPct = myMon.currentHp / myMon.maxHp;
         const oppHpPct = oppMon.currentHp / oppMon.maxHp;
 
@@ -608,10 +627,13 @@ export class BattleCore {
         // 11. DESTINO SELADO (destiny): Recompensas dobradas se vencer (se o próximo ataque vai matar)
         if (!cardToPlay && cardIds.includes('destiny') && !this.activeEffects.destiny) {
             let willKill = false;
+            // A previsão não pode gastar cargas de Crítico/Foco: o cálculo altera activeEffects, então restaura depois
+            const effectsBeforePrediction = { ...this.activeEffects };
             try {
                 const calc = BattleCalc.calculateDamage(myMon, oppMon, true);
                 if (calc.damage >= oppMon.currentHp) willKill = true;
             } catch (e) {}
+            this.activeEffects = effectsBeforePrediction;
             if (willKill) {
                 cardToPlay = 'destiny';
             }
@@ -942,6 +964,8 @@ export class BattleCore {
             if (oldName) (this.opponent as any)._npcName = oldName;
 
             if (this.activeEffects.stunOpponent) this.activeEffects.stunOpponent = 0;
+            // Escudo Protetor vale só até o seu Pokémon vencer ou ser derrotado
+            if (this.activeEffects.guard) this.activeEffects.guard = false;
 
             BattleUI.logBattle(`Rival enviou ${nextOpp.name}!`, true);
             if (nextOpp.happiness === 100) {
@@ -990,6 +1014,8 @@ export class BattleCore {
             }
         }
         (this as any).pokemonFaintedThisBattle = true;
+        // Escudo Protetor vale só até o seu Pokémon vencer ou ser derrotado
+        if (this.activeEffects.guard) this.activeEffects.guard = false;
         const nextPly = this.plyTeamList.find(p => !p.isFainted());
         if (nextPly) {
             this.activeMon!.removeHappiness(10);
@@ -1518,7 +1544,7 @@ export class BattleCore {
             if (this.isPvP || this.isNPC || this.isGym) return GameDialog.toast("Não dá para capturar Pokémon de treinadores!", { tone: 'warning' });
             const Game = (window as any).Game;
             if (Game.currentGlobalEvent?.id !== 'SAFARI_ZONE') this.player!.items[key]--;
-            else BattleUI.logBattle("🌳 SAFARI ZONE: Pokébofas são infinitas!", true);
+            else BattleUI.logBattle("🌳 SAFARI ZONE: Pokébolas são infinitas!", true);
 
             this.processingAction = true;
             BattleUI.updateButtons();
@@ -1532,6 +1558,7 @@ export class BattleCore {
             this.processingAction = true;
             BattleUI.updateButtons();
 
+            (window as any).UseFx?.battleItem?.(key);
             this.activeMon!.heal(data.val!);
             this.activeMon!.addHappiness(1);
             BattleUI.logBattle(`💊 Usou ${data.name}! Recuperou HP.`, true);

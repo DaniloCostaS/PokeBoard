@@ -302,10 +302,18 @@ export class Pokemon {
             if ((player.effects.doubleXp && player.effects.doubleXp > 0) || Game.currentGlobalEvent?.id === 'EXP_BURST') {
                 finalAmount *= 2;
                 usedEffect = true;
+                // Carta Double XP: conta por ganho de XP ("próximos 5 ganhos"), não por turno
+                if (player.effects.doubleXp && player.effects.doubleXp > 0) {
+                    player.effects.doubleXp--;
+                    if (player.effects.doubleXp === 0) Game.sendGlobalLog(`📉 O efeito Double XP de ${player.name} acabou.`);
+                }
             }
 
             if (player.effects.expShare && player.effects.expShare > 0) {
                 usedEffect = true;
+                // Carta Exp Share: conta por ganho de XP ("próximos 5 ganhos"), não por turno
+                player.effects.expShare--;
+                if (player.effects.expShare === 0) Game.sendGlobalLog(`📉 O efeito Exp. Share de ${player.name} acabou.`);
                 
                 const aliveTeam = player.team.filter(p => !p.isFainted());
                 

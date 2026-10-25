@@ -121,7 +121,13 @@ export class GameSpawns {
                 lure.count!--;
                 if (lure.count === 0) delete playerL.effects.lureType;
                 if (Network.isOnline) Network.syncPlayerState();
-                return new Pokemon(chosen.id, Math.min(25, Math.max(1, globalAvg + Math.floor(Math.random() * 5) - 2)), null);
+                const luredMon = new Pokemon(chosen.id, Math.min(25, Math.max(1, globalAvg + Math.floor(Math.random() * 5) - 2)), null);
+                // Febre Shiny vale para qualquer encontro selvagem, inclusive os atraídos pelo Incenso
+                if (GameState.currentGlobalEvent?.id === 'SHINY_FEVER' && !luredMon.isShiny && Math.random() <= 0.30) {
+                    luredMon.isShiny = true;
+                    luredMon.recalculateStats(true);
+                }
+                return luredMon;
             }
         }
 

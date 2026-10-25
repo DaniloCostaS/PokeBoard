@@ -40,7 +40,8 @@ export class CardManager {
         const validDb = this.getValidCardsDb();
         const possibleCards = validDb.filter((c: any) => c.rarity === targetRarity);
         const finalPool = possibleCards.length > 0 ? possibleCards : validDb;
-        const card = finalPool[Math.floor(Math.random() * finalPool.length)];
+        // Cópia: o objeto do CARDS_DB é compartilhado; sem cópia o Cadeado (isProtected) protegeria todas as cartas iguais
+        const card = { ...finalPool[Math.floor(Math.random() * finalPool.length)] };
 
         player.cards.push(card);
 
@@ -70,7 +71,7 @@ export class CardManager {
         const validDb = this.getValidCardsDb();
         const possibleCards = validDb.filter((c: any) => c.rarity === rarity);
         const finalPool = possibleCards.length > 0 ? possibleCards : validDb;
-        const card = finalPool[Math.floor(Math.random() * finalPool.length)];
+        const card = { ...finalPool[Math.floor(Math.random() * finalPool.length)] };
 
         player.cards.push(card);
 
@@ -98,10 +99,11 @@ export class CardManager {
         const Network = (window as any).Network;
 
         const validDb = CARDS_DB;
-        const card = validDb.find((c: any) => c.id === cardId);
-        
-        if (!card) return null;
+        const cardRef = validDb.find((c: any) => c.id === cardId);
 
+        if (!cardRef) return null;
+
+        const card = { ...cardRef };
         player.cards.push(card);
 
         // Registro de Extrato de Cartas (Global)
@@ -170,7 +172,7 @@ export class CardManager {
         const filteredPool = finalPool.filter((c: any) => !removedIds.includes(c.id));
         if (filteredPool.length > 0) finalPool = filteredPool;
 
-        const newCard = finalPool[Math.floor(Math.random() * finalPool.length)];
+        const newCard = { ...finalPool[Math.floor(Math.random() * finalPool.length)] };
         player.cards.push(newCard);
 
         const QuestManagerObj = (window as any).QuestManager || (window as any).modules?.QuestManager;
@@ -241,7 +243,7 @@ export class CardManager {
         const filteredPool = finalPool.filter((c: any) => !removedIds.includes(c.id));
         const finalFinalPool = filteredPool.length > 0 ? filteredPool : finalPool;
 
-        const newCard = finalFinalPool[Math.floor(Math.random() * finalFinalPool.length)];
+        const newCard = { ...finalFinalPool[Math.floor(Math.random() * finalFinalPool.length)] };
         player.cards.push(newCard);
 
         const QuestManagerObj = (window as any).QuestManager || (window as any).modules?.QuestManager;

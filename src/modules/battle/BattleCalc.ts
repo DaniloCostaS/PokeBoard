@@ -199,7 +199,7 @@ export class BattleCalc {
             }
         } else {
             if (BattleCore.activeEffects.guard) { finalDamage = Math.floor(finalDamage / 2); logDetails += " [🛡️]"; auditLog += ` | Carta Guard /2`; }
-            if (BattleCore.enemyPlayer && BattleCore.enemyPlayer.effects.curse) { finalDamage = Math.floor(finalDamage / 2); auditLog += ` | Maldição Inimiga /2`; }
+            // Maldição só reduz o dano contra Líder de Ginásio / Campeão (descrição da carta), não em PvP
         }
 
         let reflectedAmount = 0;

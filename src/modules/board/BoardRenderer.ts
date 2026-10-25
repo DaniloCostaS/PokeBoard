@@ -10,6 +10,7 @@ import { PLAYER_COLORS } from '../../constants/playerColors';
 import { BoardWeather, type Rect } from './BoardWeather';
 import { BoardAmbient } from './BoardAmbient';
 import { boardTextures } from './BoardTextures';
+import { BoardReach, computeReach } from './BoardReach';
 
 // Tabuleiro renderizado em WebGL (PixiJS): câmera com zoom/arrasto, peões animados e efeitos.
 // Mantém a mesma API que o restante do jogo usava com o tabuleiro em DOM.
@@ -30,14 +31,32 @@ const TILE_TOOLTIPS: Record<number, string> = {
     [TILE.EVENT]: 'Evento · algo inesperado acontece'
 };
 
+// Um passo da caminhada: posição de destino no mundo + casa lógica (para apagar a prévia ao chegar)
+type Seg = { x: number; y: number; tx: number; ty: number; warp: boolean; turn: boolean };
+type Walk = { queue: Seg[]; seg: Seg | null; fromX: number; fromY: number; start: number; dur: number; n: number };
+
 type Token = {
     root: Container;
+    body: Container;      // disco + avatar + anel (balança/inclina); a sombra fica no chão
+    shadow: Graphics;
+    avatar: Sprite;
+    avatarScale: number;
     ring: Graphics;
+    r: number;
     avatarUrl: string;
     tileX: number;
     tileY: number;
     anim: { fromX: number; fromY: number; toX: number; toY: number; start: number; dur: number; hop: number } | null;
+    walk: Walk;
+    idx: number;
+    face: number;         // para onde o avatar olha: 1 = direita, -1 = esquerda
+    dir: number;          // para onde ele anda (Moon Walker: contrário de face)
+    faceCur: number;
+    footAt: number;       // último "pisão" (achata o corpo)
+    settleAt: number;     // chegada (quique final)
 };
+
+type Puff = { s: Sprite; start: number; dur: number; x: number; y: number; vx: number; vy: number; size: number };
 
 type Fx = { node: Container; start: number; dur: number; update: (t: number, node: Container) => void };
 
@@ -62,6 +81,10 @@ export class BoardRenderer {
     private static glowLayer: Container;
     private static worldFxLayer: Container;
     private static pathLayer: Container;
+    private static reachLayer: Container;
+    private static dustLayer: Container;
+    static reach: BoardReach | null = null;
+    private static puffs: Puff[] = [];
     private static screenLayer: Container;
     static weather: BoardWeather | null = null;
     static ambient: BoardAmbient | null = null;
@@ -99,8 +122,10 @@ export class BoardRenderer {
                 this.glowLayer = new P.Container();
                 this.worldFxLayer = new P.Container();
                 this.pathLayer = new P.Container();
+                this.reachLayer = new P.Container();
+                this.dustLayer = new P.Container();
                 this.screenLayer = new P.Container();
-                for (const l of [this.wildLayer, this.gradeLayer, this.glowLayer, this.worldFxLayer, this.pathLayer, this.screenLayer]) l.eventMode = 'none';
+                for (const l of [this.wildLayer, this.gradeLayer, this.glowLayer, this.worldFxLayer, this.pathLayer, this.reachLayer, this.dustLayer, this.screenLayer]) l.eventMode = 'none';
                 const app = new P.Application();
                 await app.init({
                     resizeTo: host,
@@ -113,11 +138,13 @@ export class BoardRenderer {
                 app.canvas.classList.add('pb-board-canvas');
                 host.appendChild(app.canvas);
                 // Ordem: casas → selvagens → armadilhas → grading/noite → luzes → brilhos → caminho → peões → efeitos
-                this.world.addChild(this.tileLayer, this.wildLayer, this.markLayer, this.gradeLayer, this.glowLayer, this.worldFxLayer, this.pathLayer, this.tokenLayer, this.fxLayer);
+                this.world.addChild(this.tileLayer, this.wildLayer, this.markLayer, this.gradeLayer, this.glowLayer, this.worldFxLayer, this.reachLayer, this.pathLayer, this.dustLayer, this.tokenLayer, this.fxLayer);
                 app.stage.addChild(this.world, this.screenLayer);
                 this.weather = new BoardWeather(P, { grade: this.gradeLayer, glow: this.glowLayer, worldFx: this.worldFxLayer, screen: this.screenLayer }, T);
                 this.ambient = new BoardAmbient(P, { wild: this.wildLayer, path: this.pathLayer }, T);
                 this.ambient.reduced = this.weather.reduced;
+                this.reach = new BoardReach(P, this.reachLayer, T);
+                this.bindRollHover();
                 // Com o Pixi ativo o clima é desenhado aqui; desliga as camadas CSS antigas
                 host.closest('#board-wrapper')?.classList.add('pb-pixi');
                 // Aba escondida: pausa o loop (economiza bateria no celular)
@@ -262,23 +289,40 @@ export class BoardRenderer {
 
     private static makeToken(idx: number, avatarUrl: string): Token {
         const root = new P.Container();
+        const body = new P.Container();
         const color = hexToNum(PLAYER_COLORS[idx % PLAYER_COLORS.length]);
         const r = T * 0.36;
-        const shadow = new P.Graphics().ellipse(0, r * 0.95, r * 0.8, r * 0.28).fill({ color: 0x000000, alpha: 0.35 });
+        // Sombra centrada no "pé" do peão: encolhe quando ele sobe a cada passo
+        const shadow = new P.Graphics().ellipse(0, 0, r * 0.8, r * 0.28).fill({ color: 0x000000, alpha: 0.35 });
+        shadow.y = r * 0.95;
         const disc = new P.Graphics().circle(0, 0, r).fill(0xffffff);
         const avatar = new P.Sprite(P.Texture.EMPTY);
         avatar.anchor.set(0.5);
         const mask = new P.Graphics().circle(0, 0, r - 2).fill(0xffffff);
         avatar.mask = mask;
         const ring = new P.Graphics().circle(0, 0, r).stroke({ width: 4, color });
-        root.addChild(shadow, disc, avatar, mask, ring);
+        body.addChild(disc, avatar, mask, ring);
+        root.addChild(shadow, body);
+        const tok: Token = {
+            root, body, shadow, avatar, avatarScale: 1, ring, r, avatarUrl, tileX: -1, tileY: -1, anim: null,
+            walk: { queue: [], seg: null, fromX: 0, fromY: 0, start: 0, dur: 0, n: 0 },
+            idx, face: 1, dir: 1, faceCur: 1, footAt: 0, settleAt: 0
+        };
         P.Assets.load(avatarUrl).then((tex: Texture) => {
             avatar.texture = tex;
-            const scale = (r * 2.1) / Math.max(tex.width, tex.height);
-            avatar.scale.set(scale);
+            tok.avatarScale = (r * 2.1) / Math.max(tex.width, tex.height);
+            avatar.scale.set(tok.avatarScale * tok.faceCur, tok.avatarScale);
         }).catch(() => null);
         this.tokenLayer.addChild(root);
-        return { root, ring, avatarUrl, tileX: -1, tileY: -1, anim: null };
+        return tok;
+    }
+
+    private static resetPose(tok: Token) {
+        tok.body.position.set(0, 0);
+        tok.body.rotation = 0;
+        tok.body.scale.set(1);
+        tok.body.alpha = 1;
+        tok.shadow.scale.set(1);
     }
 
     static syncTokens(instant = false) {
@@ -296,23 +340,41 @@ export class BoardRenderer {
             }
             const slot = this.tileSlot(idx, p.x, p.y);
             const moved = tok.tileX !== p.x || tok.tileY !== p.y;
+            const w = tok.walk;
             if (moved && !instant && tok.tileX >= 0) {
                 const dist = Math.hypot(tok.tileX - p.x, tok.tileY - p.y);
                 // Virada de linha do percurso é um passo normal; salto longe de verdade (fenda espacial, etc.) é teleporte
                 const total = this.size * this.size;
                 const di = Math.abs(MapSystem.getIndex(p.x, p.y) - MapSystem.getIndex(tok.tileX, tok.tileY));
                 const step = di === 1 || di === total - 1;
-                if (dist > 1.5) { if (step) this.teleportFx(tok.root.x, tok.root.y); else this.vortexFx(tok.root.x, tok.root.y, slot.x, slot.y); }
-                if (idx === GameState.turn) this.ambient?.passed(p.x, p.y);
-                tok.anim = {
-                    fromX: tok.root.x, fromY: tok.root.y, toX: slot.x, toY: slot.y,
-                    start: now, dur: dist > 1.5 ? 260 : 140, hop: dist > 1.5 ? 0 : T * 0.32
-                };
+                if (step) {
+                    // Caminhada: os passos entram numa fila e o peão anda em velocidade constante, sem trancos
+                    const seg: Seg = { x: slot.x, y: slot.y, tx: p.x, ty: p.y, warp: dist > 1.5, turn: idx === GameState.turn };
+                    if (w.seg) w.queue.push(seg);
+                    else {
+                        if (tok.anim) { tok.root.position.set(tok.anim.toX, tok.anim.toY); tok.anim = null; }
+                        this.startSeg(tok, seg, now, true);
+                    }
+                } else {
+                    if (idx === GameState.turn) this.reach?.fade();
+                    w.queue.length = 0; w.seg = null; w.n = 0;
+                    this.resetPose(tok);
+                    if (dist > 1.5) this.vortexFx(tok.root.x, tok.root.y, slot.x, slot.y);
+                    tok.anim = {
+                        fromX: tok.root.x, fromY: tok.root.y, toX: slot.x, toY: slot.y,
+                        start: now, dur: dist > 1.5 ? 260 : 140, hop: dist > 1.5 ? 0 : T * 0.32
+                    };
+                }
+            } else if (w.seg) {
+                // Outro peão chegou/saiu da casa de destino: ajusta o ponto final da caminhada
+                const last = w.queue.length ? w.queue[w.queue.length - 1] : w.seg;
+                last.x = slot.x; last.y = slot.y;
             } else if (!tok.anim) {
                 tok.root.position.set(slot.x, slot.y);
             } else {
                 tok.anim.toX = slot.x; tok.anim.toY = slot.y;
             }
+            if (instant) { w.queue.length = 0; w.seg = null; w.n = 0; tok.anim = null; tok.root.position.set(slot.x, slot.y); this.resetPose(tok); }
             tok.root.scale.set(slot.scale * (idx === GameState.turn ? 1.12 : 1));
             tok.root.zIndex = idx === GameState.turn ? 10 : 1;
             tok.tileX = p.x; tok.tileY = p.y;
@@ -323,6 +385,147 @@ export class BoardRenderer {
         [...this.tokens.keys()].forEach(k => {
             if (!seen.has(k)) { this.tokens.get(k)!.root.destroy({ children: true }); this.tokens.delete(k); }
         });
+    }
+
+    private static startSeg(tok: Token, seg: Seg, now: number, fromRest: boolean) {
+        const w = tok.walk;
+        w.fromX = tok.root.x; w.fromY = tok.root.y;
+        w.seg = seg;
+        w.start = now;
+        // Passo base um pouco mais longo que o intervalo da lógica (150ms) para a fila nunca esvaziar no meio;
+        // se acumular, acelera e alcança
+        const q = w.queue.length;
+        w.dur = seg.warp ? 230 : fromRest ? 190 : q >= 3 ? 95 : q >= 1 ? 135 : 165;
+        if (fromRest) w.n = 0;
+        const dx = seg.x - w.fromX;
+        const moon = (GameState.players[tok.idx]?.effects?.moonwalker || 0) > 0;
+        if (seg.warp) {
+            // Virada de linha: some aqui e reaparece no começo da próxima linha
+            this.teleportFx(w.fromX, w.fromY);
+        } else if (Math.abs(dx) > 1) {
+            // Moon Walker anda de costas: olha para um lado e desliza para o outro
+            tok.dir = dx > 0 ? 1 : -1;
+            tok.face = tok.dir * (moon ? -1 : 1);
+        }
+    }
+
+    // Pisão: poeira (ou respingo na água / folhinhas na grama) saindo dos pés
+    private static footfall(tok: Token, tx: number, ty: number, now: number) {
+        tok.footAt = now;
+        if (this.reducedMotion()) return;
+        const tile = MapSystem.grid[ty]?.[tx];
+        const tint = tile === TILE.WATER ? 0xcdeeff : tile === TILE.GRASS ? 0xd8f0b8 : 0xe9dcc0;
+        const fx = tok.root.x, fy = tok.root.y + tok.r * 0.95 * tok.root.scale.y;
+        const dir = tok.dir;
+        for (let i = 0; i < 2; i++) {
+            const side = i ? 1 : -1;
+            this.puff(fx + side * T * 0.14, fy, (-dir * 0.35 + side * 0.55) * T, -T * (0.25 + Math.random() * 0.15), tint, T * (0.26 + Math.random() * 0.1), now);
+        }
+    }
+
+    private static puff(x: number, y: number, vx: number, vy: number, tint: number, size: number, now: number) {
+        let pf = this.puffs.find(p => !p.s.visible);
+        if (!pf) {
+            if (this.puffs.length >= 32) return;
+            const s = new P.Sprite(boardTextures(P).soft);
+            s.anchor.set(0.5);
+            this.dustLayer.addChild(s);
+            pf = { s, start: 0, dur: 0, x: 0, y: 0, vx: 0, vy: 0, size: 0 };
+            this.puffs.push(pf);
+        }
+        pf.s.visible = true;
+        pf.s.tint = tint;
+        pf.start = now; pf.dur = 420; pf.x = x; pf.y = y; pf.vx = vx; pf.vy = vy; pf.size = size;
+    }
+
+    // Peões: caminhada (fila de passos em velocidade constante), saltos longos e quique na chegada
+    private static updateTokens(now: number, t: number) {
+        const reduced = this.reducedMotion();
+        this.tokens.forEach((tok, idx) => {
+            const w = tok.walk;
+            const body = tok.body;
+            let lift = 0, rot = 0, sx = 1, sy = 1, alpha = 1;
+            if (w.seg) {
+                let u = Math.min(1, (now - w.start) / w.dur);
+                const seg = w.seg;
+                if (u >= 1) {
+                    // Chegou na casa: pisão, apaga a prévia até aqui e emenda o próximo passo sem parar
+                    tok.root.position.set(seg.x, seg.y);
+                    w.n++;
+                    if (seg.turn) this.ambient?.passed(seg.tx, seg.ty);
+                    if (!seg.warp) this.footfall(tok, seg.tx, seg.ty, now);
+                    else this.ringFx(seg.x, seg.y, 0x9ad7ff, 0, 320, 0.3, 1.1);
+                    const next = w.queue.shift();
+                    if (next) {
+                        const carry = Math.min(now - (w.start + w.dur), 40);
+                        this.startSeg(tok, next, now - Math.max(0, carry), false);
+                    } else {
+                        w.seg = null;
+                        tok.settleAt = now;
+                    }
+                } else if (seg.warp) {
+                    const k = u < 0.5 ? 1 - u * 2 : (u - 0.5) * 2;
+                    if (u < 0.5) tok.root.position.set(w.fromX, w.fromY);
+                    else tok.root.position.set(seg.x, seg.y);
+                    if (reduced) alpha = k;
+                    else { sx = sy = Math.max(0.05, easeOut(k)); alpha = Math.min(1, k * 1.5); }
+                } else {
+                    // Começa acelerando suave; depois velocidade constante entre as casas
+                    const e = w.n === 0 ? u * u * (1.5 - 0.5 * u) : u;
+                    tok.root.x = lerp(w.fromX, seg.x, e);
+                    tok.root.y = lerp(w.fromY, seg.y, e);
+                    if (!reduced) {
+                        const arc = Math.sin(u * Math.PI);
+                        lift = arc * T * 0.13;
+                        const sway = w.n % 2 ? 1 : -1;
+                        rot = tok.face * 0.06 + sway * arc * 0.11;
+                    }
+                }
+            } else if (tok.anim) {
+                const a = tok.anim;
+                const p = Math.min(1, (now - a.start) / a.dur);
+                tok.root.x = lerp(a.fromX, a.toX, easeOut(p));
+                tok.root.y = lerp(a.fromY, a.toY, easeOut(p));
+                lift = Math.sin(p * Math.PI) * a.hop;
+                if (p >= 1) tok.anim = null;
+            }
+            if (!reduced) {
+                // Achatada no pisão e quique ao parar
+                const fk = (now - tok.footAt) / 130;
+                if (fk < 1 && w.seg) { const s = Math.sin(fk * Math.PI) * 0.1; sx += s; sy -= s; }
+                const sk = (now - tok.settleAt) / 380;
+                if (sk < 1 && !w.seg) {
+                    const s = Math.sin(sk * Math.PI * 2) * (1 - sk) * 0.16;
+                    sx += s; sy -= s;
+                    lift += Math.max(0, -Math.sin(sk * Math.PI * 2)) * (1 - sk) * T * 0.07;
+                    rot *= 1 - sk;
+                }
+            }
+            // Vira para o lado da caminhada (giro rápido, não um corte seco)
+            tok.faceCur += (tok.face - tok.faceCur) * (reduced ? 1 : 0.3);
+            if (Math.abs(tok.face - tok.faceCur) < 0.01) tok.faceCur = tok.face;
+            const fc = Math.abs(tok.faceCur) < 0.08 ? (tok.face > 0 ? 0.08 : -0.08) : tok.faceCur;
+            tok.avatar.scale.set(tok.avatarScale * fc, tok.avatarScale);
+            // O corpo achata a partir do chão (base do disco), não do centro
+            body.scale.set(sx, sy);
+            body.position.set(0, tok.r * (1 - sy) - lift);
+            body.rotation = rot;
+            body.alpha = alpha;
+            const sh = 1 - Math.min(0.45, lift / (T * 0.5));
+            tok.shadow.scale.set(sh * sx, sh);
+            tok.shadow.alpha = alpha;
+            tok.ring.alpha = idx === GameState.turn ? 0.75 + Math.sin(t * 5) * 0.25 : 1;
+        });
+
+        for (const pf of this.puffs) {
+            if (!pf.s.visible) continue;
+            const k = (now - pf.start) / pf.dur;
+            if (k >= 1) { pf.s.visible = false; continue; }
+            const e = easeOut(k);
+            pf.s.position.set(pf.x + pf.vx * e * 0.4, pf.y + pf.vy * e * 0.4);
+            pf.s.scale.set(pf.size * (0.5 + e * 0.8) / 64);
+            pf.s.alpha = 0.75 * (1 - k);
+        }
     }
 
     static flashTile(x: number, y: number) {
@@ -460,10 +663,38 @@ export class BoardRenderer {
 
     static previewPath(coords: { x: number; y: number }[]) {
         if (!this.ready) return;
+        this.reach?.fade();
         this.ambient?.previewPath(coords);
     }
 
-    static clearPath() { this.ambient?.clearPath(true); }
+    static clearPath() { this.ambient?.clearPath(true); this.reach?.fade(); }
+
+    // Casas alcançáveis: aparece quando o dado começa a girar (idempotente para o mesmo jogador)
+    static previewReach(pid: number) {
+        if (!this.ready || !this.reach) return;
+        if (this.reach.rolling(pid)) return;
+        const plan = computeReach(pid);
+        if (plan) this.reach.show(plan);
+    }
+
+    // O dado parou: destaca a casa do valor sorteado
+    static reachResult(die: number) { this.reach?.pick(die); }
+
+    // Hover no botão de rolar (mouse): mostra as opções antes de rolar
+    private static bindRollHover() {
+        const isRoll = (el: EventTarget | null) => !!(el as HTMLElement | null)?.closest?.('#roll-btn');
+        document.addEventListener('pointerover', (e) => {
+            if (e.pointerType !== 'mouse' || !isRoll(e.target) || !this.reach) return;
+            const p = GameState.getCurrentPlayer();
+            if (!p || p.isCPU || GameState.hasRolled || !GameState.canAct() || this.reach.plan) return;
+            const plan = computeReach(GameState.turn);
+            if (plan) this.reach.show(plan, true);
+        });
+        document.addEventListener('pointerout', (e) => {
+            if (!isRoll(e.target) || isRoll(e.relatedTarget)) return;
+            if (this.reach?.hover) this.reach.fade();
+        });
+    }
 
     private static reducedMotion() { return !!this.weather?.reduced; }
 
@@ -587,6 +818,7 @@ export class BoardRenderer {
     static trapFx(x: number, y: number) {
         if (!this.ready) return;
         this.ambient?.clearPath(true);
+        this.reach?.fade();
         const cx = x * T + T / 2, cy = y * T + T / 2;
         this.tileGlow(x, y, 0xff2a1a, 0.6, 500);
         for (const side of [-1, 1]) {
@@ -662,6 +894,7 @@ export class BoardRenderer {
     static onLand(x: number, y: number, type: number, pvp = false) {
         if (!this.ready) return;
         this.ambient?.clearPath(true);
+        this.reach?.fade();
         if (pvp) { this.pvpFx(x, y); return; }
         if (type === TILE.CITY) this.healFx(x, y);
         else if (type === TILE.EVENT) this.eventFx(x, y);
@@ -905,17 +1138,9 @@ export class BoardRenderer {
             ev.s.scale.set((T - 2) / ev.s.texture.width * s, (T - 2) / ev.s.texture.height * s);
         });
 
-        // Peões: salto entre casas e pulso do jogador da vez
-        this.tokens.forEach((tok, idx) => {
-            if (tok.anim) {
-                const a = tok.anim;
-                const p = Math.min(1, (now - a.start) / a.dur);
-                tok.root.x = lerp(a.fromX, a.toX, easeOut(p));
-                tok.root.y = lerp(a.fromY, a.toY, easeOut(p)) - Math.sin(p * Math.PI) * a.hop;
-                if (p >= 1) tok.anim = null;
-            }
-            tok.ring.alpha = idx === GameState.turn ? 0.75 + Math.sin(t * 5) * 0.25 : 1;
-        });
+        // Peões: caminhada, saltos e pulso do jogador da vez
+        this.updateTokens(now, t);
+        if (this.reach) { this.reach.reduced = this.reducedMotion(); this.reach.tilePx = T * this.zoom; this.reach.update(now); }
 
         // Efeitos temporários
         for (let i = this.fx.length - 1; i >= 0; i--) {

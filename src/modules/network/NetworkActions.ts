@@ -340,6 +340,16 @@ export class NetworkActions {
                     Game.moveVisuals();
                     if (typeof Game.checkTurnControl === 'function') Game.checkTurnControl();
                 }
+                // Evento global: quem sorteia/troca o evento (nextTurn, carta Mudança Global, admin) grava no rooms;
+                // sem isto os outros clientes só viam o evento novo depois de recarregar a página
+                if (newRecord.current_event_id !== undefined || newRecord.event_end_round !== undefined) {
+                    const ev = SupabaseDataStore.eventFromRoom(newRecord);
+                    if ((ev.currentGlobalEvent?.id ?? null) !== (Game.currentGlobalEvent?.id ?? null) || ev.eventEndRound !== Game.eventEndRound) {
+                        Game.currentGlobalEvent = ev.currentGlobalEvent;
+                        Game.eventEndRound = ev.eventEndRound;
+                        Game.updateHUD();
+                    }
+                }
             })
             .on('postgres_changes', { event: '*', schema: 'public', table: 'room_players', filter: `room_id=eq.${NetworkState.currentRoomId}` }, () => {
                 this.schedulePlayerRefresh();
@@ -530,6 +540,8 @@ export class NetworkActions {
             case 'GAME_WIN': Game.triggerVictory(action.payload.winnerId); break;
             case 'EMOTE': Presence.showEmote(action.playerId, action.payload?.emoji); break;
             case 'CELEBRATE': (window as any).Cinematics?.fromRemote?.(action.payload, action.playerId); break;
+            case 'CARD_FX':
+            case 'ITEM_FX': (window as any).UseFx?.fromRemote?.(action.type, action.payload, action.playerId); break;
             case 'BOARD_FX': {
                 const board = (window as any).PBBoard;
                 const fx = action.payload || {};
@@ -600,10 +612,13 @@ export class NetworkActions {
     static async syncTurnState() {
         const Game = (window as any).Game;
         if (!NetworkState.isOnline) return;
-        const { data } = await supabase.from('rooms').select('current_turn, current_round').eq('id', NetworkState.currentRoomId).single();
+        const { data } = await supabase.from('rooms').select('current_turn, current_round, current_event_id, event_end_round').eq('id', NetworkState.currentRoomId).single();
         if (data) {
             Game.turn = data.current_turn;
             Game.round = data.current_round;
+            const ev = SupabaseDataStore.eventFromRoom(data);
+            Game.currentGlobalEvent = ev.currentGlobalEvent;
+            Game.eventEndRound = ev.eventEndRound;
             Game.updateHUD();
             Game.moveVisuals();
             if (Game.checkTurnControl) Game.checkTurnControl();

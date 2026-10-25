@@ -31,8 +31,10 @@ export class CardEffects {
 
             if (defenseCardIndex > -1) {
                 target.cards.splice(defenseCardIndex, 1);
-                const attackCardIndex = attacker.cards.findIndex((c: any) => c.id === incomingCardId);
+                const attackCardIndex = attacker.cards.findIndex((c: any) => c.id === incomingCardId && !c.isProtected);
                 if (attackCardIndex > -1) attacker.cards.splice(attackCardIndex, 1);
+                (window as any).UseFx?.cardBlocked?.(incomingCardId, attacker);
+                (window as any).UseFx?.cardPlayed?.(defenseId, target);
 
                 Game.sendGlobalLog(`🃏 [Extrato] ${target.name} usou uma defesa automática. Total: ${target.cards.length}`);
                 Game.sendGlobalLog(`🃏 [Extrato] ${attacker.name} teve sua carta bloqueada. Total: ${attacker.cards.length}`);
@@ -111,8 +113,9 @@ export class CardEffects {
         player.team[myChoice] = hisMon;
         target.team[hisChoice] = myMon;
 
-        const idx = player.cards.findIndex((c: any) => c.id === 'troques');
+        const idx = player.cards.findIndex((c: any) => c.id === 'troques' && !c.isProtected);
         if (idx > -1) player.cards.splice(idx, 1);
+        (window as any).UseFx?.cardPlayed?.('troques', player);
 
         if (!player.stats) player.stats = { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
         player.stats.cardsUsed = (player.stats.cardsUsed || 0) + 1;
@@ -178,8 +181,9 @@ export class CardEffects {
             Battle.tryOpponentMegaEvolution("reagiu ao novo time");
         }
 
-        const idx = player.cards.findIndex((c: any) => c.id === 'illegal_adoption');
+        const idx = player.cards.findIndex((c: any) => c.id === 'illegal_adoption' && !c.isProtected);
         if (idx > -1) player.cards.splice(idx, 1);
+        (window as any).UseFx?.cardPlayed?.('illegal_adoption', player);
 
         Game.updateHUD();
         Battle.updateUI();
@@ -219,11 +223,13 @@ export class CardEffects {
         const cardData = CARDS_DB.find((c: any) => c.id === 'master');
         if (!cardData) return;
 
-        player.items[ballId]--;
+        // Zona Safari: a Pokébola lançada não é gasta da mochila
+        if (Game.currentGlobalEvent?.id !== 'SAFARI_ZONE') player.items[ballId]--;
 
-        const idx = player.cards.findIndex((c: any) => c.id === 'master');
+        const idx = player.cards.findIndex((c: any) => c.id === 'master' && !c.isProtected);
         if (idx > -1) {
             player.cards.splice(idx, 1);
+            (window as any).UseFx?.cardPlayed?.('master', player);
             Game.sendGlobalLog(`🃏 [Extrato] ${player.name} usou uma carta Master Ball. Total: ${player.cards.length}`);
         }
 
@@ -316,6 +322,11 @@ export class CardEffects {
             if (!Battle.isPvP && Battle.activeMon && ((Battle.activeMon as any).isTemp || (Battle.activeMon as any).isMegaEvolution)) {
                 return GameDialog.toast("Seu parceiro já atingiu o poder máximo! Cartas de batalha estão bloqueadas para Mega Evoluções (ou Mew) no PvE.", { tone: 'warning' });
             }
+            // Evento EMP proíbe cartas de batalha (a UI já bloqueava, mas a CPU chamava activate direto)
+            if (Game.currentGlobalEvent?.id === 'EMP') {
+                if (!player.isCPU) GameDialog.toast("Cartas bloqueadas pela Tempestade Eletromagnética!", { tone: 'warning' });
+                return;
+            }
         }
 
         if (cardData.type === 'auto') {
@@ -357,11 +368,37 @@ export class CardEffects {
                     actualTargetId = opponents[0].id;
                 }
             }
+
+            // Troca forçada / Destruir Mega Pedra: o alvo da CPU precisa ser definido ANTES da checagem
+            // de defesa automática (senão Pokémon Fiel / Bolinha Perdida / Interferência nunca disparavam contra a CPU)
+            if (cardId === 'troques') {
+                const opponents = Game.players.filter((pl: any) => pl.id !== player.id && pl.team.length > 0);
+                if (opponents.length > 0) {
+                    const getBestMonStats = (pl: any) => Math.max(...pl.team.map((m: any) => m.maxHp + m.atk + m.def + m.speed));
+                    opponents.sort((a: any, b: any) => getBestMonStats(b) - getBestMonStats(a));
+                    actualTargetId = opponents[0].id;
+                }
+            }
+
+            if (cardId === 'steal_mega_stone' && targetId === null) {
+                for (const opp of Game.players) {
+                    if (opp.id === player.id) continue;
+                    const idx = opp.team.findIndex((mon: any) => mon.megaStone && !mon.vinculoSupremo && mon.happiness !== 100);
+                    if (idx !== -1) {
+                        targetId = { targetId: opp.id, pokemonIndex: idx };
+                        actualTargetId = opp.id;
+                        break;
+                    }
+                }
+            }
         }
 
         const offensiveCards = ['swap', 'slow', 'rocket', 'curse', 'trade_fail', 'new_leader', 'bag', 'troques', 'michael', 'steal_mega_stone', 'ash_goodbye'];
 
-        if (offensiveCards.includes(cardId)) {
+        // A 2ª escolha do Adeus de Ash é continuação da mesma carta: não conta de novo no limite ofensivo
+        const isAshContinuation = cardId === 'ash_goodbye' && player.effects?.ashGoodbyeRemaining !== undefined;
+
+        if (offensiveCards.includes(cardId) && !isAshContinuation) {
             if (!player.effects) player.effects = {};
             if ((player.effects.offensiveCardsUsed || 0) >= 3) {
                 GameDialog.toast("Você atingiu o limite de 3 cartas contra outros jogadores neste turno! Agora só pode usar cartas de benefício próprio.", { tone: 'warning' });
@@ -369,7 +406,7 @@ export class CardEffects {
             }
         }
 
-        if (offensiveCards.includes(cardId) && actualTargetId !== null && actualTargetId !== player.id) {
+        if (offensiveCards.includes(cardId) && !isAshContinuation && actualTargetId !== null && actualTargetId !== player.id) {
             const targetP = Game.players.find((p: any) => p.id === actualTargetId);
 
             if (targetP) {
@@ -403,6 +440,12 @@ export class CardEffects {
         switch (cardId) {
             case 'dice':
                 let num = 0;
+                // Depois de rolar, o valor forçado ficaria pendurado e cairia na próxima rolagem (de outro jogador)
+                if (Game.hasRolled) {
+                    if (!player.isCPU) GameDialog.toast("Você já rolou o dado neste turno! O Dado Mágico deve ser usado antes de se mover.", { tone: 'warning' });
+                    consumed = false;
+                    break;
+                }
                 if (player.isCPU) {
                     const totalTiles = MapSystemClass.size * MapSystemClass.size;
                     const currentIdx = MapSystemClass.getIndex(player.x, player.y);
@@ -471,7 +514,19 @@ export class CardEffects {
                 }
                 break;
 
-            case 'boost': effectLog = "👟 Tênis ativados! Andará +6 casas no próximo turno."; Game.bonusMovement = 6; break;
+            case 'boost':
+                // O bônus é global: usado após rolar, seria aplicado na rolagem do próximo jogador
+                if (Game.hasRolled) {
+                    if (!player.isCPU) GameDialog.toast("Você já rolou o dado neste turno! O Tênis de Corrida deve ser usado antes de se mover.", { tone: 'warning' });
+                    consumed = false;
+                    break;
+                }
+                if (Game.bonusMovement > 0) {
+                    if (!player.isCPU) GameDialog.toast("O Tênis de Corrida já está ativo nesta rolagem!", { tone: 'info' });
+                    consumed = false;
+                    break;
+                }
+                effectLog = "👟 Tênis ativados! Andará +6 casas nesta rolagem."; Game.bonusMovement = 6; break;
             case 'trap': Game.placeTrap(player.x, player.y, player.id); effectLog = `🪤 Uma armadilha foi montada no chão!`; break;
 
             case 'swap':
@@ -535,7 +590,8 @@ export class CardEffects {
                             // Sorteia 3 cartas aleatórias da mão inteira (incluindo protegidas e lendárias)
                             const shuffledCards = [...target.cards].sort(() => 0.5 - Math.random());
                             const revealed = shuffledCards.slice(0, 3);
-                            CardUI.showRevealedCards(target, revealed);
+                            // CPU não abre o modal (senão mostraria as cartas na tela do humano)
+                            if (!player.isCPU) CardUI.showRevealedCards(target, revealed);
                             effectLog = `🕵️ ${player.name} usou Espião e viu 3 cartas da mão de ${target.name}!`;
                         }
                     } else { consumed = false; }
@@ -571,14 +627,10 @@ export class CardEffects {
 
             case 'troques':
                 if (player.isCPU) {
-                    const opponents = Game.players.filter((pl: any) => pl.id !== player.id);
-                    if (opponents.length > 0) {
-                        opponents.sort((a: any, b: any) => {
-                            const getBestMonStats = (pl: any) => Math.max(...pl.team.map((m: any) => m.maxHp + m.atk + m.def + m.speed));
-                            return getBestMonStats(b) - getBestMonStats(a);
-                        });
-                        const target = opponents[0];
-                        
+                    // Alvo já escolhido antes da checagem de defesa automática
+                    const target = actualTargetId !== null ? Game.players.find((pl: any) => pl.id === actualTargetId) : null;
+                    if (target) {
+
                         const getStats = (mon: any) => mon.maxHp + mon.atk + mon.def + mon.speed;
                         
                         let myChoiceIdx = 0;
@@ -670,14 +722,28 @@ export class CardEffects {
                         }
                         Game.rescueFromLixeira(bestIdx);
                         consumed = true;
+                    } else if (typeof targetId === 'number') {
+                        // Escolha feita na Lixeira: só agora a carta é consumida
+                        if (!Game.lixeira[targetId]) { consumed = false; break; }
+                        const rescuedName = Game.lixeira[targetId].name;
+                        Game.rescueFromLixeira(targetId);
+                        effectLog = `💚 ${player.name} sentiu compaixão e resgatou ${rescuedName} da Lixeira!`;
                     } else {
-                        Game.openLixeira(true); 
-                        effectLog = `💚 ${player.name} sentiu compaixão e está procurando um novo parceiro na Lixeira!`; 
+                        // Abre a Lixeira em modo seleção; fechar sem escolher não gasta a carta
+                        Game.openLixeira(true);
+                        consumed = false;
                     }
                 }
                 break;
 
-            case 'time': player.effects.extraTurn = true; effectLog = "⏳ O tempo congelou! O jogador terá mais um turno imediato."; break;
+            case 'time':
+                // Turno extra não acumula: um segundo Controle do Tempo no mesmo turno seria desperdiçado
+                if (player.effects.extraTurn) {
+                    if (!player.isCPU) GameDialog.toast("Você já tem um turno extra garantido!", { tone: 'info' });
+                    consumed = false;
+                    break;
+                }
+                player.effects.extraTurn = true; effectLog = "⏳ O tempo congelou! O jogador terá mais um turno imediato."; break;
 
             case 'new_leader':
                 const myBadgesCount = player.badges.filter((b: boolean) => b).length;
@@ -865,7 +931,7 @@ export class CardEffects {
                     targetMon.megaStone = false;
                     const megaStoneCardData = CARDS_DB.find((c: any) => c.id === 'mega_stone');
                     if (megaStoneCardData) {
-                        player.cards.push(megaStoneCardData);
+                        player.cards.push({ ...megaStoneCardData });
                         Game.sendGlobalLog(`🃏 [Extrato] ${player.name} recuperou sua Mega Pedra como carta. Total: ${player.cards.length}`);
                     }
                     effectLog = `⛏️ A Mega Pedra foi retirada de ${targetMon.name} com segurança!`;
@@ -1311,7 +1377,7 @@ export class CardEffects {
 
             case 'doublexp': player.effects.doubleXp = 5; effectLog = `Os proximos 5 ganhos de XP serao em dobro!`; break;
             case 'expshare': player.effects.expShare = 5; effectLog = `Exp Share Ativado! Os proximos 5 ganhos de XP serao distribuidos para toda a equipe!`; break;
-            case 'sniper': Battle.activeEffects.sniper = true; Battle.logBattle("🎯 Sniper Americano! Sua mira está perfeita para este turno."); break;
+            case 'sniper': Battle.activeEffects.sniper = true; Battle.logBattle("🎯 Sniper Americano! Sua mira está perfeita durante esta batalha."); break;
 
             case 'bag':
                 if (actualTargetId !== null) {
@@ -1404,8 +1470,8 @@ export class CardEffects {
                         }
                     });
 
-                    Game.sendGlobalLog(`🚩 ${player.name} completou uma volta! Ganhou 500G, 2 Cartas e +1 Level para todo o time!`);
-                    Game.sendGlobalLog(`💰 [Extrato] ${player.name} recebeu +500G (Volta no Tabuleiro).`);
+                    Game.sendGlobalLog(`🚩 ${player.name} completou uma volta! Ganhou ${lapGold}G, 2 Cartas e +1 Level para todo o time!`);
+                    Game.sendGlobalLog(`💰 [Extrato] ${player.name} recebeu +${lapGold}G (Volta no Tabuleiro).`);
                 }
 
                 Game.hasRolled = true;
@@ -1482,6 +1548,8 @@ export class CardEffects {
 
                 if (idx > -1) player.cards.splice(idx, 1);
             }
+
+            (window as any).UseFx?.cardPlayed?.(cardId, player);
 
             Game.sendGlobalLog(`🃏 [Extrato] ${player.name} usou uma carta. Total: ${player.cards.length}`);
 
