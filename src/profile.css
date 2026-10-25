@@ -445,3 +445,22 @@ dl.trainer-room-summary > div {
     .pb-tb-me-label { display: none; }
     .pb-tb-me { padding: 3px !important; }
 }
+
+/* Faixa "Na vez" no topo do card (antes ficava na linha do nome e cortava em cards estreitos) */
+#game-container .pb-trainer-card .pb-turn-ribbon {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    z-index: 3;
+    padding: 0 8px 1px 3px;
+    border-top: 0 !important;
+    border-radius: 0 0 8px 8px !important;
+    color: #0d1f14;
+    font-size: 0.6rem;
+    white-space: nowrap;
+    background: #7ee2a4;
+    border: 1px solid #0d1f14;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+    transform: translateX(-50%);
+}
+#game-container .player-slot.active { overflow: visible; }

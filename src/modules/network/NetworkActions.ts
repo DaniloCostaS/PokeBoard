@@ -641,6 +641,8 @@ export class NetworkActions {
                 break;
             }
             case 'PRESENCE': Presence.showStatus(action.playerId, action.payload?.status ?? null); break;
+            case 'DEFEAT_CHOICE_REQUEST': (window as any).GameEvents?.onRemoteReviveRequest(action.payload); break;
+            case 'DEFEAT_CHOICE': (window as any).GameEvents?.onRemoteReviveAnswer(action.payload, action.playerId); break;
 
             case 'PVP_SYNC_DAMAGE': {
                 // Receptor passivo: só atualiza memória e tela. Quem grava no Supabase é o dono do turno.

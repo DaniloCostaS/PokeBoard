@@ -97,34 +97,81 @@ export class GameEvents {
     static handleTotalDefeat(p: Player) {
         const NetworkObj = (window as any).Network || Network;
         const reviveId = this.REVIVE_ORDER.find(id => (p.items?.[id] || 0) > 0);
-        const actingHere = NetworkObj.isOnline
-            ? (p.id === NetworkObj.myPlayerId && GameState.canAct())
-            : p.id === GameState.getCurrentPlayer()?.id;
+        if (!reviveId) { this.applyTotalDefeat(p); return; }
 
-        if (reviveId && actingHere) {
-            if (p.isCPU) {
-                this.rescueWithRevive(p, reviveId);
-                return;
-            }
-            GameState.defeatChoice = this.askReviveOrDefeat(p, reviveId).finally(() => { GameState.defeatChoice = null; });
+        if (p.isCPU) { this.rescueWithRevive(p, reviveId); return; }
+
+        const settle = (choice: Promise<boolean>) => {
+            GameState.defeatChoice = choice
+                .then(useIt => { if (useIt) this.rescueWithRevive(p, reviveId); else this.applyTotalDefeat(p); })
+                .finally(() => { GameState.defeatChoice = null; });
+        };
+
+        if (!NetworkObj.isOnline) {
+            // Mesmo aparelho: pergunta para o dono do time (atacante ou defensor)
+            settle(this.askRevive(p, reviveId, false));
+            return;
+        }
+        if (p.id === NetworkObj.myPlayerId && GameState.canAct()) {
+            settle(this.askRevive(p, reviveId, false));
+            return;
+        }
+        if (GameState.canAct()) {
+            // Defensor do PvP em outro aparelho: pergunta pela rede; quem grava continua sendo o dono do turno
+            settle(this.askRemoteRevive(p, reviveId));
             return;
         }
         this.applyTotalDefeat(p);
     }
 
-    private static async askReviveOrDefeat(p: Player, reviveId: string) {
+    static readonly REMOTE_CHOICE_MS = 20000;
+    private static remoteChoices = new Map<string, (useIt: boolean) => void>();
+
+    // Texto e botões da escolha (no aparelho do dono do time)
+    static askRevive(p: Player, reviveId: string, remote: boolean): Promise<boolean> {
         const item = SHOP_ITEMS.find((it: any) => it.id === reviveId);
         const maxLives = GameState.maxLives();
         const lossText = maxLives > 0 && p.lives > 1
             ? `Aceitar a derrota custa 1 vida (você tem ${p.lives}) e sua equipe é curada aqui mesmo.`
             : `Aceitar a derrota leva você ao último Centro Pokémon${maxLives > 0 ? ' (era sua última vida)' : ''} e você perde 2 turnos.`;
         const total = this.REVIVE_ORDER.map(id => p.items?.[id] || 0).reduce((a, b) => a + b, 0);
-        const useIt = await GameDialog.confirm(
-            `Toda a sua equipe desmaiou!\n\nUsar ${item?.name || 'Revive'} reanima seu Pokémon mais forte e você continua de onde está, sem perder vida.\n${lossText}`,
+        return GameDialog.confirm(
+            `${NetworkState.isOnline ? 'Toda a sua equipe desmaiou!' : `${p.name}, toda a sua equipe desmaiou!`}\n\nUsar ${item?.name || 'Revive'} reanima seu Pokémon mais forte e você continua de onde está, sem perder vida.\n${lossText}${remote ? `\n\nVocê tem ${this.REMOTE_CHOICE_MS / 1000} segundos para decidir.` : ''}`,
             { title: 'Derrota total', okLabel: `Usar ${item?.name || 'Revive'} (${total})`, cancelLabel: 'Aceitar derrota' }
         );
-        if (useIt) this.rescueWithRevive(p, reviveId);
-        else this.applyTotalDefeat(p);
+    }
+
+    private static askRemoteRevive(p: Player, reviveId: string): Promise<boolean> {
+        const NetworkObj = (window as any).Network || Network;
+        const token = `${p.id}-${Date.now()}`;
+        GameDialog.toast(`Aguardando ${p.name} decidir se usa Revive...`, { tone: 'info', duration: 4000 });
+        return new Promise<boolean>(resolve => {
+            const timer = window.setTimeout(() => { this.remoteChoices.delete(token); resolve(false); }, this.REMOTE_CHOICE_MS + 1500);
+            this.remoteChoices.set(token, (useIt) => { window.clearTimeout(timer); this.remoteChoices.delete(token); resolve(useIt); });
+            NetworkObj.sendAction('DEFEAT_CHOICE_REQUEST', { targetId: p.id, reviveId, token });
+        });
+    }
+
+    // Defensor: recebeu o pedido, mostra a escolha e responde
+    static async onRemoteReviveRequest(payload: any) {
+        const NetworkObj = (window as any).Network || Network;
+        if (!payload || payload.targetId !== NetworkObj.myPlayerId) return;
+        const me = GameState.players.find(pl => pl.id === payload.targetId);
+        if (!me || !this.REVIVE_ORDER.includes(payload.reviveId)) return;
+        const started = Date.now();
+        const useIt = await this.askRevive(me, payload.reviveId, true);
+        if (Date.now() - started > this.REMOTE_CHOICE_MS) {
+            GameDialog.toast('Tempo esgotado: a derrota foi aplicada.', { tone: 'warning' });
+            return;
+        }
+        NetworkObj.sendAction('DEFEAT_CHOICE', { token: payload.token, useRevive: !!useIt });
+    }
+
+    // Dono do turno: resposta do defensor
+    static onRemoteReviveAnswer(payload: any, fromPlayerId: number) {
+        const resolve = payload?.token ? this.remoteChoices.get(payload.token) : null;
+        if (!resolve || !String(payload.token).startsWith(`${fromPlayerId}-`)) return;
+        resolve(!!payload.useRevive);
     }
 
     private static rescueWithRevive(p: Player, reviveId: string) {

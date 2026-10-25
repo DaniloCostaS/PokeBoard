@@ -1232,7 +1232,9 @@ export class BattleCore {
             Game.handleTotalDefeat(this.enemyPlayer);
             if (NetworkObj.isOnline) {
                 NetworkObj.syncPlayerObjects([this.player!]);
-                NetworkObj.sendAction('PVP_SYNC_DAMAGE', this.buildPvpResultPayload(this.enemyPlayer, this.player!));
+                const loser = this.enemyPlayer, winner = this.player!;
+                // Defensor pode estar escolhendo se usa Revive: o estado final vai depois da escolha
+                (window as any).GameEvents.afterDefeatChoice(() => NetworkObj.sendAction('PVP_SYNC_DAMAGE', this.buildPvpResultPayload(loser, winner)));
             }
         } else if (NetworkObj.isOnline) {
             NetworkObj.syncPlayerState();

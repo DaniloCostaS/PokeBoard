@@ -141,13 +141,14 @@ export class GameUI {
 
             d.innerHTML = ` 
             <div class="hud-header pb-trainer-card" style="--pc:${playerColor}">
+                ${i === GameState.turn ? '<span class="pb-turn-chip pb-turn-ribbon"><i></i>Na vez</span>' : ''}
                 <div class="pb-trainer-row">
                     <div class="hud-name-group" onclick="window.Game.openPlayerMastery(${i})" title="Ver Maestria do Treinador">
                         <span class="pb-trainer-avatar ${frame}"><img src="${p.avatar}" class="hud-avatar-img" alt="">${livesHTML}</span>
                         <span class="pb-trainer-text">
                             <span class="pb-trainer-name">${p.name}</span>
                             ${titleHTML}
-                            <span class="pb-trainer-meta"><span class="pb-rank pb-rank--${rank}" data-pb-rank="${p.id}" title="${rank}º no placar">${rank}º</span>${i === GameState.turn ? '<span class="pb-turn-chip"><i></i>Na vez</span>' : ''}</span>
+                            <span class="pb-trainer-meta"><span class="pb-rank pb-rank--${rank}" data-pb-rank="${p.id}" title="${rank}º no placar">${rank}º</span></span>
                         </span>
                     </div>
                     <div class="hud-gold" title="Ouro" data-pb-gold="${p.id}">${p.gold} G</div>
