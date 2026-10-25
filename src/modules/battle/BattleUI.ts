@@ -5,6 +5,8 @@ import { GYM_DATA } from '../../constants/gyms';
 import { SHOP_ITEMS, CARD_RARITIES } from '../../constants';
 import { GameState } from '../game/GameState';
 import { GameUI } from '../game/GameUI';
+import { GameFeel } from '../ui/GameFeel';
+import { GameDialog } from '../ui/GameDialog';
 
 export class BattleUI {
     static currentBattleId: string | null = null;
@@ -104,6 +106,7 @@ export class BattleUI {
         const NetworkObj = (window as any).Network || Network;
         document.getElementById('pkmn-select-modal')!.style.display = 'none';
         document.getElementById('battle-modal')!.style.display = 'flex';
+        GameFeel.battleEnter();
         document.getElementById('battle-log-history')!.innerHTML = '';
 
         const enemyImg = document.getElementById('opp-img') as HTMLElement;
@@ -126,7 +129,7 @@ export class BattleUI {
                         onclick="document.getElementById('battle-modal').style.display='none'"
                         style="background:rgba(231,76,60,0.85); border:none; border-radius:6px; color:#fff; padding:4px 12px; font-size:0.85rem; cursor:pointer; font-weight:bold; white-space:nowrap; flex-shrink:0;"
                         title="Fechar visualização e voltar ao tabuleiro">
-                        ✕ Fechar Visualização
+                        Fechar Visualização
                     </button>
                 </div>`;
         } else {
@@ -201,7 +204,7 @@ export class BattleUI {
         if (plyXpEl) plyXpEl.style.width = `${(BattleCore.activeMon.currentXp / BattleCore.activeMon.maxXp) * 100}%`;
 
         document.getElementById('ply-lvl')!.innerText = `Lv.${BattleCore.activeMon.level}`;
-        (document.getElementById('ply-img') as HTMLImageElement).src = BattleCore.activeMon.getSprite();
+        GameFeel.setBattleSprite(document.getElementById('ply-img') as HTMLImageElement, BattleCore.activeMon, 'back');
 
         const plyPct = (BattleCore.activeMon.currentHp / BattleCore.activeMon.maxHp) * 100;
         const plyBar = document.getElementById('ply-hp')!;
@@ -243,7 +246,7 @@ export class BattleUI {
             oppTypesEl.innerHTML = BattleCore.opponent.getTypeBadgesHTML('flex-start');
         }
 
-        (document.getElementById('opp-img') as HTMLImageElement).src = BattleCore.opponent.getSprite();
+        GameFeel.setBattleSprite(document.getElementById('opp-img') as HTMLImageElement, BattleCore.opponent, 'front');
         const oppPct = (BattleCore.opponent.currentHp / BattleCore.opponent.maxHp) * 100;
         const oppBar = document.getElementById('opp-hp')!;
         oppBar.style.width = oppPct + "%";
@@ -300,6 +303,8 @@ export class BattleUI {
             this.renderTeamIcons('ply-team-indicator', BattleCore.plyTeamList);
             this.renderTeamIcons('opp-team-indicator', BattleCore.oppTeamList);
         }
+
+        GameFeel.onBattleUpdate(BattleCore.activeMon, BattleCore.opponent, BattleCore.player.id);
     }
 
     static renderTeamIcons(elId: string, list: Pokemon[]) {
@@ -412,10 +417,10 @@ export class BattleUI {
             return;
         }
 
-        if (Game.currentGlobalEvent?.id === 'EMP') return alert("📡 Cartas bloqueadas pela Tempestade Eletromagnética!");
+        if (Game.currentGlobalEvent?.id === 'EMP') return GameDialog.toast("Cartas bloqueadas pela Tempestade Eletromagnética!", { tone: 'warning' });
 
         if (!BattleCore.isPvP && BattleCore.activeMon && ((BattleCore.activeMon as any).isTemp || (BattleCore.activeMon as any).isMegaEvolution)) {
-            return alert("🧬 Seu parceiro já atingiu o poder máximo! É proibido usar cartas de batalha em Pokémon Mega Evoluídos contra o ambiente selvagem, NPCs ou Ginásios.");
+            return GameDialog.toast("Seu parceiro já atingiu o poder máximo! É proibido usar cartas de batalha em Pokémon Mega Evoluídos contra o ambiente selvagem, NPCs ou Ginásios.", { tone: 'warning' });
         }
 
         if (!BattleCore.isPlayerTurn || BattleCore.processingAction) return;
@@ -468,7 +473,7 @@ export class BattleUI {
                 btn.className = 'btn';
                 if (isProtected) {
                     btn.style.cssText = "width:100%; margin-top:8px; padding:8px; background:#f39c12; border:none; border-radius:4px; color:white; font-weight:bold; cursor:pointer;";
-                    btn.innerText = "🔓 DESPROTEGER";
+                    btn.innerText = "Desproteger";
                     btn.onclick = () => {
                         const Cards = (window as any).Cards || (window as any).CardEffects;
                         if (Cards && Cards.unprotectCard) {
@@ -554,6 +559,7 @@ export class BattleUI {
     }
 
     static logBattle(msg: string, sync: boolean = false) {
+        GameFeel.onBattleLog(msg);
         const el = document.getElementById('battle-msg');
         if (el) el.innerHTML = msg;
 
@@ -606,7 +612,7 @@ export class BattleUI {
 
         modal.innerHTML = `
             <div class="modal-box" style="background: #2c3e50; border: 2px solid #e74c3c; text-align: center; max-width: 400px; height: auto;">
-                <h3 style="color: #e74c3c; margin-top: 0; font-size: 1.5rem; text-shadow: 0 0 10px rgba(231,76,60,0.3);">⚠️ Confirmação</h3>
+                <h3 style="color: #e74c3c; margin-top: 0; font-size: 1.5rem; text-shadow: 0 0 10px rgba(231,76,60,0.3);">Confirmação</h3>
                 <p style="color: #edf2f4; margin: 25px 0; font-size: 1.1rem; line-height: 1.4;">${msg}</p>
                 <div style="display: flex; gap: 15px; justify-content: center; width: 100%;">
                     <button id="btn-confirm-yes" class="btn" style="background: #ef233c; flex: 1; padding: 12px; font-weight: bold; margin: 0;">SIM, DESISTIR</button>

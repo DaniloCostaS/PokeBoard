@@ -3,6 +3,7 @@ import { GameState } from '../game/GameState';
 import { Player } from '../../models/Player';
 import { GameUI } from '../game/GameUI';
 import { Network } from '../../systems/Network';
+import { GameDialog } from '../ui/GameDialog';
 
 export interface ActiveQuest {
     questId: number;
@@ -166,6 +167,7 @@ export class QuestManager {
         player.activeQuests = player.activeQuests.filter(q => q.questId !== activeQuest.questId);
 
         GameUI.sendGlobalLog(`🎉 ${player.name} completou a missão [${questDef.name}] e recebeu: ${questDef.rewardDesc}!`);
+        (window as any).Cinematics?.quest(player, questDef.name, questDef.rewardDesc);
         GameUI.showGlobalAlert(`🎉 MISSÃO CONCLUÍDA!\n\n${questDef.name}\nVocê recebeu: ${questDef.rewardDesc}`, player.name, true, false);
         GameUI.updateHUD();
     }
@@ -186,7 +188,7 @@ export class QuestManager {
                 <div class="modal-content" style="width: 500px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: rgba(20, 20, 20, 0.95); border: 2px solid #f1c40f; color: #fff; border-radius: 16px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box;">
                     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
                         <h3 style="color: #f1c40f; margin: 0; display: flex; align-items: center; gap: 8px; font-family: 'Outfit', sans-serif;">
-                            📜 Minhas Missões
+                            Minhas Missões
                         </h3>
                         <button class="modal-btn-icon close-btn" title="Fechar" onclick="document.getElementById('quests-modal').style.display='none'">✕</button>
                     </div>
@@ -211,9 +213,9 @@ export class QuestManager {
                         const NetworkObj = (window as any).Network;
                         const isMyPlayer = !NetworkObj?.isOnline || NetworkObj.myPlayerId === player.id;
                         if (isMyPlayer) {
-                            completeBtn = `<button class="btn" style="margin-top: 15px; width: 100%; background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%); color: white; font-weight: bold; font-size: 0.9rem; border: none; box-shadow: 0 4px 10px rgba(46, 204, 113, 0.3);" onclick="window.QuestManager.claimReward(${player.id}, ${q.id})">✅ REIVINDICAR RECOMPENSA</button>`;
+                            completeBtn = `<button class="btn" style="margin-top: 15px; width: 100%; background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%); color: white; font-weight: bold; font-size: 0.9rem; border: none; box-shadow: 0 4px 10px rgba(46, 204, 113, 0.3);" onclick="window.QuestManager.claimReward(${player.id}, ${q.id})">Reivindicar recompensa</button>`;
                         } else {
-                            completeBtn = `<button class="btn" disabled style="margin-top: 15px; width: 100%; background: #555; color: #aaa; font-weight: bold; font-size: 0.9rem; border: none; cursor: not-allowed;">✅ CONCLUÍDA (AGUARDANDO)</button>`;
+                            completeBtn = `<button class="btn" disabled style="margin-top: 15px; width: 100%; background: #555; color: #aaa; font-weight: bold; font-size: 0.9rem; border: none; cursor: not-allowed;">Concluída (aguardando)</button>`;
                         }
                     }
 
@@ -289,7 +291,7 @@ export class QuestManager {
 
         let html = `
             <div class="modal-content" style="max-width: 500px; background: #2c3e50; color: white;">
-                <h2>⚠️ Limite de Missões Atingido</h2>
+                <h2>Limite de Missões Atingido</h2>
                 <p>Você já possui 3 missões ativas. Qual missão você deseja abandonar para aceitar a nova?</p>
                 
                 <div style="background: rgba(46, 204, 113, 0.2); border: 1px solid #2ecc71; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
@@ -381,15 +383,15 @@ export class QuestManager {
         // Check if it's player's turn
         const currentPlayer = Game.getCurrentPlayer();
         if (!currentPlayer || currentPlayer.id !== playerId) {
-            return alert("Você só pode concluir missões durante o seu próprio turno!");
+            return GameDialog.toast("Você só pode concluir missões durante o seu próprio turno!", { tone: 'warning' });
         }
 
         if (!GameState.turnStarted) {
-            return alert("Você só pode concluir missões após iniciar o seu turno! Cuidado para não queimar etapas.");
+            return GameDialog.toast("Inicie o seu turno antes de concluir missões.", { tone: 'warning' });
         }
 
         if (NetworkObj && NetworkObj.isOnline && NetworkObj.myPlayerId !== playerId) {
-            return alert("Você não pode concluir missões de outro jogador.");
+            return GameDialog.toast("Você não pode concluir missões de outro jogador.", { tone: 'warning' });
         }
 
         const player = Game.players.find((p: any) => p.id === playerId);
@@ -424,7 +426,7 @@ export class QuestManager {
                 <div class="modal-content" style="width: 1200px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: rgba(20, 20, 20, 0.95); border: 2px solid #f1c40f; color: #fff; border-radius: 16px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box;">
                     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
                         <h3 style="color: #f1c40f; margin: 0; display: flex; align-items: center; gap: 8px; font-family: 'Outfit', sans-serif;">
-                            📜 Biblioteca de Missões
+                            Biblioteca de Missões
                         </h3>
                         <div class="modal-header-actions">
                             <button class="modal-btn-icon back-btn" title="Voltar para a Poképédia" onclick="window.returnToPokepedia('quest-library-modal')">←</button>

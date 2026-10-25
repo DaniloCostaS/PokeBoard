@@ -1,6 +1,7 @@
 import { CARDS_DB } from '../../constants';
 import type { Player } from '../../models/Player';
 import { GameState } from '../game/GameState';
+import { GameDialog } from '../ui/GameDialog';
 
 export class CardManager {
     static getRarityWeight(rarity: string): number {
@@ -128,7 +129,7 @@ export class CardManager {
         const player = Game.getCurrentPlayer();
 
         const checkboxes = document.querySelectorAll('.sacrifice-checkbox:checked');
-        if (checkboxes.length !== 2) return alert("Você deve selecionar EXATAMENTE 2 cartas.");
+        if (checkboxes.length !== 2) return GameDialog.toast("Selecione exatamente 2 cartas.", { tone: 'warning' });
 
         const indicesToRemove: number[] = [];
         checkboxes.forEach((cb: any) => indicesToRemove.push(parseInt(cb.getAttribute('data-index'))));
@@ -202,13 +203,13 @@ export class CardManager {
         const player = Game.getCurrentPlayer();
 
         const checkboxes = document.querySelectorAll('.merge-checkbox:checked');
-        if (checkboxes.length === 0) return alert("Você deve selecionar cartas para fundir.");
+        if (checkboxes.length === 0) return GameDialog.toast("Selecione as cartas que quer fundir.", { tone: 'warning' });
 
         const indicesToRemove: number[] = [];
         checkboxes.forEach((cb: any) => indicesToRemove.push(parseInt(cb.getAttribute('data-index'))));
 
         const rarities = indicesToRemove.map(idx => player.cards[idx].rarity);
-        if (rarities.some((r: string) => r !== rarities[0])) return alert("As cartas selecionadas devem ter a mesma raridade para serem fundidas!");
+        if (rarities.some((r: string) => r !== rarities[0])) return GameDialog.toast("As cartas selecionadas devem ter a mesma raridade para serem fundidas!", { tone: 'warning' });
 
         const baseRarity = rarities[0];
         let reqAmount = 4;
@@ -218,10 +219,10 @@ export class CardManager {
         else if (baseRarity === 'Incomum') { reqAmount = 3; targetRarity = 'Rara'; }
         else if (baseRarity === 'Rara') { reqAmount = 4; targetRarity = 'Épica'; }
         else if (baseRarity === 'Épica') { reqAmount = 4; targetRarity = 'Lendária'; }
-        else if (baseRarity === 'Lendária') return alert("Cartas Lendárias já estão no nível máximo e não podem ser fundidas.");
+        else if (baseRarity === 'Lendária') return GameDialog.toast("Cartas Lendárias já estão no nível máximo e não podem ser fundidas.", { tone: 'warning' });
 
         if (checkboxes.length !== reqAmount) {
-            return alert(`Para fundir cartas do tipo ${baseRarity}, você precisa selecionar EXATAMENTE ${reqAmount} cartas.`);
+            return GameDialog.toast(`Para fundir cartas ${baseRarity}, selecione exatamente ${reqAmount} cartas.`, { tone: 'warning' });
         }
 
         indicesToRemove.sort((a, b) => b - a);

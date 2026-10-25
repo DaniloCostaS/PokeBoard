@@ -2,6 +2,7 @@ import { CardEffects } from './CardEffects';
 import { CARD_RARITIES } from '../../constants';
 import { MAPA_MEGAS } from '../../constants/mapaMegas';
 import { GLOBAL_EVENTS } from '../../constants/globalEvents';
+import { GameDialog } from '../ui/GameDialog';
 
 export class CardUI {
     static openTargetSelection(cardId: string) {
@@ -292,7 +293,7 @@ export class CardUI {
         });
 
         if (!hasMega) {
-            alert("Nenhum de seus Pokémon possui uma Mega Pedra equipada para ser recuperada!");
+            GameDialog.toast("Nenhum de seus Pokémon possui uma Mega Pedra equipada para ser recuperada!", { tone: 'warning' });
             return;
         }
 
@@ -562,7 +563,7 @@ export class CardUI {
 
         let buttonsHTML = '';
         balls.forEach(b => {
-            buttonsHTML += `<button class="btn" style="margin:5px; padding:15px 30px; background:#e74c3c;" onclick="window.Cards.executeMasterCard('${b.id}')">🎒 ${b.name} (x${b.count})</button>`;
+            buttonsHTML += `<button class="btn" style="margin:5px; padding:15px 30px; background:#e74c3c;" onclick="window.Cards.executeMasterCard('${b.id}')">${b.name} (x${b.count})</button>`;
         });
 
         buttonsHTML += `<button class="btn btn-secondary" style="margin-top:15px;" onclick="document.getElementById('ball-choice-modal').style.display='none'">Cancelar</button>`;
@@ -728,9 +729,9 @@ export class CardUI {
         const Network = (window as any).Network;
         const player = Game.getCurrentPlayer();
 
-        if (Network.isOnline && player.id !== Network.myPlayerId) return alert("Você só pode sacrificar cartas no seu próprio turno!");
-        if (!Game.canAct()) return alert("Aguarde sua vez para realizar ações.");
-        if (player.cards.length < 2) return alert("Você precisa de pelo menos 2 cartas para realizar um sacrifício.");
+        if (Network.isOnline && player.id !== Network.myPlayerId) return GameDialog.toast("Você só pode sacrificar cartas no seu próprio turno!", { tone: 'warning' });
+        if (!Game.canAct()) return GameDialog.toast("Aguarde sua vez para realizar ações.", { tone: 'warning' });
+        if (player.cards.length < 2) return GameDialog.toast("Você precisa de pelo menos 2 cartas para realizar um sacrifício.", { tone: 'warning' });
 
         const list = document.getElementById('board-inventory-list')!;
         const modal = document.getElementById('board-inventory-modal') || document.getElementById('board-cards-modal');
@@ -762,7 +763,7 @@ export class CardUI {
         btnContainer.style.textAlign = 'center';
         btnContainer.style.marginTop = '15px';
         btnContainer.innerHTML = `
-            <button class="btn" style="background-color:#e67e22;" onclick="window.Cards.confirmSacrifice()">🔥 SACRIFICAR</button>
+            <button class="btn" style="background-color:#e67e22;" onclick="window.Cards.confirmSacrifice()">Sacrificar</button>
             <button class="btn btn-secondary" onclick="document.getElementById('${modal?.id}').style.display='none'">Cancelar</button>
         `;
         list.appendChild(btnContainer);
@@ -772,7 +773,7 @@ export class CardUI {
             const counter = document.getElementById('sacrifice-counter');
             if (counter) counter.innerText = `Selecionado: ${checks.length}/2`;
             if (checks.length > 2) {
-                alert("Selecione apenas 2 cartas!");
+                GameDialog.toast("Selecione apenas 2 cartas!", { tone: 'warning' });
                 (window.event?.target as HTMLInputElement).checked = false;
                 if (counter) counter.innerText = `Selecionado: 2/2`;
             }
@@ -784,9 +785,9 @@ export class CardUI {
         const Network = (window as any).Network;
         const player = Game.getCurrentPlayer();
 
-        if (Network.isOnline && player.id !== Network.myPlayerId) return alert("Você só pode fundir cartas no seu próprio turno!");
-        if (!Game.canAct()) return alert("Aguarde sua vez para realizar ações.");
-        if (player.cards.length < 4) return alert("Você precisa de pelo menos 4 cartas para realizar uma fusão.");
+        if (Network.isOnline && player.id !== Network.myPlayerId) return GameDialog.toast("Você só pode fundir cartas no seu próprio turno!", { tone: 'warning' });
+        if (!Game.canAct()) return GameDialog.toast("Aguarde sua vez para realizar ações.", { tone: 'warning' });
+        if (player.cards.length < 4) return GameDialog.toast("Você precisa de pelo menos 4 cartas para realizar uma fusão.", { tone: 'warning' });
 
         const list = document.getElementById('board-inventory-list')!;
         const modal = document.getElementById('board-inventory-modal') || document.getElementById('board-cards-modal');
@@ -820,7 +821,7 @@ export class CardUI {
         btnContainer.style.textAlign = 'center';
         btnContainer.style.marginTop = '15px';
         btnContainer.innerHTML = `
-            <button class="btn" style="background-color:#2ecc71;" onclick="window.Cards.confirmMerge()">💎 FUNDIR CARTAS</button>
+            <button class="btn" style="background-color:#2ecc71;" onclick="window.Cards.confirmMerge()">Fundir cartas</button>
             <button class="btn btn-secondary" onclick="document.getElementById('${modal?.id}').style.display='none'">Cancelar</button>
         `;
         list.appendChild(btnContainer);
@@ -843,7 +844,7 @@ export class CardUI {
 
             if (counter) counter.innerText = `Selecionado: ${checks.length}/${checks.length > 0 ? reqAmount : '-'}`;
             if (checks.length > reqAmount) {
-                alert(`Para a raridade selecionada, selecione apenas ${reqAmount} cartas!`);
+                GameDialog.toast(`Para a raridade selecionada, selecione apenas ${reqAmount} cartas!`, { tone: 'warning' });
                 (window.event?.target as HTMLInputElement).checked = false;
                 if (counter) counter.innerText = `Selecionado: ${reqAmount}/${reqAmount}`;
             }
@@ -895,7 +896,7 @@ export class CardUI {
         });
 
         if (!hasProtectable) {
-            alert("Você não tem cartas válidas para proteger!");
+            GameDialog.toast("Você não tem cartas válidas para proteger!", { tone: 'warning' });
             if (modal) modal.style.display = 'none';
             return;
         }

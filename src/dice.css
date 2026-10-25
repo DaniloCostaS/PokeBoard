@@ -1,0 +1,150 @@
+/* ==========================================================================
+   Dado com tema Pokémon: faces de pokébola, pontos em mini-pokébolas
+   e comemoração do Pokémon do jogador quando o dado para.
+   ========================================================================== */
+.pb-dice .dice-mass {
+    background: linear-gradient(145deg, #f25a46 0%, #b5271a 100%);
+    box-shadow:
+        0 0 0 9px rgba(196, 42, 28, 0.95),
+        inset -18px -18px 24px rgba(60, 10, 6, 0.35),
+        inset 16px 16px 22px rgba(255, 170, 160, 0.6);
+}
+
+.pb-dice .dice-face {
+    padding: 16px;
+    background:
+        radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0) 45%),
+        linear-gradient(145deg, #ffffff 0%, #f1f3f5 55%, #d9dee3 100%);
+    border: 5px solid #d6372a;
+    border-radius: 16px;
+}
+
+/* Faixa preta da pokébola no fundo de cada face */
+.pb-dice .dice-face::before {
+    inset: auto -4px;
+    top: calc(50% - 3px);
+    height: 6px;
+    border-radius: 0;
+    background: rgba(27, 27, 27, 0.12);
+}
+
+.pb-dice .dice-pip {
+    position: relative;
+    width: 18px;
+    height: 18px;
+}
+
+/* Cada ponto é uma mini-pokébola */
+.pb-dice .dice-pip.is-active {
+    background: linear-gradient(to bottom, #e3350d 0 44%, #1b1b1b 44% 56%, #ffffff 56% 100%);
+    border: 2px solid #1b1b1b;
+    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.25);
+    box-sizing: border-box;
+}
+
+.pb-dice .dice-pip.is-active::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 6px;
+    height: 6px;
+    margin: -3px 0 0 -3px;
+    background: #fff;
+    border: 1.5px solid #1b1b1b;
+    border-radius: 50%;
+    box-sizing: border-box;
+}
+
+/* Face 1: uma pokébola grande no centro */
+.pb-dice .dice-face[data-value="1"] .dice-pip.is-active {
+    width: 52px;
+    height: 52px;
+    border-width: 3px;
+}
+
+.pb-dice .dice-face[data-value="1"] .dice-pip.is-active::after {
+    width: 16px;
+    height: 16px;
+    margin: -8px 0 0 -8px;
+    border-width: 3px;
+}
+
+/* Face 6: a última fileira vira Ultra Ball (amarelo e preto) só para variar o visual */
+.pb-dice .dice-face[data-value="6"] .dice-pip.is-active:nth-child(n+7) {
+    background: linear-gradient(to bottom, #2b2b2b 0 22%, #f4c430 22% 44%, #1b1b1b 44% 56%, #ffffff 56% 100%);
+}
+
+/* Resultado: brilho dourado na face de cima */
+.pb-dice .dice-face.is-result {
+    border-color: #f4c430;
+    box-shadow:
+        0 0 22px rgba(244, 196, 48, 0.85),
+        inset 12px 12px 22px rgba(255, 255, 255, 0.95),
+        inset -14px -16px 20px rgba(40, 55, 70, 0.22);
+    transition: box-shadow 200ms ease, border-color 200ms ease;
+}
+
+.pb-dice-result {
+    position: absolute;
+    left: 50%;
+    top: 34%;
+    z-index: 2001;
+    color: #fff;
+    font: 400 2.6rem/1 'Press Start 2P', var(--pb-font, sans-serif);
+    -webkit-text-stroke: 3px #1b1b1b;
+    paint-order: stroke fill;
+    text-shadow: 0 4px 0 rgba(0, 0, 0, 0.35);
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    animation: pbDiceResult 1.3s cubic-bezier(0.2, 0.9, 0.3, 1.3) forwards;
+}
+
+@keyframes pbDiceResult {
+    0% { opacity: 0; transform: translate(-50%, -20%) scale(0.4); }
+    18% { opacity: 1; transform: translate(-50%, -60%) scale(1.25); }
+    30% { transform: translate(-50%, -50%) scale(1); }
+    80% { opacity: 1; }
+    100% { opacity: 0; transform: translate(-50%, -70%) scale(1); }
+}
+
+.pb-dice-mon {
+    position: absolute;
+    left: calc(50% + 62px);
+    top: 52%;
+    z-index: 2001;
+    width: 84px;
+    height: 84px;
+    image-rendering: pixelated;
+    pointer-events: none;
+    filter: drop-shadow(0 4px 4px rgba(0, 0, 0, 0.45));
+    transform: translate(-50%, -50%);
+    animation: pbDiceMon 1.3s ease forwards;
+}
+
+@keyframes pbDiceMon {
+    0% { opacity: 0; transform: translate(-50%, -20%) scale(0.3); }
+    20% { opacity: 1; transform: translate(-50%, -70%) scale(1.1); }
+    35% { transform: translate(-50%, -50%) scale(1); }
+    50% { transform: translate(-50%, -64%) scale(1); }
+    65% { transform: translate(-50%, -50%) scale(1); }
+    85% { opacity: 1; }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+}
+
+/* Ícone do dado no painel: mini-pokébola */
+#d20-display::before {
+    background:
+        radial-gradient(circle at 50% 50%, #ffffff 0 3px, #1b1b1b 3px 5px, transparent 5px),
+        linear-gradient(to bottom, #e3350d 0 44%, #1b1b1b 44% 56%, #ffffff 56% 100%) !important;
+    border: 2px solid #1b1b1b;
+    border-radius: 50%;
+    box-sizing: border-box;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pb-dice-result,
+    .pb-dice-mon {
+        animation-duration: 1ms;
+    }
+}

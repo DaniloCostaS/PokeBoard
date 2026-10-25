@@ -1,0 +1,449 @@
+/* ==========================================================================
+   PokéBoard — diálogos do jogo (GameDialog + aviso do tabuleiro)
+   Usa os tokens de ui.css. Camadas:
+     #custom-global-alert  9999   (aviso do tabuleiro, turno)
+     .pb-dlg-layer        10020   (alert / confirm / prompt / say)
+     .pb-toast-stack      10040   (avisos rápidos)
+   ========================================================================== */
+
+/* ---------- Botões (equivalentes às regras escopadas de ui.css) ---------- */
+.pb-dlg .btn,
+.pb-say .btn,
+.pb-dlg-layer .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 44px;
+    padding: 10px 18px;
+    margin: 0;
+    color: var(--pb-text);
+    font-family: var(--pb-font);
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+    text-shadow: none;
+    background: var(--pb-surface-3);
+    background-image: none;
+    border: 1px solid var(--pb-line-strong);
+    border-radius: var(--pb-radius);
+    box-shadow: none;
+    cursor: pointer;
+    transition: background-color 120ms ease, border-color 120ms ease, transform 120ms ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.pb-dlg .btn:hover:not(:disabled),
+.pb-say .btn:hover:not(:disabled) {
+    background-color: #2b3c4d;
+    border-color: #4a5d70;
+}
+
+.pb-dlg .btn:active:not(:disabled),
+.pb-say .btn:active:not(:disabled) { transform: translateY(1px); }
+
+.pb-dlg .btn:disabled,
+.pb-say .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.pb-dlg .btn:focus-visible,
+.pb-say .btn:focus-visible {
+    outline: 2px solid #8cc4ef;
+    outline-offset: 2px;
+}
+
+.pb-dlg .btn-roll,
+.pb-say .btn-roll {
+    color: #fff;
+    background: var(--pb-red);
+    border-color: transparent;
+}
+.pb-dlg .btn-roll:hover:not(:disabled),
+.pb-say .btn-roll:hover:not(:disabled) { background: var(--pb-red-hover); border-color: transparent; }
+
+.pb-dlg .btn-start-turn,
+.pb-say .btn-start-turn {
+    color: #fff;
+    background: var(--pb-green);
+    border-color: transparent;
+}
+.pb-dlg .btn-start-turn:hover:not(:disabled),
+.pb-say .btn-start-turn:hover:not(:disabled) { background: var(--pb-green-hover); border-color: transparent; }
+
+.pb-dlg .btn-secondary,
+.pb-say .btn-secondary {
+    color: var(--pb-text);
+    background: var(--pb-surface-3);
+    border-color: var(--pb-line-strong);
+}
+
+.pb-say .btn-ghost {
+    min-height: 36px;
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    color: var(--pb-text-2);
+    background: transparent;
+    border-color: var(--pb-line-strong);
+}
+
+/* ---------- Camada de fundo ---------- */
+.pb-dlg-layer,
+#custom-global-alert.pb-board-alert {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    padding: 24px max(16px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    background: rgba(5, 9, 12, 0.62);
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+    animation: pb-dlg-fade 160ms ease-out;
+}
+
+.pb-dlg-layer { z-index: 10020; }
+#custom-global-alert.pb-board-alert { z-index: 9999; }
+
+.pb-dlg-layer.is-leaving { animation: pb-dlg-fade-out 160ms ease-in forwards; pointer-events: none; }
+
+/* Caixa de fala sempre ancorada embaixo, como nos jogos */
+.pb-dlg-layer--say,
+#custom-global-alert.pb-board-alert {
+    align-items: flex-end;
+    padding-bottom: max(32px, env(safe-area-inset-bottom));
+    background: linear-gradient(180deg, rgba(5, 9, 12, 0.15) 0%, rgba(5, 9, 12, 0.55) 55%, rgba(5, 9, 12, 0.78) 100%);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+}
+
+/* ---------- Cartão de alert / confirm / prompt ---------- */
+.pb-dlg {
+    position: relative;
+    box-sizing: border-box;
+    width: min(440px, 100%);
+    max-height: calc(100dvh - 48px);
+    overflow-y: auto;
+    padding: 22px 22px 18px;
+    color: var(--pb-text);
+    font-family: var(--pb-font);
+    text-align: left;
+    background: linear-gradient(180deg, var(--pb-surface-2) 0%, var(--pb-surface) 100%);
+    border: 1px solid var(--pb-line-strong);
+    border-radius: var(--pb-radius-lg);
+    box-shadow: var(--pb-shadow), 0 0 0 4px rgba(13, 20, 26, 0.9), 0 0 0 5px var(--pb-line);
+    animation: pb-dlg-pop 200ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+
+.pb-dlg::before {
+    content: "";
+    position: absolute;
+    left: 22px;
+    right: 22px;
+    top: 0;
+    height: 3px;
+    border-radius: 0 0 3px 3px;
+    background: var(--pb-red);
+}
+.pb-dlg--danger::before { background: var(--pb-amber); }
+
+.pb-dlg-title {
+    margin: 0 0 10px;
+    color: var(--pb-text);
+    font-family: 'Outfit', var(--pb-font);
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: 0;
+    text-transform: none;
+    border: 0;
+    padding: 0;
+}
+
+.pb-dlg-text {
+    margin: 0;
+    color: var(--pb-text-2);
+    font-size: 1rem;
+    line-height: 1.5;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+}
+.pb-dlg-title + .pb-dlg-text { color: var(--pb-text-2); }
+.pb-dlg > .pb-dlg-text:first-child { color: var(--pb-text); }
+
+.pb-dlg-input {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    margin: 14px 0 0;
+    padding: 10px 12px;
+    min-height: 44px;
+    color: var(--pb-text);
+    font: 600 1.05rem var(--pb-font);
+    background: var(--pb-bg);
+    border: 1px solid var(--pb-line-strong);
+    border-radius: var(--pb-radius);
+    outline: none;
+}
+.pb-dlg-input:focus { border-color: #8cc4ef; box-shadow: 0 0 0 2px rgba(140, 196, 239, 0.25); }
+
+.pb-dlg-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+.pb-dlg-actions .btn { min-width: 112px; }
+
+/* ---------- Caixa de fala (say + aviso do tabuleiro) ---------- */
+.pb-say {
+    position: relative;
+    box-sizing: border-box;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    width: min(720px, 100%);
+    max-height: calc(100dvh - 64px);
+    margin: 0;
+    padding: 18px 20px 16px;
+    color: var(--pb-text);
+    font-family: var(--pb-font);
+    text-align: left;
+    background: linear-gradient(180deg, #1e2a35 0%, var(--pb-surface) 100%);
+    border: 2px solid #c8d3dc;
+    border-radius: 14px;
+    box-shadow:
+        0 0 0 3px #0a1015,
+        0 0 0 5px var(--pb-line-strong),
+        0 18px 40px rgba(0, 0, 0, 0.55);
+    outline: none;
+    cursor: pointer;
+    animation: pb-say-in 220ms cubic-bezier(0.2, 0.9, 0.3, 1.15);
+}
+.pb-say--right { flex-direction: row-reverse; }
+
+.pb-say-portrait {
+    flex: 0 0 auto;
+    width: 84px;
+    height: 84px;
+    margin-top: 6px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: radial-gradient(circle at 50% 35%, #2c3e50 0%, #121b23 75%);
+    border: 2px solid var(--pb-line-strong);
+    box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.35);
+}
+.pb-say-portrait img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    image-rendering: auto;
+}
+.pb-say-portrait.is-broken img { visibility: hidden; }
+
+.pb-say-main {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100dvh - 110px);
+}
+
+.pb-say-name {
+    align-self: flex-start;
+    max-width: 100%;
+    margin: -32px 0 10px;
+    padding: 8px 12px 7px;
+    color: #fff;
+    font-family: 'Press Start 2P', var(--pb-font);
+    font-size: 0.66rem;
+    line-height: 1.3;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    background: var(--pb-red);
+    border: 2px solid #0a1015;
+    border-radius: 8px;
+    box-shadow: 0 0 0 2px #c8d3dc;
+}
+.pb-say--right .pb-say-name { align-self: flex-end; }
+
+.pb-say-text {
+    flex: 1 1 auto;
+    min-height: 3em;
+    margin: 0;
+    overflow-y: auto;
+    color: var(--pb-text);
+    font-size: 1.06rem;
+    font-weight: 500;
+    line-height: 1.55;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+}
+
+.pb-say-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    flex-wrap: wrap;
+    min-height: 14px;
+    margin-top: 10px;
+}
+
+.pb-say-next {
+    width: 0;
+    height: 0;
+    border-left: 7px solid transparent;
+    border-right: 7px solid transparent;
+    border-top: 9px solid var(--pb-red);
+    opacity: 0;
+    transition: opacity 120ms ease;
+}
+.pb-say.is-done .pb-say-next {
+    opacity: 1;
+    animation: pb-say-bob 0.9s ease-in-out infinite;
+}
+
+.pb-say-wait {
+    flex: 1 1 auto;
+    color: var(--pb-text-3);
+    font-size: 0.9rem;
+    font-style: italic;
+}
+
+.pb-say-footer .btn-roll { min-width: 140px; }
+
+/* ---------- Toasts ---------- */
+.pb-toast-stack {
+    position: fixed;
+    top: max(16px, env(safe-area-inset-top));
+    left: 50%;
+    z-index: 10040;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: min(460px, calc(100vw - 32px));
+    transform: translateX(-50%);
+    pointer-events: none;
+}
+
+.pb-toast {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    box-sizing: border-box;
+    max-width: 100%;
+    padding: 11px 16px 11px 14px;
+    color: var(--pb-text);
+    font-family: var(--pb-font);
+    font-size: 0.95rem;
+    font-weight: 500;
+    line-height: 1.4;
+    text-align: left;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+    background: rgba(20, 29, 37, 0.97);
+    border: 1px solid var(--pb-line-strong);
+    border-left: 4px solid var(--pb-text-3);
+    border-radius: var(--pb-radius);
+    box-shadow: var(--pb-shadow);
+    cursor: pointer;
+    pointer-events: auto;
+    animation: pb-toast-in 220ms cubic-bezier(0.2, 0.9, 0.3, 1.15);
+}
+.pb-toast.is-leaving { animation: pb-toast-out 200ms ease-in forwards; }
+
+.pb-toast-dot {
+    flex: 0 0 auto;
+    width: 8px;
+    height: 8px;
+    margin-top: 0.42em;
+    border-radius: 50%;
+    background: var(--pb-text-3);
+}
+
+.pb-toast--info { border-left-color: #5b9bd5; }
+.pb-toast--info .pb-toast-dot { background: #5b9bd5; }
+.pb-toast--success { border-left-color: var(--pb-green-hover); }
+.pb-toast--success .pb-toast-dot { background: var(--pb-green-hover); }
+.pb-toast--warning { border-left-color: var(--pb-amber); }
+.pb-toast--warning .pb-toast-dot { background: var(--pb-amber); }
+.pb-toast--danger { border-left-color: var(--pb-red); }
+.pb-toast--danger .pb-toast-dot { background: var(--pb-red); }
+
+/* ---------- Mobile ---------- */
+@media (max-width: 1000px) {
+    .pb-dlg-layer {
+        align-items: flex-end;
+        padding: 16px max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+    }
+
+    .pb-dlg {
+        width: 100%;
+        max-width: 560px;
+        padding: 20px 18px 16px;
+        animation-name: pb-sheet-in;
+    }
+
+    .pb-dlg-actions .btn { flex: 1 1 0; min-width: 0; }
+
+    .pb-dlg-layer--say,
+    #custom-global-alert.pb-board-alert {
+        padding: 16px max(10px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+    }
+
+    /* ui.css força width no filho do aviso antigo; neutraliza para a caixa nova */
+    #custom-global-alert.pb-board-alert > .pb-say { width: 100%; min-width: 0 !important; }
+
+    .pb-say {
+        gap: 12px;
+        padding: 16px 14px 14px;
+        max-height: calc(100dvh - 48px);
+    }
+    .pb-say-portrait { width: 60px; height: 60px; margin-top: 4px; border-radius: 10px; }
+    .pb-say-name { margin-top: -29px; font-size: 0.6rem; padding: 7px 10px 6px; }
+    .pb-say-text { font-size: 1rem; }
+    .pb-say-footer .btn-roll { flex: 1 1 100%; }
+    .pb-say-wait { flex-basis: 100%; }
+
+    .pb-toast-stack {
+        top: auto;
+        bottom: calc(var(--pb-bar-h, 64px) + 12px + env(safe-area-inset-bottom));
+        flex-direction: column-reverse;
+    }
+
+    /* Com uma caixa de diálogo aberta embaixo, os toasts sobem para não cobri-la */
+    body:has(.pb-dlg-layer) .pb-toast-stack,
+    body:has(#custom-global-alert.pb-board-alert[style*="flex"]) .pb-toast-stack {
+        top: max(12px, env(safe-area-inset-top));
+        bottom: auto;
+        flex-direction: column;
+    }
+}
+
+/* ---------- Animações ---------- */
+@keyframes pb-dlg-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pb-dlg-fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes pb-dlg-pop { from { opacity: 0; transform: translateY(8px) scale(0.97); } to { opacity: 1; transform: none; } }
+@keyframes pb-sheet-in { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+@keyframes pb-say-in { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+@keyframes pb-say-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(3px); } }
+@keyframes pb-toast-in { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: none; } }
+@keyframes pb-toast-out { to { opacity: 0; transform: translateY(-6px); } }
+
+@media (prefers-reduced-motion: reduce) {
+    .pb-dlg-layer,
+    .pb-dlg,
+    .pb-say,
+    .pb-toast,
+    .pb-toast.is-leaving,
+    .pb-dlg-layer.is-leaving,
+    #custom-global-alert.pb-board-alert {
+        animation: none !important;
+    }
+    .pb-say.is-done .pb-say-next { animation: none; }
+}

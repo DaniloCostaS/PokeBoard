@@ -6,14 +6,18 @@ import { Setup } from '../../core/Setup';
 import { GameState } from '../game/GameState';
 import { GameUI } from '../game/GameUI';
 import { SupabaseDataStore } from './SupabaseDataStore';
+import { ConnectionMonitor } from './ConnectionMonitor';
+import { Presence } from '../ui/Presence';
+import { GameDialog } from '../ui/GameDialog';
 
 export class NetworkActions {
     private static playerRefreshTimer: number | null = null;
+    private static playerRefreshSeq: number = 0;
 
     static checkInput(): boolean {
         const nameInput = document.getElementById('online-player-name') as HTMLInputElement;
         const avSelect = document.getElementById('online-avatar-select') as HTMLSelectElement;
-        if (!nameInput.value) { alert("Digite seu nome!"); return false; }
+        if (!nameInput.value) { GameDialog.toast("Digite seu nome de treinador!", { tone: 'warning' }); return false; }
         NetworkState.localName = nameInput.value;
         NetworkState.localAvatar = avSelect.value;
         return true;
@@ -56,9 +60,9 @@ export class NetworkActions {
                     return;
                 }
             }
-            alert("Sessão inválida ou jogo encerrado.");
             localStorage.removeItem('pkbd_session');
-            setTimeout(() => location.reload(), 3000);
+            await GameDialog.alert("Sua sessão é inválida ou a partida foi encerrada.", { title: 'Sessão encerrada', okLabel: 'Voltar ao menu' });
+            location.reload();
         }
     }
 
@@ -70,7 +74,7 @@ export class NetworkActions {
         
         const roomAlias = customInput ? customInput.value.trim() : "";
         if (!roomAlias) {
-            alert("Você precisa digitar um Apelido para a Sala!");
+            GameDialog.toast("Digite um apelido para a sala!", { tone: 'warning' });
             return;
         }
 
@@ -79,9 +83,9 @@ export class NetworkActions {
         if (roomError || !room) {
             console.error(roomError);
             if (roomError?.code === '23505') {
-                alert("Este apelido de sala já está em uso! Escolha outro.");
+                GameDialog.toast("Este apelido de sala já está em uso. Escolha outro.", { tone: 'warning' });
             } else {
-                alert("Erro ao criar sala!");
+                GameDialog.toast("Não foi possível criar a sala. Tente novamente.", { tone: 'danger' });
             }
             return;
         }
@@ -105,7 +109,7 @@ export class NetworkActions {
             x: 0, y: 0
         }]).select().single();
 
-        if (playerError || !playerDb) return alert("Erro ao criar jogador na sala.");
+        if (playerError || !playerDb) return GameDialog.toast("Não foi possível entrar na sala. Tente novamente.", { tone: 'danger' });
         NetworkState.myPlayerIdDb = playerDb.id;
 
         MapSystem.generate(20);
@@ -122,10 +126,10 @@ export class NetworkActions {
     static async joinRoom(roomCode?: string) {
         if (!this.checkInput()) return;
         const code = (roomCode || (document.getElementById('room-code-input') as HTMLInputElement).value).trim();
-        if (!code) return alert("Digite o Apelido da sala!");
+        if (!code) return GameDialog.toast("Digite o apelido da sala!", { tone: 'warning' });
 
         const { data: roomData, error } = await supabase.from('rooms').select('*, room_players(*)').eq('alias', code).single();
-        if (error || !roomData) return alert("Sala não encontrada! Verifique o Apelido.");
+        if (error || !roomData) return GameDialog.toast("Sala não encontrada. Verifique o apelido.", { tone: 'danger' });
 
         if (roomData.status === "playing") {
             const found = roomData.room_players.find((p: any) => p.name === NetworkState.localName);
@@ -141,7 +145,7 @@ export class NetworkActions {
                 this.initializeGameFromSupabase();
                 return;
             } else {
-                return alert("Jogo já começou e seu nome não está na lista!");
+                return GameDialog.toast("A partida já começou e seu nome não está na lista.", { tone: 'danger' });
             }
         }
 
@@ -154,7 +158,7 @@ export class NetworkActions {
         } else {
             const existingIds = existingPlayers.map((p: any) => p.local_index);
             targetId = existingIds.length > 0 ? Math.max(...existingIds) + 1 : 0;
-            if (existingPlayers.length >= 8) return alert("Sala cheia!");
+            if (existingPlayers.length >= 8) return GameDialog.toast("Sala cheia!", { tone: 'warning' });
         }
 
         const isAvatarTaken = existingPlayers.some((p: any) => {
@@ -164,7 +168,7 @@ export class NetworkActions {
             return avFile === selFile;
         });
 
-        if (isAvatarTaken) return alert("Avatar já escolhido por outro jogador!");
+        if (isAvatarTaken) return GameDialog.toast("Este avatar já foi escolhido por outro jogador.", { tone: 'warning' });
 
         NetworkState.myPlayerId = targetId;
         NetworkState.currentRoomId = roomData.id;
@@ -196,6 +200,44 @@ export class NetworkActions {
         Setup.showLobbyUIOnly();
     }
 
+    // Entra como espectador: não cria jogador na sala, não salva sessão e nunca grava no banco
+    static async spectateRoom(roomId: string) {
+        if (!roomId) return;
+        const { data: roomData, error } = await supabase.from('rooms').select('id, alias, status').eq('id', roomId).single();
+        if (error || !roomData) return GameDialog.toast("Partida não encontrada!", { tone: 'danger' });
+        if (roomData.status !== 'playing') return GameDialog.toast("Essa partida não está mais em andamento.", { tone: 'warning' });
+
+        NetworkState.isSpectator = true;
+        NetworkState.isHost = false;
+        NetworkState.myPlayerId = -1;
+        NetworkState.myPlayerIdDb = "";
+        NetworkState.currentRoomId = roomData.id;
+        NetworkState.currentRoomAlias = roomData.alias;
+        NetworkState.isOnline = true;
+
+        await this.initializeGameFromSupabase();
+    }
+
+    static leaveSpectator() {
+        location.reload();
+    }
+
+    private static showSpectatorBanner() {
+        if (document.getElementById('spectator-banner')) return;
+        const banner = document.createElement('div');
+        banner.id = 'spectator-banner';
+        banner.className = 'spectator-banner';
+        banner.setAttribute('role', 'status');
+        const label = document.createElement('span');
+        label.textContent = `👁️ Modo espectador · ${NetworkState.currentRoomAlias || 'Partida'} · cartas ocultas`;
+        const leave = document.createElement('button');
+        leave.type = 'button';
+        leave.textContent = 'Sair';
+        leave.onclick = () => this.leaveSpectator();
+        banner.append(label, leave);
+        document.body.appendChild(banner);
+    }
+
     static setupLobbyListener() {
         supabase.channel(`lobby:${NetworkState.currentRoomId}`)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'room_players', filter: `room_id=eq.${NetworkState.currentRoomId}` }, async () => {
@@ -205,9 +247,9 @@ export class NetworkActions {
 
                 const stillExists = NetworkState.lobbyPlayers.some((p: any) => p.local_index === NetworkState.myPlayerId);
                 if (!stillExists && !NetworkState.isHost && NetworkState.isOnline) {
-                    alert("Você foi removido da sala pelo Host.");
                     localStorage.removeItem('pkbd_session');
-                    setTimeout(() => location.reload(), 3000);
+                    await GameDialog.alert("O anfitrião removeu você da sala.", { title: 'Você saiu da sala', okLabel: 'Voltar ao menu' });
+                    location.reload();
                     return;
                 }
 
@@ -271,7 +313,9 @@ export class NetworkActions {
         document.getElementById('setup-screen')!.style.display = 'none';
         document.getElementById('game-container')!.style.display = 'flex';
         Game.init(playerArray, MapSystem.size, boardState.settings);
+        (window as any).Cinematics?.loading();
         this.setupGameLoopListener();
+        if (NetworkState.isSpectator) this.showSpectatorBanner();
     }
 
     static setupGameLoopListener() {
@@ -350,7 +394,23 @@ export class NetworkActions {
             });
         });
             
-        channel.subscribe();
+        // Reconexão transparente: o monitor recria o canal e ressincroniza quando a conexão volta
+        ConnectionMonitor.watch(channel, {
+            resubscribe: () => this.setupGameLoopListener(),
+            resync: () => this.resyncAll()
+        });
+        channel.subscribe((status) => ConnectionMonitor.handleStatus(channel, status));
+    }
+
+    // Ressincronização completa após reconexão (turno, jogadores e logs)
+    static async resyncAll() {
+        if (!NetworkState.isOnline || !NetworkState.currentRoomId) return;
+        await Promise.all([
+            this.syncTurnState(),
+            this.refreshPlayersFromSupabase(),
+            this.syncLogsManually(),
+            this.syncCardLogsManually()
+        ]);
     }
 
     private static schedulePlayerRefresh() {
@@ -364,6 +424,7 @@ export class NetworkActions {
     private static async refreshPlayersFromSupabase() {
         const Game = (window as any).Game;
         if (!NetworkState.isOnline || !NetworkState.currentRoomId || !Game?.players) return;
+        const requestSeq = ++this.playerRefreshSeq;
 
         const { data: roomData } = await supabase
             .from('rooms')
@@ -372,14 +433,25 @@ export class NetworkActions {
             .single();
 
         if (!roomData?.room_players) return;
+        // Uma resposta mais antiga que chega depois de uma mais nova não pode sobrescrever o estado
+        if (requestSeq !== this.playerRefreshSeq) return;
 
         const refreshedPlayers = SupabaseDataStore.hydratePlayers(roomData.room_players);
-        const currentLocalPlayer = Game.players.find((player: any) => player.id === NetworkState.myPlayerId);
-        const keepLocalPlayer = currentLocalPlayer && Game.canAct && Game.canAct() && (GameState.turnStarted || GameState.hasRolled);
-        if (keepLocalPlayer) {
-            const localIndex = refreshedPlayers.findIndex((player: any) => player.id === NetworkState.myPlayerId);
-            if (localIndex >= 0) refreshedPlayers[localIndex] = currentLocalPlayer;
-        }
+        const iAmActing = Game.canAct && Game.canAct();
+        const keepLocalPlayer = iAmActing && (GameState.turnStarted || GameState.hasRolled);
+        const BattleObj = (window as any).Battle;
+        const isMyBattle = iAmActing && BattleObj?.active && BattleObj.player?.id === NetworkState.myPlayerId;
+
+        refreshedPlayers.forEach((refreshed: any, idx: number) => {
+            const local = Game.players.find((player: any) => player.id === refreshed.id);
+            if (!local) return;
+            const isMe = refreshed.id === NetworkState.myPlayerId;
+            const isBattleParticipant = isMyBattle && (refreshed.id === BattleObj.player?.id || refreshed.id === BattleObj.enemyPlayer?.id);
+            // Mantém o objeto local quando ele é a fonte da verdade: meu turno, minha batalha ou gravação ainda pendente
+            if ((isMe && keepLocalPlayer) || isBattleParticipant || NetworkSync.hasPendingSave(refreshed.id)) {
+                refreshedPlayers[idx] = (isBattleParticipant && refreshed.id === BattleObj.enemyPlayer?.id) ? BattleObj.enemyPlayer : local;
+            }
+        });
         Game.players = refreshedPlayers;
         GameState.players = refreshedPlayers;
         Game.updateHUD();
@@ -450,39 +522,67 @@ export class NetworkActions {
                 break;
             case 'LOG': break;
             case 'SHOW_ALERT': Game.showGlobalAlert(action.payload.msg, action.payload.playerName, false, action.payload.endsTurn !== false); break;
-            case 'CLOSE_ALERT': Game.closeGlobalAlert(); break;
+            case 'CLOSE_ALERT':
+                // Um aviso antigo confirmado depois que a vez passou não pode fechar o aviso do jogador atual
+                if (action.playerId === GameState.turn) Game.closeGlobalAlert();
+                break;
             case 'SYNC_TRAPS': Game.renderTraps(action.payload.traps || []); break;
             case 'GAME_WIN': Game.triggerVictory(action.payload.winnerId); break;
+            case 'EMOTE': Presence.showEmote(action.playerId, action.payload?.emoji); break;
+            case 'CELEBRATE': (window as any).Cinematics?.fromRemote?.(action.payload, action.playerId); break;
+            case 'BOARD_FX': {
+                const board = (window as any).PBBoard;
+                const fx = action.payload || {};
+                if (!board || !Number.isFinite(fx.x) || !Number.isFinite(fx.y)) break;
+                if (fx.kind === 'land') board.onLand?.(fx.x, fx.y, fx.type, !!fx.pvp);
+                else if (fx.kind === 'trap') board.trapFx?.(fx.x, fx.y);
+                break;
+            }
+            case 'PRESENCE': Presence.showStatus(action.playerId, action.payload?.status ?? null); break;
 
-            case 'PVP_SYNC_DAMAGE':
+            case 'PVP_SYNC_DAMAGE': {
+                // Receptor passivo: só atualiza memória e tela. Quem grava no Supabase é o dono do turno.
                 const targetP = Game.players.find((p: any) => p.id === action.payload.targetId);
+                const winnerP = action.payload.winnerId !== undefined ? Game.players.find((p: any) => p.id === action.payload.winnerId) : null;
+
+                const applyTeam = (player: any, team: any[] | undefined) => {
+                    if (!player || !team) return;
+                    team.forEach((remoteMon: any, idx: number) => {
+                        if (!player.team[idx]) return;
+                        Object.assign(player.team[idx], remoteMon);
+                    });
+                };
+
+                if (winnerP) {
+                    if (action.payload.winnerGold !== undefined) winnerP.gold = action.payload.winnerGold;
+                    if (action.payload.winnerBadges !== undefined) winnerP.badges = action.payload.winnerBadges;
+                    applyTeam(winnerP, action.payload.winnerTeam);
+                }
 
                 if (targetP) {
-                    if (action.payload.team) {
-                        action.payload.team.forEach((remoteMon: any, idx: number) => {
-                            if (targetP.team[idx]) targetP.team[idx].currentHp = remoteMon.currentHp;
-                        });
-                    }
-
+                    applyTeam(targetP, action.payload.team);
                     if (action.payload.gold !== undefined) targetP.gold = action.payload.gold;
                     if (action.payload.badges !== undefined) targetP.badges = action.payload.badges;
-
-                    Game.updateHUD();
+                    if (action.payload.x !== undefined) targetP.x = action.payload.x;
+                    if (action.payload.y !== undefined) targetP.y = action.payload.y;
+                    if (action.payload.skipTurns !== undefined) targetP.skipTurns = action.payload.skipTurns;
 
                     if (action.payload.resetPos) {
-                        Game.handleTotalDefeat(targetP);
-                    }
-
-                    if (targetP.id === NetworkState.myPlayerId) {
-                        Game.updateHUD();
+                        // NUNCA chamar handleTotalDefeat aqui: ele reaplicaria +2 turnos e dispararia gravações deste cliente
+                        const msg = `🚑 ${targetP.name} sofreu uma derrota total!\nSerá levado ao último Centro Pokémon para recuperação emergencial.`;
+                        Game.showGlobalAlert(msg, action.payload.winnerId !== undefined && winnerP ? winnerP.name : targetP.name, false, false);
+                        Game.moveVisuals();
                     }
                 }
+
+                Game.updateHUD();
                 break;
+            }
         }
     }
 
     static sendAction(type: string, payload: any) {
-        if (!NetworkState.isOnline) return;
+        if (!NetworkState.isOnline || NetworkState.isSpectator) return;
 
         // Migrado para Supabase Broadcast
         const actionData = { type, payload, playerId: NetworkState.myPlayerId, timestamp: Date.now() };

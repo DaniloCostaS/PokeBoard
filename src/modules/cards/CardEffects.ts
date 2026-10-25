@@ -7,6 +7,7 @@ import { GLOBAL_EVENTS } from '../../constants/globalEvents';
 import { MAPA_MEGAS } from '../../constants/mapaMegas';
 import { POKEDEX } from '../../constants/pokedex';
 import { SupabaseDataStore } from '../network/SupabaseDataStore';
+import { GameDialog } from '../ui/GameDialog';
 
 export class CardEffects {
     static async checkAutoDefense(attacker: Player, target: Player, incomingCardId: string, incomingCardName: string): Promise<boolean> {
@@ -290,7 +291,7 @@ export class CardEffects {
         const player: Player = Game.getCurrentPlayer();
 
         if ((window as any).Battle && (window as any).Battle.isChampion) {
-            return alert("🚫 As regras da Liga proíbem o uso de Cartas no Desafio do Campeão!");
+            return GameDialog.toast("As regras da Liga proíbem o uso de cartas no Desafio do Campeão!", { tone: 'warning' });
         }
 
         const cardData = CARDS_DB.find(c => c.id === cardId);
@@ -298,27 +299,27 @@ export class CardEffects {
 
         const usableCardIndex = player.cards.findIndex((c: any) => c.id === cardId && !c.isProtected);
         if (usableCardIndex === -1 && cardId !== 'card_protector') {
-            return alert("Esta carta está sob proteção do Cadeado e não pode ser usada!");
+            return GameDialog.toast("Esta carta está sob proteção do Cadeado e não pode ser usada!", { tone: 'warning' });
         }
 
-        if (cardData.type === 'move' && Battle.active) return alert("Cartas MOVE só podem ser usadas no tabuleiro!");
+        if (cardData.type === 'move' && Battle.active) return GameDialog.toast("Cartas MOVE só podem ser usadas no tabuleiro!", { tone: 'warning' });
 
         // Bloquear qualquer carta (exceto auto) se o turno ainda não foi iniciado
         if (cardData.type !== 'auto') {
             if (Network && Network.isOnline && !Game.turnStarted) {
-                return alert('⏳ Clique em "Iniciar Turno" antes de usar cartas!');
+                return GameDialog.toast('Toque em "Iniciar turno" antes de usar cartas!', { tone: 'warning' });
             }
         }
 
         if (cardData.type === 'battle') {
-            if (!Battle.active) return alert("Cartas BATTLE só podem ser usadas em batalha!");
+            if (!Battle.active) return GameDialog.toast("Cartas BATTLE só podem ser usadas em batalha!", { tone: 'warning' });
             if (!Battle.isPvP && Battle.activeMon && ((Battle.activeMon as any).isTemp || (Battle.activeMon as any).isMegaEvolution)) {
-                return alert("🧬 Seu parceiro já atingiu o poder máximo! Cartas de batalha estão bloqueadas para Mega Evoluções (ou Mew) no PvE.");
+                return GameDialog.toast("Seu parceiro já atingiu o poder máximo! Cartas de batalha estão bloqueadas para Mega Evoluções (ou Mew) no PvE.", { tone: 'warning' });
             }
         }
 
         if (cardData.type === 'auto') {
-            return alert("Esta carta não pode ser ativada manualmente. Ela protege você automaticamente quando for alvo de outra carta!");
+            return GameDialog.toast("Esta carta não pode ser ativada manualmente. Ela protege você automaticamente quando for alvo de outra carta!", { tone: 'info' });
         }
 
         let actualTargetId = (typeof targetId === 'object' && targetId !== null) ? targetId.targetId : targetId;
@@ -363,7 +364,7 @@ export class CardEffects {
         if (offensiveCards.includes(cardId)) {
             if (!player.effects) player.effects = {};
             if ((player.effects.offensiveCardsUsed || 0) >= 3) {
-                alert("Você atingiu o limite máximo de 3 cartas contra outros jogadores neste turno! Você só pode usar cartas de benefício próprio agora.");
+                GameDialog.toast("Você atingiu o limite de 3 cartas contra outros jogadores neste turno! Agora só pode usar cartas de benefício próprio.", { tone: 'warning' });
                 return;
             }
         }
@@ -380,7 +381,7 @@ export class CardEffects {
 
         if (cardData.rarity === 'Lendária') {
             if (player.effects && player.effects.playedLegendary && !player.effects.ashGoodbyeRemaining) {
-                alert("Você já utilizou uma carta Lendária nesta partida. Apenas um milagre por jogo é permitido!");
+                GameDialog.toast("Você já utilizou uma carta Lendária nesta partida. Apenas um milagre por jogo é permitido!", { tone: 'warning' });
                 return;
             }
         }
@@ -441,17 +442,17 @@ export class CardEffects {
                     }
                     if (num === 0) num = 20;
                 } else {
-                    const val = prompt("Escolha o valor do dado (1-20):");
+                    const val = await GameDialog.prompt("Escolha o valor do dado (1-20):", { title: 'Dado mágico', inputMode: 'numeric', placeholder: '1-20', okLabel: 'Usar valor' });
                     num = parseInt(val || "0");
                 }
 
                 if (num >= 1 && num <= 20) { Game.forceDice(num); effectLog = `🎲 O dado foi forçado para cair ${num}!`; }
-                else { if (!player.isCPU) alert("Valor inválido."); consumed = false; }
+                else { if (!player.isCPU) GameDialog.toast("Valor inválido. Escolha um número de 1 a 20.", { tone: 'warning' }); consumed = false; }
                 break;
 
             case 'reroll':
                 if (Game.hasRolled) {
-                    if (!player.isCPU) alert("Você já rolou o dado este turno! A carta Re-Roll deve ser usada ANTES de se mover.");
+                    if (!player.isCPU) GameDialog.toast("Você já rolou o dado neste turno! A carta Re-Roll deve ser usada antes de se mover.", { tone: 'warning' });
                     consumed = false;
                 } else {
                     const r1 = Math.floor(Math.random() * 6) + 1;
@@ -518,7 +519,7 @@ export class CardEffects {
                             const privateMsg = `🕵️ ALERTA: A Equipe Rocket roubou sua carta [${stolenCard.name}]!||PRIVATE:${target.id}`;
                             if (Network.isOnline) Network.sendAction('LOG', { msg: privateMsg });
                             else Game.log(`🕵️ ALERTA: A Equipe Rocket roubou a carta [${stolenCard.name}] de ${target.name}!`);
-                        } else { alert("O alvo não tem cartas!"); consumed = false; }
+                        } else { if (!player.isCPU) GameDialog.toast("O alvo não tem cartas!", { tone: 'warning' }); consumed = false; }
                     }
                 } else { CardUI.openTargetSelection(cardId); consumed = false; }
                 break;
@@ -528,7 +529,7 @@ export class CardEffects {
                     const target = Game.players.find((p: any) => p.id === actualTargetId);
                     if (target) {
                         if (target.cards.length === 0) {
-                            alert("Este jogador não possui cartas!");
+                            if (!player.isCPU) GameDialog.toast("Este jogador não possui cartas!", { tone: 'warning' });
                             consumed = false;
                         } else {
                             // Sorteia 3 cartas aleatórias da mão inteira (incluindo protegidas e lendárias)
@@ -552,7 +553,7 @@ export class CardEffects {
                 break;
 
             case 'holy_water':
-                if (!player.effects || !player.effects.curse) { alert("Você não está amaldiçoado!"); return; }
+                if (!player.effects || !player.effects.curse) { if (!player.isCPU) GameDialog.toast("Você não está amaldiçoado!", { tone: 'info' }); return; }
                 player.effects.curse = false;
                 effectLog = `✨ ${player.name} se banhou com Água Benta!`;
                 Game.sendGlobalLog(`✨ ${player.name} usou Água Benta e purificou sua alma da Maldição!`);
@@ -615,7 +616,7 @@ export class CardEffects {
 
             case 'illegal_adoption':
                 if (!Battle.active || Battle.isPvP || Battle.isGym || Battle.isChampion) {
-                    if (!player.isCPU) alert("Esta carta so pode ser usada em batalhas contra NPCs comuns ou Pokemons Selvagens!");
+                    if (!player.isCPU) GameDialog.toast("Esta carta só pode ser usada em batalhas contra NPCs comuns ou Pokémon selvagens!", { tone: 'warning' });
                     consumed = false;
                     break;
                 }
@@ -652,7 +653,7 @@ export class CardEffects {
 
             case 'adotar_lixeira':
                 if (Game.lixeira.length === 0) { 
-                    if (!player.isCPU) alert("A lixeira está vazia!"); 
+                    if (!player.isCPU) GameDialog.toast("A lixeira está vazia!", { tone: 'warning' });
                     consumed = false; 
                 }
                 else { 
@@ -707,7 +708,7 @@ export class CardEffects {
 
             case 'master':
                 if (Battle.isPvP || Battle.isNPC || Battle.isGym) { 
-                    if (!player.isCPU) alert("A carta Master Ball só pode ser usada contra Pokémons Selvagens!"); 
+                    if (!player.isCPU) GameDialog.toast("A carta Master Ball só pode ser usada contra Pokémon selvagens!", { tone: 'warning' });
                     consumed = false; 
                     break; 
                 }
@@ -717,7 +718,7 @@ export class CardEffects {
                 if (player.items['ultraball'] > 0) balls.push({ id: 'ultraball', name: 'Ultraball', count: player.items['ultraball'] });
 
                 if (balls.length === 0) { 
-                    if (!player.isCPU) alert("Você precisa ter pelo menos uma Pokébola na mochila!"); 
+                    if (!player.isCPU) GameDialog.toast("Você precisa ter pelo menos uma Pokébola na mochila!", { tone: 'warning' });
                     consumed = false; 
                     break; 
                 }
@@ -767,7 +768,7 @@ export class CardEffects {
             case 'destiny': Battle.activeEffects.destiny = true; Battle.logBattle("🌠 Recompensas dobradas se vencer!"); break;
 
             case 'mega_stone':
-                if (Battle.active) { if (!player.isCPU) alert("Você não pode equipar a Mega Pedra durante a batalha!"); consumed = false; break; }
+                if (Battle.active) { if (!player.isCPU) GameDialog.toast("Você não pode equipar a Mega Pedra durante a batalha!", { tone: 'warning' }); consumed = false; break; }
                 if (player.isCPU && targetId === null) {
                     // Passo 1: Busca Pokémon compatível sem nenhum item
                     for (let idx = 0; idx < player.team.length; idx++) {
@@ -796,8 +797,8 @@ export class CardEffects {
                     const targetMon = player.team[targetId];
                     if (!targetMon) { consumed = false; break; }
                     // MAPA_MEGAS is statically imported
-                    if (!MAPA_MEGAS[targetMon.id]) { if (!player.isCPU) alert(`O Pokémon não reage a esta Mega Pedra!`); consumed = false; break; }
-                    if (targetMon.megaStone || targetMon.heldItem) { if (!player.isCPU) alert(`${targetMon.name} já está segurando um item! Remova-o antes de equipar outro.`); consumed = false; break; }
+                    if (!MAPA_MEGAS[targetMon.id]) { if (!player.isCPU) GameDialog.toast(`O Pokémon não reage a esta Mega Pedra!`, { tone: 'warning' }); consumed = false; break; }
+                    if (targetMon.megaStone || targetMon.heldItem) { if (!player.isCPU) GameDialog.toast(`${targetMon.name} já está segurando um item! Remova-o antes de equipar outro.`, { tone: 'warning' }); consumed = false; break; }
                     targetMon.megaStone = true;
                     effectLog = `💎 A Mega Pedra começou a brilhar intensamente junto de ${targetMon.name}!`;
                 } else { CardUI.openMegaSelection(cardId); consumed = false; }
@@ -806,7 +807,7 @@ export class CardEffects {
             case 'card_protector':
                 const protectedCount = player.cards.filter((c: any) => c.isProtected).length;
                 if (protectedCount >= 3) { 
-                    if (!player.isCPU) alert("Você já atingiu o limite de 3 cartas protegidas!"); 
+                    if (!player.isCPU) GameDialog.toast("Você já atingiu o limite de 3 cartas protegidas!", { tone: 'warning' });
                     consumed = false; 
                     break; 
                 }
@@ -833,8 +834,8 @@ export class CardEffects {
                     if (targetId !== null) {
                         const targetCard = player.cards[targetId];
                         if (!targetCard) { consumed = false; break; }
-                        if (targetCard.isProtected) { alert("Esta carta já está protegida!"); consumed = false; break; }
-                        if (targetCard.id === 'card_protector') { alert("Você não pode proteger o Cadeado!"); consumed = false; break; }
+                        if (targetCard.isProtected) { if (!player.isCPU) GameDialog.toast("Esta carta já está protegida!", { tone: 'warning' }); consumed = false; break; }
+                        if (targetCard.id === 'card_protector') { if (!player.isCPU) GameDialog.toast("Você não pode proteger o Cadeado!", { tone: 'warning' }); consumed = false; break; }
 
                         targetCard.isProtected = true;
                         effectLog = `🔒 CADEADO ATIVADO! ${player.name} protegeu uma de suas cartas contra roubos!`;
@@ -894,7 +895,7 @@ export class CardEffects {
                     const targetMon = target.team[pIdx];
                     if (!targetMon || !targetMon.megaStone) { consumed = false; break; }
                     if (targetMon.vinculoSupremo || targetMon.happiness === 100) {
-                        if (!player.isCPU) alert("Este Pokémon possui Vínculo Supremo/Afetivo! A Mega Pedra dele não pode ser destruída.");
+                        if (!player.isCPU) GameDialog.toast("Este Pokémon possui Vínculo Supremo/Afetivo! A Mega Pedra dele não pode ser destruída.", { tone: 'warning' });
                         consumed = false;
                         break;
                     }
@@ -987,7 +988,7 @@ export class CardEffects {
                     }
 
                     if (target.team.length === 1) {
-                        if (!player.isCPU) alert("Você não pode mandar embora o último Pokémon do treinador!");
+                        if (!player.isCPU) GameDialog.toast("Você não pode mandar embora o último Pokémon do treinador!", { tone: 'warning' });
                         consumed = false;
                         if (player.isCPU) {
                             setTimeout(() => { CardEffects.activate(cardId); }, 300);
@@ -1168,8 +1169,8 @@ export class CardEffects {
                 if (targetId !== null) {
                     const targetMon = player.team[targetId];
                     if (!targetMon) { consumed = false; break; }
-                    if (targetMon.isLegendary) { if (!player.isCPU) alert("Lendário! Use a carta específica."); consumed = false; break; }
-                    if (targetMon.isShiny) { if (!player.isCPU) alert("Já é Shiny!"); consumed = false; break; }
+                    if (targetMon.isLegendary) { if (!player.isCPU) GameDialog.toast("Pokémon lendário! Use a carta específica.", { tone: 'warning' }); consumed = false; break; }
+                    if (targetMon.isShiny) { if (!player.isCPU) GameDialog.toast("Este Pokémon já é Shiny!", { tone: 'info' }); consumed = false; break; }
 
                     targetMon.isShiny = true; targetMon.recalculateStats(true);
                     effectLog = `✨ BRILHO ÉPICO! O ${targetMon.name} brilhou intensamente e se tornou SHINY!`;
@@ -1192,7 +1193,7 @@ export class CardEffects {
                 if (targetId !== null) {
                     const targetMon = player.team[targetId];
                     if (!targetMon) { consumed = false; break; }
-                    if (targetMon.level >= 25) { if (!player.isCPU) alert(`Já alcançou o Nível Máximo!`); consumed = false; break; }
+                    if (targetMon.level >= 25) { if (!player.isCPU) GameDialog.toast(`Este Pokémon já alcançou o nível máximo!`, { tone: 'info' }); consumed = false; break; }
 
                     const preservedXp = targetMon.currentXp; targetMon.levelUp(player); targetMon.currentXp = preservedXp;
                     effectLog = `🍬 Que delícia! O Rare Candy fez efeito mágico!`;
@@ -1317,7 +1318,7 @@ export class CardEffects {
                     const target = Game.players.find((p: any) => p.id === actualTargetId);
                     if (!target) { consumed = false; break; }
                     let totalItems = 0; Object.keys(target.items).forEach(k => totalItems += target.items[k]);
-                    if (totalItems === 0) { alert("O alvo não tem itens para perder!"); consumed = false; break; }
+                    if (totalItems === 0) { if (!player.isCPU) GameDialog.toast("O alvo não tem itens para perder!", { tone: 'warning' }); consumed = false; break; }
 
                     let itemsToRemove = Math.max(1, Math.floor(totalItems / 2));
                     let removedCount = 0;
@@ -1376,7 +1377,7 @@ export class CardEffects {
                 }
 
                 if (targetIdx === startIdx) {
-                    alert("Nenhuma outra cidade encontrada no tabuleiro!");
+                    GameDialog.toast("Nenhuma outra cidade encontrada no tabuleiro!", { tone: 'warning' });
                     consumed = false;
                     break;
                 }

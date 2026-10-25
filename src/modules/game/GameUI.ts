@@ -17,6 +17,19 @@ import { PLAYER_COLORS } from '../../constants/playerColors';
 import { GYM_DATA } from '../../constants/gyms';
 import { GLOBAL_EVENTS } from '../../constants/globalEvents';
 import { MAPA_MEGAS } from '../../constants/mapaMegas';
+import { BoardRenderer } from '../board/BoardRenderer';
+import { CardHand } from '../cards/CardHand';
+import { GameFeel } from '../ui/GameFeel';
+import { GameDialog } from '../ui/GameDialog';
+
+// Ícones de traço simples para os botões do HUD (herdam a cor do texto)
+const svgIcon = (path: string) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg>`;
+const HUD_ICONS = {
+    bag: svgIcon('<path d="M6 8h12l-1 12H7L6 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>'),
+    quest: svgIcon('<path d="M7 4h10v16l-5-3-5 3V4Z"/>'),
+    cards: svgIcon('<rect x="4" y="6" width="11" height="14" rx="2"/><path d="M9 4h9a2 2 0 0 1 2 2v11"/>'),
+    dex: svgIcon('<rect x="5" y="3" width="14" height="18" rx="2"/><circle cx="12" cy="10" r="3"/><path d="M9 17h6"/>')
+};
 
 export class GameUI {
 
@@ -38,7 +51,13 @@ export class GameUI {
             }
         });
 
+        // Placar: insígnias primeiro, depois ouro
+        const ranking = [...GameState.players]
+            .sort((a, b) => (b.badges.filter(Boolean).length - a.badges.filter(Boolean).length) || (b.gold - a.gold))
+            .map(p => p.id);
+
         GameState.players.forEach((p, i) => {
+            const rank = ranking.indexOf(p.id) + 1;
             const d = document.createElement('div');
             d.className = `player-slot ${i === GameState.turn ? 'active' : ''}`;
             const playerColor = PLAYER_COLORS[i % PLAYER_COLORS.length];
@@ -135,18 +154,18 @@ export class GameUI {
             d.innerHTML = ` 
             <div class="hud-header" style="flex-direction:column; align-items:flex-start; gap:0;">
                 <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
-                    <div class="hud-name-group" onclick="window.Game.openPlayerMastery(${i})" style="cursor:pointer;" title="Ver Maestria do Treinador"><img src="${p.avatar}" class="hud-avatar-img"><span>${p.name}</span></div>
-                    <div class="hud-gold">💰${p.gold}</div>
+                    <div class="hud-name-group" onclick="window.Game.openPlayerMastery(${i})" style="cursor:pointer;" title="Ver Maestria do Treinador"><span class="pb-rank pb-rank--${rank}" data-pb-rank="${p.id}" title="${rank}º no placar">${rank}º</span><img src="${p.avatar}" class="hud-avatar-img"><span>${p.name}</span></div>
+                    <div class="hud-gold" title="Ouro" data-pb-gold="${p.id}">${p.gold} G</div>
                 </div>
                 ${effectsHTML}
             </div> 
             ${badgeHTML} 
             <div class="hud-team">${th}</div> 
             <div class="hud-actions">
-                <button class="btn btn-secondary btn-mini" onclick="window.Game.openInventoryModal(${i})">🎒 ${totalItems}</button>
-                <button class="btn btn-secondary btn-mini" onclick="window.QuestManager.openQuestsModal(window.Game.players[${i}])">📜 ${p.activeQuests ? p.activeQuests.length : 0}</button>
-                <button class="btn btn-secondary btn-mini" onclick="window.Game.openBoardCards(${i})">🃏 ${totalCards}</button>
-                <button class="btn btn-mini" style="background:#e74c3c; color:white; border:1px solid #c0392b;" onclick="window.Game.openPokedex(${i})">📖 Dex</button>
+                <button class="btn btn-secondary btn-mini" onclick="window.Game.openInventoryModal(${i})" title="Mochila" aria-label="Mochila: ${totalItems} itens">${HUD_ICONS.bag}${totalItems}</button>
+                <button class="btn btn-secondary btn-mini" onclick="window.QuestManager.openQuestsModal(window.Game.players[${i}])" title="Missões" aria-label="Missões: ${p.activeQuests ? p.activeQuests.length : 0}">${HUD_ICONS.quest}${p.activeQuests ? p.activeQuests.length : 0}</button>
+                <button class="btn btn-secondary btn-mini" onclick="window.Game.openBoardCards(${i})" title="Cartas" aria-label="Cartas: ${totalCards}">${HUD_ICONS.cards}${totalCards}</button>
+                <button class="btn btn-secondary btn-mini" onclick="window.Game.openPokedex(${i})" title="Pokédex" aria-label="Pokédex">${HUD_ICONS.dex}Dex</button>
             </div>`;
             if (i < Math.ceil(GameState.players.length / 2)) left.appendChild(d);
             else right.appendChild(d);
@@ -219,9 +238,26 @@ export class GameUI {
         if (btnSave) {
             btnSave.style.display = NetworkObj.isOnline ? 'none' : 'block';
         }
+
+        GameFeel.onHudUpdate();
     }
 
     static renderBoard() {
+        const area = document.getElementById('board-area')!;
+        if (!BoardRenderer.failed) {
+            area.querySelectorAll('.tile').forEach(n => n.remove());
+            area.style.gridTemplateColumns = '';
+            area.style.gridTemplateRows = '';
+            BoardRenderer.onGymTap = (actualGymId, gid) => (GameUI as any).openGymDetail(actualGymId, gid);
+            BoardRenderer.init(area).then(ok => { if (!ok) this.renderBoardDom(); });
+            BoardRenderer.render();
+            return;
+        }
+        this.renderBoardDom();
+    }
+
+    // Fallback sem WebGL: tabuleiro em DOM
+    static renderBoardDom() {
         const area = document.getElementById('board-area')!;
         area.innerHTML = '';
         area.style.gridTemplateColumns = `repeat(${MapSystem.size}, 1fr)`;
@@ -288,6 +324,10 @@ export class GameUI {
     }
 
     static moveVisuals() {
+        if (!BoardRenderer.failed) {
+            BoardRenderer.syncTokens();
+            return;
+        }
         GameState.players.forEach((p, idx) => {
             const currentTile = document.getElementById(`tile-${p.x}-${p.y}`);
             if (!currentTile) return;
@@ -310,6 +350,11 @@ export class GameUI {
     }
 
     static renderTraps(newTraps?: any[]) {
+        if (!BoardRenderer.failed) {
+            if (newTraps) GameState.traps = newTraps;
+            BoardRenderer.renderTraps();
+            return;
+        }
         const tiles = document.querySelectorAll('.tile');
         tiles.forEach(t => {
             const htmlEl = t as HTMLElement;
@@ -381,7 +426,7 @@ export class GameUI {
 
             let battleBtn = "";
             if (l.battleId) {
-                battleBtn = `<button class="btn-view-log" onclick="window.Game.viewBattleLog('${l.battleId}')">🔍 Ver Log de Combate</button>`;
+                battleBtn = `<button class="btn-view-log" onclick="window.Game.viewBattleLog('${l.battleId}')">Ver Log de Combate</button>`;
             }
 
             const logHtml = `
@@ -580,7 +625,7 @@ export class GameUI {
 
             let battleBtn = "";
             if (battleId) {
-                battleBtn = `<button class="btn-view-log" onclick="window.Game.viewBattleLog('${battleId}')">🔍 Ver Log de Combate</button>`;
+                battleBtn = `<button class="btn-view-log" onclick="window.Game.viewBattleLog('${battleId}')">Ver Log de Combate</button>`;
             }
 
             const logHtml = `
@@ -605,7 +650,7 @@ export class GameUI {
 
     static viewBattleLog(battleId: string) {
         const logs = GameState.battleLogs[battleId];
-        if (!logs) return alert("Log de batalha não encontrado ou expirado.");
+        if (!logs) return GameDialog.toast("Log de batalha não encontrado ou expirado.", { tone: 'warning' });
 
         let modal = document.getElementById('battle-history-modal');
         if (!modal) {
@@ -618,7 +663,7 @@ export class GameUI {
         modal.innerHTML = `
             <div class="modal-box" style="max-width: 500px; max-height: 80vh; display: flex; flex-direction: column; background: #111827; border: 1px solid #374151; height: auto;">
                 <h3 style="margin-top: 0; color: #fff; border-bottom: 1px solid #374151; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-                    <span>⚔️ Histórico de Combate</span>
+                    <span>Histórico de Combate</span>
                     <button onclick="document.getElementById('battle-history-modal').style.display='none'" style="background:none; border:none; color:#9ca3af; font-size:1.5rem; cursor:pointer;">&times;</button>
                 </h3>
                 <div style="flex: 1; overflow-y: auto; padding: 10px; font-size: 0.9rem; color: #d1d5db; display: flex; flex-direction: column; gap: 8px;">
@@ -748,39 +793,96 @@ export class GameUI {
             GameState.pendingLegendaryAlert = null;
         }
 
+        // Novo aviso: libera um (e só um) confirm para ele
+        GameUI.globalAlertConfirmed = false;
+        GameUI.globalAlertIsMine = isMyTurn;
+
+        // Partida offline na vez de um bot: ninguém vai tocar em "Continuar", então o bot confirma sozinho
+        const alertSeq = ++GameUI.globalAlertSeq;
+        const NetworkForCpu = (window as any).Network || Network;
+        if (isMyTurn && !NetworkForCpu.isOnline && GameState.getCurrentPlayer()?.isCPU) {
+            window.setTimeout(() => {
+                if (alertSeq === GameUI.globalAlertSeq && !GameUI.globalAlertConfirmed) (window as any).Game.confirmGlobalAlert();
+            }, 2200);
+        }
+        if (GameUI.globalAlertTyper) GameUI.globalAlertTyper.finish();
+
         let modal = document.getElementById('custom-global-alert');
         if (!modal) {
             modal = document.createElement('div');
             modal.id = 'custom-global-alert';
-            modal.style.cssText = "position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.85); display:flex; justify-content:center; align-items:center; z-index:9999;";
-            modal.innerHTML = `
-                <div style="background:#2b2d42; border:3px solid #8d99ae; border-radius:12px; padding:25px; color:white; text-align:center; min-width:300px; max-width:500px; box-shadow:0 10px 25px rgba(0,0,0,0.8);">
-                    <h3 style="margin-top:0; color:#edf2f4; font-size:1.5rem; border-bottom:1px solid #8d99ae; padding-bottom:10px;">Aviso do Tabuleiro</h3>
-                    <p id="cga-msg" style="margin:25px 0; font-size:1.2rem; color:#edf2f4;"></p>
-                    <div id="cga-controls"></div>
-                </div>
-            `;
+            modal.className = 'pb-board-alert';
             document.body.appendChild(modal);
+            GameUI.installGlobalAlertKeys();
         }
 
-        document.getElementById('cga-msg')!.innerText = displayMsg;
-        const controls = document.getElementById('cga-controls')!;
+        // Caixa de fala do jogador: retrato, etiqueta de nome e texto em máquina de escrever
+        const speaker = GameState.players.find((pl: any) => pl.name === playerName);
+        const { box, text, footer } = GameDialog.buildSayBox({ name: playerName || 'Tabuleiro', portrait: speaker?.avatar });
+        text.id = 'cga-msg';
+        footer.id = 'cga-controls';
+        modal.replaceChildren(box);
 
         if (isMyTurn) {
-            controls.innerHTML = `<button class="btn" style="background-color:#ef233c; padding:10px 30px; font-size:1.1rem; margin:0;" onclick="window.Game.confirmGlobalAlert()">OK</button>`;
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'btn btn-roll';
+            btn.textContent = 'Continuar';
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                btn.disabled = true;
+                (window as any).Game.confirmGlobalAlert();
+            });
+            footer.appendChild(btn);
         } else {
-            controls.innerHTML = `
-                <div style="display: flex; flex-direction: column; align-items: center; gap: 15px;">
-                    <span style="color:#8d99ae; font-style:italic; font-size:1rem;">⏳ Aguardando ${playerName} confirmar...</span>
-                    <button class="btn" style="background:transparent; border:1px solid #7f8c8d; color:#7f8c8d; font-size:0.8rem; padding:5px 15px; margin:0;" onclick="window.Game.closeGlobalAlert()">❌ Fechar Aviso</button>
-                </div>
-            `;
+            const wait = document.createElement('span');
+            wait.className = 'pb-say-wait';
+            wait.textContent = `Aguardando ${playerName} confirmar...`;
+            const close = document.createElement('button');
+            close.type = 'button';
+            close.className = 'btn btn-ghost';
+            close.textContent = 'Fechar aviso';
+            close.addEventListener('click', (e) => { e.stopPropagation(); (window as any).Game.closeGlobalAlert(); });
+            footer.append(wait, close);
         }
 
+        // Tocar na caixa termina a digitação da linha
+        box.addEventListener('click', () => GameUI.globalAlertTyper?.finish());
+
         modal.style.display = 'flex';
+        const typer = GameDialog.typewriter(text, displayMsg);
+        GameUI.globalAlertTyper = typer;
+        typer.promise.then(() => { if (GameUI.globalAlertTyper === typer) box.classList.add('is-done'); });
+        const primary = footer.querySelector('button');
+        if (primary && isMyTurn) (primary as HTMLButtonElement).focus({ preventScroll: true });
+    }
+
+    /** Evita confirmar o mesmo aviso duas vezes (dois nextTurn seria um bug de turno). */
+    static globalAlertConfirmed = false;
+    static globalAlertSeq = 0;
+    static globalAlertIsMine = false;
+    static globalAlertTyper: { finish(): void; readonly done: boolean } | null = null;
+    private static globalAlertKeysInstalled = false;
+
+    private static installGlobalAlertKeys() {
+        if (GameUI.globalAlertKeysInstalled) return;
+        GameUI.globalAlertKeysInstalled = true;
+        document.addEventListener('keydown', (e) => {
+            if (e.key !== 'Enter' && e.key !== ' ') return;
+            const modal = document.getElementById('custom-global-alert');
+            if (!modal || modal.style.display === 'none') return;
+            if (GameDialog.isOpen()) return;
+            const t = e.target as HTMLElement | null;
+            if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+            e.preventDefault();
+            if (GameUI.globalAlertTyper && !GameUI.globalAlertTyper.done) { GameUI.globalAlertTyper.finish(); return; }
+            if (GameUI.globalAlertIsMine && !e.repeat) (window as any).Game.confirmGlobalAlert();
+        });
     }
 
     static confirmGlobalAlert() {
+        if (GameUI.globalAlertConfirmed) return;
+        GameUI.globalAlertConfirmed = true;
         const NetworkObj = (window as any).Network || Network;
         this.closeGlobalAlert();
 
@@ -1406,7 +1508,8 @@ export class GameUI {
             modalContent.style.overflowY = "auto";
         }
 
-        if (NetworkObj.isOnline && pId !== NetworkObj.myPlayerId) return alert("Privado!");
+        if (NetworkObj.isOnline && NetworkObj.isSpectator) return GameDialog.toast("Modo espectador: as cartas dos jogadores ficam ocultas.", { tone: 'info' });
+        if (NetworkObj.isOnline && pId !== NetworkObj.myPlayerId) return GameDialog.toast("As cartas dos outros jogadores são privadas.", { tone: 'warning' });
 
         const p = GameState.players[pId];
         const list = document.getElementById('board-cards-list')!;
@@ -1414,18 +1517,7 @@ export class GameUI {
 
         const isMobile = window.innerWidth <= 1000;
 
-        if (isMobile) {
-            list.style.display = 'flex';
-            list.style.flexDirection = 'column';
-            list.style.gap = '10px';
-            list.style.padding = '10px';
-        } else {
-            list.style.display = 'grid';
-            list.style.gridTemplateColumns = 'repeat(auto-fill, minmax(180px, 1fr))';
-            list.style.gap = '25px';
-            list.style.padding = '20px';
-        }
-        list.style.width = '100%';
+        list.style.cssText = 'display: flex; flex-direction: column; gap: 12px; width: 100%; padding: 4px 0; overflow: visible;';
 
         const isMe = !NetworkObj.isOnline || (p.id === NetworkObj.myPlayerId);
 
@@ -1436,7 +1528,7 @@ export class GameUI {
             const sacBtn = document.createElement('button');
             sacBtn.className = 'btn btn-sacrifice';
             sacBtn.style.flex = '1';
-            sacBtn.innerHTML = isMobile ? `<span>🔥 SACRIFICAR</span>` : `<span>🔥 SACRIFICAR (2 ➡ Random)</span>`;
+            sacBtn.innerHTML = isMobile ? `<span>Sacrificar</span>` : `<span>Sacrificar (2 → 1 aleatória)</span>`;
             sacBtn.onclick = () => {
                 document.getElementById('board-cards-modal')!.style.display = 'none';
                 (window as any).Cards.openSacrificeModal();
@@ -1447,7 +1539,7 @@ export class GameUI {
                 const mergeBtn = document.createElement('button');
                 mergeBtn.className = 'btn btn-merge';
                 mergeBtn.style.flex = '1';
-                mergeBtn.innerHTML = isMobile ? `<span>💎 FUNDIR</span>` : `<span>💎 FUNDIR (Raridade +1)</span>`;
+                mergeBtn.innerHTML = isMobile ? `<span>Fundir</span>` : `<span>Fundir (raridade +1)</span>`;
                 mergeBtn.onclick = () => {
                     document.getElementById('board-cards-modal')!.style.display = 'none';
                     (window as any).Cards.openMergeModal();
@@ -1486,70 +1578,9 @@ export class GameUI {
             return a.name.localeCompare(b.name);
         });
 
-        filteredCards.forEach((c) => {
-            const originalIndex = p.cards.indexOf(c);
-            const rData = CARD_RARITIES[c.rarity];
-            let borderColor = rData ? rData.color : '#8d99ae';
-            if (c.isProtected) borderColor = '#f1c40f'; // Golden border for protected
-
-            const d = document.createElement('div');
-
-            const btnBaseStyle = "width:100%; padding:8px; border:none; border-radius:4px; color:white; font-weight:bold; cursor:pointer;";
-            let actionBtn = '';
-
-            if (c.isProtected) {
-                if (canUseMove) actionBtn = `<button class="btn" style="${btnBaseStyle} background:#f39c12; color:#fff;" onclick="window.Cards.unprotectCard(${p.id}, ${originalIndex})">🔓 DESPROTEGER</button>`;
-                else actionBtn = `<button class="btn" disabled style="${btnBaseStyle} background:#7f8c8d; cursor:not-allowed;" title="Só pode desproteger no seu turno">PROTEGIDA</button>`;
-            } else {
-                if (c.type === 'move') {
-                    if (canUseMove) actionBtn = `<button class="btn" style="${btnBaseStyle} background:#2ecc71;" onclick="window.Cards.activate('${c.id}')">USAR</button>`;
-                    else actionBtn = `<button class="btn" disabled style="${btnBaseStyle} background:#7f8c8d; cursor:not-allowed;" title="Só pode usar antes de rolar o dado">USAR</button>`;
-                } else if (c.type === 'global') {
-                    if (canUseMove) actionBtn = `<button class="btn" style="${btnBaseStyle} background:#e74c3c;" title="Afeta o mundo todo!" onclick="window.Cards.activate('${c.id}')">GLOBAL</button>`;
-                    else actionBtn = `<button class="btn" disabled style="${btnBaseStyle} background:#7f8c8d; cursor:not-allowed;" title="Só pode usar antes de rolar o dado no seu turno">GLOBAL</button>`;
-                } else if (c.type === 'auto') {
-                    actionBtn = `<button class="btn" disabled style="${btnBaseStyle} background:#8e44ad; cursor:not-allowed;" title="Esta carta ativa automaticamente">AUTO</button>`;
-                } else {
-                    actionBtn = `<button class="btn" disabled style="${btnBaseStyle} background:#555; cursor:not-allowed;" title="Esta carta só pode ser usada em Batalha">BATTLE</button>`;
-                }
-            }
-
-            const isProtectedTag = c.isProtected ? `<div style="font-size: 0.7rem; color: #f1c40f; font-weight: bold; margin-top:2px;">🔒 Protegida</div>` : ``;
-
-            if (isMobile) {
-                d.style.cssText = `display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; border-left: 5px solid ${borderColor}; width: 100%; box-sizing: border-box; margin-bottom: 2px;`;
-                d.innerHTML = `
-                    <div class="mobile-card-info" style="text-align: left; flex: 1; padding-right: 10px; cursor: zoom-in;">
-                        <div style="font-weight: bold; color: #fff; font-size: 0.9rem;">${c.icon} ${c.name}</div>
-                        <div style="font-size: 0.7rem; color: ${borderColor}; font-weight: bold;">${c.rarity.toUpperCase()} | ${c.type.toUpperCase()}</div>
-                        ${isProtectedTag}
-                        <div style="font-size: 0.75rem; color: #ccc; margin-top: 3px; line-height: 1.2;">${c.desc}</div>
-                    </div>
-                    <div style="width: 80px; flex-shrink: 0;">
-                        ${actionBtn}
-                    </div>
-                `;
-            } else {
-                d.style.cssText = "display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); width: 100%; box-sizing: border-box; position: relative;";
-                const protectedBadge = c.isProtected ? `<div style="position: absolute; top: -10px; left: -10px; font-size: 1.5rem; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8)); z-index: 15;" title="Carta Protegida">🔒</div>` : '';
-
-                d.innerHTML = `
-                    ${protectedBadge}
-                    <div style="position: absolute; top: -5px; right: -5px; background: ${borderColor}; color: #fff; padding: 2px 6px; font-size: 0.7rem; border-radius: 10px; font-weight: bold; border: 1px solid #222; text-shadow: 1px 1px 0 #000; box-shadow: 0 2px 4px rgba(0,0,0,0.5); z-index: 10;">
-                        ${c.rarity.toUpperCase()}
-                    </div>
-                    <img class="desktop-card-img" src="/assets/img/Cartas/${c.id}.jpg" alt="${c.name}" title="${c.desc}" style="width: 100%; aspect-ratio: 2.5/3.5; object-fit: fill; border-radius: 6px; border: 3px solid ${borderColor}; cursor: zoom-in;">
-                    <div style="margin-top: 8px; width: 100%;">${actionBtn}</div>
-                `;
-            }
-            list.appendChild(d);
-
-            const mobileInfo = d.querySelector('.mobile-card-info') as HTMLElement;
-            if (mobileInfo) mobileInfo.onclick = () => GameUI.showCardZoom(c.id);
-
-            const desktopImg = d.querySelector('.desktop-card-img') as HTMLElement;
-            if (desktopImg) desktopImg.onclick = () => GameUI.showCardZoom(c.id);
-        });
+        if (filteredCards.length) {
+            CardHand.render(list, p, filteredCards, { isMe, canUseMove, onZoom: (id) => GameUI.showCardZoom(id) });
+        }
 
         document.getElementById('board-cards-modal')!.style.display = 'flex';
     }
@@ -1648,9 +1679,9 @@ export class GameUI {
         list.innerHTML = '';
         if (filterId === null) {
             const searchContainer = document.createElement('div');
-            searchContainer.style.cssText = "width: 100%; grid-column: 1 / -1; margin-bottom: 20px; display: flex; gap: 10px;";
+            searchContainer.style.cssText = "width: 100%; grid-column: 1 / -1; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 10px;";
             searchContainer.innerHTML = `
-                <input type="text" id="pokedex-search" placeholder="🔍 Buscar Pokémon por nome..." style="flex: 1; padding: 12px 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); font-size: 1rem; box-sizing: border-box; background: rgba(0,0,0,0.3); color: #fff; outline: none; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);" onkeyup="window.Game.filterPokedex()">
+                <input type="text" id="pokedex-search" placeholder="Buscar Pokémon por nome" style="flex: 1; padding: 12px 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); font-size: 1rem; box-sizing: border-box; background: rgba(0,0,0,0.3); color: #fff; outline: none; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);" onkeyup="window.Game.filterPokedex()">
                 <select id="pokedex-category-filter" style="padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); font-size: 1rem; background: rgba(0,0,0,0.3); color: #fff; outline: none; cursor: pointer;" onchange="window.Game.filterPokedex()">
                     <option value="all" style="background:#222; color:#fff;">Todos</option>
                     <option value="seen" style="background:#222; color:#fff;">Vistos</option>

@@ -6,6 +6,7 @@ import { MapSystem } from '../systems/MapSystem';
 import { SupabaseDataStore } from '../modules/network/SupabaseDataStore';
 import { GameSpawns } from '../modules/game/GameSpawns';
 import { GameState } from '../modules/game/GameState';
+import { GameDialog } from '../modules/ui/GameDialog';
 
 export class Setup {
     static showOfflineSetup() { 
@@ -54,7 +55,7 @@ export class Setup {
             });
 
             if (isAvatarTaken) {
-                alert("Este avatar já foi escolhido por outro jogador! Escolha outro.");
+                GameDialog.toast("Este avatar já foi escolhido por outro jogador. Escolha outro.", { tone: 'warning' });
                 const me = players.find((p: any) => p.local_index === Network.myPlayerId);
                 if (me && me.avatar) {
                     const avFile = me.avatar.split('/').pop();
@@ -195,7 +196,7 @@ export class Setup {
         container.innerHTML = `<div class="rooms-hub-empty"><span class="rooms-hub-empty-mark" aria-hidden="true"></span><h3>${title}</h3><p>${message}</p></div>`;
     }
 
-    private static renderRoomCards(container: HTMLElement, modal: HTMLElement, rooms: any[], type: 'active' | 'open') {
+    private static renderRoomCards(container: HTMLElement, modal: HTMLElement, rooms: any[], type: 'active' | 'open' | 'watch') {
         container.innerHTML = rooms.map((room: any) => {
             const players = room.room_players || [];
             const hostName = players.find((player: any) => player.local_index === 0)?.name || 'Desconhecido';
@@ -204,9 +205,11 @@ export class Setup {
             const roomName = this.escapeHubText(roomCode);
             const host = this.escapeHubText(hostName);
             const isActive = type === 'active';
-            const state = isActive ? 'Em andamento' : 'Aguardando jogadores';
-            const detail = isActive ? `Rodada ${room.current_round || 1}` : `${playerCount}/8 jogadores`;
-            const action = isActive ? 'Reconectar' : 'Entrar na sala';
+            const isWatch = type === 'watch';
+            const state = (isActive || isWatch) ? 'Em andamento' : 'Aguardando jogadores';
+            const detail = (isActive || isWatch) ? `Rodada ${room.current_round || 1}` : `${playerCount}/8 jogadores`;
+            const action = isActive ? 'Reconectar' : isWatch ? 'Assistir' : 'Entrar na sala';
+            const target = isWatch ? `data-watch-room="${this.escapeHubText(room.id)}"` : `data-room-code="${roomName}"`;
 
             return `<article class="rooms-hub-card rooms-hub-card--${type}">
                 <header class="rooms-hub-card-header">
@@ -217,7 +220,7 @@ export class Setup {
                     <div><dt>Host</dt><dd>${host}</dd></div>
                     <div><dt>Jogadores</dt><dd>${playerCount}/8</dd></div>
                 </dl>
-                <button type="button" class="rooms-hub-card-action" data-room-code="${roomName}">${action}<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h13M13 7l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+                <button type="button" class="rooms-hub-card-action" ${target}>${action}<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h13M13 7l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
             </article>`;
         }).join('');
 
@@ -227,11 +230,30 @@ export class Setup {
                 Network.joinRoom(button.dataset.roomCode || '');
             });
         });
+
+        container.querySelectorAll<HTMLButtonElement>('[data-watch-room]').forEach(button => {
+            button.addEventListener('click', () => {
+                modal.style.display = 'none';
+                Network.spectateRoom(button.dataset.watchRoom || '');
+            });
+        });
+    }
+
+    private static renderSearchTabs(container: HTMLElement, active: 'open' | 'watch'): HTMLElement {
+        container.innerHTML = `<div class="rooms-hub-tabs" role="tablist">
+                <button type="button" role="tab" class="rooms-hub-tab${active === 'open' ? ' is-active' : ''}" aria-selected="${active === 'open'}" data-hub-tab="open">Abertas</button>
+                <button type="button" role="tab" class="rooms-hub-tab${active === 'watch' ? ' is-active' : ''}" aria-selected="${active === 'watch'}" data-hub-tab="watch">Em andamento</button>
+            </div>
+            <div class="rooms-hub-tab-panel"></div>`;
+        container.querySelectorAll<HTMLButtonElement>('[data-hub-tab]').forEach(button => {
+            button.addEventListener('click', () => this.openSearchHub(button.dataset.hubTab as 'open' | 'watch'));
+        });
+        return container.querySelector('.rooms-hub-tab-panel') as HTMLElement;
     }
 
     static async openUserRoomsHub() {
         const username = (window as any).loggedUser;
-        if (!username) return alert('Erro: Usuário não está logado!');
+        if (!username) return GameDialog.toast('Você precisa estar logado para ver suas salas.', { tone: 'danger' });
 
         const modal = document.getElementById('rooms-hub-modal')!;
         const container = document.getElementById('rooms-hub-container')!;
@@ -264,27 +286,42 @@ export class Setup {
         }
     }
 
-    static async openSearchHub() {
+    static async openSearchHub(tab: 'open' | 'watch' = 'open') {
         const modal = document.getElementById('rooms-hub-modal')!;
         const container = document.getElementById('rooms-hub-container')!;
-        this.setRoomsHubHeading('Partidas abertas', 'Encontre uma sala disponível e entre na aventura.');
-        this.renderRoomsHubLoading(container, 'Procurando salas disponíveis...');
+        const isWatch = tab === 'watch';
+        this.setRoomsHubHeading(
+            isWatch ? 'Partidas em andamento' : 'Partidas abertas',
+            isWatch ? 'Assista a uma partida como espectador. As cartas dos jogadores ficam ocultas.' : 'Encontre uma sala disponível e entre na aventura.'
+        );
         modal.style.display = 'flex';
+        const panel = this.renderSearchTabs(container, tab);
+        this.renderRoomsHubLoading(panel, isWatch ? 'Procurando partidas em andamento...' : 'Procurando salas disponíveis...');
 
         try {
-            const { data: rooms, error } = await supabase.from('rooms').select('*, room_players(*)').eq('status', 'waiting');
+            const { data: rooms, error } = await supabase.from('rooms').select('*, room_players(*)').eq('status', isWatch ? 'playing' : 'waiting').order('created_at', { ascending: false });
             if (error) throw error;
 
-            const openRooms = (rooms || []).filter((room: any) => (room.room_players || []).length < 8);
-            if (!openRooms.length) {
-                this.renderRoomsHubEmpty(container, 'Nenhuma sala disponível', 'Crie uma sala e convide sua equipe para começar uma partida.');
+            if (isWatch) {
+                const liveRooms = (rooms || []).filter((room: any) => (room.room_players || []).length > 0);
+                if (!liveRooms.length) {
+                    this.renderRoomsHubEmpty(panel, 'Nenhuma partida em andamento', 'Quando alguém estiver jogando, a partida aparecerá aqui.');
+                    return;
+                }
+                this.renderRoomCards(panel, modal, liveRooms, 'watch');
                 return;
             }
 
-            this.renderRoomCards(container, modal, openRooms, 'open');
+            const openRooms = (rooms || []).filter((room: any) => (room.room_players || []).length < 8);
+            if (!openRooms.length) {
+                this.renderRoomsHubEmpty(panel, 'Nenhuma sala disponível', 'Crie uma sala e convide sua equipe para começar uma partida.');
+                return;
+            }
+
+            this.renderRoomCards(panel, modal, openRooms, 'open');
         } catch (error) {
-            console.error('Erro ao buscar partidas abertas:', error);
-            this.renderRoomsHubEmpty(container, 'Não foi possível buscar partidas', 'Tente novamente em alguns instantes.');
+            console.error('Erro ao buscar partidas:', error);
+            this.renderRoomsHubEmpty(panel, 'Não foi possível buscar partidas', 'Tente novamente em alguns instantes.');
         }
     }
 
@@ -320,6 +357,7 @@ export class Setup {
         document.getElementById('setup-screen')!.style.display = 'none';
         document.getElementById('game-container')!.style.display = 'flex';
         Game.init(ps, mapSize, settings);
+        (window as any).Cinematics?.loading();
     }
 
     // START ONLINE (Host)
@@ -433,7 +471,7 @@ export class Setup {
                 
             } catch (err: any) {
                 console.error(err);
-                alert("Erro ao iniciar jogo no Supabase: " + (err.message || JSON.stringify(err)));
+                GameDialog.alert("Não foi possível iniciar a partida online.\n\n" + (err.message || JSON.stringify(err)), { title: 'Erro ao iniciar jogo' });
             }
         }
     }

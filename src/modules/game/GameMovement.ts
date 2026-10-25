@@ -5,8 +5,11 @@ import { Battle } from '../../systems/Battle';
 import { GameState } from './GameState';
 import { GameUI } from './GameUI';
 import { GameEvents } from './GameEvents';
+import { GameDialog } from '../ui/GameDialog';
 
 export class GameMovement {
+    /** true enquanto o diálogo de insígnias/campeão está aberto (bloqueia rolagens repetidas). */
+    static badgeDialogOpen = false;
 
     static forceDice(val: number) {
         GameState.forcedDiceValue = val;
@@ -36,17 +39,37 @@ export class GameMovement {
         const targetBadges = MapSystem.size === 7 ? 4 : 8;
 
         if (badgesCount === targetBadges) {
+            // Evita abrir o mesmo diálogo duas vezes com toques repetidos no botão de rolar
+            if (GameMovement.badgeDialogOpen) return;
             if (MapSystem.size === 7) {
-                alert("🏆 PARABÉNS! Você conseguiu as 4 Insígnias e venceu o jogo!");
+                // Avisa os outros jogadores na hora; o diálogo local não pode atrasar o anúncio da vitória
                 const NetworkObj = (window as any).Network;
                 if (NetworkObj && NetworkObj.isOnline) {
                     NetworkObj.sendAction('GAME_WIN', { winnerId: p.id });
+                }
+                if (!p.isCPU) {
+                    GameMovement.badgeDialogOpen = true;
+                    try {
+                        await GameDialog.alert("Você conseguiu as 4 insígnias e venceu o jogo!", { title: 'Parabéns, campeão!', okLabel: 'Continuar' });
+                    } finally { GameMovement.badgeDialogOpen = false; }
                 }
                 GameEvents.triggerVictory(p.id);
                 return;
             }
             if (GameState.globalChampion) {
-                const querLutar = confirm(`🏆 VOCÊ TEM AS 8 INSÍGNIAS!\n\nDeseja desafiar o Campeão Atual (${GameState.globalChampion.name}) agora?\n\n(Regras: Sem itens, sem cartas. Vencer = Fim de Jogo!)\n\nClique OK para Lutar ou Cancelar para rolar o dado e se preparar mais.`);
+                const champion = GameState.globalChampion;
+                let querLutar = true; // CPU sempre aceita o desafio (nunca espera por um humano)
+                if (!p.isCPU) {
+                    GameMovement.badgeDialogOpen = true;
+                    try {
+                        querLutar = await GameDialog.confirm(
+                            `Deseja desafiar o campeão atual (${champion.name}) agora?\n\nRegras: sem itens e sem cartas. Vencer encerra o jogo!\n\nSe preferir, role o dado e se prepare mais.`,
+                            { title: 'Você tem as 8 insígnias!', okLabel: 'Desafiar campeão', cancelLabel: 'Rolar o dado' }
+                        );
+                    } finally { GameMovement.badgeDialogOpen = false; }
+                    // O estado pode ter mudado enquanto o diálogo estava aberto
+                    if (GameState.hasRolled || GameState.getCurrentPlayer() !== p) return;
+                }
 
                 if (querLutar) {
                     const BattleObj = (window as any).Battle || Battle;
@@ -54,11 +77,16 @@ export class GameMovement {
                     return;
                 }
             } else {
-                alert("🏆 PARABÉNS! Você conseguiu as 8 Insígnias e é o Primeiro Campeão da Liga!");
                 const NetworkObj = (window as any).Network;
                 if (NetworkObj && NetworkObj.isOnline) {
                     NetworkObj.saveGlobalChampion(p);
                     NetworkObj.sendAction('GAME_WIN', { winnerId: p.id });
+                }
+                if (!p.isCPU) {
+                    GameMovement.badgeDialogOpen = true;
+                    try {
+                        await GameDialog.alert("Você conseguiu as 8 insígnias e é o primeiro campeão da Liga!", { title: 'Parabéns, campeão!', okLabel: 'Continuar' });
+                    } finally { GameMovement.badgeDialogOpen = false; }
                 }
                 GameEvents.triggerVictory(p.id);
                 return;
@@ -103,10 +131,10 @@ export class GameMovement {
 
         const die = document.getElementById('d20-display')!;
         for (let i = 0; i < 5; i++) {
-            die.innerText = `🎲 ${Math.floor(Math.random() * 6) + 1}`;
+            die.innerText = `${Math.floor(Math.random() * 6) + 1}`;
             await new Promise(r => setTimeout(r, 50));
         }
-        die.innerText = `🎲 ${result}`;
+        die.innerText = `${result}`;
 
         GameUI.log(`${GameState.players[playerId].name} tirou ${result}`);
 
@@ -158,7 +186,7 @@ export class GameMovement {
         if (!board) return;
 
         const container = document.createElement('div');
-        container.className = 'dice-container dice-throwing';
+        container.className = 'dice-container dice-throwing pb-dice';
 
         const shadow = document.createElement('div');
         shadow.className = 'dice-shadow';
@@ -183,7 +211,7 @@ export class GameMovement {
                 return `<span class="dice-pip${activePips.has(position) ? ' is-active' : ''}"></span>`;
             }).join('') : `<span class="dice-number">${value}</span>`;
 
-            return `<div class="dice-face face-${role}" aria-label="Dado ${value}"><div class="dice-pips">${pips}</div></div>`;
+            return `<div class="dice-face face-${role}" data-value="${value}" aria-label="Dado ${value}"><div class="dice-pips">${pips}</div></div>`;
         };
 
         const visibleValues = [1, 2, 3, 4, 5, 6].filter(value => value !== result);
@@ -211,10 +239,34 @@ export class GameMovement {
             dice3d.style.transform = finalTransform;
         }, 100);
 
-        await new Promise(r => setTimeout(r, 1900));
+        // Ao parar: a face do resultado brilha, o número salta e o primeiro Pokémon do jogador comemora
+        await new Promise(r => setTimeout(r, 1500));
+        dice3d.querySelector('.face-top')?.classList.add('is-result');
+        const cheer = this.diceCheer(board, result);
+
+        await new Promise(r => setTimeout(r, 700));
 
         container.remove();
         shadow.remove();
+        window.setTimeout(() => cheer.forEach(el => el.remove()), 600);
+    }
+
+    private static diceCheer(board: HTMLElement, result: number): HTMLElement[] {
+        const label = document.createElement('div');
+        label.className = 'pb-dice-result';
+        label.textContent = String(result);
+        board.appendChild(label);
+
+        const roller = GameState.players[GameState.turn];
+        const mon = roller?.team.find(m => !m.isFainted()) || roller?.team[0];
+        if (!mon) return [label];
+        const sprite = document.createElement('img');
+        sprite.className = 'pb-dice-mon';
+        sprite.alt = '';
+        sprite.src = mon.getSprite();
+        sprite.onerror = () => sprite.remove();
+        board.appendChild(sprite);
+        return [label, sprite];
     }
 
     static async movePlayerLogic(steps: number, pId: number) {
@@ -230,6 +282,7 @@ export class GameMovement {
 
         let hitTrap = false;
         let stepsWalked = 0;
+        (window as any).PBBoard?.previewPath?.((window as any).PBBoard.pathFrom(p.x, p.y, steps, (p.effects?.moonwalker || 0) > 0));
 
         for (let i = 0; i < steps; i++) {
             let currentIdx = MapSystem.getIndex(p.x, p.y);
@@ -251,6 +304,7 @@ export class GameMovement {
                         let lapGold = 500;
                         if (GameState.currentGlobalEvent?.id === 'GOLD_RUSH') lapGold *= 2;
                         p.gold += lapGold;
+                        (window as any).Cinematics?.lap(p, lapGold);
 
                         const CardsObj = (window as any).Cards || Cards;
                         CardsObj.draw(p);
@@ -281,6 +335,8 @@ export class GameMovement {
             const trapIdx = GameState.traps.findIndex(t => t.x === p.x && t.y === p.y && t.ownerId !== p.id);
             if (trapIdx > -1) {
                 hitTrap = true;
+                (window as any).PBBoard?.trapFx?.(p.x, p.y);
+                if ((window as any).Network?.isOnline) (window as any).Network.sendAction('BOARD_FX', { kind: 'trap', x: p.x, y: p.y });
 
                 const trap = GameState.traps[trapIdx];
                 const owner = GameState.players.find(op => op.id === trap.ownerId);
@@ -362,6 +418,12 @@ export class GameMovement {
         if (!p) return;
         p.x = x;
         p.y = y;
+        const board = (window as any).PBBoard;
+        if (board && !board.failed) {
+            board.flashTile(x, y);
+            GameUI.moveVisuals();
+            return;
+        }
         const tile = document.getElementById(`tile-${x}-${y}`);
         if (tile) {
             tile.classList.add('step-highlight');

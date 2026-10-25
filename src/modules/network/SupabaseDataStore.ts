@@ -247,6 +247,15 @@ export class SupabaseDataStore {
     static async replaceKeyValues(table: 'player_effects' | 'player_stats', playerId: string, record: any) {
         const rows = flattenRecord(record).map(row => ({ player_id: playerId, key: row.key, value: row.value }));
         if (rows.length) await supabase.from(table).upsert(rows, { onConflict: 'player_id,key' });
+
+        // Remove chaves apagadas localmente (ex: delete effects.lureType), senão voltariam no próximo refresh
+        const staleDelete = supabase.from(table).delete().eq('player_id', playerId);
+        if (rows.length) {
+            const keyList = rows.map(row => `"${row.key.replace(/"/g, '\\"')}"`).join(',');
+            await staleDelete.not('key', 'in', `(${keyList})`);
+        } else {
+            await staleDelete;
+        }
     }
 
     static async replacePokedex(playerId: string, pokedexData: any) {

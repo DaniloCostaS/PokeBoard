@@ -19,6 +19,7 @@ import type { ItemData } from '../../constants';
 import { supabase } from '../network/SupabaseInit';
 import { NetworkSync } from '../network/NetworkSync';
 import { SupabaseDataStore } from '../network/SupabaseDataStore';
+import { GameDialog } from '../ui/GameDialog';
 
 export class GameEvents {
 
@@ -55,6 +56,7 @@ export class GameEvents {
         }
 
         document.getElementById('victory-modal')!.style.display = 'flex';
+        (window as any).Cinematics?.podium(winnerId);
         console.log("GAME OVER - VITORIA!");
 
         const NetworkObj = (window as any).Network || Network;
@@ -101,9 +103,10 @@ export class GameEvents {
         GameUI.moveVisuals();
         GameUI.updateHUD();
 
+        // Só o dono do turno persiste a derrota (salva o objeto recebido, não a cópia de Game.players)
         const NetworkObj = (window as any).Network || Network;
-        if (NetworkObj.isOnline && p.id === NetworkObj.myPlayerId) {
-            NetworkObj.syncPlayerState();
+        if (NetworkObj.isOnline && GameState.canAct()) {
+            NetworkObj.syncPlayerObjects([p]);
         }
     }
 
@@ -171,6 +174,9 @@ export class GameEvents {
 
         const type = MapSystem.grid[p.y][p.x];
         const enemy = GameState.players.find(o => o !== p && o.x === p.x && o.y === p.y);
+        (window as any).PBBoard?.onLand?.(p.x, p.y, type, !!enemy);
+        // Os outros jogadores também veem o efeito da casa (só a vez de quem anda roda esta lógica)
+        if (NetworkObj.isOnline && (!GameState.canAct || GameState.canAct())) NetworkObj.sendAction('BOARD_FX', { kind: 'land', x: p.x, y: p.y, type, pvp: !!enemy });
 
         if (enemy) {
             const defMon = enemy.team.find(m => !m.isFainted());
@@ -450,12 +456,12 @@ export class GameEvents {
                     NetworkObj.sendAction('SHOW_ALERT', { msg: remoteMsg, playerName: player.name });
                 }
             } else {
-                alert("Ouro insuficiente! Você precisa de 500G para comprar uma carta.");
+                GameDialog.toast("Ouro insuficiente! Você precisa de 500G para comprar uma carta.", { tone: 'warning' });
             }
         }
         else if (c === 'quest') {
             if (player.boughtQuestThisTurn) {
-                return alert("Você já comprou uma missão nesta visita à cidade!");
+                return GameDialog.toast("Você já comprou uma missão nesta visita à cidade!", { tone: 'warning' });
             }
             if (player.gold >= 300) {
                 player.gold -= 300;
@@ -477,7 +483,7 @@ export class GameEvents {
                     NetworkObj.syncPlayerState();
                 }
             } else {
-                alert("Ouro insuficiente! Você precisa de 300G para comprar uma missão.");
+                GameDialog.toast("Ouro insuficiente! Você precisa de 300G para comprar uma missão.", { tone: 'warning' });
             }
         }
         else if (c === 'shop') {
@@ -537,6 +543,8 @@ export class GameEvents {
         if (currentP.effects.extraTurn) {
             currentP.effects.extraTurn = false;
             GameState.hasRolled = false;
+            // Persiste o consumo do turno extra, senão um refresh traria extraTurn=true de volta
+            if (NetworkObj && NetworkObj.isOnline) NetworkObj.syncPlayerObjects([currentP]);
             GameUI.sendGlobalLog(`⏳ ${currentP.name} joga novamente!`);
             GameUI.updateHUD();
             this.checkTurnControl();
@@ -619,6 +627,9 @@ export class GameEvents {
             }
         }
 
+        // Persiste o jogador que está encerrando o turno ANTES de passar a vez (depois disso a trava de turno bloqueia a gravação)
+        if (NetworkObj.isOnline && NetworkSync) NetworkSync.syncPlayerStateAsync();
+
         GameState.turn = nextTurnIdx;
         GameState.hasRolled = false;
 
@@ -630,8 +641,6 @@ export class GameEvents {
                 event_end_round: GameState.eventEndRound
             }).eq('id', NetworkObj.currentRoomId).then();
             SupabaseDataStore.saveRoomConfig(NetworkObj.currentRoomId, GameState.settings, MapSystem.size).then();
-            
-            if (NetworkSync) NetworkSync.syncPlayerStateAsync();
         } else if (!NetworkObj.isOnline) {
             const nextP = GameState.players[GameState.turn];
             if (nextP.skipTurns > 0) {
@@ -639,7 +648,7 @@ export class GameEvents {
                 if (!nextP.stats) nextP.stats = { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
                 nextP.stats.turnsLost++;
                 GameUI.sendGlobalLog(`${nextP.name} perdeu a vez! (Restam: ${nextP.skipTurns})`);
-                alert(`${nextP.name} perdeu a vez!`);
+                GameDialog.toast(`${nextP.name} perdeu a vez!`, { tone: 'info' });
                 this.nextTurn();
                 return;
             }
@@ -685,7 +694,7 @@ export class GameEvents {
             if (iniciarBtn) {
                 iniciarBtn.style.display = '';
                 iniciarBtn.disabled = false;
-                iniciarBtn.innerText = '🎮 Iniciar Turno';
+                iniciarBtn.innerText = 'Iniciar turno';
             }
             // 🔔 Notifica o jogador se ele não estiver olhando para a aba
             if (NetworkObj.isOnline) {
@@ -708,7 +717,7 @@ export class GameEvents {
             if (gymId && !currP.badges[gymId - 1]) {
                 if (GameState.currentGlobalEvent?.id !== 'GYM_VACATION' && !currP.effects.escapedGym) {
                     rollBtn.disabled = true;
-                    rollBtn.innerText = "EM BATALHA";
+                    rollBtn.innerText = "Em batalha";
                     if (!BattleObj.active) this.handleTile(currP);
                     return;
                 }
@@ -716,7 +725,7 @@ export class GameEvents {
         }
 
         rollBtn.disabled = false;
-        rollBtn.innerText = "ROLAR";
+        rollBtn.innerText = "Rolar dado";
         
         CPUController.handleTurn();
     }
@@ -737,7 +746,7 @@ export class GameEvents {
         NotificationSystem.cancelPending();
 
         const iniciarBtn = document.getElementById('iniciar-turno-btn') as HTMLButtonElement;
-        if (iniciarBtn) { iniciarBtn.disabled = true; iniciarBtn.innerText = '⏳ Iniciando...'; }
+        if (iniciarBtn) { iniciarBtn.disabled = true; iniciarBtn.innerText = 'Iniciando...'; }
 
         const currP = GameState.players[NetworkObj.isOnline ? me : GameState.turn];
         GameUI.sendGlobalLog(`▶️ ${currP.name} iniciou o turno.`);
@@ -871,7 +880,7 @@ export class GameEvents {
         // Bloquear uso de itens do tabuleiro se o turno ainda não foi iniciado
         const NetworkObj = (window as any).Network || Network;
         if (NetworkObj.isOnline && !GameState.turnStarted && GameState.turn === NetworkObj.myPlayerId) {
-            alert('⏳ Clique em "Iniciar Turno" antes de usar itens!');
+            GameDialog.toast('Toque em "Iniciar turno" antes de usar itens!', { tone: 'warning' });
             return;
         }
         if (item.type === 'heal' || item.type === 'revive' || item.type === 'boost' || item.type === 'mega' || item.type === 'hold') {
@@ -889,7 +898,7 @@ export class GameEvents {
             if (p.isCPU) {
                 if (Game && typeof Game.log === 'function') Game.log(`🤖 CPU: ${msg}`);
             } else {
-                alert(msg);
+                GameDialog.toast(msg, { tone: 'info' });
             }
         };
 
@@ -1086,7 +1095,7 @@ export class GameEvents {
             CardsObj.draw(p, true);
             GameUI.sendGlobalLog(`🛠️ ADMIN HOST: Concedeu 1 Carta Aleatória para ${p.name}!`);
             const NetworkObj = (window as any).Network;
-            if (NetworkObj && NetworkObj.isOnline) NetworkObj.syncSpecificPlayer(p.id);
+            if (NetworkObj && NetworkObj.isOnline) NetworkObj.syncSpecificPlayer(p.id, true);
             GameUI.updateHUD();
         }
     }
@@ -1106,7 +1115,7 @@ export class GameEvents {
             CardsObj.drawSpecificCard(p, cardId);
             GameUI.sendGlobalLog(`🛠️ ADMIN HOST: Concedeu uma Carta Específica para ${p.name}!`);
             const NetworkObj = (window as any).Network;
-            if (NetworkObj && NetworkObj.isOnline) NetworkObj.syncSpecificPlayer(p.id);
+            if (NetworkObj && NetworkObj.isOnline) NetworkObj.syncSpecificPlayer(p.id, true);
             GameUI.updateHUD();
         }
     }
@@ -1125,7 +1134,7 @@ export class GameEvents {
         QuestManager.addQuest(p, qId, false);
         GameUI.sendGlobalLog(`🛠️ ADMIN HOST: Concedeu uma Missão específica para ${p.name}!`);
         const NetworkObj = (window as any).Network;
-        if (NetworkObj && NetworkObj.isOnline) NetworkObj.syncSpecificPlayer(p.id);
+        if (NetworkObj && NetworkObj.isOnline) NetworkObj.syncSpecificPlayer(p.id, true);
         GameUI.updateHUD();
     }
 
@@ -1142,7 +1151,7 @@ export class GameEvents {
 
         GameUI.sendGlobalLog(`🛠️ ADMIN HOST: Os efeitos de status negativos do jogador ${p.name} foram purificados!`);
         const NetworkObj = (window as any).Network;
-        if (NetworkObj && NetworkObj.isOnline) NetworkObj.syncSpecificPlayer(p.id);
+        if (NetworkObj && NetworkObj.isOnline) NetworkObj.syncSpecificPlayer(p.id, true);
         GameUI.updateHUD();
     }
 
@@ -1160,7 +1169,7 @@ export class GameEvents {
 
         GameUI.sendGlobalLog(`🛠️ ADMIN HOST: Ajustou os turnos a perder de ${p.name} para ${val}!`);
         const NetworkObj = (window as any).Network;
-        if (NetworkObj && NetworkObj.isOnline) NetworkObj.syncSpecificPlayer(p.id);
+        if (NetworkObj && NetworkObj.isOnline) NetworkObj.syncSpecificPlayer(p.id, true);
         GameUI.updateHUD();
     }
 
@@ -1177,7 +1186,7 @@ export class GameEvents {
 
         GameUI.sendGlobalLog(`🛠️ ADMIN HOST: Concedeu ${val} Moedas para ${p.name}!`);
         const NetworkObj = (window as any).Network;
-        if (NetworkObj && NetworkObj.isOnline) NetworkObj.syncSpecificPlayer(p.id);
+        if (NetworkObj && NetworkObj.isOnline) NetworkObj.syncSpecificPlayer(p.id, true);
         GameUI.updateHUD();
     }
 

@@ -447,7 +447,7 @@ export class Pokemon {
 
                 if (!canEvolve) return false;
 
-                const oldName = this.name; 
+                const oldName = this.name; const oldId = this.id;
                 const triggeredAt = this.evoData.trigger; 
                 
                 this.id = next.id; 
@@ -493,7 +493,8 @@ export class Pokemon {
 
                     const msgEvo = `✨ Inacreditável! ${oldName} evoluiu para ${this.name}! (HP Restaurado)`;
 
-                    Game.sendGlobalLog(msgEvo); 
+                    Game.sendGlobalLog(msgEvo);
+                    (window as any).Cinematics?.evolution(player, oldId, oldName, this);
 
                     if (Battle && Battle.active) {
                         Battle.logBattle(msgEvo, true);

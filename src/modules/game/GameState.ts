@@ -7,6 +7,7 @@ import { GameSpawns } from './GameSpawns';
 import { GameUI } from './GameUI';
 import { GameEvents } from './GameEvents';
 import { supabase } from '../network/SupabaseInit';
+import { GameDialog } from '../ui/GameDialog';
 
 export interface GameSettings {
     generations: number[];
@@ -82,7 +83,7 @@ export class GameState {
                         if (this.round >= (data.event_end_round || 0)) {
                             this.currentGlobalEvent = null;
                             this.eventEndRound = 0;
-                            supabase.from('rooms').update({ current_event_id: null, event_end_round: 0 }).eq('id', NetworkObj.currentRoomId).then();
+                            if (NetworkObj.canSyncDatabase()) supabase.from('rooms').update({ current_event_id: null, event_end_round: 0 }).eq('id', NetworkObj.currentRoomId).then();
                         } else {
                             this.currentGlobalEvent = data.current_event_id ? GLOBAL_EVENTS.find((e: any) => e.id === data.current_event_id) || null : null;
                             this.eventEndRound = data.event_end_round || 0;
@@ -161,9 +162,9 @@ export class GameState {
         const json = localStorage.getItem('pk_save');
         if (json) {
             this.loadGameFromData(JSON.parse(json));
-            alert("Partida carregada com sucesso do navegador!");
+            GameDialog.toast("Partida carregada do navegador!", { tone: 'success' });
         } else {
-            alert("Nenhum save encontrado no navegador!");
+            GameDialog.toast("Nenhum save encontrado no navegador.", { tone: 'warning' });
         }
     }
 
@@ -178,7 +179,7 @@ export class GameState {
             a.click();
             URL.revokeObjectURL(url);
         } catch (err: any) {
-            alert("Erro ao exportar save: " + err.message);
+            GameDialog.toast("Erro ao exportar save: " + err.message, { tone: 'danger' });
         }
     }
 
@@ -194,9 +195,9 @@ export class GameState {
                     throw new Error("O arquivo não parece ser um save válido do PokeBoard.");
                 }
                 this.loadGameFromData(data);
-                alert("Save importado e carregado com sucesso!");
+                GameDialog.toast("Save importado e carregado!", { tone: 'success' });
             } catch (err: any) {
-                alert("Erro ao importar save: " + err.message);
+                GameDialog.toast("Erro ao importar save: " + err.message, { tone: 'danger' });
             } finally {
                 input.value = '';
             }

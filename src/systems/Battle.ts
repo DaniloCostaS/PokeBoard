@@ -3,6 +3,7 @@ import { BattleUI } from '../modules/battle/BattleUI';
 import { Player } from '../models/Player';
 import { Pokemon } from '../models/Pokemon';
 import { Cards } from './Cards';
+import { GameDialog } from '../modules/ui/GameDialog';
 
 export class Battle {
 
@@ -111,6 +112,7 @@ export class Battle {
         const p = Game.players.find((pl: any) => pl.id === payload.pId) || Game.players[payload.pId];
         if (!p) return;
 
+        if (!BattleCore.active) setTimeout(() => (window as any).Cinematics?.battleIntro(BattleCore), 0);
         BattleCore.active = true;
         BattleCore.player = p;
         BattleCore.currentTerrain = payload.currentTerrain || 1;
@@ -218,7 +220,7 @@ export class Battle {
             return;
         }
 
-        if (BattleCore.cardsUsedThisBattle >= 3) return alert("🚫 Você já usou o limite máximo de 3 cartas nesta batalha!");
+        if (BattleCore.cardsUsedThisBattle >= 3) return GameDialog.toast("Você já usou o limite máximo de 3 cartas nesta batalha!", { tone: 'warning' });
         const Network = (window as any).Network;
         const Game = (window as any).Game;
 
@@ -242,7 +244,7 @@ export class Battle {
                 Game.showGlobalAlert(jamMsg, BattleCore.player!.name, true, false);
 
                 if (Network.isOnline) {
-                    Network.syncPlayers([BattleCore.player!.id, BattleCore.enemyPlayer.id]);
+                    Network.syncPlayerObjects([BattleCore.player!, BattleCore.enemyPlayer]);
                     Network.sendAction('SHOW_ALERT', { msg: jamMsg, playerName: BattleCore.player!.name, endsTurn: false });
                 }
                 return;

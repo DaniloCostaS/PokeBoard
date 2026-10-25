@@ -11,6 +11,7 @@ export class Network {
     static get isOnline() { return NetworkState.isOnline; }
     static set isOnline(val) { NetworkState.isOnline = val; }
 
+    static get isSpectator() { return NetworkState.isSpectator; }
     static get isHost() { return NetworkState.isHost; }
     static set isHost(val) { NetworkState.isHost = val; }
 
@@ -51,6 +52,8 @@ export class Network {
     static reconnect() { return NetworkActions.reconnect(); }
     static async createRoom() { return await NetworkActions.createRoom(); }
     static async joinRoom(roomCode?: string) { return await NetworkActions.joinRoom(roomCode); }
+    static async spectateRoom(roomId: string) { return await NetworkActions.spectateRoom(roomId); }
+    static leaveSpectator() { NetworkActions.leaveSpectator(); }
     static setupLobbyListener() { NetworkActions.setupLobbyListener(); }
     static async removePlayer(playerId: number) { await NetworkActions.removePlayer(playerId); }
     static async initializeGameFromSupabase() { await NetworkActions.initializeGameFromSupabase(); }
@@ -67,8 +70,10 @@ export class Network {
     static async saveGlobalChampion(player: Player) { await NetworkSync.saveGlobalChampion(player); }
     static syncPlayerState() { NetworkSync.syncPlayerState(); }
     static sendState() { NetworkSync.sendState(); }
-    static syncSpecificPlayer(targetId: number) { NetworkSync.syncSpecificPlayer(targetId); }
-    static syncPlayers(ids: number[]) { NetworkSync.syncPlayers(ids); }
+    static syncSpecificPlayer(targetId: number, force: boolean = false) { NetworkSync.syncSpecificPlayer(targetId, force); }
+    static syncPlayers(ids: number[], force: boolean = false) { NetworkSync.syncPlayers(ids, force); }
+    static syncPlayerObjects(players: Player[], force: boolean = false) { NetworkSync.syncPlayerObjects(players, force); }
+    static canSyncDatabase() { return NetworkSync.canSyncDatabase(); }
     static syncLogs(logs: any[]) { NetworkSync.syncLogs(logs); }
     static syncCardLogs(logs: any[]) { NetworkSync.syncCardLogs(logs); }
     static syncTurn(newTurn: number, newRound: number = 1) { NetworkSync.syncTurn(newTurn, newRound); }
