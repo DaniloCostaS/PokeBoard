@@ -484,10 +484,6 @@ export class BattleUI {
                         this.currentBattleLogs.push(line);
                         GameState.battleLogs[this.currentBattleId] = this.currentBattleLogs;
 
-                        const NetworkObj = (window as any).Network || Network;
-                        if (NetworkObj.isOnline && BattleCore.player && BattleCore.player.id === NetworkObj.myPlayerId) {
-                            NetworkObj.syncBattleLogs(this.currentBattleId, this.currentBattleLogs);
-                        }
                     }
                 }
             });

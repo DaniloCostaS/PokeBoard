@@ -3,7 +3,7 @@ import { BattleCalc } from './BattleCalc';
 import { GameFeel } from '../ui/GameFeel';
 import { Player } from '../../models/Player';
 import { Pokemon } from '../../models/Pokemon';
-import { Network, db } from '../../systems/Network';
+import { Network } from '../../systems/Network';
 import { Cards } from '../../systems/Cards';
 import { MapSystem } from '../../systems/MapSystem';
 import { POKEDEX } from '../../constants/pokedex';
@@ -1439,8 +1439,6 @@ export class BattleCore {
             if (NetworkObj.isOnline) {
                 // Notifica o fim da batalha via ação (para outros clients limparem a UI)
                 NetworkObj.sendAction('BATTLE_END', {});
-                
-                db.from('rooms').update({ battle_active: false }).eq('id', NetworkObj.currentRoomId).then();
             }
             Game.nextTurn();
         } else {
