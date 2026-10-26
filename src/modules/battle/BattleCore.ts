@@ -146,7 +146,8 @@ export class BattleCore {
             this.plyTeamList = player.team.filter(p => !p.isFainted());
         }
 
-        if (this.isNPC) {
+        // Treinador NPC só recebe Mega Pedra com a regra de Megas ativa
+        if (this.isNPC && GameState.settings?.megas !== false) {
             this.oppTeamList.forEach(mon => {
                 if (MAPA_MEGAS[mon.id] && Math.random() < 0.33) {
                     mon.megaStone = true;
@@ -1765,6 +1766,7 @@ export class BattleCore {
     static tryOpponentMegaEvolution(contextMsg: string = "reagiu durante o combate") {
         const Game = (window as any).Game;
         if (Game.currentGlobalEvent?.id === 'MEGA_BLOCK') return;
+        if (GameState.settings?.megas === false) return; // Megas desativadas na sala (vale também para o time do Campeão)
         if (!this.opponent || !this.opponent.megaStone || (this.opponent as any).isTemp) return;
 
         const megaId = MAPA_MEGAS[this.opponent.id];
