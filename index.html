@@ -47,12 +47,12 @@
                     <span class="trainer-brand-name">POKÉBOARD</span>
                 </div>
 
-                <div class="trainer-menu-profile" role="button" tabindex="0" title="Abrir meu perfil" onclick="window.ProfileScreen.open()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.ProfileScreen.open()}">
+                <div class="trainer-menu-profile" role="button" tabindex="0" title="Meu perfil · Pokédex · Conquistas" aria-label="Abrir meu perfil, Pokédex e conquistas" onclick="window.ProfileScreen.open()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.ProfileScreen.open()}">
                     <span class="trainer-profile-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" focusable="false"><circle cx="12" cy="8" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5.4 20c.7-3.3 3-5 6.6-5s5.9 1.7 6.6 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M4 4.5h2M18 4.5h2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
                     </span>
                     <span class="trainer-profile-copy"><small>Treinador conectado</small><strong id="logged-user-display" class="trainer-name">Ash Ketchum</strong></span>
-                    <span class="trainer-profile-status"><i></i>Pronto</span>
+                    <span class="trainer-profile-open"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 5h16v14H4zM8 10h4M8 14h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="16" cy="10" r="1.6" fill="currentColor"/></svg>Meu perfil</span>
                 </div>
 
                 <p class="trainer-menu-eyebrow">Pronto para jogar</p>
@@ -84,10 +84,6 @@
             </div>
 
             <nav class="trainer-menu-utilities" aria-label="Opções da conta">
-                <button type="button" class="trainer-utility-link trainer-profile-link" onclick="window.ProfileScreen.open()">
-                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="8" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5.4 20c.7-3.3 3-5 6.6-5s5.9 1.7 6.6 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-                    <span>Meu perfil · Pokédex · Conquistas</span>
-                </button>
                 <a href="./manual.html" target="_blank" class="trainer-utility-link">
                     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H12v16H6.5A2.5 2.5 0 0 0 4 21.5v-16ZM20 5.5A2.5 2.5 0 0 0 17.5 3H12v16h5.5a2.5 2.5 0 0 1 2.5 2.5v-16Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
                     <span>Manual e regras</span>

@@ -15,6 +15,8 @@ import { SHOP_ITEMS } from '../../constants';
 import type { ItemData } from '../../constants';
 import { GameDialog } from '../ui/GameDialog';
 import { ProfileTracker } from '../profile/ProfileTracker';
+import { SupabaseDataStore } from '../network/SupabaseDataStore';
+import { NetworkState } from '../network/SupabaseInit';
 
 export class BattleCore {
     static active: boolean = false;
@@ -1416,6 +1418,10 @@ export class BattleCore {
         const Game = (window as any).Game;
         const NetworkObj = (window as any).Network || Network;
         this.active = false;
+        // Quem conduziu a batalha guarda o log completo para a sala inteira poder ver depois
+        if (!isRemote && NetworkObj.isOnline && BattleUI.currentBattleId && NetworkState.currentRoomId) {
+            SupabaseDataStore.saveBattleLines(NetworkState.currentRoomId, BattleUI.currentBattleId, [...BattleUI.currentBattleLogs]);
+        }
         BattleUI.currentBattleId = null; // Finaliza a captura de logs isolados
         this.opponent = null;
         this.oppTeamList = [];

@@ -442,16 +442,6 @@ export class NetworkActions {
                         Game.updateHUD();
                     }
                 }
-                // Evento global: quem sorteia/troca o evento (nextTurn, carta Mudança Global, admin) grava no rooms;
-                // sem isto os outros clientes só viam o evento novo depois de recarregar a página
-                if (newRecord.current_event_id !== undefined || newRecord.event_end_round !== undefined) {
-                    const ev = SupabaseDataStore.eventFromRoom(newRecord);
-                    if ((ev.currentGlobalEvent?.id ?? null) !== (Game.currentGlobalEvent?.id ?? null) || ev.eventEndRound !== Game.eventEndRound) {
-                        Game.currentGlobalEvent = ev.currentGlobalEvent;
-                        Game.eventEndRound = ev.eventEndRound;
-                        Game.updateHUD();
-                    }
-                }
             })
             .on('postgres_changes', { event: '*', schema: 'public', table: 'room_players', filter: `room_id=eq.${NetworkState.currentRoomId}` }, () => {
                 this.schedulePlayerRefresh();
@@ -526,12 +516,12 @@ export class NetworkActions {
         ]);
     }
 
-    private static schedulePlayerRefresh() {
+    private static schedulePlayerRefresh(delay: number = 150) {
         if (this.playerRefreshTimer !== null) window.clearTimeout(this.playerRefreshTimer);
         this.playerRefreshTimer = window.setTimeout(() => {
             this.playerRefreshTimer = null;
             this.refreshPlayersFromSupabase();
-        }, 150);
+        }, delay);
     }
 
     private static async refreshPlayersFromSupabase() {
@@ -741,6 +731,8 @@ export class NetworkActions {
         if (turnChanged) Game.turn = turn;
         if (roundChanged) Game.round = round;
         this.clearStaleTurnUi(turn);
+        // Virada de turno: relê os times de todos (pega captura/troca cujo aviso em tempo real se perdeu)
+        if (turnChanged) this.schedulePlayerRefresh(800);
         if (turnChanged || roundChanged || force) {
             Game.updateHUD();
             Game.moveVisuals();

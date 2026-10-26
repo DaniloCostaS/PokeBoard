@@ -187,6 +187,7 @@ export class GameEvents {
         GameUI.sendGlobalLog(this.lastDefeatMsg);
         ProfileTracker.add(p, 'revives_used');
         ProfileTracker.add(p, 'items_used');
+        this.leaveGymFree(p);
         GameUI.moveVisuals();
         GameUI.updateHUD();
         this.persistDefeat(p);
@@ -208,6 +209,7 @@ export class GameEvents {
             GameUI.sendGlobalLog(`💔 ${p.name} perdeu uma vida (${left}). Equipe curada, continua no mesmo lugar.`);
             this.lastDefeatMsg = `💔 ${p.name} sofreu uma derrota total e perdeu uma vida!\nA equipe foi curada e continua de onde estava (${left}).`;
             GameUI.showGlobalAlert(this.lastDefeatMsg, p.name, true, false);
+            this.leaveGymFree(p);
             GameUI.moveVisuals();
             GameUI.updateHUD();
             this.persistDefeat(p);
@@ -235,6 +237,13 @@ export class GameEvents {
         GameUI.moveVisuals();
         GameUI.updateHUD();
         this.persistDefeat(p);
+    }
+
+    // Continua em cima de um ginásio não vencido: no próximo turno sai andando (igual à Fumaça Ninja), sem ser puxado para a batalha de novo
+    private static leaveGymFree(p: Player) {
+        if (MapSystem.grid?.[p.y]?.[p.x] !== TILE.GYM) return;
+        const gymId = MapSystem.gymLocations[`${p.x},${p.y}`];
+        if (gymId && !p.badges[gymId - 1]) p.effects.escapedGym = true;
     }
 
     // Só o dono do turno persiste a derrota (salva o objeto recebido, não a cópia de Game.players)
