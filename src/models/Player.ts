@@ -27,6 +27,10 @@ export class Player {
     boughtQuestThisTurn: boolean = false;
 
     skipTurns: number = 0;
+    // Vidas restantes (sistema de vidas da sala; ver GameState.maxLives)
+    lives: number = 3;
+    // Título e moldura escolhidos no perfil da conta (só visual)
+    cosmetics: { title?: string | null; frame?: string | null } | null = null;
     isProcessingSkip: boolean = false; // Flag local para evitar múltiplos timers
     badges: boolean[] = [false, false, false, false, false, false, false, false];
 

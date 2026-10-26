@@ -50,8 +50,11 @@ export class Network {
     // --- INPUTS E LOBBY ---
     static checkInput() { return NetworkActions.checkInput(); }
     static reconnect() { return NetworkActions.reconnect(); }
-    static async createRoom() { return await NetworkActions.createRoom(); }
-    static async joinRoom(roomCode?: string) { return await NetworkActions.joinRoom(roomCode); }
+    static async generateRoom() { return await NetworkActions.generateRoom(); }
+    static async cancelDraftRoom() { return await NetworkActions.cancelDraftRoom(); }
+    static async leaveLobby() { return await NetworkActions.leaveLobby(); }
+    static async deleteRoom(roomId: string, hostPlayerId?: string) { return await NetworkActions.deleteRoom(roomId, hostPlayerId); }
+    static async joinRoom(roomCode?: string, password?: string) { return await NetworkActions.joinRoom(roomCode, password); }
     static async spectateRoom(roomId: string) { return await NetworkActions.spectateRoom(roomId); }
     static leaveSpectator() { NetworkActions.leaveSpectator(); }
     static setupLobbyListener() { NetworkActions.setupLobbyListener(); }

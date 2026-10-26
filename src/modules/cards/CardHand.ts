@@ -1,15 +1,11 @@
 import { CARD_RARITIES } from '../../constants';
 
-// Mão de cartas em leque: tocar seleciona e mostra o detalhe; usar faz a carta voar para o tabuleiro/batalha.
+// Mão de cartas em leque: tocar seleciona e mostra o detalhe; usar faz a carta voar para o tabuleiro.
 
-export type HandOptions = {
+type HandOptions = {
     isMe: boolean;
-    canUseMove?: boolean;
-    isBattle?: boolean;
-    battleCardsLeft?: number;
+    canUseMove: boolean;
     onZoom: (cardId: string) => void;
-    onUse?: (cardId: string, cardEl: HTMLElement) => void;
-    onUnprotect?: (card: any, originalIndex: number) => void;
 };
 
 const typeLabel: Record<string, string> = { move: 'Movimento', battle: 'Batalha', auto: 'Automática', global: 'Global' };
@@ -70,59 +66,21 @@ export class CardHand {
         });
 
         // Já abre com a primeira carta jogável selecionada
-        const firstPlayable = cards.findIndex(c => {
-            if (c.isProtected) return false;
-            if (opts.isBattle) return c.type === 'battle';
-            return c.type === 'move' || c.type === 'global';
-        });
-        const canPlay = opts.isBattle ? (opts.battleCardsLeft === undefined || opts.battleCardsLeft > 0) : opts.canUseMove;
-        const pre = hand.children[firstPlayable >= 0 && canPlay ? firstPlayable : 0] as HTMLElement | undefined;
+        const firstPlayable = cards.findIndex(c => !c.isProtected && (c.type === 'move' || c.type === 'global'));
+        const pre = hand.children[firstPlayable >= 0 && opts.canUseMove ? firstPlayable : -1] as HTMLElement | undefined;
         if (pre) pre.click();
     }
 
     private static renderDetail(detail: HTMLElement, cardEl: HTMLElement, player: any, c: any, originalIndex: number, opts: HandOptions) {
         const rarityColor = CARD_RARITIES[c.rarity]?.color || '#8d99ae';
-        let action: { label: string; enabled: boolean; title?: string; run?: () => void } = {
-            label: opts.isBattle ? 'Só no tabuleiro' : 'Só em batalha',
-            enabled: false,
-            title: opts.isBattle ? 'Esta carta só pode ser usada no tabuleiro' : 'Esta carta só pode ser usada em batalha'
-        };
-
+        let action: { label: string; enabled: boolean; title?: string; run?: () => void } = { label: 'Só em batalha', enabled: false, title: 'Esta carta só pode ser usada em batalha' };
         if (c.isProtected) {
-            action = (opts.isBattle || opts.canUseMove)
-                ? {
-                    label: 'Desproteger',
-                    enabled: true,
-                    run: () => {
-                        if (opts.onUnprotect) opts.onUnprotect(c, originalIndex);
-                        else (window as any).Cards.unprotectCard(player.id, originalIndex, false);
-                    }
-                }
-                : { label: 'Protegida', enabled: false, title: 'Carta protegida' };
-        } else if (opts.isBattle) {
-            if (c.type === 'battle') {
-                if (opts.battleCardsLeft !== undefined && opts.battleCardsLeft <= 0) {
-                    action = { label: 'Limite atingido (3/3)', enabled: false, title: 'Você já usou o limite de 3 cartas nesta batalha' };
-                } else {
-                    action = {
-                        label: 'Usar carta',
-                        enabled: true,
-                        run: () => {
-                            if (opts.onUse) opts.onUse(c.id, cardEl);
-                            else CardHand.flyAndUse(cardEl, c.id, () => (window as any).Battle.useCard(c.id));
-                        }
-                    };
-                }
-            } else {
-                action = { label: 'Só no tabuleiro', enabled: false, title: 'Esta carta só pode ser usada no tabuleiro' };
-            }
+            action = opts.canUseMove
+                ? { label: 'Desproteger', enabled: true, run: () => (window as any).Cards.unprotectCard(player.id, originalIndex) }
+                : { label: 'Protegida', enabled: false, title: 'Só pode desproteger no seu turno' };
         } else if (c.type === 'move' || c.type === 'global') {
             action = opts.canUseMove
-                ? {
-                    label: c.type === 'global' ? 'Usar (afeta todos)' : 'Usar carta',
-                    enabled: true,
-                    run: () => CardHand.flyAndUse(cardEl, c.id, () => (window as any).Cards.activate(c.id))
-                }
+                ? { label: c.type === 'global' ? 'Usar (afeta todos)' : 'Usar carta', enabled: true, run: () => this.flyAndUse(cardEl, c.id) }
                 : { label: 'Usar carta', enabled: false, title: 'Só pode usar no seu turno, antes de rolar o dado' };
         } else if (c.type === 'auto') {
             action = { label: 'Ativa sozinha', enabled: false, title: 'Esta carta ativa automaticamente' };
@@ -146,12 +104,12 @@ export class CardHand {
     }
 
     // A carta sai da mão, cresce no centro da tela e some antes do efeito acontecer
-    static flyAndUse(cardEl: HTMLElement, cardId: string, onExecute?: () => void) {
+    static flyAndUse(cardEl: HTMLElement, cardId: string) {
         // A carta já faz o voo da mão: a animação genérica de "carta usada" não repete localmente
         const me = (window as any).Game?.getCurrentPlayer?.();
         if (me) (window as any).UseFx?.markShown?.(me.id, cardId);
         const img = cardEl.querySelector('img') as HTMLImageElement | null;
-        const run = onExecute || (() => (window as any).Cards.activate(cardId));
+        const run = () => (window as any).Cards.activate(cardId);
         if (!img || window.matchMedia('(prefers-reduced-motion: reduce)').matches) { run(); return; }
 
         const r = img.getBoundingClientRect();
@@ -171,11 +129,9 @@ export class CardHand {
             { transform: `translate(${dx}px, ${dy}px) scale(${scale * 1.3})`, opacity: 0, filter: 'brightness(2.4)' }
         ], { duration: 720, easing: 'cubic-bezier(0.2, 0.8, 0.3, 1)' }).finished.finally(() => ghost.remove());
 
-        // O modal some para a carta "ir" ao destino, e o efeito roda no fim do voo
-        const bModal = document.getElementById('board-cards-modal');
-        if (bModal) bModal.style.display = 'none';
-        const batModal = document.getElementById('battle-cards-modal');
-        if (batModal) batModal.style.display = 'none';
+        // O modal some para a carta "ir" ao tabuleiro, e o efeito roda no fim do voo
+        const modal = document.getElementById('board-cards-modal');
+        if (modal) modal.style.display = 'none';
         window.setTimeout(run, 560);
     }
 }

@@ -5,7 +5,15 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://pubyamgenwmctwithgvi.supabase.co';
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1YnlhbWdlbndtY3R3aXRoZ3ZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyNzIyNTQsImV4cCI6MjA5Njg0ODI1NH0.mvNZ3PY7Instrzyz-DwBhWEkHkM46LPPeGRh5ctONp4';
 
-export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseKey);
+// Heartbeat do realtime num Web Worker: em aba de fundo o navegador segura os timers da página e o servidor
+// derrubava o websocket em silêncio (a vez só aparecia depois de um F5)
+export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseKey, {
+    realtime: {
+        worker: typeof window !== 'undefined' && 'Worker' in window,
+        heartbeatIntervalMs: 15000,
+        heartbeatCallback: (status) => NetworkState.onHeartbeat?.(status)
+    }
+});
 
 /**
  * ESTADO GLOBAL DA REDE
@@ -32,6 +40,10 @@ export class NetworkState {
     static localName: string = "";
     static localAvatar: string = "";
     static isListenerActive: boolean = false;
+    // Quando este cliente gravou a vez pela última vez: a leitura do banco pode chegar antes da própria gravação
+    static lastTurnWriteAt: number = 0;
+    // Registrado pelo ConnectionMonitor (evita import circular)
+    static onHeartbeat: ((status: string) => void) | null = null;
     static lobbyPlayers: any[] = [];
 
     // Fila de ações para compatibilidade legada se ainda for usada em outro lugar

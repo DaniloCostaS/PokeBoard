@@ -13,6 +13,8 @@ export interface GameSettings {
     generations: number[];
     legendaries: 'yes' | 'no' | 'only';
     megas: boolean;
+    // Vidas por jogador (0 = regra clássica: toda derrota total volta para a cidade)
+    maxLives?: number;
 }
 
 export class GameState {
@@ -26,6 +28,13 @@ export class GameState {
     static turn: number = 0;
     static round: number = 1;
     static alertEndsTurn: boolean = true;
+    // Derrota total esperando o jogador escolher entre usar Revive ou aceitar a derrota: o fim do turno aguarda
+    static defeatChoice: Promise<void> | null = null;
+
+    static maxLives(): number {
+        const n = Number(this.settings?.maxLives || 0);
+        return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+    }
     static pendingTileEvent: boolean = false;
     static isCityEvent: boolean = false;
     static hasRolled: boolean = false;

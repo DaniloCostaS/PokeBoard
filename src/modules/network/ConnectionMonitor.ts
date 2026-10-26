@@ -26,15 +26,53 @@ export class ConnectionMonitor {
     private static resyncPromise: Promise<void> | null = null;
     private static pillHideTimer: number | null = null;
 
+    private static heartbeatFailed: boolean = false;
+    private static watchdogTimer: number | null = null;
+    private static lastResyncAt: number = 0;
+
     private static readonly MAX_DELAY_MS = 15000;
-    private static readonly HIDDEN_RESYNC_MS = 20000;
+    // Qualquer volta de background maior que isso ressincroniza (eventos podem ter sido perdidos)
+    private static readonly HIDDEN_RESYNC_MS = 1500;
+    // Rede de segurança: confere o turno no banco de tempos em tempos, mesmo com o canal "conectado"
+    private static readonly WATCHDOG_MS = 12000;
 
     // Chamado a cada (re)criação do canal do jogo
-    static watch(channel: RealtimeChannel, hooks: MonitorHooks) {
+    static watch(channel: RealtimeChannel, hooks: MonitorHooks & { check?: () => Promise<boolean> }) {
         this.channel = channel;
         this.hooks = hooks;
+        this.checkHook = hooks.check || null;
         this.lastStatus = '';
         this.installGlobalListeners();
+        this.startWatchdog();
+    }
+
+    // check(): devolve true quando o estado local diverge do banco (aí roda o resync completo)
+    private static checkHook: (() => Promise<boolean>) | null = null;
+    private static watchdogBusy = false;
+
+    private static startWatchdog() {
+        if (this.watchdogTimer !== null) return;
+        this.watchdogTimer = window.setInterval(async () => {
+            if (!NetworkState.isOnline || !this.checkHook || this.watchdogBusy || this.isReconnecting) return;
+            this.watchdogBusy = true;
+            try {
+                if (await this.checkHook()) this.runResync();
+            } catch (e) { /* próxima rodada tenta de novo */ }
+            finally { this.watchdogBusy = false; }
+        }, this.WATCHDOG_MS);
+    }
+
+    // Heartbeat do realtime (roda no worker): falhou → reconecta; voltou depois de falhar → ressincroniza
+    private static onHeartbeat(status: string) {
+        if (!NetworkState.isOnline || !this.hooks) return;
+        if (status === 'timeout' || status === 'error' || status === 'disconnected') {
+            this.heartbeatFailed = true;
+            return;
+        }
+        if (status === 'ok' && this.heartbeatFailed) {
+            this.heartbeatFailed = false;
+            this.checkHealth();
+        }
     }
 
     // Callback de channel.subscribe()
@@ -105,6 +143,7 @@ export class ConnectionMonitor {
         if (this.resyncPromise) return this.resyncPromise;
         const hooks = this.hooks;
         if (!hooks || !NetworkState.isOnline) return Promise.resolve();
+        this.lastResyncAt = Date.now();
         this.resyncPromise = Promise.resolve()
             .then(() => hooks.resync())
             .catch((err) => console.warn('[ConnectionMonitor] Falha ao ressincronizar:', err))
@@ -131,7 +170,17 @@ export class ConnectionMonitor {
         if (this.globalListenersInstalled) return;
         this.globalListenersInstalled = true;
 
+        NetworkState.onHeartbeat = (status) => this.onHeartbeat(status);
         window.addEventListener('online', () => this.checkHealth());
+        // Safari/iOS: página restaurada do bfcache volta com o websocket morto
+        window.addEventListener('pageshow', (e) => { if ((e as PageTransitionEvent).persisted) this.checkHealth(); });
+        // Aba congelada pelo navegador (economia de energia / celular) e retomada: nada foi processado enquanto isso
+        document.addEventListener('freeze', () => { this.hiddenAt = this.hiddenAt || Date.now(); });
+        document.addEventListener('resume', () => { this.hiddenAt = 0; this.checkHealth(); });
+        // Janela voltou ao foco sem a aba ter ficado escondida (outro app por cima): confere se nada foi perdido
+        window.addEventListener('focus', () => {
+            if (Date.now() - this.lastResyncAt > 5000) this.checkHealth();
+        });
         window.addEventListener('offline', () => {
             if (NetworkState.isOnline && this.hooks) this.showPill('Reconectando…');
         });
@@ -142,7 +191,8 @@ export class ConnectionMonitor {
             }
             const hiddenFor = this.hiddenAt ? Date.now() - this.hiddenAt : 0;
             this.hiddenAt = 0;
-            // Navegadores mobile suspendem o websocket em background
+            // Em background o navegador congela timers/animações e pode suspender o websocket:
+            // qualquer evento perdido (vez, aviso, fim de batalha) é reconstruído a partir do banco
             if (hiddenFor > this.HIDDEN_RESYNC_MS) this.checkHealth();
         });
     }

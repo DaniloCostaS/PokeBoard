@@ -35,6 +35,7 @@ export interface ConfirmOptions { title?: string; okLabel?: string; cancelLabel?
 export interface PromptOptions {
     title?: string; defaultValue?: string; placeholder?: string;
     inputMode?: 'text' | 'numeric'; okLabel?: string; cancelLabel?: string;
+    inputType?: 'text' | 'password';
 }
 export interface SayOptions { name: string; portrait?: string; text: string; side?: 'left' | 'right'; }
 
@@ -259,7 +260,8 @@ function promptDialog(message: unknown, opts: PromptOptions = {}): Promise<strin
         });
         const { card, actions } = buildCard(text, opts.title);
         const input = el('input', 'pb-dlg-input');
-        input.type = 'text';
+        input.type = opts.inputType || 'text';
+        if (opts.inputType === 'password') input.autocomplete = 'off';
         if (opts.inputMode === 'numeric') { input.inputMode = 'numeric'; input.pattern = '[0-9]*'; }
         input.value = opts.defaultValue ?? '';
         if (opts.placeholder) input.placeholder = opts.placeholder;

@@ -27,6 +27,9 @@ import { Settings } from './modules/ui/Settings';
 import { DemoMode } from './modules/ui/DemoMode';
 import { Presence } from './modules/ui/Presence';
 import { PwaSetup } from './modules/ui/PwaSetup';
+import './modules/profile/ProfileScreen';
+import './profile.css';
+import './battle-events.css';
 
 declare global {
     interface Window {

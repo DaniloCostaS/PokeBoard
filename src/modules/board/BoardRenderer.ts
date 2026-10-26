@@ -148,7 +148,11 @@ export class BoardRenderer {
                 // Com o Pixi ativo o clima é desenhado aqui; desliga as camadas CSS antigas
                 host.closest('#board-wrapper')?.classList.add('pb-pixi');
                 // Aba escondida: pausa o loop (economiza bateria no celular)
-                document.addEventListener('visibilitychange', () => { if (document.hidden) app.ticker.stop(); else app.ticker.start(); });
+                document.addEventListener('visibilitychange', () => {
+                    if (document.hidden) { app.ticker.stop(); return; }
+                    this.syncTokens(true);
+                    app.ticker.start();
+                });
                 app.ticker.add(() => this.tick());
                 this.app = app;
                 this.bindInput(app.canvas);
@@ -308,6 +312,8 @@ export class BoardRenderer {
 
     static syncTokens(instant = false) {
         if (!this.ready) return;
+        // Aba escondida: o loop está parado, então não acumula caminhada para tocar tudo de uma vez na volta
+        if (document.hidden) instant = true;
         const now = performance.now();
         const seen = new Set<number>();
         GameState.players.forEach((p, idx) => {

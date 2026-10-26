@@ -179,6 +179,7 @@ export class NetworkSync {
 
     static async syncTurn(newTurn: number, newRound: number = 1) {
         if (!NetworkState.isOnline || NetworkState.isSpectator) return;
+        NetworkState.lastTurnWriteAt = Date.now();
         await supabase
             .from('rooms')
             .update({ current_turn: newTurn, current_round: newRound })

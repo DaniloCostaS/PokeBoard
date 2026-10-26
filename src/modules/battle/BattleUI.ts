@@ -387,22 +387,51 @@ export class BattleUI {
         if (filteredCards.length === 0) {
             list.innerHTML = `<em style="${isMobile ? '' : 'grid-column: 1/-1;'}">Sem cartas.</em>`;
         } else {
-            CardHand.render(list, p, filteredCards, {
-                isMe: true,
-                isBattle: true,
-                battleCardsLeft: 3 - BattleCore.cardsUsedThisBattle,
-                onZoom: (id) => GameUI.showCardZoom(id),
-                onUse: (cardId, cardEl) => {
-                    CardHand.flyAndUse(cardEl, cardId, () => {
-                        (window as any).Battle.useCard(cardId);
-                    });
-                },
-                onUnprotect: (_card, origIdx) => {
-                    const Cards = (window as any).Cards || (window as any).CardEffects;
-                    if (Cards && Cards.unprotectCard) {
-                        Cards.unprotectCard(p.id, origIdx, false);
-                        BattleUI.openCardSelection();
-                    }
+            list.style.display = 'grid';
+            list.style.gridTemplateColumns = 'repeat(auto-fill, minmax(180px, 1fr))';
+            list.style.gap = '20px';
+            list.style.padding = '20px';
+            list.style.width = '100%';
+
+            battleCards.forEach(c => {
+                const rData = CARD_RARITIES[c.rarity];
+                const borderColor = rData ? rData.color : '#8d99ae';
+                
+                const origIndex = BattleCore.player!.cards.indexOf(c);
+                const isProtected = c.isProtected;
+
+                const d = document.createElement('div');
+                d.style.cssText = "display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); width: 100%; box-sizing: border-box; position: relative;";
+                
+                let style = isProtected ? 'border: 3px solid #f39c12; box-shadow: 0 0 10px #f39c12;' : `border: 3px solid ${borderColor};`;
+                let lockIcon = isProtected ? `<div style="position:absolute; top:40%; left:50%; transform:translate(-50%, -50%); font-size:3rem; text-shadow:2px 2px 5px #000; z-index:5;">🔒</div>` : '';
+
+                d.innerHTML = `
+                    <div style="position: absolute; top: -5px; right: -5px; background: ${borderColor}; color: #fff; padding: 2px 6px; font-size: 0.7rem; border-radius: 10px; font-weight: bold; border: 1px solid #222; text-shadow: 1px 1px 0 #000; box-shadow: 0 2px 4px rgba(0,0,0,0.5); z-index: 10;">
+                        ${c.rarity.toUpperCase()}
+                    </div>
+                    ${lockIcon}
+                    <img class="battle-card-img" src="/assets/img/Cartas/${c.id}.jpg" alt="${c.name}" title="${c.desc}" style="width: 100%; aspect-ratio: 2.5/3.5; object-fit: fill; border-radius: 6px; ${style}; cursor: zoom-in;">
+                `;
+
+                const btn = document.createElement('button');
+                btn.className = 'btn';
+                if (isProtected) {
+                    btn.style.cssText = "width:100%; margin-top:8px; padding:8px; background:#f39c12; border:none; border-radius:4px; color:white; font-weight:bold; cursor:pointer;";
+                    btn.innerText = "Desproteger";
+                    btn.onclick = () => {
+                        const Cards = (window as any).Cards || (window as any).CardEffects;
+                        if (Cards && Cards.unprotectCard) {
+                            Cards.unprotectCard(BattleCore.player!.id, origIndex, false);
+                            this.openCardSelection();
+                        }
+                    };
+                } else {
+                    btn.style.cssText = "width:100%; margin-top:8px; padding:8px; background:#e74c3c; border:none; border-radius:4px; color:white; font-weight:bold; cursor:pointer;";
+                    btn.innerText = "USAR";
+                    btn.onclick = () => {
+                        (window as any).Battle.useCard(c.id);
+                    };
                 }
             });
         }

@@ -16,10 +16,11 @@ import { NotificationSystem } from './NotificationSystem';
 import { CPUController } from './CPUController';
 import { QuestManager } from '../quests/QuestManager';
 import type { ItemData } from '../../constants';
-import { supabase } from '../network/SupabaseInit';
+import { supabase, NetworkState } from '../network/SupabaseInit';
 import { NetworkSync } from '../network/NetworkSync';
 import { SupabaseDataStore } from '../network/SupabaseDataStore';
 import { GameDialog } from '../ui/GameDialog';
+import { ProfileTracker } from '../profile/ProfileTracker';
 
 export class GameEvents {
 
@@ -56,6 +57,7 @@ export class GameEvents {
         }
 
         document.getElementById('victory-modal')!.style.display = 'flex';
+        ProfileTracker.matchEnd(winnerId);
         (window as any).Cinematics?.podium(winnerId);
         console.log("GAME OVER - VITORIA!");
 
@@ -79,31 +81,164 @@ export class GameEvents {
         return { x: 0, y: 0 };
     }
 
+    // Texto da última derrota total resolvida (vai no PVP_SYNC_DAMAGE para os outros verem o mesmo desfecho)
+    static lastDefeatMsg = '';
+
+    // Roda fn depois que a escolha do Revive (se houver) terminar
+    static afterDefeatChoice(fn: () => void) {
+        if (GameState.defeatChoice) GameState.defeatChoice.then(fn);
+        else fn();
+    }
+
+    static readonly REVIVE_ORDER = ['revive', 'maxrevive', 'ultramaxrevive'];
+
+    // Derrota total. Com Revive na mochila, quem está jogando a própria vez escolhe: usar o Revive e seguir na casa,
+    // ou aceitar a derrota (perde uma vida; na última, volta para a cidade). O fim do turno espera a escolha.
     static handleTotalDefeat(p: Player) {
-        const msg = `🚑 ${p.name} sofreu uma derrota total!\nSerá levado ao último Centro Pokémon para recuperação emergencial.`;
+        const NetworkObj = (window as any).Network || Network;
+        const reviveId = this.REVIVE_ORDER.find(id => (p.items?.[id] || 0) > 0);
+        if (!reviveId) { this.applyTotalDefeat(p); return; }
+
+        if (p.isCPU) { this.rescueWithRevive(p, reviveId); return; }
+
+        const settle = (choice: Promise<boolean>) => {
+            GameState.defeatChoice = choice
+                .then(useIt => { if (useIt) this.rescueWithRevive(p, reviveId); else this.applyTotalDefeat(p); })
+                .finally(() => { GameState.defeatChoice = null; });
+        };
+
+        if (!NetworkObj.isOnline) {
+            // Mesmo aparelho: pergunta para o dono do time (atacante ou defensor)
+            settle(this.askRevive(p, reviveId, false));
+            return;
+        }
+        if (p.id === NetworkObj.myPlayerId && GameState.canAct()) {
+            settle(this.askRevive(p, reviveId, false));
+            return;
+        }
+        if (GameState.canAct()) {
+            // Defensor do PvP em outro aparelho: pergunta pela rede; quem grava continua sendo o dono do turno
+            settle(this.askRemoteRevive(p, reviveId));
+            return;
+        }
+        this.applyTotalDefeat(p);
+    }
+
+    static readonly REMOTE_CHOICE_MS = 20000;
+    private static remoteChoices = new Map<string, (useIt: boolean) => void>();
+
+    // Texto e botões da escolha (no aparelho do dono do time)
+    static askRevive(p: Player, reviveId: string, remote: boolean): Promise<boolean> {
+        const item = SHOP_ITEMS.find((it: any) => it.id === reviveId);
+        const maxLives = GameState.maxLives();
+        const lossText = maxLives > 0 && p.lives > 1
+            ? `Aceitar a derrota custa 1 vida (você tem ${p.lives}) e sua equipe é curada aqui mesmo.`
+            : `Aceitar a derrota leva você ao último Centro Pokémon${maxLives > 0 ? ' (era sua última vida)' : ''} e você perde 2 turnos.`;
+        const total = this.REVIVE_ORDER.map(id => p.items?.[id] || 0).reduce((a, b) => a + b, 0);
+        return GameDialog.confirm(
+            `${NetworkState.isOnline ? 'Toda a sua equipe desmaiou!' : `${p.name}, toda a sua equipe desmaiou!`}\n\nUsar ${item?.name || 'Revive'} reanima seu Pokémon mais forte e você continua de onde está, sem perder vida.\n${lossText}${remote ? `\n\nVocê tem ${this.REMOTE_CHOICE_MS / 1000} segundos para decidir.` : ''}`,
+            { title: 'Derrota total', okLabel: `Usar ${item?.name || 'Revive'} (${total})`, cancelLabel: 'Aceitar derrota' }
+        );
+    }
+
+    private static askRemoteRevive(p: Player, reviveId: string): Promise<boolean> {
+        const NetworkObj = (window as any).Network || Network;
+        const token = `${p.id}-${Date.now()}`;
+        GameDialog.toast(`Aguardando ${p.name} decidir se usa Revive...`, { tone: 'info', duration: 4000 });
+        return new Promise<boolean>(resolve => {
+            const timer = window.setTimeout(() => { this.remoteChoices.delete(token); resolve(false); }, this.REMOTE_CHOICE_MS + 1500);
+            this.remoteChoices.set(token, (useIt) => { window.clearTimeout(timer); this.remoteChoices.delete(token); resolve(useIt); });
+            NetworkObj.sendAction('DEFEAT_CHOICE_REQUEST', { targetId: p.id, reviveId, token });
+        });
+    }
+
+    // Defensor: recebeu o pedido, mostra a escolha e responde
+    static async onRemoteReviveRequest(payload: any) {
+        const NetworkObj = (window as any).Network || Network;
+        if (!payload || payload.targetId !== NetworkObj.myPlayerId) return;
+        const me = GameState.players.find(pl => pl.id === payload.targetId);
+        if (!me || !this.REVIVE_ORDER.includes(payload.reviveId)) return;
+        const started = Date.now();
+        const useIt = await this.askRevive(me, payload.reviveId, true);
+        if (Date.now() - started > this.REMOTE_CHOICE_MS) {
+            GameDialog.toast('Tempo esgotado: a derrota foi aplicada.', { tone: 'warning' });
+            return;
+        }
+        NetworkObj.sendAction('DEFEAT_CHOICE', { token: payload.token, useRevive: !!useIt });
+    }
+
+    // Dono do turno: resposta do defensor
+    static onRemoteReviveAnswer(payload: any, fromPlayerId: number) {
+        const resolve = payload?.token ? this.remoteChoices.get(payload.token) : null;
+        if (!resolve || !String(payload.token).startsWith(`${fromPlayerId}-`)) return;
+        resolve(!!payload.useRevive);
+    }
+
+    private static rescueWithRevive(p: Player, reviveId: string) {
+        p.items[reviveId] = Math.max(0, (p.items[reviveId] || 0) - 1);
+        if (reviveId === 'ultramaxrevive') {
+            p.team.forEach(mon => mon.revive(100));
+        } else {
+            const best = [...p.team].sort((a, b) => b.level - a.level || b.maxHp - a.maxHp)[0];
+            best?.revive(reviveId === 'maxrevive' ? 100 : 50);
+        }
+        const item = SHOP_ITEMS.find((it: any) => it.id === reviveId);
+        this.lastDefeatMsg = `💊 ${p.name} usou ${item?.name || 'Revive'} e escapou da derrota total!`;
+        GameUI.sendGlobalLog(this.lastDefeatMsg);
+        ProfileTracker.add(p, 'revives_used');
+        ProfileTracker.add(p, 'items_used');
+        GameUI.moveVisuals();
+        GameUI.updateHUD();
+        this.persistDefeat(p);
+    }
+
+    private static applyTotalDefeat(p: Player) {
+        const maxLives = GameState.maxLives();
+        ProfileTracker.add(p, 'total_defeats');
+        if (maxLives > 0) ProfileTracker.add(p, 'lives_lost');
+
+        const QuestManagerObj = (window as any).QuestManager || (window as any).Game?.QuestManager || window.QuestManager;
+        if (QuestManagerObj) QuestManagerObj.resetProgress(p, 'WIN_STREAK');
+
+        // Ainda tem vida: cura a equipe e continua na mesma casa, sem perder ouro nem turnos
+        if (maxLives > 0 && p.lives > 1) {
+            p.lives -= 1;
+            p.team.forEach(mon => { mon.currentHp = mon.maxHp; });
+            const left = p.lives === 1 ? 'resta 1 vida' : `restam ${p.lives} vidas`;
+            GameUI.sendGlobalLog(`💔 ${p.name} perdeu uma vida (${left}). Equipe curada, continua no mesmo lugar.`);
+            this.lastDefeatMsg = `💔 ${p.name} sofreu uma derrota total e perdeu uma vida!\nA equipe foi curada e continua de onde estava (${left}).`;
+            GameUI.showGlobalAlert(this.lastDefeatMsg, p.name, true, false);
+            GameUI.moveVisuals();
+            GameUI.updateHUD();
+            this.persistDefeat(p);
+            return;
+        }
+
+        const msg = `🚑 ${p.name} sofreu uma derrota total!\n${maxLives > 0 ? 'Era a última vida: será' : 'Será'} levado ao último Centro Pokémon para recuperação emergencial.`;
         const city = this.getLastCityCoord(p);
         p.x = city.x;
         p.y = city.y;
+        if (maxLives > 0) p.lives = maxLives;
 
-        const QuestManagerObj = (window as any).QuestManager || (window as any).Game?.QuestManager || window.QuestManager;
-        if (QuestManagerObj) {
-            QuestManagerObj.resetProgress(p, 'WALK_STEPS');
-            QuestManagerObj.resetProgress(p, 'WIN_STREAK');
-        }
+        if (QuestManagerObj) QuestManagerObj.resetProgress(p, 'WALK_STEPS');
 
         if (p.effects && p.effects.tremembeUserTurns && p.effects.tremembeUserTurns > 0) {
             GameUI.sendGlobalLog(`⚖️ DECRETO DE TREMEMBÉ! ${p.name} está sob o privilégio do decreto e foi resgatado sem perder turnos!`);
         } else {
             p.skipTurns += 2;
-            GameUI.sendGlobalLog(`🚑 ${p.name} foi resgatado! Equipe totalmente curada no Centro Pokémon, mas perderá 2 turnos.`);
+            GameUI.sendGlobalLog(`🚑 ${p.name} foi resgatado! Equipe totalmente curada no Centro Pokémon, mas perderá 2 turnos.${maxLives > 0 ? ` Vidas restauradas (${maxLives}).` : ''}`);
         }
 
         p.team.forEach(mon => { mon.currentHp = mon.maxHp; });
+        this.lastDefeatMsg = msg;
         GameUI.showGlobalAlert(msg, p.name, true, false);
         GameUI.moveVisuals();
         GameUI.updateHUD();
+        this.persistDefeat(p);
+    }
 
-        // Só o dono do turno persiste a derrota (salva o objeto recebido, não a cópia de Game.players)
+    // Só o dono do turno persiste a derrota (salva o objeto recebido, não a cópia de Game.players)
+    private static persistDefeat(p: Player) {
         const NetworkObj = (window as any).Network || Network;
         if (NetworkObj.isOnline && GameState.canAct()) {
             NetworkObj.syncPlayerObjects([p]);
@@ -501,6 +636,11 @@ export class GameEvents {
     }
 
     static nextTurn() {
+        // Derrota total aguardando a escolha do Revive: passa a vez só depois
+        if (GameState.defeatChoice) {
+            GameState.defeatChoice.then(() => this.nextTurn());
+            return;
+        }
         GameState.saveGame();
         GameState.turnStarted = false; // Requer nova confirmação do próximo jogador
         const currentP = GameState.getCurrentPlayer();
@@ -635,6 +775,7 @@ export class GameEvents {
         GameState.hasRolled = false;
 
         if (NetworkObj.isOnline) {
+            NetworkState.lastTurnWriteAt = Date.now();
             supabase.from('rooms').update({
                 current_turn: GameState.turn,
                 current_round: GameState.round,

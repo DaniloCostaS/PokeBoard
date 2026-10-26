@@ -14,6 +14,7 @@ import { CPUController } from '../game/CPUController';
 import { SHOP_ITEMS } from '../../constants';
 import type { ItemData } from '../../constants';
 import { GameDialog } from '../ui/GameDialog';
+import { ProfileTracker } from '../profile/ProfileTracker';
 
 export class BattleCore {
     static active: boolean = false;
@@ -1175,7 +1176,7 @@ export class BattleCore {
         } else if (this.isGym) {
             gain = (Game.currentGlobalEvent?.id === 'GOLD_RUSH') ? 2000 : 1000;
             Game.sendGlobalLog(`💰 [Extrato] ${this.player!.name} recebeu +${gain}G (Líder de Ginásio).`);
-            if (!this.player!.badges[this.gymId - 1]) { this.player!.badges[this.gymId - 1] = true; msg += ` Insígnia ${this.gymId}!`; (window as any).Cinematics?.badge(this.player, this.gymId); }
+            if (!this.player!.badges[this.gymId - 1]) { this.player!.badges[this.gymId - 1] = true; ProfileTracker.add(this.player, 'badges'); msg += ` Insígnia ${this.gymId}!`; (window as any).Cinematics?.badge(this.player, this.gymId); }
             if (Game.currentGlobalEvent?.id === 'GYM_RUSH' && CardsObj) { CardsObj.draw(this.player!); msg += ` e ganhou 1 Carta do Desafio!`; }
 
             if (MapSystem.size === 7) {
@@ -1231,13 +1232,16 @@ export class BattleCore {
             Game.handleTotalDefeat(this.enemyPlayer);
             if (NetworkObj.isOnline) {
                 NetworkObj.syncPlayerObjects([this.player!]);
-                NetworkObj.sendAction('PVP_SYNC_DAMAGE', this.buildPvpResultPayload(this.enemyPlayer, this.player!));
+                const loser = this.enemyPlayer, winner = this.player!;
+                // Defensor pode estar escolhendo se usa Revive: o estado final vai depois da escolha
+                (window as any).GameEvents.afterDefeatChoice(() => NetworkObj.sendAction('PVP_SYNC_DAMAGE', this.buildPvpResultPayload(loser, winner)));
             }
         } else if (NetworkObj.isOnline) {
             NetworkObj.syncPlayerState();
         }
 
         GameFeel.battleResult(true, this.player!.id);
+        ProfileTracker.battle(this.player, true, this);
         setTimeout(() => {
             BattleUI.logBattle(`🏆 ${msg}`, true);
             setTimeout(() => { Game.sendGlobalLog(`${this.player?.name} venceu! ${msg}`); }, 200);
@@ -1300,10 +1304,13 @@ export class BattleCore {
             Game.handleTotalDefeat(this.player!);
             if (NetworkObj.isOnline) {
                 NetworkObj.syncPlayerObjects([this.enemyPlayer]);
-                NetworkObj.sendAction('PVP_SYNC_DAMAGE', this.buildPvpResultPayload(this.player!, this.enemyPlayer));
+                const loser = this.player!, winner = this.enemyPlayer;
+                // Com Revive na mochila o atacante ainda está escolhendo: manda o estado final depois
+                (window as any).GameEvents.afterDefeatChoice(() => NetworkObj.sendAction('PVP_SYNC_DAMAGE', this.buildPvpResultPayload(loser, winner)));
             }
 
             GameFeel.battleResult(false, this.player!.id);
+            ProfileTracker.battle(this.player, false, this);
             setTimeout(() => {
                 BattleUI.logBattle(`💀 ${msg}`, true);
                 setTimeout(() => { Game.sendGlobalLog(`${this.player?.name} perdeu e recuou para o último Centro Pokémon!`); }, 200);
@@ -1353,6 +1360,7 @@ export class BattleCore {
         if (NetworkObj.isOnline) NetworkObj.syncPlayerState();
 
         GameFeel.battleResult(false, this.player!.id);
+        ProfileTracker.battle(this.player, false, this);
         setTimeout(() => {
             BattleUI.logBattle(`💀 ${msg}`, true);
             setTimeout(() => { Game.sendGlobalLog(`${this.player?.name} perdeu e recuou para o último Centro Pokémon!`); }, 200);
@@ -1393,6 +1401,8 @@ export class BattleCore {
             x: loser.x,
             y: loser.y,
             skipTurns: loser.skipTurns,
+            lives: loser.lives,
+            defeatMsg: (window as any).GameEvents?.lastDefeatMsg || "",
             team: NetworkObj.getSanitizedTeam(loser.team),
             winnerTeam: NetworkObj.getSanitizedTeam(winner.team),
             badges: loser.badges,
@@ -1689,6 +1699,7 @@ export class BattleCore {
             if (!this.player!.pokedexData[oppId]) this.player!.pokedexData[oppId] = { seen: 0, caught: 0, defeated: 0 };
             this.player!.pokedexData[oppId].seen += 1;
             this.player!.pokedexData[oppId].caught += 1;
+            ProfileTracker.caught(this.player, this.opponent);
 
             if (this.player!.pokedexData[oppId].caught >= 4 && QuestManagerObj) {
                 QuestManagerObj.checkProgress(this.player, 'RESONANCE_30', 1);
@@ -1789,6 +1800,7 @@ export class BattleCore {
         (megaMon as any).isMegaEvolution = true;
         megaMon.recalculateStats(true);
         (megaMon as any).isTemp = true;
+        ProfileTracker.add(this.player, 'megas');
 
         this.activeMon = megaMon;
         if (this.activeEffects.mewIndex !== undefined && this.activeEffects.mewIndex !== -1) {

@@ -23,6 +23,8 @@ import { Backpack } from '../ui/Backpack';
 import { GameFeel } from '../ui/GameFeel';
 import { GameDialog } from '../ui/GameDialog';
 import { ScreenKit } from '../ui/ScreenKit';
+import { Cosmetics } from '../profile/Cosmetics';
+import { TurnBar } from '../ui/TurnBar';
 
 
 export class GameUI {
@@ -53,7 +55,8 @@ export class GameUI {
         GameState.players.forEach((p, i) => {
             const rank = ranking.indexOf(p.id) + 1;
             const d = document.createElement('div');
-            d.className = `player-slot ${i === GameState.turn ? 'active' : ''}`;
+            d.className = `player-slot ${i === GameState.turn ? 'active' : ''}${i === TurnBar.mePlayerIndex() ? ' is-me' : ''}`;
+            d.dataset.playerIndex = String(i);
             const playerColor = PLAYER_COLORS[i % PLAYER_COLORS.length];
             d.style.background = `linear-gradient(135deg, ${playerColor}cc 0%, rgba(26, 26, 29, 0.96) 100%)`;
             d.style.borderLeft = `4px solid ${playerColor}`;
@@ -100,7 +103,6 @@ export class GameUI {
                         <div class="pb-xp-row" title="EXP ${Math.floor(m.currentXp)}/${m.maxXp}">
                             <span class="pb-xp-label">EXP</span>
                             <div class="pb-xp"><div class="pb-xp-fill" style="width:${xpPct}%"></div></div>
-                            <span class="pb-xp-num">${Math.floor(m.currentXp)}/${m.maxXp}</span>
                         </div>
                         <div class="pb-party-stats"><span><b>ATQ</b>${m.atk}</span><span><b>DEF</b>${m.def}</span><span><b>VEL</b>${m.speed}</span></div>
                     </div>
@@ -130,14 +132,23 @@ export class GameUI {
                 ? `<div class="pb-status-row">${status.map(st => `<span class="pb-status pb-status--${st.cls}" title="${st.title}"${st.color ? ` style="--st:${st.color}"` : ''}>${st.label}</span>`).join('')}</div>`
                 : '';
 
+            const maxLives = GameState.maxLives();
+            const livesHTML = maxLives > 0
+                ? `<span class="pb-lives-badge${p.lives <= 1 ? ' is-last' : ''}" title="Vidas: ${p.lives}/${maxLives}" aria-label="Vidas: ${p.lives} de ${maxLives}"><i></i>${p.lives}</span>`
+                : '';
+            const frame = Cosmetics.frameClass(p.cosmetics?.frame);
+            const titleHTML = p.cosmetics?.title ? `<span class="pb-trainer-title">${Cosmetics.escape(p.cosmetics.title)}</span>` : '';
+
             d.innerHTML = ` 
             <div class="hud-header pb-trainer-card" style="--pc:${playerColor}">
+                ${i === GameState.turn ? '<span class="pb-turn-chip pb-turn-ribbon"><i></i>Na vez</span>' : ''}
                 <div class="pb-trainer-row">
                     <div class="hud-name-group" onclick="window.Game.openPlayerMastery(${i})" title="Ver Maestria do Treinador">
-                        <span class="pb-trainer-avatar"><img src="${p.avatar}" class="hud-avatar-img" alt=""></span>
+                        <span class="pb-trainer-avatar ${frame}"><img src="${p.avatar}" class="hud-avatar-img" alt="">${livesHTML}</span>
                         <span class="pb-trainer-text">
                             <span class="pb-trainer-name">${p.name}</span>
-                            <span class="pb-trainer-meta"><span class="pb-rank pb-rank--${rank}" data-pb-rank="${p.id}" title="${rank}º no placar">${rank}º</span>${i === GameState.turn ? '<span class="pb-turn-chip"><i></i>Na vez</span>' : ''}</span>
+                            ${titleHTML}
+                            <span class="pb-trainer-meta"><span class="pb-rank pb-rank--${rank}" data-pb-rank="${p.id}" title="${rank}º no placar">${rank}º</span></span>
                         </span>
                     </div>
                     <div class="hud-gold" title="Ouro" data-pb-gold="${p.id}">${p.gold} G</div>
@@ -158,6 +169,7 @@ export class GameUI {
 
         const turnPlayer = GameState.players[GameState.turn];
         if (turnPlayer) document.getElementById('turn-indicator')!.innerText = turnPlayer.name;
+        TurnBar.update();
         const elRound = document.getElementById('round-indicator'); if (elRound) elRound.innerText = GameState.round.toString();
         const elRoom = document.getElementById('room-code-indicator');
 
@@ -749,6 +761,7 @@ export class GameUI {
         // Novo aviso: libera um (e só um) confirm para ele
         GameUI.globalAlertConfirmed = false;
         GameUI.globalAlertIsMine = isMyTurn;
+        GameUI.globalAlertOwner = playerName;
 
         // Partida offline na vez de um bot: ninguém vai tocar em "Continuar", então o bot confirma sozinho
         const alertSeq = ++GameUI.globalAlertSeq;
@@ -814,6 +827,7 @@ export class GameUI {
     static globalAlertConfirmed = false;
     static globalAlertSeq = 0;
     static globalAlertIsMine = false;
+    static globalAlertOwner = '';
     static globalAlertTyper: { finish(): void; readonly done: boolean } | null = null;
     private static globalAlertKeysInstalled = false;
 
