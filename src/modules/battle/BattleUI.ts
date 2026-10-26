@@ -1,8 +1,9 @@
+import { CardHand } from '../cards/CardHand';
 import { BattleCore } from './BattleCore';
 import { Pokemon } from '../../models/Pokemon';
 import { Network } from '../../systems/Network';
 import { GYM_DATA } from '../../constants/gyms';
-import { SHOP_ITEMS, CARD_RARITIES } from '../../constants';
+import { SHOP_ITEMS } from '../../constants';
 import { GameState } from '../game/GameState';
 import { GameUI } from '../game/GameUI';
 import { GameFeel } from '../ui/GameFeel';
@@ -342,23 +343,49 @@ export class BattleUI {
         }
 
         if (!BattleCore.isPlayerTurn || BattleCore.processingAction) return;
+
+        if (BattleCore.cardsUsedThisBattle >= 3) {
+            return GameDialog.toast("Você já usou o limite máximo de 3 cartas nesta batalha!", { tone: 'warning' });
+        }
+
+        const modalBox = (document.querySelector('#battle-cards-modal .modal-box') || document.querySelector('#battle-cards-modal > div')) as HTMLElement;
+        if (modalBox) {
+            modalBox.style.width = "95%";
+            modalBox.style.maxWidth = "1200px";
+            modalBox.style.maxHeight = "90vh";
+            modalBox.style.padding = "30px";
+            modalBox.style.overflowY = "auto";
+        }
+
+        const p = BattleCore.player!;
         const list = document.getElementById('battle-cards-list')!;
         list.innerHTML = '';
 
-        const modalContent = document.querySelector('#battle-cards-modal .modal-content') as HTMLElement;
-        if (modalContent) {
-            modalContent.style.width = "90%";
-            modalContent.style.maxWidth = "1100px";
-            modalContent.style.maxHeight = "85vh";
-            modalContent.style.padding = "25px";
-            modalContent.style.overflowY = "auto";
+        const isMobile = window.innerWidth <= 1000;
+        list.style.cssText = 'display: flex; flex-direction: column; gap: 12px; width: 100%; padding: 4px 0; overflow: visible;';
+
+        const rarityFilter = (document.getElementById('battle-cards-rarity-filter') as HTMLSelectElement)?.value || 'all';
+        const typeFilter = (document.getElementById('battle-cards-type-filter') as HTMLSelectElement)?.value || 'all';
+
+        let filteredCards = [...p.cards];
+        if (rarityFilter !== 'all') {
+            filteredCards = filteredCards.filter(c => c.rarity === rarityFilter);
+        }
+        if (typeFilter !== 'all') {
+            filteredCards = filteredCards.filter(c => c.type === typeFilter);
         }
 
-        const battleCards = BattleCore.player!.cards.filter(c => c.type === 'battle');
+        const typeOrder: Record<string, number> = { 'battle': 1, 'auto': 2, 'move': 3, 'global': 4 };
+        const rarityOrder: Record<string, number> = { 'Lendária': 0, 'Épica': 1, 'Rara': 2, 'Incomum': 3, 'Comum': 4 };
 
-        if (battleCards.length === 0) {
-            list.innerHTML = "<em>Sem cartas de batalha.</em>";
-            list.style.display = 'block';
+        filteredCards.sort((a, b) => {
+            if (typeOrder[a.type] !== typeOrder[b.type]) return (typeOrder[a.type] || 99) - (typeOrder[b.type] || 99);
+            if (rarityOrder[a.rarity] !== rarityOrder[b.rarity]) return (rarityOrder[a.rarity] || 99) - (rarityOrder[b.rarity] || 99);
+            return a.name.localeCompare(b.name);
+        });
+
+        if (filteredCards.length === 0) {
+            list.innerHTML = `<em style="${isMobile ? '' : 'grid-column: 1/-1;'}">Sem cartas.</em>`;
         } else {
             list.style.display = 'grid';
             list.style.gridTemplateColumns = 'repeat(auto-fill, minmax(180px, 1fr))';
@@ -406,12 +433,6 @@ export class BattleUI {
                         (window as any).Battle.useCard(c.id);
                     };
                 }
-                d.appendChild(btn);
-                
-                const imgEl = d.querySelector('.battle-card-img') as HTMLElement;
-                if (imgEl) imgEl.onclick = () => GameUI.showCardZoom(c.id);
-
-                list.appendChild(d);
             });
         }
         document.getElementById('battle-cards-modal')!.style.display = 'flex';

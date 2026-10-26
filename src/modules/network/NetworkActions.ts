@@ -438,6 +438,16 @@ export class NetworkActions {
                         Game.updateHUD();
                     }
                 }
+                // Evento global: quem sorteia/troca o evento (nextTurn, carta Mudança Global, admin) grava no rooms;
+                // sem isto os outros clientes só viam o evento novo depois de recarregar a página
+                if (newRecord.current_event_id !== undefined || newRecord.event_end_round !== undefined) {
+                    const ev = SupabaseDataStore.eventFromRoom(newRecord);
+                    if ((ev.currentGlobalEvent?.id ?? null) !== (Game.currentGlobalEvent?.id ?? null) || ev.eventEndRound !== Game.eventEndRound) {
+                        Game.currentGlobalEvent = ev.currentGlobalEvent;
+                        Game.eventEndRound = ev.eventEndRound;
+                        Game.updateHUD();
+                    }
+                }
             })
             .on('postgres_changes', { event: '*', schema: 'public', table: 'room_players', filter: `room_id=eq.${NetworkState.currentRoomId}` }, () => {
                 this.schedulePlayerRefresh();
