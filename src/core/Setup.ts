@@ -26,7 +26,6 @@ export class Setup {
     static async checkCachedLogin() {
         if (this.loginChecked) return;
         this.loginChecked = true;
-        localStorage.removeItem('poke_username'); // login antigo (sem senha de verdade)
         const profile = await Account.init().catch(() => null);
         if (profile) this.enterMenu();
     }
@@ -323,10 +322,9 @@ export class Setup {
 
     private static renderRoomCards(container: HTMLElement, modal: HTMLElement, rooms: any[], type: 'active' | 'open' | 'watch') {
         const uid = Account.userId;
-        const me = (window as any).loggedUser;
         container.innerHTML = rooms.map((room: any) => {
             const players = [...(room.room_players || [])].sort((a: any, b: any) => a.local_index - b.local_index);
-            const hostRow = room.host_user_id ? players.find((p: any) => p.user_id === room.host_user_id) : players.find((p: any) => p.local_index === 0);
+            const hostRow = players.find((p: any) => room.host_user_id && p.user_id === room.host_user_id);
             const hostName = hostRow?.name || 'Desconhecido';
             const playerCount = players.length;
             const roomName = this.escapeHubText(String(room.alias || room.id || ''));
@@ -339,9 +337,9 @@ export class Setup {
             const target = isWatch ? `data-watch-room="${this.escapeHubText(room.id)}"` : `data-room-code="${roomName}"`;
             const lock = room.has_password ? '<span class="rooms-hub-lock" title="Sala com senha" aria-label="Sala com senha">🔒</span>' : '';
             // Excluir: só quem criou a sala (conta) ou, em sala antiga, o jogador 0 com meu nome
-            const iAmHost = room.host_user_id ? (!!uid && room.host_user_id === uid) : (hostRow && !hostRow.user_id && hostRow.name === me);
+            const iAmHost = !!uid && room.host_user_id === uid;
             const del = type === 'active' && iAmHost
-                ? `<button type="button" class="rooms-hub-card-delete" data-delete-room="${this.escapeHubText(room.id)}" data-host-player="${this.escapeHubText(hostRow?.id || '')}" data-room-name="${roomName}">Excluir</button>`
+                ? `<button type="button" class="rooms-hub-card-delete" data-delete-room="${this.escapeHubText(room.id)}" data-room-name="${roomName}">Excluir</button>`
                 : '';
 
             return `<article class="rooms-hub-card rooms-hub-card--${type}">
@@ -384,7 +382,7 @@ export class Setup {
                 const ok = await GameDialog.confirm(`Excluir a sala ${button.dataset.roomName}? A partida e o progresso de todos nela serão apagados.`, { title: 'Excluir sala', okLabel: 'Excluir', danger: true });
                 if (!ok) return;
                 button.disabled = true;
-                if (await Network.deleteRoom(button.dataset.deleteRoom || '', button.dataset.hostPlayer || undefined)) {
+                if (await Network.deleteRoom(button.dataset.deleteRoom || '')) {
                     GameDialog.toast('Sala excluída.', { tone: 'success' });
                     button.closest('article')?.remove();
                     if (!container.querySelector('article')) this.renderRoomsHubEmpty(container, 'Nenhuma sala', 'Quando você tiver uma sala, ela aparecerá aqui.');
@@ -415,7 +413,7 @@ export class Setup {
         const created = room.created_at ? new Date(room.created_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '';
         const rows = players.map((p: any) => {
             const isTurn = playing && p.local_index === room.current_turn;
-            const isHost = room.host_user_id ? p.user_id === room.host_user_id : p.local_index === 0;
+            const isHost = !!room.host_user_id && p.user_id === room.host_user_id;
             const team = [...(p.player_pokemons || [])].sort((a: any, b: any) => a.slot_index - b.slot_index)
                 .map((m: any) => `<img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${m.is_shiny ? 'shiny/' : ''}${Number(m.pokemon_id)}.png" alt="" title="Lv.${Number(m.level)}" loading="lazy">`).join('');
             const avatar = this.escapeHubText(String(p.avatar || 'Red.png').split('/').pop());
@@ -465,10 +463,9 @@ export class Setup {
         modal.style.display = 'flex';
 
         try {
-            // Pela conta; salas antigas (sem conta) pelo nome de treinador
             const uid = Account.userId;
-            const filter = uid ? `user_id.eq.${uid},and(user_id.is.null,name.eq."${String(username).replace(/"/g, '')}")` : `name.eq."${String(username).replace(/"/g, '')}"`;
-            const { data: playerRows, error: playerError } = await supabase.from('room_players').select('room_id').or(filter);
+            if (!uid) throw new Error('sem conta');
+            const { data: playerRows, error: playerError } = await supabase.from('room_players').select('room_id').eq('user_id', uid);
             if (playerError) throw playerError;
             const roomIds = [...new Set((playerRows || []).map((row: any) => row.room_id))];
             let rooms: any[] = [];

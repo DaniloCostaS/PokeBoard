@@ -37,6 +37,8 @@ export class NetworkState {
 
     static currentRoomId: string = "";
     static currentRoomAlias: string = "";
+    // Conta que criou a sala (marca o HOST na lista)
+    static roomHostUserId: string = "";
     static localName: string = "";
     static localAvatar: string = "";
     static isListenerActive: boolean = false;
@@ -46,7 +48,4 @@ export class NetworkState {
     static onHeartbeat: ((status: string) => void) | null = null;
     static lobbyPlayers: any[] = [];
 
-    // Fila de ações para compatibilidade legada se ainda for usada em outro lugar
-    static actionQueue: any[] = [];
-    static isProcessingQueue: boolean = false;
 }

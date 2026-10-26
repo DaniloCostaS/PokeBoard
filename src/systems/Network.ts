@@ -39,11 +39,7 @@ export class Network {
     static get lobbyPlayers() { return NetworkState.lobbyPlayers; }
     static set lobbyPlayers(val) { NetworkState.lobbyPlayers = val; }
 
-    static get actionQueue() { return NetworkState.actionQueue; }
-    static set actionQueue(val) { NetworkState.actionQueue = val; }
 
-    static get isProcessingQueue() { return NetworkState.isProcessingQueue; }
-    static set isProcessingQueue(val) { NetworkState.isProcessingQueue = val; }
 
     static get supabase() { return supabase; }
 
@@ -53,7 +49,7 @@ export class Network {
     static async generateRoom() { return await NetworkActions.generateRoom(); }
     static async cancelDraftRoom() { return await NetworkActions.cancelDraftRoom(); }
     static async leaveLobby() { return await NetworkActions.leaveLobby(); }
-    static async deleteRoom(roomId: string, hostPlayerId?: string) { return await NetworkActions.deleteRoom(roomId, hostPlayerId); }
+    static async deleteRoom(roomId: string) { return await NetworkActions.deleteRoom(roomId); }
     static async joinRoom(roomCode?: string, password?: string) { return await NetworkActions.joinRoom(roomCode, password); }
     static async spectateRoom(roomId: string) { return await NetworkActions.spectateRoom(roomId); }
     static leaveSpectator() { NetworkActions.leaveSpectator(); }
@@ -65,14 +61,12 @@ export class Network {
     // --- AÇÕES REMOTAS (QUEUE) ---
     static handleRemoteAction(action: any) { NetworkActions.handleRemoteAction(action); }
     static sendAction(type: string, payload: any) { NetworkActions.sendAction(type, payload); }
-    static async processQueue() { await NetworkActions.processQueue(); }
 
     // --- SINCRONIZAÇÃO E DADOS ---
     static getSanitizedTeam(team: any[]) { return NetworkSync.getSanitizedTeam(team); }
     static async loadGlobalChampion() { await NetworkSync.loadGlobalChampion(); }
     static async saveGlobalChampion(player: Player) { await NetworkSync.saveGlobalChampion(player); }
     static syncPlayerState() { NetworkSync.syncPlayerState(); }
-    static sendState() { NetworkSync.sendState(); }
     static syncSpecificPlayer(targetId: number, force: boolean = false) { NetworkSync.syncSpecificPlayer(targetId, force); }
     static syncPlayers(ids: number[], force: boolean = false) { NetworkSync.syncPlayers(ids, force); }
     static syncPlayerObjects(players: Player[], force: boolean = false) { NetworkSync.syncPlayerObjects(players, force); }
@@ -81,7 +75,6 @@ export class Network {
     static syncCardLogs(logs: any[]) { NetworkSync.syncCardLogs(logs); }
     static syncTurn(newTurn: number, newRound: number = 1) { NetworkSync.syncTurn(newTurn, newRound); }
     static syncLixeira() { NetworkSync.syncLixeira(); }
-    static syncBattleLogs(battleId: string, logs: string[]) { NetworkSync.syncBattleLogs(battleId, logs); }
     static async syncTurnState() { await NetworkActions.syncTurnState(); }
     static async syncLogsManually() { await NetworkActions.syncLogsManually(); }
     static async syncCardLogsManually() { await NetworkActions.syncCardLogsManually(); }

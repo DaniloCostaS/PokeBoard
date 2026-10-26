@@ -1,3 +1,5 @@
+-- Esquema base. As mudanças posteriores (contas, salas com dono, vidas, proteção e limpeza)
+-- estão em supabase/migrations e devem ser aplicadas em ordem depois deste arquivo.
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TABLE IF NOT EXISTS rooms (
@@ -11,7 +13,6 @@ CREATE TABLE IF NOT EXISTS rooms (
     megas_enabled BOOLEAN DEFAULT TRUE,
     current_event_id VARCHAR(80),
     event_end_round INT DEFAULT 0,
-    battle_active BOOLEAN DEFAULT FALSE,
     alias VARCHAR(255) UNIQUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -27,7 +28,6 @@ ALTER TABLE rooms ADD COLUMN IF NOT EXISTS legendaries_rule VARCHAR(10) DEFAULT 
 ALTER TABLE rooms ADD COLUMN IF NOT EXISTS megas_enabled BOOLEAN DEFAULT TRUE;
 ALTER TABLE rooms ADD COLUMN IF NOT EXISTS current_event_id VARCHAR(80);
 ALTER TABLE rooms ADD COLUMN IF NOT EXISTS event_end_round INT DEFAULT 0;
-ALTER TABLE rooms ADD COLUMN IF NOT EXISTS battle_active BOOLEAN DEFAULT FALSE;
 ALTER TABLE rooms ADD COLUMN IF NOT EXISTS alias VARCHAR(255) UNIQUE;
 ALTER TABLE rooms ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
 
@@ -270,25 +270,6 @@ CREATE TABLE IF NOT EXISTS room_card_logs (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS room_battle_logs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    room_id UUID REFERENCES rooms(id) ON DELETE CASCADE,
-    battle_id VARCHAR(120) NOT NULL,
-    line_index INT NOT NULL,
-    message TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-ALTER TABLE room_battle_logs ADD CONSTRAINT room_battle_logs_room_battle_line_unique UNIQUE (room_id, battle_id, line_index);
-
-CREATE TABLE IF NOT EXISTS room_traps (
-    room_id UUID REFERENCES rooms(id) ON DELETE CASCADE,
-    x INT NOT NULL,
-    y INT NOT NULL,
-    owner_local_index INT NOT NULL,
-    PRIMARY KEY (room_id, x, y, owner_local_index)
-);
-
 CREATE TABLE IF NOT EXISTS room_discarded_pokemons (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     room_id UUID REFERENCES rooms(id) ON DELETE CASCADE,
@@ -369,8 +350,6 @@ BEGIN
         'player_pokedex',
         'room_logs',
         'room_card_logs',
-        'room_battle_logs',
-        'room_traps',
         'room_discarded_pokemons'
     ]
     LOOP

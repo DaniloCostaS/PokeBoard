@@ -128,10 +128,6 @@ export class NetworkSync {
         await SupabaseDataStore.replaceTeam(NetworkState.myPlayerIdDb, p.team);
     }
 
-    static sendState() {
-        this.syncPlayerState();
-    }
-
     // Sincronizações Específicas
     static async syncPlayerPosition(x: number, y: number) {
         if (!NetworkState.isOnline) return;
@@ -192,8 +188,4 @@ export class NetworkSync {
         SupabaseDataStore.saveDiscardPile(NetworkState.currentRoomId, Game.lixeira || []);
     }
 
-    static syncBattleLogs(_battleId: string, _logs: string[]) {
-        if (!NetworkState.isOnline) return;
-        // TODO: Adaptar
-    }
 }

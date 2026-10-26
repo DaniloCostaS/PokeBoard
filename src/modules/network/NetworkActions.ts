@@ -32,13 +32,14 @@ export class NetworkActions {
             const sess = JSON.parse(stored);
             const { data: roomData, error } = await supabase.from('rooms').select('*, room_players(*)').eq('id', sess.roomId).single();
             if (roomData && !error) {
-                const playerData = roomData.room_players.find((p: any) => sess.pid ? p.id === sess.pid : p.local_index === sess.id);
+                const playerData = roomData.room_players.find((p: any) => p.id === sess.pid);
                 if (playerData) {
                     NetworkState.currentRoomId = sess.roomId;
                     NetworkState.currentRoomAlias = roomData.alias;
+                    NetworkState.roomHostUserId = roomData.host_user_id || '';
                     NetworkState.myPlayerId = playerData.local_index;
                     NetworkState.myPlayerIdDb = playerData.id;
-                    NetworkState.isHost = this.isHostOf(roomData, playerData);
+                    NetworkState.isHost = this.isHostOf(roomData);
                     NetworkState.isOnline = true;
                     NetworkState.localName = playerData.name;
                     NetworkState.localAvatar = playerData.avatar;
@@ -73,10 +74,9 @@ export class NetworkActions {
         return String(value ?? '').replace(/[&<>'"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c] || c));
     }
 
-    // Dono da sala: a conta que criou; em salas antigas, o jogador de índice 0
-    static isHostOf(room: any, playerRow: any): boolean {
-        if (room?.host_user_id) return !!Account.userId && room.host_user_id === Account.userId;
-        return playerRow?.local_index === 0;
+    // Dono da sala: a conta que criou
+    static isHostOf(room: any): boolean {
+        return !!room?.host_user_id && !!Account.userId && room.host_user_id === Account.userId;
     }
 
     private static saveSession() {
@@ -128,6 +128,7 @@ export class NetworkActions {
         const room = (data as any).room;
         NetworkState.currentRoomId = room.id;
         NetworkState.currentRoomAlias = room.alias;
+        NetworkState.roomHostUserId = room.host_user_id || '';
         NetworkState.myPlayerId = 0;
         NetworkState.myPlayerIdDb = (data as any).player_id;
         NetworkState.isHost = true;
@@ -147,7 +148,7 @@ export class NetworkActions {
         if (!NetworkState.isHost || !NetworkState.currentRoomId) return;
         const ok = await GameDialog.confirm('A sala será excluída e quem já entrou sai dela. Você volta para a tela de criação com as mesmas regras.', { title: 'Voltar e excluir sala', okLabel: 'Excluir sala', danger: true });
         if (!ok) return;
-        const { error } = await supabase.rpc('delete_room', { p_room: NetworkState.currentRoomId, p_host_player: NetworkState.myPlayerIdDb || null });
+        const { error } = await supabase.rpc('delete_room', { p_room: NetworkState.currentRoomId });
         if (error) return GameDialog.toast(this.rpcError(error), { tone: 'danger' });
         this.resetLobbyState();
         Setup.openCreateRoom(true);
@@ -168,14 +169,15 @@ export class NetworkActions {
         NetworkState.isHost = false;
         NetworkState.currentRoomId = '';
         NetworkState.currentRoomAlias = '';
+        NetworkState.roomHostUserId = '';
         NetworkState.myPlayerIdDb = '';
         NetworkState.myPlayerId = -1;
         NetworkState.lobbyPlayers = [];
     }
 
     // Excluir sala pela lista "Minhas salas" (só o host)
-    static async deleteRoom(roomId: string, hostPlayerId?: string): Promise<boolean> {
-        const { error } = await supabase.rpc('delete_room', { p_room: roomId, p_host_player: hostPlayerId || null });
+    static async deleteRoom(roomId: string): Promise<boolean> {
+        const { error } = await supabase.rpc('delete_room', { p_room: roomId });
         if (error) { GameDialog.toast(this.rpcError(error), { tone: 'danger' }); return false; }
         const sess = localStorage.getItem('pkbd_session');
         if (sess && JSON.parse(sess).roomId === roomId) localStorage.removeItem('pkbd_session');
@@ -191,9 +193,8 @@ export class NetworkActions {
         if (error || !roomData) return GameDialog.toast("Sala não encontrada. Verifique o apelido.", { tone: 'danger' });
         const existingPlayers = roomData.room_players || [];
         const uid = Account.userId;
-        // Já estou na sala: pela conta (ou pelo nome, em salas antigas sem conta)
-        const mine = existingPlayers.find((p: any) => uid && p.user_id === uid)
-            || existingPlayers.find((p: any) => !p.user_id && p.name === NetworkState.localName);
+        // Já estou na sala (pela conta)
+        const mine = existingPlayers.find((p: any) => uid && p.user_id === uid);
 
         if (roomData.status === "playing" || roomData.status === "finished") {
             if (!mine) return GameDialog.toast("A partida já começou e você não está nela.", { tone: 'danger' });
@@ -201,7 +202,8 @@ export class NetworkActions {
             NetworkState.myPlayerIdDb = mine.id;
             NetworkState.currentRoomId = roomData.id;
             NetworkState.currentRoomAlias = roomData.alias;
-            NetworkState.isHost = this.isHostOf(roomData, mine);
+            NetworkState.roomHostUserId = roomData.host_user_id || '';
+            NetworkState.isHost = this.isHostOf(roomData);
             NetworkState.isOnline = true;
             this.saveSession();
             this.setupLobbyListener();
@@ -239,7 +241,8 @@ export class NetworkActions {
 
         NetworkState.currentRoomId = roomData.id;
         NetworkState.currentRoomAlias = roomData.alias;
-        NetworkState.isHost = this.isHostOf(roomData, mine || { local_index: NetworkState.myPlayerId });
+        NetworkState.roomHostUserId = roomData.host_user_id || '';
+        NetworkState.isHost = this.isHostOf(roomData);
         NetworkState.isOnline = true;
         this.saveSession();
         this.setupLobbyListener();
@@ -253,7 +256,7 @@ export class NetworkActions {
     // Entra como espectador: não cria jogador na sala, não salva sessão e nunca grava no banco
     static async spectateRoom(roomId: string) {
         if (!roomId) return;
-        const { data: roomData, error } = await supabase.from('rooms').select('id, alias, status').eq('id', roomId).single();
+        const { data: roomData, error } = await supabase.from('rooms').select('id, alias, status, host_user_id').eq('id', roomId).single();
         if (error || !roomData) return GameDialog.toast("Partida não encontrada!", { tone: 'danger' });
         if (roomData.status !== 'playing') return GameDialog.toast("Essa partida não está mais em andamento.", { tone: 'warning' });
 
@@ -263,6 +266,7 @@ export class NetworkActions {
         NetworkState.myPlayerIdDb = "";
         NetworkState.currentRoomId = roomData.id;
         NetworkState.currentRoomAlias = roomData.alias;
+        NetworkState.roomHostUserId = roomData.host_user_id || '';
         NetworkState.isOnline = true;
 
         await this.initializeGameFromSupabase();
@@ -348,7 +352,7 @@ export class NetworkActions {
             if (NetworkState.isHost && p.id !== NetworkState.myPlayerIdDb) {
                 removeBtn = `<button class="btn btn-danger" style="padding: 2px 6px; font-size: 0.75rem; margin-left: 10px; background: #e74c3c; border: none; border-radius: 4px; color: white;" onclick="window.Network.removePlayer(${p.local_index})">Remover</button>`;
             }
-            const isHostRow = p.local_index === 0;
+            const isHostRow = !!NetworkState.roomHostUserId && p.user_id === NetworkState.roomHostUserId;
             const title = p.cosmetics?.title ? `<small class="lobby-player-title">${Cosmetics.escape(p.cosmetics.title)}</small>` : '';
             return `<div class="lobby-player-item"><span class="lobby-avatar ${Cosmetics.frameClass(p.cosmetics?.frame)}"><img src="/assets/img/Treinadores/${avatarFile}" alt=""></span><span><b>${this.esc(p.name)}</b> ${isHostRow ? '(HOST)' : ''}${title}${removeBtn}</span></div>`;
         }).join('');
@@ -382,7 +386,7 @@ export class NetworkActions {
             const mine = (roomData.room_players || []).find((p: any) => p.id === NetworkState.myPlayerIdDb);
             if (mine) {
                 NetworkState.myPlayerId = mine.local_index;
-                NetworkState.isHost = this.isHostOf(roomData, mine);
+                NetworkState.isHost = this.isHostOf(roomData);
                 this.saveSession();
             }
         }
@@ -696,10 +700,6 @@ export class NetworkActions {
             event: 'game_action',
             payload: actionData
         });
-    }
-
-    static async processQueue() {
-        // Obsoleto no Supabase Broadcast, mantido vazio para retrocompatibilidade
     }
 
     static async syncTurnState() {
