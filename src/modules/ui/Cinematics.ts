@@ -289,6 +289,7 @@ export class Cinematics {
             const name = esc(mon.name || 'Pokémon');
             const shiny = !!mon.isShiny;
             const legend = !!mon.isLegendary;
+            if (legend) ms = Math.max(ms, 2200); // lendário merece a entrada mais longa
             let line = `Um ${name} selvagem apareceu!`;
             if (shiny) line = `Um ${name} <em>brilhante</em> apareceu!`;
             else if (legend) line = `O lendário ${name} apareceu!`;

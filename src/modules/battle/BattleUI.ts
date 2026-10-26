@@ -275,7 +275,10 @@ export class BattleUI {
     }
 
     static renderTeamIcons(elId: string, list: Pokemon[]) {
-        document.getElementById(elId)!.innerHTML = list.map(p => `<div class="ball-icon ${p.isFainted() ? 'lost' : ''}"></div>`).join('');
+        // Bolinhas + número: só as bolinhas ficavam difíceis de contar em telas menores
+        const alive = list.filter(p => !p.isFainted()).length;
+        document.getElementById(elId)!.innerHTML = list.map(p => `<div class="ball-icon ${p.isFainted() ? 'lost' : ''}"></div>`).join('')
+            + (list.length ? `<span class="ball-count" title="Pokémon de pé">${alive}/${list.length}</span>` : '');
     }
 
     static viewTeam() {

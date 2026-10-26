@@ -47,12 +47,12 @@
                     <span class="trainer-brand-name">POKÉBOARD</span>
                 </div>
 
-                <div class="trainer-menu-profile" role="button" tabindex="0" title="Abrir meu perfil" onclick="window.ProfileScreen.open()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.ProfileScreen.open()}">
+                <div class="trainer-menu-profile" role="button" tabindex="0" title="Meu perfil · Pokédex · Conquistas" aria-label="Abrir meu perfil, Pokédex e conquistas" onclick="window.ProfileScreen.open()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.ProfileScreen.open()}">
                     <span class="trainer-profile-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" focusable="false"><circle cx="12" cy="8" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5.4 20c.7-3.3 3-5 6.6-5s5.9 1.7 6.6 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M4 4.5h2M18 4.5h2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
                     </span>
                     <span class="trainer-profile-copy"><small>Treinador conectado</small><strong id="logged-user-display" class="trainer-name">Ash Ketchum</strong></span>
-                    <span class="trainer-profile-status"><i></i>Pronto</span>
+                    <span class="trainer-profile-open"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 5h16v14H4zM8 10h4M8 14h8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="16" cy="10" r="1.6" fill="currentColor"/></svg>Meu perfil</span>
                 </div>
 
                 <p class="trainer-menu-eyebrow">Pronto para jogar</p>
@@ -84,10 +84,6 @@
             </div>
 
             <nav class="trainer-menu-utilities" aria-label="Opções da conta">
-                <button type="button" class="trainer-utility-link trainer-profile-link" onclick="window.ProfileScreen.open()">
-                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="8" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5.4 20c.7-3.3 3-5 6.6-5s5.9 1.7 6.6 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-                    <span>Meu perfil · Pokédex · Conquistas</span>
-                </button>
                 <a href="./manual.html" target="_blank" class="trainer-utility-link">
                     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H12v16H6.5A2.5 2.5 0 0 0 4 21.5v-16ZM20 5.5A2.5 2.5 0 0 0 17.5 3H12v16h5.5a2.5 2.5 0 0 1 2.5 2.5v-16Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
                     <span>Manual e regras</span>
@@ -482,13 +478,13 @@
             </div>
             <ul style="font-size: 0.9rem; line-height: 1.6; color: #ddd;">
                 <li><strong>Nível Máximo:</strong> 25 (Sem limite de níveis por turno)</li>
-                <li><strong>Volta no Mapa:</strong> +200G e +1 Carta</li>
+                <li><strong>Volta no Mapa:</strong> +500G (dobra na Corrida do Ouro), +2 Cartas e +1 nível para todo o time</li>
                 <hr style="border-color: rgba(255,255,255,0.1); margin: 8px 0;">
                 <li><strong>Movimento:</strong> XP exato do dado d6 (Aleatório no time vivo)</li>
-                <li><strong>Vitória em Combate:</strong> Status Total do oponente derrotado / 15</li>
-                <li><strong>Derrota em Combate:</strong> Status Total do oponente / 45 (Consolação)</li>
+                <li><strong>Vitória em Combate:</strong> Status Total do oponente derrotado / 9</li>
+                <li><strong>Derrota em Combate:</strong> Não ganha XP</li>
                 <li><strong>PvP:</strong> Ao nocautear o amigo, ganha XP baseado na força do Pokémon dele!</li>
-                <li><strong>Ações Extras:</strong> Fuga +2 XP | Captura +5 XP de Bônus</li>
+                <li><strong>Ações Extras:</strong> Fuga +5 XP | Captura +5 XP de Bônus</li>
             </ul>
             <button class="btn btn-secondary mt-15" style="width: 100%;"
                 onclick="window.returnToPokepedia('xp-rules-modal')">Voltar para a Poképédia</button>
@@ -512,7 +508,7 @@
                 <li><strong>🛡️ Bloqueio:</strong> (Def - Atk) / 5 = % Chance Bloqueio Total (Máx 90%).</li>
                 <li><strong>🛡️ Reflexão:</strong> Se a Def for 50% maior que o Atk, há 15% de chance de devolver o
                     dano.</li>
-                <li><strong>⚡ Esquiva:</strong> ((SpdA - SpdD) / 5)% de chance de evitar 100% do dano (Mínimo 10%).</li>
+                <li><strong>⚡ Esquiva:</strong> ((Spd do defensor - Spd do atacante) / 5)% de chance de evitar 100% do dano (Mínimo 10%).</li>
                 <li><strong>⚡ Crítico Veloz:</strong> (Spd / 8)% de chance de causar +5 de dano fixo.</li>
                 <li><strong>⚡ Ataque Duplo:</strong> Se sua Spd for 50% maior que a do rival, tem 20% de chance de
                     atacar 2x!</li>
@@ -541,7 +537,7 @@
                 <li><strong>HP &lt; 60%:</strong> +25%</li>
                 <li><strong>HP &lt; 15%:</strong> +50%</li>
                 <hr style="border-color: rgba(255,255,255,0.1); margin: 8px 0;">
-                <li><strong>Resistência (Penalidade):</strong> (MaxHP + Atk + Def + Spd) / 15</li>
+                <li><strong>Resistência (Penalidade):</strong> (MaxHP + Atk + Def + Spd) / 30</li>
                 <li><strong>Lendário:</strong> -10% | <strong>Shiny:</strong> -10%</li>
                 <li><strong>Sorte (Dado):</strong> Pode variar de -10% a +10%</li>
                 <hr style="border-color: rgba(255,255,255,0.1); margin: 8px 0;">

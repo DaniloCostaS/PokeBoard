@@ -449,6 +449,9 @@ body {
 
         #hud-col-left { grid-column: 1; grid-row: 1; }
         #hud-col-right { grid-column: 1; grid-row: 2; }
+        /* Todos os jogadores numa coluna só, com rolagem única (ver GameUI.updateHUD) */
+        #hud-col-left:has(+ #board-wrapper + #hud-col-right:empty) { grid-row: 1 / span 2; }
+        #hud-col-right:empty { display: none; }
 
         #board-wrapper {
             grid-column: 2;

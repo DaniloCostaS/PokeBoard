@@ -25,9 +25,13 @@ import { GameDialog } from '../ui/GameDialog';
 import { ScreenKit } from '../ui/ScreenKit';
 import { Cosmetics } from '../profile/Cosmetics';
 import { TurnBar } from '../ui/TurnBar';
+import { SupabaseDataStore } from '../network/SupabaseDataStore';
+import { NetworkState } from '../network/SupabaseInit';
 
 
 export class GameUI {
+    private static hudOneColumn = window.matchMedia('(max-width: 1599px)');
+    private static hudLayoutWatched = false;
 
     static updateHUD() {
         const left = document.getElementById('hud-col-left')!;
@@ -38,6 +42,11 @@ export class GameUI {
         const typeColors: any = { "Normal": "#A8A77A", "Fogo": "#EE8130", "Água": "#6390F0", "Elétrico": "#F7D02C", "Grama": "#7AC74C", "Gelo": "#96D9D6", "Lutador": "#C22E28", "Veneno": "#A33EA1", "Terra": "#E2BF65", "Voador": "#A98FF3", "Psíquico": "#F95587", "Inseto": "#A6B91A", "Pedra": "#B6A136", "Fantasma": "#735797", "Dragão": "#6F35FC", "Noturno": "#705746", "Aço": "#B7B7CE", "Fada": "#D685AD" };
 
         if (!GameState.players || GameState.players.length === 0) return;
+        const oneColumn = this.hudOneColumn.matches;
+        if (!this.hudLayoutWatched) {
+            this.hudLayoutWatched = true;
+            this.hudOneColumn.addEventListener('change', () => this.updateHUD());
+        }
 
         GameState.players.forEach(p => {
             if (p.team) {
@@ -87,7 +96,7 @@ export class GameUI {
 
                 return `
                 <div class="poke-card pb-party pb-tier-${tier} ${m.isShiny ? 'is-shiny' : ''} ${m.isFainted() ? 'fainted' : ''}" onclick="window.Game.openPokemonDetail(${i}, ${slotIndex})" title="${m.name} · Lv.${m.level}">
-                    <div class="pb-party-ball"><img src="${m.getSprite()}" class="poke-card-img" alt="" loading="lazy"></div>
+                    <div class="pb-party-ball"><img src="${m.getSprite()}" class="poke-card-img" alt="" decoding="async" onerror="if(!this.dataset.retry){this.dataset.retry=1;this.src=this.src.split('?')[0]+'?r='+Date.now()}"></div>
                     <div class="pb-party-info">
                         <div class="pb-party-top">
                             <span class="pb-party-name">${m.name}</span>
@@ -164,7 +173,8 @@ export class GameUI {
                 <button class="btn btn-secondary btn-mini" onclick="window.Game.openBoardCards(${i})" title="Cartas" aria-label="Cartas: ${totalCards}"><i class="pb-ico pb-ico-cards"></i><span>${totalCards}</span></button>
                 <button class="btn btn-secondary btn-mini" onclick="window.Game.openPokedex(${i})" title="Pokédex" aria-label="Pokédex"><i class="pb-ico pb-ico-dex"></i><span>Dex</span></button>
             </div>`;
-            if (i < Math.ceil(GameState.players.length / 2)) left.appendChild(d);
+            // Até 1599px (notebook e celular) todos os cards ficam numa coluna/carrossel só; antes eram duas caixas de meia altura que cortavam os cards
+            if (oneColumn || i < Math.ceil(GameState.players.length / 2)) left.appendChild(d);
             else right.appendChild(d);
         });
 
@@ -621,9 +631,19 @@ export class GameUI {
         }
     }
 
-    static viewBattleLog(battleId: string) {
-        const logs = GameState.battleLogs[battleId];
-        if (!logs) return GameDialog.toast("Log de batalha não encontrado ou expirado.", { tone: 'warning' });
+    static async viewBattleLog(battleId: string) {
+        let logs: string[] | null = GameState.battleLogs[battleId] || null;
+        const NetworkObj = (window as any).Network || Network;
+        // Batalha de outro jogador (ou página recarregada): o log completo fica no banco
+        if ((!logs || logs.length <= 1) && NetworkObj.isOnline && NetworkState.currentRoomId) {
+            const remote = await SupabaseDataStore.loadBattleLines(NetworkState.currentRoomId, battleId);
+            if (remote?.length) logs = GameState.battleLogs[battleId] = remote;
+            else if (!logs) {
+                const live = (window as any).Battle?.active;
+                return GameDialog.toast(live ? "A batalha ainda está acontecendo. O log fica disponível quando ela terminar." : "Log de combate não disponível para esta batalha.", { tone: 'warning' });
+            }
+        }
+        if (!logs) return GameDialog.toast("Log de combate não disponível para esta batalha.", { tone: 'warning' });
 
         let modal = document.getElementById('battle-history-modal');
         if (!modal) {
@@ -877,7 +897,7 @@ export class GameUI {
             this.playCardCinematic(GameState.pendingCardAnimation.id, GameState.pendingCardAnimation.player);
             GameState.pendingCardAnimation = null;
         } else if (GameState.pendingLegendaryAlert) {
-            this.playLegendaryCinematic(GameState.pendingLegendaryAlert.player, GameState.pendingLegendaryAlert.monName, GameState.pendingLegendaryAlert.isMyEncounter);
+            this.startLegendaryEncounter(GameState.pendingLegendaryAlert.player, GameState.pendingLegendaryAlert.isMyEncounter);
             GameState.pendingLegendaryAlert = null;
         }
     }
@@ -928,51 +948,13 @@ export class GameUI {
         }
     }
 
-    static playLegendaryCinematic(playerName: string, monName: string, isMyEncounter: boolean) {
-        let modal = document.getElementById('legendary-cinematic');
-        if (!modal) {
-            modal = document.createElement('div');
-            modal.id = 'legendary-cinematic';
-            modal.style.cssText = "position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.92); display:flex; justify-content:center; align-items:center; flex-direction:column; z-index:99999; opacity:0; transition: opacity 0.5s ease; cursor: pointer;";
-            modal.innerHTML = `
-                <h2 style="color:#e74c3c; font-size: 3rem; text-shadow: 0 0 20px #c0392b, 2px 2px 4px #000; margin-bottom: 20px; font-weight: bold; text-align: center; text-transform: uppercase; letter-spacing: 5px;">ENCONTRO LENDÁRIO!</h2>
-                <div style="font-size: 1.5rem; color: #f1c40f; margin-bottom: 30px; text-shadow: 1px 1px 2px #000;" id="leg-cine-subtitle"></div>
-                <img id="leg-cine-img" src="" style="height: 45vh; max-height: 500px; filter: drop-shadow(0 0 30px rgba(255,255,255,0.8)); transform: scale(0.5); transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
-                <div id="leg-cine-name" style="color: #fff; font-size: 2.5rem; margin-top: 30px; font-weight: bold; text-shadow: 2px 2px 4px #000;"></div>
-                <div style="color: #bdc3c7; margin-top: 30px; font-size: 1rem; opacity: 0.7;">(Clique para continuar)</div>
-            `;
-            document.body.appendChild(modal);
-        }
-
-        document.getElementById('leg-cine-subtitle')!.innerText = `${playerName} encontrou um Pokémon mítico!`;
-        document.getElementById('leg-cine-name')!.innerText = monName;
-        document.getElementById('leg-cine-img')!.setAttribute('src', `/assets/gif/lendarios/${monName}.gif`);
-
-        modal.style.display = 'flex';
-
-        setTimeout(() => {
-            modal!.style.opacity = '1';
-            document.getElementById('leg-cine-img')!.style.transform = 'scale(1.3)';
-        }, 50);
-
-        const closeAndBattle = () => {
-            modal!.style.opacity = '0';
-            document.getElementById('leg-cine-img')!.style.transform = 'scale(0.5)';
-            setTimeout(() => {
-                modal!.style.display = 'none';
-                if (isMyEncounter && GameState.pendingLegendaryEncounter) {
-                    const player = GameState.players.find(p => p.name === playerName);
-                    if (player) {
-                        const BattleObj = (window as any).Battle;
-                        if (BattleObj) BattleObj.setup(player, GameState.pendingLegendaryEncounter.mon, false, "Selvagem", 0, null, false, 0, "", GameState.pendingLegendaryEncounter.type);
-                    }
-                    GameState.pendingLegendaryEncounter = null;
-                }
-            }, 500);
-        };
-
-        modal.onclick = closeAndBattle;
-        setTimeout(() => { if (modal!.style.display !== 'none') closeAndBattle(); }, 4000);
+    // Encontro lendário: a batalha abre com a entrada de Pokémon selvagem no estilo lendário (Cinematics.wildIntro)
+    static startLegendaryEncounter(playerName: string, isMyEncounter: boolean) {
+        if (!isMyEncounter || !GameState.pendingLegendaryEncounter) return;
+        const player = GameState.players.find(p => p.name === playerName);
+        const BattleObj = (window as any).Battle;
+        if (player && BattleObj) BattleObj.setup(player, GameState.pendingLegendaryEncounter.mon, false, "Selvagem", 0, null, false, 0, "", GameState.pendingLegendaryEncounter.type);
+        GameState.pendingLegendaryEncounter = null;
     }
 
     static playCardCinematic(cardId: string, playerName: string) {

@@ -8,7 +8,7 @@ export const CARDS_DB: CardData[] = [
     { id: 'time', name: "Controle do Tempo", icon: "⏳", desc: "Jogue novamente após este turno.", type: 'move', rarity: 'Incomum' },
     { id: 'shiny', name: "Lure Shiny", icon: "✨", desc: "As próximas 3 rodadas sua chance de Shiny aumenta para 15%.", type: 'move', rarity: 'Rara' },
     { id: 'doublexp', name: "Double XP", icon: "🚻", desc: "Seus próximos 5 ganhos de XP serão dobrados (XP do dado conta)", type: 'move', rarity: 'Incomum' },
-    { id: 'expshare', name: "Exp Share", icon: "🤩", desc: "Seus próximo 5 ganhos de XP serão igualmente distribuído para todo o time (XP do dado conta)", type: 'move', rarity: 'Comum' },
+    { id: 'expshare', name: "Exp Share", icon: "🤩", desc: "Nos seus próximos 5 ganhos de XP, todos os Pokémon vivos do time recebem o XP inteiro (XP do dado conta).", type: 'move', rarity: 'Comum' },
     { id: 'samu', name: "Chama o SAMU", icon: "🚑", desc: "Transporta você para a próxima cidade e ativa as ações de lá.", type: 'move', rarity: 'Rara' },
 
     // Cartas de dano em batalha
@@ -22,12 +22,12 @@ export const CARDS_DB: CardData[] = [
     { id: 'status', name: "Ataque Surpresa", icon: "⚡", desc: "Aplica um efeito de atordoamento no pokémon do inimigo. Ele não atacará por 2 turnos", type: 'battle', rarity: 'Comum' },
     { id: 'heal', name: "Poção Máxima", icon: "💊", desc: "Recupera 100% do HP durante a batalha.", type: 'battle', rarity: 'Rara' },
     { id: 'counter', name: "Contra-Ataque", icon: "🔁", desc: "Reflete 100% do dano recebido dos próximos 3 ataques.", type: 'battle', rarity: 'Comum' },
-    { id: 'mew', name: "DNA de Mewtwo", icon: "🧬", desc: "Invoca um MEWTWO para lutar ao seu lado nessa batalha (O nivel dele será o mesmo do seu pokémon ativo).", type: 'battle', rarity: 'Rara' },
+    { id: 'mew', name: "DNA de Mewtwo", icon: "🧬", desc: "Um MEWTWO entra no lugar do seu Pokémon ativo até o fim desta batalha (mesmo nível dele). Depois seu Pokémon volta.", type: 'battle', rarity: 'Rara' },
 
     // Outras Cartas
     { id: 'master', name: "Master Ball", icon: "🟣", desc: "Captura 100% garantida usando qualquer pokebola (Só pode ser usado se tiver pokebola).", type: 'battle', rarity: 'Rara' },
     { id: 'holy_water', name: "Água Benta", icon: "🫗", desc: "Remova o efeito da maldição do seu jogador.", type: 'move', rarity: 'Rara' },
-    { id: 'destiny', name: "Destino Selado", icon: "🌠", desc: "Se vencer a batalha, ganhe 2 recompensas (Gold/Carta).", type: 'battle', rarity: 'Comum' },
+    { id: 'destiny', name: "Destino Selado", icon: "🌠", desc: "Se vencer esta batalha, ganhe +500G e +2 cartas além da recompensa normal.", type: 'battle', rarity: 'Comum' },
     { id: 'illegal_adoption', name: "Sequestro Relampago", icon: "⚡", desc: "Durante uma batalha contra NPC ou Selvagem, troque um Pokemon do seu time por um do adversario.", type: 'battle', rarity: 'Rara' },
     { id: 'adotar_lixeira', name: "Segunda Chance", icon: "💚", desc: "Escolha um Pokémon da Lixeira para resgatar e adicionar ao seu time.", type: 'move', rarity: 'Rara' },
 
@@ -35,13 +35,13 @@ export const CARDS_DB: CardData[] = [
     { id: 'slow', name: "Campo Grudento", icon: "🕸️", desc: "Escolha um jogador: ele rola apenas 1d1 nos próximos 3 turnos.", type: 'move', rarity: 'Comum' },
     { id: 'swap', name: "Troca Rápida", icon: "🔀", desc: "Troque de posição com qualquer jogador.", type: 'move', rarity: 'Incomum' },
     { id: 'rocket', name: "Equipe Rocket", icon: "🚀", desc: "Roube uma carta aleatória de outro jogador.", type: 'move', rarity: 'Incomum' },
-    { id: 'curse', name: "Maldição", icon: "☠️", desc: "Escolha um jogador: ele causa metade do dano na próxima batalha inteira contra líder de ginasio ou rei da liga e não poderá usar itens.", type: 'move', rarity: 'Rara' },
+    { id: 'curse', name: "Maldição", icon: "☠️", desc: "Escolha um jogador: na próxima batalha contra Líder de Ginásio ou Campeão ele causa metade do dano. Contra Líder de Ginásio também não pode usar itens nem cartas.", type: 'move', rarity: 'Rara' },
     { id: 'trade_fail', name: "Troca Mal-Sucedida", icon: "❌", desc: "O jogador alvo perde os 3 próximos turnos.", type: 'move', rarity: 'Rara' },
 
     // Cartas de UP pokémon
     { id: 'rare_candy', name: "Rare Candy", icon: "🍬", desc: "Suba 1 nível de um pokémon de sua escolha.", type: 'move', rarity: 'Incomum' },
     { id: 'evoluir', name: "Evolução forçada", icon: "🆙", desc: "Evolua um pokémon de sua escolha.", type: 'move', rarity: 'Incomum' },
-    { id: 'mega_stone', name: "Mega Pedra", icon: "💎", desc: "Mega evolui seu Pokémon durante a batalha.", type: 'move', rarity: 'Épica' },
+    { id: 'mega_stone', name: "Mega Pedra", icon: "💎", desc: "Equipe em um Pokémon compatível (fora de batalha). Com a pedra equipada, ele pode Mega Evoluir nas batalhas.", type: 'move', rarity: 'Épica' },
     { id: 'reclaim_mega_stone', name: "Recuperar Mega Pedra", icon: "⛏️", desc: "Remove a Mega Pedra de um dos SEUS Pokémon, e você ganha a carta Mega Pedra de volta no seu inventário.", type: 'move', rarity: 'Rara' },
     { id: 'steal_mega_stone', name: "Destruir Mega Pedra", icon: "💥", desc: "Destrói a Mega Pedra equipada em um Pokémon de outro jogador. Ninguém fica com a pedra.", type: 'move', rarity: 'Épica' },
 

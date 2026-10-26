@@ -7,7 +7,8 @@ import { supabase } from './SupabaseInit';
 
 type LogEntry = { text: string; style: string; type?: string; battleId?: string; timestamp?: string };
 
-const DEFAULT_STATS = { cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 };
+// Sempre um objeto novo: compartilhar effectsReceived/cardsDefended entre jogadores faz a carta de um aparecer em todos
+const defaultStats = () => ({ cardsUsed: 0, cardsSuffered: 0, effectsReceived: {}, cardsDefended: {}, turnsLost: 0 });
 
 function asAvatarFile(avatar: string | undefined): string {
     return (avatar || 'Red.png').split('/').pop() || 'Red.png';
@@ -212,7 +213,7 @@ export class SupabaseDataStore {
             this.replaceCards(id, player.cards || []),
             this.replaceBadges(id, player.badges || []),
             this.replaceKeyValues('player_effects', id, { ...(player.effects || {}), activeQuests: player.activeQuests || [] }),
-            this.replaceKeyValues('player_stats', id, player.stats || DEFAULT_STATS),
+            this.replaceKeyValues('player_stats', id, player.stats || defaultStats()),
             this.replacePokedex(id, player.pokedexData || {})
         ]);
     }
@@ -303,7 +304,7 @@ export class SupabaseDataStore {
                 player.activeQuests = [];
             }
             player.effects = effectsData;
-            player.stats = { ...DEFAULT_STATS, ...expandRecord(pd.player_stats) };
+            player.stats = { ...defaultStats(), ...expandRecord(pd.player_stats) };
             player.pokedexData = {};
             (pd.player_pokedex || []).forEach((dex: any) => {
                 player.pokedexData[dex.pokemon_id] = { seen: dex.seen || 0, caught: dex.caught || 0, defeated: dex.defeated || 0 };
@@ -327,6 +328,20 @@ export class SupabaseDataStore {
         if (error) {
             console.warn('[SupabaseDataStore] Falha ao inserir room_log:', error);
         }
+    }
+
+    // Linhas completas da batalha ficam na mesma linha do log que abriu a batalha
+    static async saveBattleLines(roomId: string, battleId: string, lines: string[], attempt = 0) {
+        const { data, error } = await supabase.from('room_logs').update({ battle_lines: lines }).eq('room_id', roomId).eq('battle_id', battleId).select('id');
+        if (error) { console.warn('[SupabaseDataStore] Falha ao salvar log de combate:', error); return; }
+        // Batalha muito curta: a linha que abriu a batalha pode ainda não ter chegado ao banco
+        if (!data?.length && attempt < 3) setTimeout(() => this.saveBattleLines(roomId, battleId, lines, attempt + 1), 1500);
+    }
+
+    static async loadBattleLines(roomId: string, battleId: string): Promise<string[] | null> {
+        const { data, error } = await supabase.from('room_logs').select('battle_lines').eq('room_id', roomId).eq('battle_id', battleId).not('battle_lines', 'is', null).limit(1).maybeSingle();
+        if (error || !data || !Array.isArray(data.battle_lines)) return null;
+        return data.battle_lines as string[];
     }
 
     static logFromRow(row: any): LogEntry {

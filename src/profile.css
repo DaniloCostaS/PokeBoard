@@ -48,7 +48,14 @@
 .trainer-menu-profile[role="button"] { cursor: pointer; }
 .trainer-menu-profile[role="button"]:hover { filter: brightness(1.08); }
 .trainer-menu-profile[role="button"]:focus-visible { outline: 2px solid #a9e1ef; outline-offset: 3px; }
-.trainer-profile-link { font: inherit; background: none; border: 0; cursor: pointer; }
+.trainer-profile-open {
+    display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 12px;
+    color: #e7f6fa; font-size: 0.76rem; font-weight: 700; white-space: nowrap;
+    background: rgba(58, 143, 195, 0.22); border: 1px solid rgba(143, 215, 246, 0.5); border-radius: 9px;
+    transition: background 150ms ease, border-color 150ms ease;
+}
+.trainer-profile-open svg { width: 16px; height: 16px; }
+.trainer-menu-profile[role="button"]:hover .trainer-profile-open { background: rgba(58, 143, 195, 0.38); border-color: #8fd7f6; }
 
 /* --- Tela "Monte sua sala" (mesmo cartão do menu online) --- */
 #menu-phase-create.trainer-online-card {
@@ -261,6 +268,11 @@ dl.trainer-room-summary > div {
 .trainer-online-avatar-control:has(.pb-avatar-picker) > img,
 .trainer-offline-avatar-select:has(.pb-avatar-picker) img.avatar-preview { display: none; }
 .trainer-offline-avatar-select:has(.pb-avatar-picker) > div { display: block; }
+/* Offline: nome em cima, grade de avatares embaixo ocupando o cartão inteiro (sem vazar para fora) */
+.trainer-offline-player-fields:has(.pb-avatar-picker) { grid-template-columns: minmax(0, 1fr); }
+.trainer-offline-avatar-select:has(.pb-avatar-picker) { grid-template-columns: minmax(0, 1fr); }
+.trainer-offline-avatar-select .pb-avatar-picker.is-compact { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; overflow: visible; padding-bottom: 0; }
+.trainer-offline-avatar-select .is-compact .pb-avatar-option { width: auto; min-width: 0; }
 
 /* --- Perfil --- */
 .pb-profile-head { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; }
@@ -446,21 +458,21 @@ dl.trainer-room-summary > div {
     .pb-tb-me { padding: 3px !important; }
 }
 
-/* Faixa "Na vez" no topo do card (antes ficava na linha do nome e cortava em cards estreitos) */
+/* Faixa "Na vez": barra própria no topo do card, no fluxo (não cobre o nome nem é cortada pela borda do painel) */
 #game-container .pb-trainer-card .pb-turn-ribbon {
-    position: absolute;
-    top: 0;
-    left: 50%;
-    z-index: 3;
-    padding: 0 8px 1px 3px;
-    border-top: 0 !important;
-    border-radius: 0 0 8px 8px !important;
+    position: static;
+    justify-content: center;
+    margin: -10px -10px 0;
+    padding: 2px 8px;
+    border: 0 !important;
+    border-bottom: 1px solid #0d1f14 !important;
+    border-radius: 0 !important;
     color: #0d1f14;
-    font-size: 0.6rem;
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
     white-space: nowrap;
     background: #7ee2a4;
-    border: 1px solid #0d1f14;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
-    transform: translateX(-50%);
+    box-shadow: none;
 }
 #game-container .player-slot.active { overflow: visible; }
