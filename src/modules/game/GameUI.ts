@@ -103,6 +103,7 @@ export class GameUI {
                         <div class="pb-xp-row" title="EXP ${Math.floor(m.currentXp)}/${m.maxXp}">
                             <span class="pb-xp-label">EXP</span>
                             <div class="pb-xp"><div class="pb-xp-fill" style="width:${xpPct}%"></div></div>
+                            <span class="pb-xp-num">${Math.floor(m.currentXp)}/${m.maxXp}</span>
                         </div>
                         <div class="pb-party-stats"><span><b>ATQ</b>${m.atk}</span><span><b>DEF</b>${m.def}</span><span><b>VEL</b>${m.speed}</span></div>
                     </div>

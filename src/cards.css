@@ -5,12 +5,19 @@
     display: flex;
     justify-content: safe center;
     align-items: flex-end;
-    min-height: 0;
-    padding: 52px 28px 18px;
+    min-height: 220px;
+    padding: 44px 28px 18px;
     overflow-x: auto;
-    overflow-y: visible;
-    scrollbar-width: thin;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
     scroll-padding: 0 40px;
+}
+
+.pb-hand::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
 }
 
 .pb-hand-card {
@@ -50,7 +57,7 @@
 
 .pb-hand-card.is-selected {
     z-index: 100 !important;
-    transform: translateY(-24px) rotate(0) scale(1.1);
+    transform: translateY(-20px) rotate(0) scale(1.08);
     box-shadow: 0 0 0 2px #fff, 0 16px 30px rgba(0, 0, 0, 0.55);
 }
 
