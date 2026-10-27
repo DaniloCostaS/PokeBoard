@@ -657,3 +657,104 @@
         animation: none;
     }
 }
+
+/* ==========================================================================
+   Time no placar: visão compacta (padrão) e botão para a ficha completa
+   ========================================================================== */
+#game-container .pb-team-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    margin: 2px 0 4px;
+}
+
+#game-container .pb-team-count {
+    color: var(--pb-muted, #9fb4bd);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+#game-container .pb-team-count b { color: var(--pb-text, #fff); }
+
+#game-container .pb-team-toggle {
+    padding: 3px 9px;
+    color: #d9ecf3;
+    font: inherit;
+    font-size: 0.68rem;
+    font-weight: 800;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 999px;
+    cursor: pointer;
+}
+
+#game-container .pb-team-toggle:hover { background: rgba(255, 255, 255, 0.14); }
+#game-container .pb-team-toggle:focus-visible { outline: 2px solid #a9e1ef; outline-offset: 2px; }
+
+#game-container .pb-team-mini {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 5px;
+}
+
+#game-container .pb-mini {
+    position: relative;
+    display: grid;
+    justify-items: center;
+    gap: 2px;
+    min-width: 0;
+    padding: 3px 4px 5px;
+    color: inherit;
+    font: inherit;
+    background: linear-gradient(160deg, #233140, #1b2630);
+    border: 1px solid var(--pb-line, rgba(255, 255, 255, 0.12));
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+#game-container .pb-mini:hover { border-color: rgba(143, 215, 246, 0.6); }
+#game-container .pb-mini:focus-visible { outline: 2px solid #a9e1ef; outline-offset: 1px; }
+#game-container .pb-mini.is-shiny { border-color: rgba(241, 196, 15, 0.7); }
+#game-container .pb-mini.is-legend { box-shadow: inset 0 0 0 1px rgba(170, 120, 255, 0.6); }
+#game-container .pb-mini.fainted img { filter: grayscale(1); opacity: 0.45; }
+
+#game-container .pb-mini img {
+    width: 44px;
+    height: 44px;
+    image-rendering: pixelated;
+    object-fit: contain;
+}
+
+#game-container .pb-mini-lv {
+    position: absolute;
+    top: 2px;
+    left: 3px;
+    padding: 0 3px;
+    color: #ffe08a;
+    font-size: 0.6rem;
+    font-weight: 900;
+    line-height: 1.3;
+    background: rgba(0, 0, 0, 0.55);
+    border-radius: 4px;
+}
+
+#game-container .pb-mini-lv::before { content: "Lv"; margin-right: 1px; font-weight: 700; opacity: 0.75; }
+
+#game-container .pb-mini-hp {
+    display: block;
+    width: 100%;
+    height: 4px;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 2px;
+}
+
+#game-container .pb-mini-hp u {
+    display: block;
+    height: 100%;
+    text-decoration: none;
+    border-radius: 2px;
+}

@@ -30,6 +30,24 @@ import { NetworkState } from '../network/SupabaseInit';
 
 
 export class GameUI {
+    // Jogadores com o time aberto em modo detalhado (preferência deste navegador)
+    private static expandedTeams: Set<number> | null = null;
+    private static teamPrefs(): Set<number> {
+        if (!this.expandedTeams) {
+            try { this.expandedTeams = new Set(JSON.parse(localStorage.getItem('pb_hud_team_open') || '[]')); }
+            catch { this.expandedTeams = new Set(); }
+        }
+        return this.expandedTeams;
+    }
+    static isTeamExpanded(playerId: number) { return this.teamPrefs().has(playerId); }
+    static toggleTeamView(playerId: number) {
+        const prefs = this.teamPrefs();
+        if (prefs.has(playerId)) prefs.delete(playerId); else prefs.add(playerId);
+        try { localStorage.setItem('pb_hud_team_open', JSON.stringify([...prefs])); } catch { /* só nesta sessão */ }
+        this.updateHUD();
+        TurnBar.focusPlayer(GameState.players.findIndex(pl => pl.id === playerId));
+    }
+
     private static hudOneColumn = window.matchMedia('(max-width: 1599px)');
     private static hudLayoutWatched = false;
 
@@ -119,6 +137,25 @@ export class GameUI {
                 </div>`;
             }).join('');
 
+            // Visão compacta (padrão): grade com sprite, nível e HP; "Detalhes" abre a ficha completa deste jogador
+            const expanded = this.isTeamExpanded(p.id);
+            const hpColor = (m: Pokemon) => (window as any).Battle?.getHpColor(m.currentHp, m.maxHp) || '';
+            const mini = p.team.map((m, slotIndex) => {
+                const hpPct = Math.max(0, Math.min(100, (m.currentHp / m.maxHp) * 100));
+                return `
+                <button type="button" class="pb-mini${m.isShiny ? ' is-shiny' : ''}${m.isFainted() ? ' fainted' : ''}${m.isLegendary ? ' is-legend' : ''}" onclick="window.Game.openPokemonDetail(${i}, ${slotIndex})" title="${m.name} · Lv.${m.level} · HP ${m.currentHp}/${m.maxHp}" aria-label="${m.name}, nível ${m.level}, HP ${m.currentHp} de ${m.maxHp}">
+                    <img src="${m.getSprite()}" alt="" decoding="async" onerror="if(!this.dataset.retry){this.dataset.retry=1;this.src=this.src.split('?')[0]+'?r='+Date.now()}">
+                    <span class="pb-mini-lv">${m.level}</span>
+                    <i class="pb-mini-hp"><u class="pb-hp-fill ${hpColor(m)}" style="width:${hpPct}%"></u></i>
+                </button>`;
+            }).join('');
+            const teamHTML = `
+            <div class="pb-team-head">
+                <span class="pb-team-count">Time <b>${p.team.length}</b>/6</span>
+                <button type="button" class="pb-team-toggle" onclick="window.Game.toggleTeamView(${p.id})" aria-expanded="${expanded}">${expanded ? 'Resumir' : 'Detalhes'}</button>
+            </div>
+            ${expanded ? `<div class="hud-team">${th}</div>` : `<div class="pb-team-mini">${mini}</div>`}`;
+
             const totalItems = Object.values(p.items).reduce((sum, val) => sum + val, 0);
             const totalCards = p.cards.length;
 
@@ -166,7 +203,7 @@ export class GameUI {
                 ${effectsHTML}
             </div> 
             ${badgeHTML} 
-            <div class="hud-team">${th}</div> 
+            ${teamHTML}
             <div class="hud-actions">
                 <button class="btn btn-secondary btn-mini" onclick="window.Game.openInventoryModal(${i})" title="Mochila" aria-label="Mochila: ${totalItems} itens"><i class="pb-ico pb-ico-bag"></i><span>${totalItems}</span></button>
                 <button class="btn btn-secondary btn-mini" onclick="window.QuestManager.openQuestsModal(window.Game.players[${i}])" title="Missões" aria-label="Missões: ${p.activeQuests ? p.activeQuests.length : 0}"><i class="pb-ico pb-ico-quest"></i><span>${p.activeQuests ? p.activeQuests.length : 0}</span></button>
