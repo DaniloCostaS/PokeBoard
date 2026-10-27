@@ -18,7 +18,7 @@ export type BackpackOptions = {
 
 const POCKETS: Pocket[] = [
     { id: 'medicine', label: 'Remédios', icon: 'Pocao.png', types: ['heal', 'revive'] },
-    { id: 'balls', label: 'Poké Bolas', icon: 'pokeball.png', types: ['capture'] },
+    { id: 'balls', label: 'Poké Bolas', icon: 'poke_ball.png', types: ['capture'] },
     { id: 'held', label: 'Para segurar', icon: 'leftovers.png', types: ['hold'] },
     { id: 'special', label: 'Especiais', icon: 'MegaStone.png', types: ['mega', 'boost'] }
 ];

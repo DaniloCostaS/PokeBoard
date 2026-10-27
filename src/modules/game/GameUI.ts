@@ -2254,7 +2254,7 @@ export class GameUI {
         };
 
         const leadMon = champion.team[0];
-        const avatarStr = champion.avatar || 'Red.jpg';
+        const avatarStr = champion.avatar || 'Red.png';
         const avatarSrc = avatarStr.includes('/') ? avatarStr : `/assets/img/Treinadores/${avatarStr}`;
         const leadSprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${leadMon.isShiny ? 'shiny/' : ''}${leadMon.id}.png`;
 

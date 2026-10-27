@@ -15,10 +15,10 @@ export const SHOP_ITEMS: ItemData[] = [
     { id: 'ultramaxrevive', name: 'Ultra Max Revive', desc: "Revive todos com 100% de HP", icon: 'UltraMaxRevive.png', price: 2000, type: 'revive', val: 100 },
 
     // --- CAPTURA (CAPTURE) ---
-    { id: 'pokeball', name: 'Pokébola', desc: "Captura um Pokémon Selvagem", icon: 'pokeball.png', price: 100, type: 'capture', rate: 15 },
-    { id: 'greatball', name: 'Great Ball', desc: "Captura um Pokémon Selvagem com +20% de chance", icon: 'greatball.png', price: 200, type: 'capture', rate: 30 },
-    { id: 'ultraball', name: 'Ultra Ball', desc: "Captura um Pokémon Selvagem com +40% de chance", icon: 'ultraball.png', price: 400, type: 'capture', rate: 50 },
-    { id: 'masterball', name: 'Master Ball', desc: "Captura um Pokémon Selvagem com 100% de chance", icon: 'masterball.png', price: 2500, type: 'capture', rate: 100 },
+    { id: 'pokeball', name: 'Pokébola', desc: "Captura um Pokémon Selvagem", icon: 'poke_ball.png', price: 100, type: 'capture', rate: 15 },
+    { id: 'greatball', name: 'Great Ball', desc: "Captura um Pokémon Selvagem com +20% de chance", icon: 'great_ball.png', price: 200, type: 'capture', rate: 30 },
+    { id: 'ultraball', name: 'Ultra Ball', desc: "Captura um Pokémon Selvagem com +40% de chance", icon: 'ultra_ball.png', price: 400, type: 'capture', rate: 50 },
+    { id: 'masterball', name: 'Master Ball', desc: "Captura um Pokémon Selvagem com 100% de chance", icon: 'master_ball.png', price: 2500, type: 'capture', rate: 100 },
 
     // --- ESPECIAIS ---
     { id: 'megastone', name: 'Mega Stone', desc: "Permite a Mega Evolução", icon: 'MegaStone.png', price: 5000, type: 'mega' },

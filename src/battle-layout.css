@@ -1,0 +1,199 @@
+/* ==========================================================================
+   Batalha em tela cheia, ajustada a qualquer resolução.
+   Antes: caixa limitada a 900×620 e arena com 270px fixos; o que passasse
+   (contagem do time, Pokémon mais alto) era cortado, principalmente no Mac.
+   Agora a caixa ocupa a tela, a arena cresce com o espaço livre e os sprites
+   se ajustam à altura disponível em vez de serem cortados.
+   ========================================================================== */
+
+#battle-modal {
+    padding: 12px;
+    box-sizing: border-box;
+}
+
+#battle-modal .battle-box {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: min(1440px, 100%) !important;
+    max-width: none !important;
+    height: 100% !important;
+    max-height: none !important;
+    padding: 14px !important;
+    box-sizing: border-box;
+    overflow: hidden auto;
+}
+
+#battle-modal #battle-title {
+    flex: none;
+    margin: 0 0 10px;
+}
+
+#battle-modal .battle-wrapper {
+    flex: 1 1 auto !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) clamp(240px, 24vw, 340px);
+    gap: 14px;
+    min-height: 0;
+    align-items: stretch;
+}
+
+#battle-modal .battle-main-column {
+    flex: initial !important;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+    min-height: 0;
+}
+
+#battle-modal #battle-msg,
+#battle-modal .battle-actions {
+    flex: none;
+    margin: 0 !important;
+}
+
+/* Arena: ocupa o que sobra; nunca menor que 230px (abaixo disso a caixa rola) */
+#battle-modal .battle-scene {
+    flex: 1 1 auto;
+    height: auto !important;
+    min-height: 230px;
+    margin: 0 !important;
+    padding: clamp(8px, 1.6vh, 20px) clamp(10px, 3%, 40px) !important;
+    display: flex !important;
+    justify-content: space-between;
+    align-items: stretch !important;
+    gap: 4% !important;
+    overflow: hidden !important;
+    box-sizing: border-box;
+}
+
+#battle-modal .battle-scene > .battler {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    align-self: stretch !important;
+    width: clamp(150px, 32%, 300px) !important;
+    min-width: 0;
+    min-height: 0;
+}
+
+/* Área do sprite: pega toda a altura que a ficha (HP, nome, status, time) não usa */
+#battle-modal .battle-scene .battler-images {
+    flex: 1 1 auto;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 64px;
+    margin-bottom: 6px;
+    container-type: size;
+}
+
+#battle-modal .battle-scene .pokemon-battle-img {
+    width: auto !important;
+    height: min(100cqh, 100cqw, 240px) !important;
+    max-width: 100cqw !important;
+    max-height: 100cqh !important;
+    aspect-ratio: 1;
+    object-fit: contain;
+}
+
+/* GIF animado: o tamanho proporcional vem do JS (GameFeel), só não pode passar da área */
+#battle-modal .battle-scene .pokemon-battle-img.pb-anim-sprite {
+    width: auto !important;
+    height: min(95cqh, calc(var(--pb-sprite-h, 90) * 1cqh)) !important;
+    aspect-ratio: auto;
+    max-width: 75cqw !important;
+    max-height: 95cqh !important;
+    margin-left: 0 !important;
+}
+
+/* Com GIF de costas, o treinador fica no canto esquerdo da área (antes saía da arena) */
+#battle-modal .battle-scene .battler-images:has(#ply-img.pb-anim-sprite) #ply-trainer-img {
+    left: 0 !important;
+}
+
+#battle-modal .battle-scene .trainer-battle-img {
+    width: clamp(40px, 34cqh, 84px) !important;
+    height: clamp(40px, 34cqh, 84px) !important;
+}
+
+/* Treinador do oponente fica dentro da arena (antes vazava pela borda direita) */
+#battle-modal .battle-scene #opp-trainer-img {
+    right: 0 !important;
+}
+
+#battle-modal .battle-scene .hp-container,
+#battle-modal .battle-scene .battle-info-box {
+    flex: none;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#battle-modal .battle-scene .battle-team-indicator {
+    flex: none;
+    transform: none;
+}
+
+/* Log da batalha acompanha a altura da coluna principal */
+#battle-modal .battle-log-column {
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0;
+    margin: 0 !important;
+}
+
+#battle-modal #battle-log-history {
+    max-height: none !important;
+    min-height: 0;
+}
+
+/* Telas estreitas (celular / tablet em pé): tela inteira, log embaixo e mais curto */
+@media (max-width: 900px) {
+    #battle-modal {
+        padding: 0;
+    }
+
+    #battle-modal .battle-box {
+        width: 100% !important;
+        border-radius: 0;
+        padding: 10px !important;
+    }
+
+    #battle-modal .battle-wrapper {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: minmax(0, 1fr) auto;
+        gap: 10px;
+    }
+
+    #battle-modal .battle-scene {
+        min-height: 250px;
+        padding: 8px !important;
+        gap: 2% !important;
+    }
+
+    #battle-modal .battle-scene > .battler {
+        width: 48% !important;
+    }
+
+    #battle-modal .battle-log-column {
+        height: 18dvh !important;
+        min-height: 96px;
+        flex: none !important;
+    }
+}
+
+/* Telas baixas (notebook com barras do navegador, celular deitado): ficha mais enxuta */
+@media (max-height: 700px) {
+    #battle-modal .battle-box {
+        padding: 10px !important;
+    }
+
+    #battle-modal #battle-title {
+        margin-bottom: 6px;
+        font-size: 0.95rem;
+    }
+
+    #battle-modal .battle-scene .battle-stats {
+        margin-top: 2px !important;
+    }
+}

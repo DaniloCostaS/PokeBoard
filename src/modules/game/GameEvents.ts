@@ -336,7 +336,7 @@ export class GameEvents {
 
         if (NPC_DATA[type]) {
             const npc = NPC_DATA[type];
-            const npcImg = npc.img ? `/assets/img/NPCs/${npc.img}` : '/assets/img/Treinadores/Red.jpg';
+            const npcImg = npc.img ? `/assets/img/NPCs/${npc.img}` : '/assets/img/Treinadores/Red.png';
             const npcLevel = GameState.getGlobalAverageLevel();
             const teamSize = GameState.getGlobalAverageTeamSize();
             const npcTeam = GameSpawns.generateNPCTeam(npc, npcLevel, teamSize);
