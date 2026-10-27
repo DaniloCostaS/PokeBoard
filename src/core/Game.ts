@@ -74,6 +74,7 @@ export class Game {
     // MÉTODOS DE RENDERIZAÇÃO E UI (GameUI)
     // ==========================================
     static updateHUD() { GameUI.updateHUD(); }
+    static toggleTeamView(playerId: number) { GameUI.toggleTeamView(playerId); }
     static renderBoard() { GameUI.renderBoard(); }
     static moveVisuals() { GameUI.moveVisuals(); }
     static renderChampionBanner() { (GameUI as any).renderChampionBanner(); }
