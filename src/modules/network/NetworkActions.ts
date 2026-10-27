@@ -347,7 +347,7 @@ export class NetworkActions {
         list.style.display = 'block';
 
         list.innerHTML = NetworkState.lobbyPlayers.map((p: any) => {
-            const avatarFile = this.esc((p.avatar || "Red.jpg").split('/').pop());
+            const avatarFile = this.esc((p.avatar || "Red.png").split('/').pop());
             let removeBtn = '';
             if (NetworkState.isHost && p.id !== NetworkState.myPlayerIdDb) {
                 removeBtn = `<button class="btn btn-danger" style="padding: 2px 6px; font-size: 0.75rem; margin-left: 10px; background: #e74c3c; border: none; border-radius: 4px; color: white;" onclick="window.Network.removePlayer(${p.local_index})">Remover</button>`;

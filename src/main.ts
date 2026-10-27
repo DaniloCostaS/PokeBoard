@@ -30,6 +30,7 @@ import { PwaSetup } from './modules/ui/PwaSetup';
 import './modules/profile/ProfileScreen';
 import './profile.css';
 import './battle-events.css';
+import './battle-layout.css';
 
 declare global {
     interface Window {

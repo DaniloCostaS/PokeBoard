@@ -136,7 +136,7 @@ export class BattleUI {
         this.updateUI();
 
         const scene = document.querySelector('.battle-scene') as HTMLElement;
-        let bgImage = 'Default.jpg';
+        let bgImage: string;
         switch (BattleCore.currentTerrain) {
             case 1: bgImage = 'BatalhaTerrenoGrama.png'; break;
             case 2: bgImage = 'BatalhaTerrenoAgua.png'; break;
@@ -256,7 +256,7 @@ export class BattleUI {
                 oppTrainer.src = npcImg;
                 oppTrainer.style.display = 'block';
             } else {
-                oppTrainer.src = '/assets/img/Treinadores/Red.jpg'; oppTrainer.style.display = 'block';
+                oppTrainer.src = '/assets/img/Treinadores/Red.png'; oppTrainer.style.display = 'block';
             }
         }
         else {

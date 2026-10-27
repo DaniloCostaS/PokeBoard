@@ -154,14 +154,14 @@ export class GameFeel {
         img.classList.toggle('pb-anim-sprite', animated);
         img.style.width = '';
         img.style.height = '';
+        img.style.removeProperty('--pb-sprite-h');
         // O GIF vem recortado no tamanho do Pokémon: escala pelo tamanho real para ficar do porte do sprite clássico
         img.onload = animated ? () => {
             if (img.dataset.pbSrc !== url || !img.naturalWidth) return;
+            // Porte proporcional ao GIF, relativo à área do sprite (110px de altura de referência);
+            // o CSS (battle-layout.css) converte em cqh, então acompanha a tela sem recalcular
             const k = window.innerWidth <= 480 ? 1.05 : 1.25;
-            const maxH = window.innerWidth <= 480 ? 84 : 104;
-            const scale = Math.min(k, maxH / img.naturalHeight);
-            img.style.width = `${Math.round(img.naturalWidth * scale)}px`;
-            img.style.height = `${Math.round(img.naturalHeight * scale)}px`;
+            img.style.setProperty('--pb-sprite-h', String(Math.round(img.naturalHeight * k / 110 * 1000) / 10));
         } : null;
         img.onerror = () => {
             if (!url.endsWith('.gif')) return;

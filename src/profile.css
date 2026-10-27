@@ -422,6 +422,20 @@ dl.trainer-room-summary > div {
 .pb-tb-round small { color: #9fb4bd; font-size: 0.58rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
 .pb-tb-round b { font-size: 0.95rem; line-height: 1.1; }
 
+/* Evento global ativo na barra de turno */
+.pb-tb-event { display: flex; align-items: center; gap: 7px; min-width: 0; padding: 3px 10px 3px 4px !important; background: rgba(241, 196, 15, 0.12) !important; border: 1px solid rgba(241, 196, 15, 0.45) !important; border-radius: 999px; }
+.pb-tb-event[hidden] { display: none; }
+.pb-tb-event:hover { background: rgba(241, 196, 15, 0.22) !important; }
+.pb-tb-event-icon { display: grid; place-items: center; width: 30px; height: 30px; font-size: 1.05rem; line-height: 1; background: rgba(0, 0, 0, 0.35); border-radius: 50%; }
+.pb-tb-event .pb-tb-kicker { color: #f1c40f; }
+.pb-tb-event-name { max-width: 16vw; overflow: hidden; font-size: 0.82rem; font-weight: 800; line-height: 1.15; text-overflow: ellipsis; white-space: nowrap; }
+.pb-tb-event-left { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; color: #1d1404; font-size: 0.7rem; font-weight: 900; background: #f1c40f; border-radius: 999px; box-sizing: border-box; }
+.pb-tb-event-left:empty { display: none; }
+@media (prefers-reduced-motion: no-preference) {
+    .pb-tb-event.is-new { animation: pbEventNew 1.6s ease-out; }
+}
+@keyframes pbEventNew { 0%, 30% { box-shadow: 0 0 0 4px rgba(241, 196, 15, 0.55), 0 0 22px rgba(241, 196, 15, 0.7); } 100% { box-shadow: 0 0 0 0 transparent; } }
+
 .pb-tb-me { display: flex; align-items: center; gap: 6px; padding: 3px 12px 3px 3px !important; background: rgba(255, 255, 255, 0.08) !important; border: 1px solid rgba(255, 255, 255, 0.18) !important; border-radius: 999px; }
 .pb-tb-me .pb-tb-avatar { width: 30px; height: 30px; background: var(--mc, #3a8fc3); }
 .pb-tb-me-label { font-size: 0.78rem; font-weight: 800; white-space: nowrap; }
@@ -451,6 +465,15 @@ dl.trainer-room-summary > div {
     .pb-tb-name { max-width: 38vw; }
     body.pb-has-turnbar #left-panel .turn-section { display: none; }
     body.pb-has-turnbar #game-container { padding-top: calc(62px + env(safe-area-inset-top)); }
+}
+
+/* Celular: o evento vira só ícone + rodadas restantes para caber na barra */
+@media (max-width: 700px) {
+    #pb-turn-bar.has-event .pb-tb-event .pb-tb-text { display: none; }
+    #pb-turn-bar.has-event .pb-tb-event { padding: 3px 6px 3px 3px !important; gap: 4px; }
+    #pb-turn-bar.has-event .pb-tb-name { max-width: 28vw; }
+    #pb-turn-bar.has-event .pb-tb-me-label { display: none; }
+    #pb-turn-bar.has-event .pb-tb-me { padding: 3px !important; }
 }
 
 @media (max-width: 380px) {

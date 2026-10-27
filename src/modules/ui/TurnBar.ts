@@ -7,10 +7,12 @@ import { PLAYER_COLORS } from '../../constants/playerColors';
  * Mostra de quem é a vez e a rodada; quando é a sua vez fica dourada e pulsando.
  * "Meu time" leva direto até o seu card no placar (itens, cartas, Pokédex), sem precisar rolar entre os outros.
  * Tocar no nome de quem está jogando leva ao card dele.
+ * O evento global ativo fica junto (ícone, nome e rodadas restantes); tocar abre os detalhes.
  */
 export class TurnBar {
     private static el: HTMLElement | null = null;
     private static lastTurnKey = '';
+    private static lastEventId: string | null = null;
 
     // Jogador "dono" desta tela: online é o meu; offline é o humano da vez (ou o primeiro humano)
     static mePlayerIndex(): number {
@@ -35,11 +37,17 @@ export class TurnBar {
                 <span class="pb-tb-text"><small class="pb-tb-kicker"></small><strong class="pb-tb-name"></strong></span>
             </button>
             <span class="pb-tb-round"><small>Rodada</small><b></b></span>
+            <button type="button" class="pb-tb-event" title="Ver detalhes do evento" hidden>
+                <span class="pb-tb-event-icon" aria-hidden="true"></span>
+                <span class="pb-tb-text"><small class="pb-tb-kicker">Evento</small><strong class="pb-tb-event-name"></strong></span>
+                <span class="pb-tb-event-left"></span>
+            </button>
             <button type="button" class="pb-tb-me" title="Ir até o meu time (itens, cartas e Pokédex)">
                 <span class="pb-tb-avatar"><img alt=""></span><span class="pb-tb-me-label">Meu time</span>
             </button>`;
         bar.querySelector('.pb-tb-turn')!.addEventListener('click', () => this.focusPlayer(GameState.turn));
         bar.querySelector('.pb-tb-me')!.addEventListener('click', () => this.focusPlayer(this.mePlayerIndex()));
+        bar.querySelector('.pb-tb-event')!.addEventListener('click', () => (window as any).Game?.showEventDetails?.());
         host.appendChild(bar);
         document.body.classList.add('pb-has-turnbar');
         this.el = bar;
@@ -63,6 +71,8 @@ export class TurnBar {
         bar.querySelector('.pb-tb-name')!.textContent = cur.name;
         bar.querySelector('.pb-tb-round b')!.textContent = String(GameState.round);
 
+        this.updateEvent(bar);
+
         const meBtn = bar.querySelector('.pb-tb-me') as HTMLButtonElement;
         const me = players[meIdx];
         meBtn.hidden = !me;
@@ -78,6 +88,31 @@ export class TurnBar {
             bar.classList.remove('is-changed');
             void bar.offsetWidth;
             bar.classList.add('is-changed');
+        }
+    }
+
+    // Evento global: some quando não há evento ou quando já passou da rodada final
+    private static updateEvent(bar: HTMLElement) {
+        const btn = bar.querySelector('.pb-tb-event') as HTMLButtonElement;
+        const ev = GameState.currentGlobalEvent;
+        const active = !!ev && !(GameState.eventEndRound > 0 && GameState.round >= GameState.eventEndRound);
+        btn.hidden = !active;
+        bar.classList.toggle('has-event', active);
+        if (!active || !ev) { this.lastEventId = null; return; }
+        const left = GameState.eventEndRound > 0 ? GameState.eventEndRound - GameState.round : 0;
+        btn.querySelector('.pb-tb-event-icon')!.textContent = ev.icon;
+        btn.querySelector('.pb-tb-event-name')!.textContent = ev.name;
+        const leftEl = btn.querySelector('.pb-tb-event-left') as HTMLElement;
+        leftEl.textContent = left > 0 ? String(left) : '';
+        leftEl.title = left > 0 ? `Faltam ${left} rodada(s)` : '';
+        btn.setAttribute('aria-label', `Evento: ${ev.name}${left > 0 ? `, faltam ${left} rodada(s)` : ''}. Ver detalhes`);
+        btn.title = `${ev.name}${left > 0 ? ` · faltam ${left} rodada(s)` : ''} — toque para ver detalhes`;
+        // Evento novo: destaque rápido
+        if (ev.id !== this.lastEventId) {
+            this.lastEventId = ev.id;
+            btn.classList.remove('is-new');
+            void btn.offsetWidth;
+            btn.classList.add('is-new');
         }
     }
 
