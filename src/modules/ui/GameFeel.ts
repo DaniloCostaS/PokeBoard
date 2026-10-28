@@ -160,7 +160,7 @@ export class GameFeel {
             if (img.dataset.pbSrc !== url || !img.naturalWidth) return;
             // Porte proporcional ao GIF, relativo à área do sprite (110px de altura de referência);
             // o CSS (battle-layout.css) converte em cqh, então acompanha a tela sem recalcular
-            const k = window.innerWidth <= 480 ? 1.05 : 1.25;
+            const k = window.innerWidth <= 480 ? 0.55 : 0.65;
             img.style.setProperty('--pb-sprite-h', String(Math.round(img.naturalHeight * k / 110 * 1000) / 10));
         } : null;
         img.onerror = () => {

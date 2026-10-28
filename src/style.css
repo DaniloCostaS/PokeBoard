@@ -6887,3 +6887,104 @@ body {
     filter: brightness(1.25);
     transform: translateY(-1px);
 }
+
+
+/* ==========================================================================
+   BARRAS DE ROLAGEM - ESTILO DO JOGO
+   ========================================================================== */
+
+/* Scrollbar vertical padrão (modais, painéis, listas) */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+/* Track (fundo da barra) */
+::-webkit-scrollbar-track {
+    background: rgba(13, 20, 26, 0.45);
+    border-radius: 8px;
+    margin: 4px;
+}
+
+/* Thumb (a barra arrastável) */
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.08));
+    border: 2px solid rgba(13, 20, 26, 0.5);
+    border-radius: 8px;
+    min-height: 40px;
+}
+
+/* Thumb ao passar o mouse */
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0.16));
+    border-color: rgba(13, 20, 26, 0.65);
+}
+
+/* Thumb quando arrastando (ativo) */
+::-webkit-scrollbar-thumb:active {
+    background: linear-gradient(180deg, rgba(241, 196, 15, 0.45), rgba(241, 196, 15, 0.25));
+    border-color: rgba(241, 196, 15, 0.5);
+}
+
+/* Botões de seta (canto da barra) - escondidos para visual mais limpo */
+::-webkit-scrollbar-button {
+    width: 0;
+    height: 0;
+    display: none;
+}
+
+/* Cantos (onde vertical e horizontal se encontram) */
+::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+/* Firefox: scrollbar-width e scrollbar-color */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.18) rgba(13, 20, 26, 0.45);
+}
+
+/* Aplicar também em modais e overlays especificamente */
+.modal-overlay ::-webkit-scrollbar,
+.modal ::-webkit-scrollbar,
+.modal-box ::-webkit-scrollbar,
+.modal-content ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+.modal-overlay ::-webkit-scrollbar-track,
+.modal ::-webkit-scrollbar-track,
+.modal-box ::-webkit-scrollbar-track,
+.modal-content ::-webkit-scrollbar-track {
+    background: rgba(13, 20, 26, 0.45);
+    border-radius: 8px;
+    margin: 4px;
+}
+
+.modal-overlay ::-webkit-scrollbar-thumb,
+.modal ::-webkit-scrollbar-thumb,
+.modal-box ::-webkit-scrollbar-thumb,
+.modal-content ::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.08));
+    border: 2px solid rgba(13, 20, 26, 0.5);
+    border-radius: 8px;
+    min-height: 40px;
+}
+
+.modal-overlay ::-webkit-scrollbar-thumb:hover,
+.modal ::-webkit-scrollbar-thumb:hover,
+.modal-box ::-webkit-scrollbar-thumb:hover,
+.modal-content ::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0.16));
+    border-color: rgba(13, 20, 26, 0.65);
+}
+
+/* Esconder scrollbar em elementos que não precisam (carrosséis horizontais, etc) */
+.no-scrollbar,
+::-webkit-scrollbar.hide {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+

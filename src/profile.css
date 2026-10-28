@@ -481,21 +481,21 @@ dl.trainer-room-summary > div {
     .pb-tb-me { padding: 3px !important; }
 }
 
-/* Faixa "Na vez": barra própria no topo do card, no fluxo (não cobre o nome nem é cortada pela borda do painel) */
+/* Tag "Na vez": badge discreto dentro do card, sem furar as bordas */
 #game-container .pb-trainer-card .pb-turn-ribbon {
     position: static;
     justify-content: center;
-    margin: -10px -10px 0;
-    padding: 2px 8px;
-    border: 0 !important;
-    border-bottom: 1px solid #0d1f14 !important;
-    border-radius: 0 !important;
+    align-items: center;
+    margin: 0 0 6px 0;
+    padding: 3px 10px;
+    border: 1px solid rgba(126, 226, 164, 0.5) !important;
+    border-radius: 999px !important;
     color: #0d1f14;
-    font-size: 0.62rem;
+    font-size: 0.68rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     white-space: nowrap;
-    background: #7ee2a4;
-    box-shadow: none;
+    background: linear-gradient(180deg, #a7f3d0, #7ee2a4);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
 }
 #game-container .player-slot.active { overflow: visible; }

@@ -665,8 +665,12 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 6px;
-    margin: 2px 0 4px;
+    gap: 8px;
+    margin: 4px 0 6px;
+    padding: 4px 8px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
 }
 
 #game-container .pb-team-count {

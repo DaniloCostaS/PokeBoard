@@ -100,10 +100,10 @@
 /* GIF animado: o tamanho proporcional vem do JS (GameFeel), só não pode passar da área */
 #battle-modal .battle-scene .pokemon-battle-img.pb-anim-sprite {
     width: auto !important;
-    height: min(95cqh, calc(var(--pb-sprite-h, 90) * 1cqh)) !important;
+    height: min(65cqh, calc(var(--pb-sprite-h, 90) * 1cqh)) !important;
     aspect-ratio: auto;
-    max-width: 75cqw !important;
-    max-height: 95cqh !important;
+    max-width: 65cqw !important;
+    max-height: 65cqh !important;
     margin-left: 0 !important;
 }
 
