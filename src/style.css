@@ -6893,7 +6893,7 @@ body {
    BARRAS DE ROLAGEM - ESTILO DO JOGO
    ========================================================================== */
 
-/* Scrollbar vertical padr„o (modais, painÈis, listas) */
+/* Scrollbar vertical padr√£o (modais, pain√©is, listas) */
 ::-webkit-scrollbar {
     width: 10px;
     height: 10px;
@@ -6906,7 +6906,7 @@ body {
     margin: 4px;
 }
 
-/* Thumb (a barra arrast·vel) */
+/* Thumb (a barra arrast√°vel) */
 ::-webkit-scrollbar-thumb {
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.08));
     border: 2px solid rgba(13, 20, 26, 0.5);
@@ -6926,7 +6926,7 @@ body {
     border-color: rgba(241, 196, 15, 0.5);
 }
 
-/* Botıes de seta (canto da barra) - escondidos para visual mais limpo */
+/* Bot√µes de seta (canto da barra) - escondidos para visual mais limpo */
 ::-webkit-scrollbar-button {
     width: 0;
     height: 0;
@@ -6944,7 +6944,7 @@ body {
     scrollbar-color: rgba(255, 255, 255, 0.18) rgba(13, 20, 26, 0.45);
 }
 
-/* Aplicar tambÈm em modais e overlays especificamente */
+/* Aplicar tamb√©m em modais e overlays especificamente */
 .modal-overlay ::-webkit-scrollbar,
 .modal ::-webkit-scrollbar,
 .modal-box ::-webkit-scrollbar,
@@ -6980,9 +6980,14 @@ body {
     border-color: rgba(13, 20, 26, 0.65);
 }
 
-/* Esconder scrollbar em elementos que n„o precisam (carrossÈis horizontais, etc) */
-.no-scrollbar,
-::-webkit-scrollbar.hide {
+/* Esconder scrollbar em elementos que n√£o precisam (carross√©is horizontais, etc) */
+.no-scrollbar {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+}
+
+.no-scrollbar::-webkit-scrollbar,
+.hide::-webkit-scrollbar {
     display: none !important;
     width: 0 !important;
     height: 0 !important;
