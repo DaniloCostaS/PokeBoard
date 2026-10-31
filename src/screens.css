@@ -1290,8 +1290,7 @@
 #combat-rules-modal > div,
 #capture-rules-modal > div,
 #happiness-rules-modal > div,
-#lixeira-modal > div,
-#champion-team-modal > div {
+#lixeira-modal > div {
     padding: 18px !important;
     color: var(--pb-text) !important;
     background: var(--pb-surface) !important;
@@ -1425,8 +1424,7 @@
     #combat-rules-modal > div,
     #capture-rules-modal > div,
     #happiness-rules-modal > div,
-    #lixeira-modal > div,
-    #champion-team-modal > div {
+    #lixeira-modal > div {
         width: 100% !important;
         max-width: 100% !important;
         max-height: calc(100dvh - 12px) !important;

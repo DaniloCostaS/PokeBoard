@@ -1103,13 +1103,26 @@ export class GameUI {
         const POKEDEX_GLOBAL = (window as any).POKEDEX || POKEDEX;
         // MAPA_MEGAS is already imported at the top
 
+        const detailModal = document.getElementById('detail-modal')!;
+
+        // Feedback sensorial de abertura
+        GameFeel.vibrate([15]);
+
         document.getElementById('detail-id')!.innerText = `#${mon.id.toString().padStart(3, '0')}`;
         document.getElementById('detail-name')!.innerText = mon.name;
         document.getElementById('detail-img')!.setAttribute('src', mon.getSprite());
         document.getElementById('detail-level')!.innerText = mon.level.toString();
 
         document.getElementById('detail-hp')!.innerText = `${Math.floor(mon.currentHp)} / ${mon.maxHp}`;
-        document.getElementById('detail-hp-bar')!.style.width = `${Math.min(100, (mon.currentHp / mon.maxHp) * 100)}%`;
+        const hpPct = Math.min(100, Math.max(0, (mon.currentHp / mon.maxHp) * 100));
+        const hpBar = document.getElementById('detail-hp-bar')!;
+        hpBar.style.width = `${hpPct}%`;
+        hpBar.classList.remove('is-yellow', 'is-red');
+        if (hpPct <= 20) {
+            hpBar.classList.add('is-red');
+        } else if (hpPct <= 50) {
+            hpBar.classList.add('is-yellow');
+        }
 
         document.getElementById('detail-xp')!.innerText = `${Math.floor(mon.currentXp)} / ${mon.maxXp}`;
         document.getElementById('detail-xp-bar')!.style.width = `${Math.min(100, (mon.currentXp / mon.maxXp) * 100)}%`;
@@ -1118,20 +1131,33 @@ export class GameUI {
         document.getElementById('detail-happiness')!.innerText = `${hap}%`;
         document.getElementById('detail-happiness-bar')!.style.width = `${hap}%`;
 
-        document.getElementById('detail-shiny')!.style.display = mon.isShiny ? 'block' : 'none';
+        document.getElementById('detail-shiny')!.style.display = mon.isShiny ? 'flex' : 'none';
 
         const colors: any = { "Normal": "#A8A77A", "Fogo": "#EE8130", "Água": "#6390F0", "Elétrico": "#F7D02C", "Grama": "#7AC74C", "Gelo": "#96D9D6", "Lutador": "#C22E28", "Veneno": "#A33EA1", "Terra": "#E2BF65", "Voador": "#A98FF3", "Psíquico": "#F95587", "Inseto": "#A6B91A", "Pedra": "#B6A136", "Fantasma": "#735797", "Dragão": "#6F35FC", "Noturno": "#705746", "Aço": "#B7B7CE", "Fada": "#D685AD" };
-        document.getElementById('detail-header')!.style.background = colors[mon.type] || '#333';
+        const baseColor = colors[mon.type] || '#2f6fa8';
+
+        const cardEl = detailModal.querySelector('.pkmn-detail-card') as HTMLElement;
+        if (cardEl) {
+            cardEl.style.setProperty('--mon-color', baseColor);
+            cardEl.style.setProperty('--mon-glow', `${baseColor}66`);
+            cardEl.style.setProperty('--mon-glow-soft', `${baseColor}33`);
+            cardEl.style.setProperty('--mon-color-border', `${baseColor}77`);
+        }
+
+        const detailHeader = document.getElementById('detail-header');
+        if (detailHeader) {
+            detailHeader.style.background = `linear-gradient(135deg, ${baseColor} 0%, rgba(18, 26, 34, 0.96) 80%)`;
+        }
 
         const typeContainer = document.getElementById('detail-types')!;
         typeContainer.innerHTML = '';
         [mon.type, mon.secondType].filter(t => t).forEach(t => {
             const span = document.createElement('span');
             span.innerText = t;
-            span.className = 'poke-type-badge';
+            span.className = 'poke-type-badge pkmn-type-tag';
             span.setAttribute('data-type', t);
             const bgColor = colors[t] || '#555';
-            span.style.cssText = `background: ${bgColor}; border: 1px solid rgba(255,255,255,0.3); color: white; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; margin-left: 4px; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); cursor: help;`;
+            span.style.background = bgColor;
             typeContainer.appendChild(span);
         });
 
@@ -1139,7 +1165,7 @@ export class GameUI {
         const dexBtn = document.getElementById('detail-dex-btn');
         if (dexBtn) {
             if (!championData && playerIndex >= 0) {
-                dexBtn.style.display = 'inline-block';
+                dexBtn.style.display = 'inline-flex';
                 dexBtn.onclick = () => {
                     (window as any).Game.openPokedex(playerIndex, mon.id);
                     document.getElementById('detail-modal')!.style.display = 'none';
@@ -1149,56 +1175,74 @@ export class GameUI {
             }
         }
 
+        // Status de Combate
         const ivs = (mon as any).ivs || { hp: 0, atk: 0, def: 0, spd: 0 };
         const bonus = (mon as any).bonusStats || { hp: 0, atk: 0, def: 0, spd: 0 };
-        const createStatRow = (label: string, total: number, iv: number, bon: number, icon: string) => `
-                <div style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); padding: 8px; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.15);">
-                    <div style="font-weight: bold; margin-bottom: 4px; display:flex; justify-content:space-between; align-items:center;">
-                        <span>${icon} ${label}</span>
-                        <span style="font-size:1.1rem; color:#fff;">${total}</span>
+        const createStatRow = (label: string, total: number, iv: number, bon: number, icon: string, maxBenchmark: number = 200) => {
+            const barPct = Math.min(100, Math.max(12, Math.round((total / maxBenchmark) * 100)));
+            const isSTier = iv >= 28;
+            return `
+                <div class="pkmn-stat-box">
+                    <div class="pkmn-stat-top">
+                        <span class="pkmn-stat-label">${icon} ${label}</span>
+                        <span class="pkmn-stat-value">${total}</span>
                     </div>
-                    <div style="font-size: 0.7rem; color: #aaa; display:flex; justify-content:space-between; border-top: 1px dashed rgba(255,255,255,0.1); padding-top:4px;">
-                        <span title="IV">🧬 IV: <b style="color:#a29bfe">${iv}</b></span>
-                        <span title="Up" style="color:#74b9ff;">⬆️ Up: +${bon}</span>
+                    <div class="pkmn-stat-bar-track">
+                        <div class="pkmn-stat-bar-fill" style="width: ${barPct}%;"></div>
+                    </div>
+                    <div class="pkmn-stat-bottom">
+                        <span class="pkmn-iv-chip ${isSTier ? 'is-s-tier' : ''}" title="Potencial Genético IV (0-31)">🧬 IV: <b>${iv}</b></span>
+                        <span class="pkmn-up-chip" title="Bônus de Treino">⬆️ Treino: +${bon}</span>
                     </div>
                 </div>`;
+        };
+
         const grid = document.getElementById('detail-stats-grid')!;
         grid.innerHTML = `
-            ${createStatRow("HP", mon.maxHp, ivs.hp, bonus.hp, "❤️")}
-            ${createStatRow("Atk", mon.atk, ivs.atk, bonus.atk, "⚔️")}
-            ${createStatRow("Def", mon.def, ivs.def, bonus.def, "🛡️")}
-            ${createStatRow("Vel", mon.speed, ivs.spd, bonus.spd, "💨")}
+            ${createStatRow("HP", mon.maxHp, ivs.hp, bonus.hp, "❤️", 250)}
+            ${createStatRow("Ataque", mon.atk, ivs.atk, bonus.atk, "⚔️", 180)}
+            ${createStatRow("Defesa", mon.def, ivs.def, bonus.def, "🛡️", 180)}
+            ${createStatRow("Velocidade", mon.speed, ivs.spd, bonus.spd, "💨", 180)}
         `;
 
+        // Item Equipado
         let itemSection = document.getElementById('detail-item-section');
-        if (!itemSection) {
-            itemSection = document.createElement('div');
-            itemSection.id = 'detail-item-section';
-            grid.parentElement?.insertBefore(itemSection, grid.nextSibling);
-        }
-        itemSection.style.cssText = "margin-top: 15px; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);";
-
-        let itemHTML = `<div style="font-weight: bold; color: #fff; font-size: 0.9rem; margin-bottom: 5px;">📦 Item Segurando</div>`;
-        if (mon.heldItem || mon.megaStone) {
-            const heldId = mon.heldItem || 'megastone';
-            const heldData = SHOP_ITEMS.find(i => i.id === heldId);
-            const isMe = !championData && (GameState.canAct() && GameState.turn === playerIndex);
-            const canRemove = isMe && mon.heldItem; // Only allow removal if it's a held item, not mega stone
-
-            itemHTML += `
-                <div style="display:flex; align-items:center; justify-content:space-between; background: rgba(0,0,0,0.3); padding:8px; border-radius:6px; border: 1px solid rgba(255,255,255,0.1);">
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        <img src="/assets/img/Itens/${heldData?.icon || 'MegaStone.png'}" style="width:24px; height:24px; object-fit:contain;">
-                        <span style="font-weight:bold; color:#fff; font-size:0.9rem;">${heldData?.name || 'Mega Pedra'}</span>
-                    </div>
-                    ${canRemove ? `<button class="btn btn-mini" style="background:#e74c3c; color:white; border:none; padding:4px 10px; border-radius:4px; cursor:pointer;" onclick="window.Game.removeHeldItem(${playerIndex}, ${slotIndex})">Remover</button>` : ''}
+        if (itemSection) {
+            let itemHTML = `
+                <div class="pkmn-section-header">
+                    <span class="pkmn-section-title"><i>📦</i> Item Equipado</span>
+                    <span class="pkmn-section-kicker">${mon.heldItem || mon.megaStone ? 'Equipamento Ativo' : 'Vazio'}</span>
                 </div>
             `;
-        } else {
-            itemHTML += `<div style="color:#aaa; font-size:0.8rem; font-style:italic; text-align:center; padding:5px;">Nenhum item equipado.</div>`;
-        }
-        itemSection.innerHTML = itemHTML;
+            if (mon.heldItem || mon.megaStone) {
+                const heldId = mon.heldItem || 'megastone';
+                const heldData = SHOP_ITEMS.find(i => i.id === heldId);
+                const isMe = !championData && (GameState.canAct() && GameState.turn === playerIndex);
+                const canRemove = isMe && mon.heldItem;
 
+                itemHTML += `
+                    <div class="pkmn-gear-equipped">
+                        <div class="pkmn-gear-info">
+                            <img class="pkmn-gear-icon" src="/assets/img/Itens/${heldData?.icon || 'MegaStone.png'}" alt="">
+                            <div class="pkmn-gear-details">
+                                <span class="pkmn-gear-name">${heldData?.name || 'Mega Pedra'}</span>
+                                <span class="pkmn-gear-tag">${heldData?.desc || 'Desperta a Mega Evolução durante o combate.'}</span>
+                            </div>
+                        </div>
+                        ${canRemove ? `<button class="btn btn-mini pkmn-gear-remove-btn" onclick="window.Game.removeHeldItem(${playerIndex}, ${slotIndex})">Remover</button>` : ''}
+                    </div>
+                `;
+            } else {
+                itemHTML += `
+                    <div class="pkmn-gear-empty">
+                        <span>🎒 Nenhum item equipado. Equipe pela Mochila no seu turno.</span>
+                    </div>
+                `;
+            }
+            itemSection.innerHTML = itemHTML;
+        }
+
+        // Genética & Maestria de Pokédex
         let resoText = "0%";
         let masteryHTML = "";
 
@@ -1208,9 +1252,9 @@ export class GameUI {
 
             if (caught > 1) {
                 const perc = Math.min(100, (caught - 1) * 10);
-                resoText = `${perc}% (+${caught - 1} cópias)`;
+                resoText = `+${perc}% em Todos (+${caught - 1} cópias)`;
             } else {
-                resoText = `0% (1ª Captura)`;
+                resoText = `+0% (1ª Captura)`;
             }
 
             const countKillsForType = (tType: string) => {
@@ -1230,14 +1274,16 @@ export class GameUI {
                 const kills = countKillsForType(t);
                 const currentBonus = kills;
                 const nextCheckpoint = kills + 1;
+                const badgeColor = colors[t] || '#666';
                 return `
-                    <div style="margin-bottom: 4px; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 2px;">
-                        <div style="display:flex; justify-content:space-between;">
-                            <span>Tipo ${t}:</span>
-                            <b style="color: ${currentBonus > 0 ? '#2ecc71' : '#e74c3c'};">+${currentBonus}% Dano</b>
+                    <div style="margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px dashed rgba(255,255,255,0.08);">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 3px;">
+                            <span class="poke-type-badge pkmn-type-tag" style="background:${badgeColor}; font-size:0.7rem;">Tipo ${t}</span>
+                            <b style="color: ${currentBonus > 0 ? '#2ecc71' : '#e74c3c'}; font-size: 0.85rem;">+${currentBonus}% Dano</b>
                         </div>
-                        <div style="font-size:0.7rem; color:#aaa;">
-                            Abatidos: <b>${kills}</b> / ${nextCheckpoint}
+                        <div style="font-size:0.7rem; color:var(--pb-text-3); display:flex; justify-content:space-between;">
+                            <span>Inimigos derrotados: <b style="color:#edf2f4;">${kills}</b></span>
+                            <span>Próximo nível: ${nextCheckpoint}</span>
                         </div>
                     </div>
                 `;
@@ -1248,24 +1294,14 @@ export class GameUI {
                 masteryHTML += generateLine(mon.secondType);
             }
         } else {
-            masteryHTML = "<div style='color:#999; font-style:italic;'>Nenhum dado na Pokédex.</div>";
+            masteryHTML = "<div style='color:var(--pb-text-3); font-style:italic; font-size:0.75rem;'>Nenhum dado na Pokédex ainda.</div>";
         }
 
         document.getElementById('detail-reso')!.innerText = resoText;
         document.getElementById('detail-mastery')!.innerHTML = masteryHTML;
         document.getElementById('detail-mastery')!.style.fontWeight = "normal";
 
-        let evoContainer = document.getElementById('detail-evolution-chain');
-        if (!evoContainer) {
-            evoContainer = document.createElement('div');
-            evoContainer.id = 'detail-evolution-chain';
-            evoContainer.style.cssText = "margin-top: 15px;";
-            const masteryBlock = document.getElementById('detail-mastery')!.parentElement;
-            if (masteryBlock && masteryBlock.parentElement) {
-                masteryBlock.parentElement.appendChild(evoContainer);
-            }
-        }
-
+        // Linha Evolutiva
         const chain: { id: number, name: string, trigger: string, isMega: boolean }[] = [];
         let currentDex = POKEDEX_GLOBAL.find((p: any) => p.id === mon.id);
 
@@ -1296,54 +1332,42 @@ export class GameUI {
             }
         }
 
-        if (chain.length > 1) {
-            let chainHTML = `
-                <div style="font-weight: bold; color: #9b59b6; font-size: 0.9rem; margin-bottom: 8px; display: flex; align-items: center; gap: 5px;">
-                    🧬 Caminho Evolutivo Previsto
-                </div>
-                <div style="display: flex; justify-content: center; align-items: center; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); overflow-x: auto; gap: 5px;">
-            `;
+        const evoContainer = document.getElementById('detail-evolution-chain');
+        if (evoContainer) {
+            if (chain.length > 1) {
+                let chainHTML = `<div class="pkmn-evo-flow">`;
+                chain.forEach((stage, idx) => {
+                    const isCurrent = stage.id === mon.id;
+                    chainHTML += `
+                        <div class="pkmn-evo-node ${isCurrent ? 'is-current' : ''} ${stage.isMega ? 'is-mega' : ''}">
+                            <img class="pkmn-evo-img" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${stage.id}.png" alt="${stage.name}">
+                            <span class="pkmn-evo-name">${stage.name}</span>
+                            <span class="pkmn-evo-trigger">${stage.trigger}</span>
+                        </div>
+                    `;
 
-            chain.forEach((stage, idx) => {
-                const isCurrent = stage.id === mon.id;
-                const filterStyle = stage.isMega ? 'filter: drop-shadow(0 0 5px #f1c40f);' : '';
-                const highlightBorder = isCurrent ? 'border: 2px solid #2ecc71; background: rgba(46, 204, 113, 0.15);' : 'border: 2px solid transparent;';
-
-                chainHTML += `
-                    <div style="display: flex; flex-direction: column; align-items: center; padding: 5px; border-radius: 8px; ${highlightBorder} min-width: 60px;">
-                        <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${stage.id}.png" style="width: 50px; height: 50px; image-rendering: pixelated; ${filterStyle}">
-                        <span style="font-size: 0.65rem; font-weight: bold; color: #fff; text-align: center; line-height: 1;">${stage.name}</span>
-                        <span style="font-size: 0.55rem; color: ${stage.isMega ? '#f1c40f' : '#ccc'}; font-weight: bold; background: ${stage.isMega ? 'rgba(243, 156, 18, 0.15)' : 'rgba(255,255,255,0.1)'}; padding: 2px 4px; border-radius: 4px; margin-top: 4px; white-space: nowrap;">${stage.trigger}</span>
+                    if (idx < chain.length - 1) {
+                        chainHTML += `<div class="pkmn-evo-arrow">➔</div>`;
+                    }
+                });
+                chainHTML += `</div>`;
+                evoContainer.innerHTML = chainHTML;
+                evoContainer.style.display = 'block';
+            } else {
+                evoContainer.innerHTML = `
+                    <div class="pkmn-gear-empty" style="font-style: normal; color: #2ecc71; border-color: rgba(46, 204, 113, 0.3); background: rgba(46, 204, 113, 0.08);">
+                        <span>✨ Estágio Final Alcançado — Potencial máximo de evolução!</span>
                     </div>
                 `;
-
-                if (idx < chain.length - 1) {
-                    chainHTML += `<div style="color: #666; font-size: 1.2rem; font-weight: bold;">➔</div>`;
-                }
-            });
-
-            chainHTML += `</div>`;
-            evoContainer.innerHTML = chainHTML;
-            evoContainer.style.display = 'block';
-        } else {
-            evoContainer.innerHTML = `
-                <div style="font-weight: bold; color: #9b59b6; font-size: 0.9rem; margin-bottom: 8px; display: flex; align-items: center; gap: 5px;">
-                    🧬 Caminho Evolutivo Previsto
-                </div>
-                <div style="text-align: center; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); font-size: 0.8rem; color: #ccc;">
-                    Estágio Final alcançado.
-                </div>
-            `;
-            evoContainer.style.display = 'block';
+                evoContainer.style.display = 'block';
+            }
         }
 
-        const modalContent = document.querySelector('#detail-modal .modal-content') as HTMLElement || document.querySelector('#detail-modal > div') as HTMLElement;
-        if (modalContent) {
-            modalContent.style.maxHeight = "90vh";
-            modalContent.style.overflowY = "auto";
+        // Resetar para aba inicial de Combate
+        if ((window as any).switchPkmnDetailTab) {
+            (window as any).switchPkmnDetailTab('combat');
         }
 
-        const detailModal = document.getElementById('detail-modal')!;
         detailModal.dataset.playerIndex = String(playerIndex);
         detailModal.dataset.slotIndex = String(slotIndex);
         detailModal.dataset.isChampion = championData ? 'true' : 'false';
@@ -2233,7 +2257,20 @@ export class GameUI {
         banner.onmouseout = () => banner!.style.transform = 'scale(1)';
         banner.onclick = () => {
             if (champion && champion.team) {
+                GameFeel.vibrate([20, 40, 20]);
+
                 document.getElementById('champion-name-display')!.innerText = champion.name || 'Desconhecido';
+
+                const avatarStr = champion.avatar || 'Red.png';
+                const avatarSrc = avatarStr.includes('/') ? avatarStr : `/assets/img/Treinadores/${avatarStr}`;
+                const leadMon = champion.team[0];
+                const leadSprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${leadMon.isShiny ? 'shiny/' : ''}${leadMon.id}.png`;
+
+                const avatarEl = document.getElementById('champion-avatar-img') as HTMLImageElement;
+                if (avatarEl) avatarEl.src = avatarSrc;
+
+                const leadEl = document.getElementById('champion-lead-sprite') as HTMLImageElement;
+                if (leadEl) leadEl.src = leadSprite;
 
                 const listContainer = document.getElementById('champion-team-list')!;
                 listContainer.innerHTML = '';
@@ -2246,58 +2283,43 @@ export class GameUI {
                     const bgColor = colors[p.type] || '#555';
 
                     const card = document.createElement('div');
-                    card.style.cssText = `
-                        background: linear-gradient(180deg, ${bgColor}44 0%, rgba(0,0,0,0.6) 100%);
-                        border: 1px solid ${isShiny ? '#f1c40f' : bgColor};
-                        border-radius: 8px;
-                        padding: 8px;
-                        text-align: center;
-                        cursor: pointer;
-                        transition: transform 0.2s;
-                        width: 140px;
-                        box-shadow: 0 4px 6px rgba(0,0,0,0.5);
-                        display: flex;
-                        flex-direction: column;
-                        align-items: center;
-                        position: relative;
-                    `;
+                    card.className = `champion-mon-card ${isShiny ? 'is-shiny' : ''}`;
+                    card.style.setProperty('--mon-color', bgColor);
 
-                    card.onmouseover = () => card.style.transform = 'scale(1.05)';
-                    card.onmouseout = () => card.style.transform = 'scale(1)';
                     card.onclick = () => {
                         this.openPokemonDetail(-1, index, champion);
                     };
 
-                    let typesHtml = `<span class="poke-type-badge" data-type="${p.type}" style="background:${bgColor}; color:white; font-size:0.65rem; padding:2px 5px; border-radius:4px; border:1px solid rgba(255,255,255,0.3); cursor: help;">${p.type}</span>`;
+                    let typesHtml = `<span class="poke-type-badge pkmn-type-tag" data-type="${p.type}" style="background:${bgColor}; font-size:0.65rem;">${p.type}</span>`;
                     if (p.secondType) {
                         const bg2 = colors[p.secondType] || '#555';
-                        typesHtml += ` <span class="poke-type-badge" data-type="${p.secondType}" style="background:${bg2}; color:white; font-size:0.65rem; padding:2px 5px; border-radius:4px; border:1px solid rgba(255,255,255,0.3); cursor: help;">${p.secondType}</span>`;
+                        typesHtml += ` <span class="poke-type-badge pkmn-type-tag" data-type="${p.secondType}" style="background:${bg2}; font-size:0.65rem;">${p.secondType}</span>`;
                     }
 
                     const hId = p.heldItem;
                     const hData = hId ? SHOP_ITEMS.find(i => i.id === hId) : null;
                     const iconsHtml = [
-                        p.megaStone ? '<span title="Mega Pedra Equipada" style="filter: drop-shadow(0 0 2px #3498db);">💎</span>' : '',
-                        isShiny ? '<span title="Shiny" style="filter: drop-shadow(0 0 2px #f1c40f);">✨</span>' : '',
-                        (hData && !p.megaStone) ? `<img src="/assets/img/Itens/${hData.icon}" style="width:20px; height:20px; filter: drop-shadow(0 0 2px rgba(0,0,0,0.5));" title="Item: ${hData.name}">` : (hId && !p.megaStone ? '🎒' : '')
+                        p.megaStone ? '<span title="Mega Pedra Equipada">💎</span>' : '',
+                        isShiny ? '<span title="Shiny">✨</span>' : '',
+                        (hData && !p.megaStone) ? `<img src="/assets/img/Itens/${hData.icon}" style="width:16px; height:16px;" title="Item: ${hData.name}">` : (hId && !p.megaStone ? '🎒' : '')
                     ].filter(Boolean).join(' ');
 
                     card.innerHTML = `
-                        <div style="position:absolute; top:6px; left:6px; font-size: 0.65rem; color: #fff; background: rgba(0,0,0,0.6); padding:2px 5px; border-radius:4px; font-weight:bold;">Lv.${p.level}</div>
-                        <div style="position:absolute; top:4px; right:6px; font-size: 0.85rem; display:flex; gap:4px;">${iconsHtml}</div>
-                        
-                        <img src="${spriteUrl}" style="width: 75px; height: 75px; object-fit: contain; margin-top: 15px; ${isShiny ? 'filter: drop-shadow(0 0 5px #f1c40f);' : ''}">
-                        
-                        <div style="font-size: 0.85rem; font-weight: bold; margin-top: 4px; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: white;">${p.name}</div>
-                        <div style="margin-top:6px; margin-bottom: 8px; display:flex; gap:4px; justify-content:center;">${typesHtml}</div>
-                        
-                        <div style="width: 100%; background: rgba(0,0,0,0.5); border-radius: 6px; padding: 6px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 0.7rem; color: #eee; box-sizing:border-box;">
-                            <div style="display:flex; justify-content:space-between; align-items:center;"><span>❤️</span> <b>${p.maxHp}</b></div>
-                            <div style="display:flex; justify-content:space-between; align-items:center;"><span>⚔️</span> <b>${p.atk}</b></div>
-                            <div style="display:flex; justify-content:space-between; align-items:center;"><span>🛡️</span> <b>${p.def}</b></div>
-                            <div style="display:flex; justify-content:space-between; align-items:center;"><span>💨</span> <b>${p.speed}</b></div>
+                        <div class="champion-mon-header-strip">
+                            <span class="champion-mon-lv">Lv.${p.level}</span>
+                            <div class="champion-mon-icons">${iconsHtml}</div>
                         </div>
-                        ${p.masteryBonus > 0 ? `<div style="margin-top:6px; font-size:0.65rem; color:#f1c40f; font-weight:bold; background: rgba(0,0,0,0.4); padding: 2px 4px; border-radius: 4px;">🔥 Maestria: +${p.masteryBonus}%</div>` : ''}
+                        <img class="champion-mon-sprite" src="${spriteUrl}" alt="${p.name}" loading="lazy">
+                        <div class="champion-mon-name">${p.name}</div>
+                        <div class="champion-mon-types">${typesHtml}</div>
+                        <div class="champion-mon-stats-strip">
+                            <div class="champion-mon-stat-item" title="HP Máximo"><span>❤️</span> <b>${p.maxHp}</b></div>
+                            <div class="champion-mon-stat-item" title="Ataque"><span>⚔️</span> <b>${p.atk}</b></div>
+                            <div class="champion-mon-stat-item" title="Defesa"><span>🛡️</span> <b>${p.def}</b></div>
+                            <div class="champion-mon-stat-item" title="Velocidade"><span>💨</span> <b>${p.speed}</b></div>
+                        </div>
+                        ${p.masteryBonus > 0 ? `<div class="champion-mon-mastery">🔥 Maestria: +${p.masteryBonus}% Dano</div>` : ''}
+                        <div class="champion-mon-inspect-tag">🔍 Inspecionar</div>
                     `;
 
                     listContainer.appendChild(card);
@@ -2337,6 +2359,7 @@ export class GameUI {
         const gymLevel = globalAvg + 1;
         const teamSize = Math.min(6, Math.max(2, GameState.getGlobalAverageTeamSize() + 1));
 
+        const modal = document.getElementById('gym-detail-modal')!;
         const nameEl = document.getElementById('gym-detail-name')!;
         const typeEl = document.getElementById('gym-detail-type')!;
         const badgeEl = document.getElementById('gym-detail-badge') as HTMLImageElement;
@@ -2344,23 +2367,85 @@ export class GameUI {
         const leaderNameEl = document.getElementById('gym-detail-leader-name')!;
         const infoEl = document.getElementById('gym-detail-info')!;
         const teamListEl = document.getElementById('gym-detail-team-list')!;
+        const slotEl = document.getElementById('gym-detail-slot');
+        const subtitleEl = document.getElementById('gym-roster-subtitle');
 
+        // Feedback sensorial tátil
+        GameFeel.vibrate([15, 30]);
+
+        const typeColors: any = { "Normal": "#A8A77A", "Fogo": "#EE8130", "Água": "#6390F0", "Elétrico": "#F7D02C", "Grama": "#7AC74C", "Gelo": "#96D9D6", "Lutador": "#C22E28", "Veneno": "#A33EA1", "Terra": "#E2BF65", "Voador": "#A98FF3", "Psíquico": "#F95587", "Inseto": "#A6B91A", "Pedra": "#B6A136", "Fantasma": "#735797", "Dragão": "#6F35FC", "Noturno": "#705746", "Aço": "#B7B7CE", "Fada": "#D685AD" };
+        const primaryType = gymData.type[0] || 'Normal';
+        const gymColor = typeColors[primaryType] || '#f1c40f';
+
+        const cardEl = modal.querySelector('.gym-detail-card') as HTMLElement;
+        if (cardEl) {
+            cardEl.style.setProperty('--gym-color', gymColor);
+            cardEl.style.setProperty('--gym-glow', `${gymColor}66`);
+            cardEl.style.setProperty('--gym-glow-soft', `${gymColor}33`);
+        }
+
+        if (slotEl) {
+            slotEl.innerText = `INSÍGNIA OFICIAL #${gid}`;
+        }
         nameEl.innerText = `Ginásio de ${gymData.leaderName}`;
-        typeEl.innerText = `Tipo do Ginásio: ${gymData.type.join(' / ')}`;
+
+        typeEl.innerHTML = gymData.type.map((t: string) => {
+            const c = typeColors[t] || '#666';
+            return `<span class="poke-type-badge pkmn-type-tag" style="background:${c}; font-size:0.75rem;">${t}</span>`;
+        }).join('');
+
         badgeEl.src = `/assets/img/Insignias/${gymData.badgeImg}`;
+        badgeEl.title = `Insígnia de ${primaryType}`;
         leaderImgEl.src = `/assets/img/LideresGym/${gymData.leaderImg}`;
         leaderNameEl.innerText = gymData.leaderName;
 
+        // Calcular fraquezas táticas recomendadas
+        const weaknesses = new Set<string>();
+        gymData.type.forEach(gType => {
+            Object.keys(TYPE_CHART).forEach(atkType => {
+                if (TYPE_CHART[atkType] && TYPE_CHART[atkType][gType] === 2) {
+                    weaknesses.add(atkType);
+                }
+            });
+        });
+
+        const weaknessHTML = Array.from(weaknesses).map(w => {
+            const wc = typeColors[w] || '#555';
+            return `<span class="poke-type-badge pkmn-type-tag" style="background:${wc}; font-size:0.7rem;">${w} (2x)</span>`;
+        }).join('');
+
         infoEl.innerHTML = `
-            Este líder desafia os jogadores com Pokémons do tipo <b>${gymData.type.join(', ')}</b>.<br>
-            🏅 <b>Recompensa:</b> Libera a <b>Insígnia ${gid}</b> no painel de insígnias ao ser derrotado.<br>
-            ⚔️ <b>Dificuldade Atual:</b> Você enfrentará <b>${teamSize} Pokémons</b> aleatórios deste time, no nível <b>Lv.${gymLevel}</b>!
+            <div class="gym-intel-metrics">
+                <div class="gym-metric-chip">
+                    <span class="gym-metric-label">⚔️ Dificuldade</span>
+                    <span class="gym-metric-val">Lv. ${gymLevel}</span>
+                </div>
+                <div class="gym-metric-chip">
+                    <span class="gym-metric-label">👥 Desafio</span>
+                    <span class="gym-metric-val">${teamSize} Pokémon</span>
+                </div>
+                <div class="gym-metric-chip">
+                    <span class="gym-metric-label">🏅 Recompensa</span>
+                    <span class="gym-metric-val">Insígnia #${gid}</span>
+                </div>
+            </div>
+            ${weaknesses.size > 0 ? `
+                <div class="gym-intel-weakness">
+                    <span class="gym-weakness-title">
+                        <span>💡 Dica Tática — Fraquezas do Ginásio:</span>
+                    </span>
+                    <div class="gym-weakness-tags">
+                        ${weaknessHTML}
+                    </div>
+                </div>
+            ` : ''}
         `;
 
+        if (subtitleEl) {
+            subtitleEl.innerText = `${rosterIds.length} Pokémon no plantel (o líder escolherá ${teamSize} aleatórios)`;
+        }
+
         teamListEl.innerHTML = '';
-
-        const typeColors: any = { "Normal": "#A8A77A", "Fogo": "#EE8130", "Água": "#6390F0", "Elétrico": "#F7D02C", "Grama": "#7AC74C", "Gelo": "#96D9D6", "Lutador": "#C22E28", "Veneno": "#A33EA1", "Terra": "#E2BF65", "Voador": "#A98FF3", "Psíquico": "#F95587", "Inseto": "#A6B91A", "Pedra": "#B6A136", "Fantasma": "#735797", "Dragão": "#6F35FC", "Noturno": "#705746", "Aço": "#B7B7CE", "Fada": "#D685AD" };
-
         const PkmClass = (window as any).Pokemon || Pokemon;
 
         rosterIds.forEach((id: number) => {
@@ -2368,33 +2453,27 @@ export class GameUI {
             const bgColor = typeColors[mon.type] || '#555';
 
             const card = document.createElement('div');
-            card.style.cssText = `
-                background: linear-gradient(180deg, ${bgColor}33 0%, rgba(0,0,0,0.6) 100%);
-                border: 1px solid ${bgColor};
-                border-radius: 10px;
-                padding: 10px;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                gap: 5px;
-                box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-                position: relative;
-            `;
+            card.className = 'gym-mon-card';
+            card.style.setProperty('--mon-color', bgColor);
+            card.style.setProperty('--mon-glow', `${bgColor}55`);
 
-            const typeBadges = mon.getTypeBadgesHTML ? mon.getTypeBadgesHTML() : `<span style="background:${bgColor}; color:#fff; padding:2px 6px; border-radius:4px; font-size:0.75rem;">${mon.type}</span>`;
+            const typeBadges = mon.getTypeBadgesHTML ? mon.getTypeBadgesHTML('center') : `<span style="background:${bgColor}; color:#fff; padding:1px 6px; border-radius:4px; font-size:0.68rem;">${mon.type}</span>`;
 
             card.innerHTML = `
-                <img src="${mon.getSprite()}" style="width: 65px; height: 65px; object-fit: contain; filter: drop-shadow(0 0 4px rgba(255,255,255,0.15));">
-                <div style="font-weight: bold; color: #fff; font-size: 0.9rem; text-shadow: 1px 1px 2px #000; text-align:center;">${mon.name}</div>
-                <div style="display:flex; justify-content:center; gap:4px; margin-top:2px;">${typeBadges}</div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; width: 100%; margin-top: 6px; font-size: 0.75rem; color: #cbd5e0; background: rgba(0,0,0,0.3); padding: 4px; border-radius: 4px; text-align:center;">
-                    <div title="Ataque">⚔️ ${mon.atk}</div>
-                    <div title="Defesa">🛡️ ${mon.def}</div>
+                <span class="gym-mon-lv">Lv.${mon.level}</span>
+                <img class="gym-mon-sprite" src="${mon.getSprite()}" alt="${mon.name}" loading="lazy">
+                <div class="gym-mon-name">${mon.name}</div>
+                <div class="gym-mon-types">${typeBadges}</div>
+                <div class="gym-mon-stats-strip">
+                    <div class="gym-mon-stat-item" title="HP Máximo">❤️ <b>${mon.maxHp}</b></div>
+                    <div class="gym-mon-stat-item" title="Ataque">⚔️ <b>${mon.atk}</b></div>
+                    <div class="gym-mon-stat-item" title="Defesa">🛡️ <b>${mon.def}</b></div>
+                    <div class="gym-mon-stat-item" title="Velocidade">💨 <b>${mon.speed}</b></div>
                 </div>
             `;
             teamListEl.appendChild(card);
         });
 
-        document.getElementById('gym-detail-modal')!.style.display = 'flex';
+        modal.style.display = 'flex';
     }
 }

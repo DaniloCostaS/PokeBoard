@@ -642,18 +642,67 @@
         </div>
     </div>
 
-    <div id="champion-team-modal" class="modal-overlay">
-        <div
-            style="text-align: center; width: 95%; max-width: 600px; background: rgba(20, 20, 20, 0.95); border: 2px solid #f1c40f; color: #fff; border-radius: 16px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); overflow-y: auto;">
-            <h3 style="color: #f1c40f; margin-top: 0;">Time do campeão</h3>
-            <p style="font-size: 0.9rem; color: #f1c40f; font-weight: bold; text-shadow: 1px 1px 2px black;">Prepare-se
-                bem antes de conseguir a 8ª Insígnia! O Campeão Atual (<b id="champion-name-display"
-                    style="color: white;"></b>) usa:</p>
-            <div id="champion-team-list"
-                style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 15px; margin-bottom: 15px;">
+    <div id="champion-team-modal" class="modal-overlay" style="z-index: 2500;">
+        <div class="champion-modal-card pb-screen">
+            <div class="champion-modal-accent"></div>
+
+            <div class="champion-modal-head">
+                <div class="champion-head-identity">
+                    <span class="champion-crown-chip">👑 TRONO DA LIGA POKÉMON</span>
+                    <h2 class="champion-modal-title">Rei da Liga Atual</h2>
+                </div>
+                <button type="button" class="pkmn-head-x" aria-label="Fechar" onclick="document.getElementById('champion-team-modal').style.display='none'">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                </button>
             </div>
-            <button class="btn btn-secondary"
-                onclick="document.getElementById('champion-team-modal').style.display='none'">Fechar</button>
+
+            <div class="champion-modal-body">
+                <!-- Hero Showcase: Champion Throne -->
+                <div class="champion-throne-banner">
+                    <div class="champion-avatar-pod">
+                        <img id="champion-avatar-img" class="champion-avatar-img" src="" alt="Campeão Atual">
+                        <div class="champion-lead-mon-badge">
+                            <img id="champion-lead-sprite" src="" alt="Líder do Time">
+                        </div>
+                    </div>
+                    <div class="champion-meta-block">
+                        <span class="champion-status-kicker">🏆 Soberano Reinante</span>
+                        <h3 id="champion-name-display" class="champion-name-text">Campeão</h3>
+                        <div class="champion-throne-desc">O desafiante supremo que você enfrentará ao conquistar as 8 Insígnias.</div>
+                    </div>
+                </div>
+
+                <!-- Tactical Challenge Briefing -->
+                <div class="champion-briefing-card">
+                    <div class="champion-briefing-row">
+                        <span>🎖️</span>
+                        <span><b>Requisito de Desafio:</b> Reúna todas as <b>8 Insígnias</b> no mapa para liberar o confronto final.</span>
+                    </div>
+                    <div class="champion-briefing-row">
+                        <span>⚡</span>
+                        <span><b>Regra Oficial:</b> <small style="color: #e74c3c; font-weight: bold;">Uso de itens de cura na mochila é proibido</small> pelas regras da Liga.</span>
+                    </div>
+                    <div class="champion-briefing-row">
+                        <span>🔍</span>
+                        <span><small>Toque em qualquer Pokémon do time abaixo para abrir seus atributos, IVs e maestria detalhados.</small></span>
+                    </div>
+                </div>
+
+                <!-- Champion Team Roster -->
+                <div class="champion-roster-section">
+                    <div class="champion-roster-head">
+                        <span class="champion-roster-title">Equipe do Campeão</span>
+                        <span class="champion-roster-hint">🔍 Toque para Inspecionar</span>
+                    </div>
+                    <div id="champion-team-list" class="champion-team-grid"></div>
+                </div>
+            </div>
+
+            <div class="champion-modal-footer">
+                <button class="btn btn-secondary champion-close-btn" onclick="document.getElementById('champion-team-modal').style.display='none'">
+                    Voltar ao Tabuleiro
+                </button>
+            </div>
         </div>
     </div>
 
@@ -798,47 +847,60 @@
     </div>
 
     <div id="gym-detail-modal" class="modal-overlay" style="z-index: 2500;">
-        <div class="modal-box"
-            style="width: 95%; max-width: 600px; background: linear-gradient(135deg, #1e1e2f 0%, #11111b 100%); color: #edf2f4; border: 3px solid #f1c40f; border-radius: 16px; box-shadow: 0 0 30px rgba(241,196,15,0.4); text-align: center; padding: 25px; height: auto; max-height: 90vh;">
+        <div class="gym-detail-card pb-screen">
+            <div class="gym-detail-accent"></div>
 
-            <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 20px;">
-                <img id="gym-detail-badge" src=""
-                    style="width: 60px; height: 60px; object-fit: contain; filter: drop-shadow(0 0 8px rgba(241,196,15,0.6));">
-                <div style="text-align: left;">
-                    <h2 id="gym-detail-name"
-                        style="margin: 0; color: #f1c40f; font-size: 1.8rem; text-shadow: 0 0 10px rgba(241,196,15,0.3); font-family: 'Outfit', sans-serif;">
-                    </h2>
-                    <div id="gym-detail-type"
-                        style="font-size: 0.9rem; color: #a0aec0; font-weight: bold; margin-top: 3px;"></div>
+            <div class="gym-detail-head">
+                <div class="gym-head-identity">
+                    <span id="gym-detail-slot" class="gym-slot-chip">DESAFIO DE GINÁSIO</span>
+                    <h2 id="gym-detail-name" class="gym-detail-title">Ginásio Pokémon</h2>
+                </div>
+                <button type="button" class="pkmn-head-x" aria-label="Fechar" onclick="document.getElementById('gym-detail-modal').style.display='none'">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                </button>
+            </div>
+
+            <div class="gym-detail-body">
+                <!-- Hero Showcase Banner: Leader + Badge -->
+                <div class="gym-hero-banner">
+                    <div class="gym-leader-profile">
+                        <div class="gym-leader-pedestal">
+                            <img id="gym-detail-leader-img" class="gym-leader-avatar" src="" alt="Líder de Ginásio">
+                        </div>
+                        <div class="gym-leader-meta">
+                            <span class="gym-leader-kicker">Líder Oficial da Liga</span>
+                            <h3 id="gym-detail-leader-name" class="gym-leader-name">Brock</h3>
+                            <div id="gym-detail-type" class="gym-types-row"></div>
+                        </div>
+                    </div>
+                    <div class="gym-badge-pedestal">
+                        <img id="gym-detail-badge" class="gym-badge-img" src="" alt="Insígnia">
+                        <span class="gym-badge-label">Insígnia Oficial</span>
+                    </div>
+                </div>
+
+                <!-- Tactical Dossier & Battle Intel -->
+                <div id="gym-detail-info" class="gym-intel-card">
+                    <!-- Dynamically filled with metrics and weaknesses -->
+                </div>
+
+                <!-- Leader Pokemon Roster -->
+                <div class="gym-roster-section">
+                    <div class="gym-roster-head">
+                        <span class="gym-roster-title">Plantel de Pokémon do Líder</span>
+                        <span id="gym-roster-subtitle" class="gym-roster-subtitle">Convocação aleatória no combate</span>
+                    </div>
+                    <div id="gym-detail-team-list" class="gym-roster-grid">
+                        <!-- Dynamically filled with Pokemon cards -->
+                    </div>
                 </div>
             </div>
 
-            <div
-                style="display: flex; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; align-items: center; gap: 15px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1);">
-                <img id="gym-detail-leader-img" src=""
-                    style="width: 80px; height: 80px; border-radius: 50%; border: 2px solid #f1c40f; object-fit: cover; background: rgba(0,0,0,0.3);">
-                <div style="text-align: left; flex: 1;">
-                    <div
-                        style="font-size: 0.8rem; color: #a0aec0; text-transform: uppercase; font-weight: bold; letter-spacing: 1px;">
-                        Líder de Ginásio</div>
-                    <div id="gym-detail-leader-name"
-                        style="font-size: 1.4rem; font-weight: bold; color: #fff; margin-top: 2px;"></div>
-                    <div id="gym-detail-info"
-                        style="font-size: 0.85rem; color: #cbd5e0; margin-top: 5px; line-height: 1.4;"></div>
-                </div>
+            <div class="gym-detail-footer">
+                <button class="btn btn-secondary gym-close-btn" onclick="document.getElementById('gym-detail-modal').style.display='none'">
+                    Voltar ao Tabuleiro
+                </button>
             </div>
-
-            <h3
-                style="color: #fff; text-align: left; margin-top: 20px; margin-bottom: 12px; font-size: 1.1rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 6px;">
-                Time do Líder</h3>
-            <div id="gym-detail-team-list"
-                style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 25px; max-height: 32vh; overflow-y: auto; padding: 5px;">
-                <!-- Dynamically filled with Pokemon cards -->
-            </div>
-
-            <button class="btn btn-secondary"
-                style="background: #e2e8f0; color: #1a1a2e; font-weight: bold; padding: 10px 20px; border-radius: 8px; width: auto; display: inline-block; margin: 0 auto;"
-                onclick="document.getElementById('gym-detail-modal').style.display='none'">Fechar</button>
         </div>
     </div>
     <div id="pokedex-modal" class="modal-overlay" style="z-index: 1500;">
@@ -1024,95 +1086,135 @@
         </div>
     </div>
 
-    <div id="detail-modal" class="modal-overlay" style="z-index: 2000;">
-        <div
-            style="width: 450px; max-height: 90vh; text-align: left; padding: 0; overflow-y: auto; border-radius: 16px; background: rgba(20, 20, 20, 0.95); border: 2px solid #f1c40f; color: #fff; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+    <div id="detail-modal" class="modal-overlay pkmn-detail-modal-overlay" style="z-index: 3500;">
+        <div class="pkmn-detail-card pb-screen">
+            <div class="pkmn-detail-accent"></div>
 
-            <div id="detail-header"
-                style="background: #333; padding: 15px; display: flex; align-items: center; justify-content: space-between; color: white;">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <span id="detail-id" style="opacity: 0.7; font-size: 0.8rem;">#001</span>
-                    <h2 id="detail-name" style="margin:0; font-size: 1.4rem;">Bulbasaur</h2>
-                    <button id="detail-dex-btn" class="btn btn-mini"
-                        style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.3); color: white; display: none; margin-left: 5px; padding: 2px 6px; font-size: 0.7rem; border-radius: 4px; cursor: pointer;">Dex</button>
+            <div id="detail-header" class="pkmn-detail-head">
+                <div class="pkmn-head-identity">
+                    <span id="detail-id" class="pkmn-id-chip">#001</span>
+                    <h2 id="detail-name" class="pkmn-detail-name">Bulbasaur</h2>
+                    <div id="detail-types" class="pkmn-types-row"></div>
                 </div>
-                <div id="detail-types" style="display: flex; gap: 5px;"></div>
+                <div class="pkmn-head-actions">
+                    <button id="detail-dex-btn" class="pkmn-dex-pill" title="Abrir registro na Pokédex" style="display: none;">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 10 10H2A10 10 0 0 1 12 2z"/><circle cx="12" cy="12" r="3"/></svg>
+                        <span>Dex</span>
+                    </button>
+                    <button type="button" class="pkmn-head-x" aria-label="Fechar" onclick="document.getElementById('detail-modal').style.display='none'">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                    </button>
+                </div>
             </div>
 
-            <div style="padding: 15px; background: transparent;">
-                <div style="display: flex; gap: 15px; margin-bottom: 15px;">
-                    <div style="position: relative;">
-                        <img id="detail-img" src=""
-                            style="width: 100px; height: 100px; image-rendering: pixelated; border: 2px solid rgba(255,255,255,0.1); border-radius: 8px; background: rgba(0,0,0,0.3);">
-                        <div id="detail-shiny" style="display:none; position:absolute; top:-5px; right:-5px;">✨</div>
+            <div class="pkmn-detail-body">
+                <!-- Hero Showcase Card -->
+                <div class="pkmn-hero-card">
+                    <div class="pkmn-stage-pod">
+                        <div class="pkmn-stage-pedestal"></div>
+                        <img id="detail-img" class="pkmn-hero-sprite" src="" alt="Pokémon" />
+                        <div id="detail-shiny" class="pkmn-shiny-badge" style="display: none;" title="Pokémon Brilhante (Shiny)!">✨</div>
                     </div>
-                    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 4px;">
-                        <div style="font-size: 0.9rem; color: #eee; display: flex; justify-content: space-between;">
-                            <span>Nível <b id="detail-level" style="color: white;">5</b></span>
+                    <div class="pkmn-vitals-pod">
+                        <div class="pkmn-vitals-top">
+                            <span class="pkmn-lv-pill">NÍVEL <b id="detail-level">5</b></span>
                         </div>
-
-                        <div
-                            style="font-size: 0.8rem; color: #eee; display: flex; justify-content: space-between; margin-top: 2px;">
-                            <span>❤️ HP:</span> <span id="detail-hp" style="color: white; font-weight: bold;">0 /
-                                100</span>
-                        </div>
-                        <div
-                            style="height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; width: 100%; overflow: hidden;">
-                            <div id="detail-hp-bar" style="height: 100%; background: #2ecc71; width: 100%;"></div>
-                        </div>
-
-                        <div style="font-size: 0.8rem; color: #eee; display: flex; justify-content: space-between;">
-                            <span>⭐ XP:</span> <span id="detail-xp" style="color: white;">0 / 100</span>
-                        </div>
-                        <div class="xp-bar-bg"
-                            style="height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; width: 100%; overflow: hidden;">
-                            <div id="detail-xp-bar" style="height: 100%; background: #3498db; width: 0%;"></div>
-                        </div>
-
-                        <div style="font-size: 0.8rem; color: #eee; display: flex; justify-content: space-between;">
-                            <span title="Vínculo Afetivo">💖 Felicidade:</span> <span id="detail-happiness"
-                                style="color: #ff9ff3; font-weight: bold;">0%</span>
-                        </div>
-                        <div
-                            style="height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; width: 100%; overflow: hidden;">
-                            <div id="detail-happiness-bar"
-                                style="height: 100%; background: linear-gradient(90deg, #ff9ff3, #f368e0); width: 0%;">
+                        <div class="pkmn-gauge-group">
+                            <!-- HP Gauge -->
+                            <div class="pkmn-gauge-item">
+                                <div class="pkmn-gauge-meta">
+                                    <span>❤️ HP</span>
+                                    <b id="detail-hp">0 / 100</b>
+                                </div>
+                                <div class="pkmn-gauge-track">
+                                    <div id="detail-hp-bar" class="pkmn-gauge-fill pkmn-gauge-fill--hp" style="width: 100%;"></div>
+                                </div>
+                            </div>
+                            <!-- XP Gauge -->
+                            <div class="pkmn-gauge-item">
+                                <div class="pkmn-gauge-meta">
+                                    <span>⭐ XP</span>
+                                    <b id="detail-xp">0 / 100</b>
+                                </div>
+                                <div class="pkmn-gauge-track">
+                                    <div id="detail-xp-bar" class="pkmn-gauge-fill pkmn-gauge-fill--xp" style="width: 0%;"></div>
+                                </div>
+                            </div>
+                            <!-- Felicidade Gauge -->
+                            <div class="pkmn-gauge-item">
+                                <div class="pkmn-gauge-meta">
+                                    <span title="Vínculo Afetivo do Treinador">💖 Felicidade</span>
+                                    <b id="detail-happiness">0%</b>
+                                </div>
+                                <div class="pkmn-gauge-track">
+                                    <div id="detail-happiness-bar" class="pkmn-gauge-fill pkmn-gauge-fill--hap" style="width: 0%;"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <h4
-                    style="margin: 0 0 10px 0; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; color: #f39c12;">
-                    Status de Combate</h4>
-
-                <div id="detail-stats-grid"
-                    style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.85rem; margin-bottom: 15px;">
+                <!-- Segmented Tabs Navigation -->
+                <div class="pkmn-tabs-bar">
+                    <button type="button" class="pkmn-tab-btn is-active" data-pkmn-tab="combat" onclick="window.switchPkmnDetailTab('combat')">
+                        ⚔️ Status & Itens
+                    </button>
+                    <button type="button" class="pkmn-tab-btn" data-pkmn-tab="evolution" onclick="window.switchPkmnDetailTab('evolution')">
+                        🧬 Evolução & Maestria
+                    </button>
                 </div>
 
-                <h4
-                    style="margin: 0 0 10px 0; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; color: #9b59b6;">
-                    Genética & Maestria (Dex)</h4>
-                <div
-                    style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); padding: 10px; border-radius: 6px; font-size: 0.85rem; color: #fff;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                        <span>🧬 Ressonância (Capturas):</span>
-                        <b id="detail-reso" style="color: #2ecc71;">+0% Status</b>
+                <!-- Tab 1: Status de Combate & Equipamento -->
+                <div id="pkmn-tab-combat" class="pkmn-tab-panel">
+                    <div class="pkmn-section-card">
+                        <div class="pkmn-section-header">
+                            <span class="pkmn-section-title"><i>⚔️</i> Status de Combate</span>
+                            <span class="pkmn-section-kicker">Base + IVs + Treino</span>
+                        </div>
+                        <div id="detail-stats-grid" class="pkmn-stats-grid"></div>
                     </div>
-                    <div style="display: flex; justify-content: space-between;">
-                        <span>⚔️ Maestria de Tipo (Kills):</span>
-                        <b id="detail-mastery" style="color: #e74c3c;">+0% Dano</b>
-                    </div>
-                    <div style="margin-top: 8px; font-size: 0.75rem; color: #aaa; font-style: italic;">
-                        *Buffs baseados no seu progresso na Pokédex.
-                    </div>
+
+                    <div id="detail-item-section" class="pkmn-gear-slot"></div>
                 </div>
 
-                <div style="display: flex; justify-content: center; margin-top: 20px;">
-                    <button class="btn btn-secondary"
-                        style="width: 100%; padding: 12px; font-size: 1rem; border-radius: 8px;"
-                        onclick="document.getElementById('detail-modal').style.display='none'">Fechar</button>
+                <!-- Tab 2: Caminho Evolutivo & Maestria Pokédex -->
+                <div id="pkmn-tab-evolution" class="pkmn-tab-panel is-hidden">
+                    <div class="pkmn-section-card">
+                        <div class="pkmn-section-header">
+                            <span class="pkmn-section-title"><i>🧬</i> Linha Evolutiva</span>
+                            <span class="pkmn-section-kicker">Requisitos</span>
+                        </div>
+                        <div id="detail-evolution-chain" class="pkmn-evo-track"></div>
+                    </div>
+
+                    <div class="pkmn-section-card">
+                        <div class="pkmn-section-header">
+                            <span class="pkmn-section-title"><i>🏆</i> Bônus de Pokédex</span>
+                            <span class="pkmn-section-kicker">Coleção & Batalhas</span>
+                        </div>
+                        <div class="pkmn-mastery-card">
+                            <div class="pkmn-resonance-row">
+                                <span>🧬 Ressonância Genética (Cópias):</span>
+                                <b id="detail-reso" style="color: #2ecc71;">+0% Status</b>
+                            </div>
+                            <div class="pkmn-mastery-item">
+                                <div class="pkmn-mastery-item-top">
+                                    <span>⚔️ Maestria de Tipo (Abates):</span>
+                                </div>
+                                <div id="detail-mastery"></div>
+                            </div>
+                            <div style="font-size: 0.68rem; color: var(--pb-text-3); font-style: italic; margin-top: 4px;">
+                                *Bônus permanentes calculados com base no progresso da sua Pokédex.
+                            </div>
+                        </div>
+                    </div>
                 </div>
+            </div>
+
+            <div class="pkmn-detail-footer">
+                <button class="btn btn-secondary pkmn-close-btn" onclick="document.getElementById('detail-modal').style.display='none'">
+                    Voltar ao Jogo
+                </button>
             </div>
         </div>
     </div>

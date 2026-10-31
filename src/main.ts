@@ -11,6 +11,9 @@ import './dialog.css'
 import './cinematics.css'
 import './board.css'
 import './screens.css'
+import './pokemon-detail.css'
+import './gym-detail.css'
+import './champion-modal.css'
 import './modules/ui/Cinematics';
 import { GameDialog } from './modules/ui/GameDialog';
 import { Setup } from './core/Setup';
@@ -49,6 +52,7 @@ declare global {
         openItemLibrary: () => void;
         openXpRules: () => void;
         returnToPokepedia: (currentModalId?: string) => void;
+        switchPkmnDetailTab: (tabName: string) => void;
         TypeTooltip: typeof TypeTooltip;
     }
 }
@@ -82,6 +86,28 @@ window.openCards = (id) => {
 window.openCardLibrary = () => Game.openCardLibrary();
 window.openItemLibrary = () => Game.openItemLibrary();
 window.openXpRules = () => Game.openXpRules();
+window.switchPkmnDetailTab = (tabName: string) => {
+    const combatPanel = document.getElementById('pkmn-tab-combat');
+    const evoPanel = document.getElementById('pkmn-tab-evolution');
+    const tabs = document.querySelectorAll('.pkmn-tab-btn');
+    if (!combatPanel || !evoPanel) return;
+
+    if (tabName === 'combat') {
+        combatPanel.classList.remove('is-hidden');
+        evoPanel.classList.add('is-hidden');
+    } else {
+        combatPanel.classList.add('is-hidden');
+        evoPanel.classList.remove('is-hidden');
+    }
+
+    tabs.forEach(btn => {
+        if (btn.getAttribute('data-pkmn-tab') === tabName) {
+            btn.classList.add('is-active');
+        } else {
+            btn.classList.remove('is-active');
+        }
+    });
+};
 
 window.returnToPokepedia = (currentModalId?: string) => {
     if (currentModalId) {
