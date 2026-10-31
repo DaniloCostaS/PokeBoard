@@ -14,6 +14,7 @@ import './screens.css'
 import './pokemon-detail.css'
 import './gym-detail.css'
 import './champion-modal.css'
+import './type-tooltip.css'
 import './modules/ui/Cinematics';
 import { GameDialog } from './modules/ui/GameDialog';
 import { Setup } from './core/Setup';

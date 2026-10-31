@@ -68,29 +68,54 @@ export class TypeTooltip {
     private static currentType: string | null = null;
     private static isVisible: boolean = false;
 
+    private static TYPE_MAP: Record<string, string> = {
+        'AGUA': 'Água', 'ÁGUA': 'Água', 'Agua': 'Água', 'Água': 'Água',
+        'ELETRICO': 'Elétrico', 'ELÉTRICO': 'Elétrico', 'Eletrico': 'Elétrico', 'Elétrico': 'Elétrico',
+        'PSIQUICO': 'Psíquico', 'PSÍQUICO': 'Psíquico', 'Psiquico': 'Psíquico', 'Psíquico': 'Psíquico',
+        'DRAGAO': 'Dragão', 'DRAGÃO': 'Dragão', 'Dragao': 'Dragão', 'Dragão': 'Dragão',
+        'ACO': 'Aço', 'AÇO': 'Aço', 'Aco': 'Aço', 'Aço': 'Aço',
+        'FOGO': 'Fogo', 'Fogo': 'Fogo',
+        'GRAMA': 'Grama', 'Grama': 'Grama', 'PLANTA': 'Grama', 'Planta': 'Grama',
+        'GELO': 'Gelo', 'Gelo': 'Gelo',
+        'LUTADOR': 'Lutador', 'Lutador': 'Lutador',
+        'VENENO': 'Veneno', 'Veneno': 'Veneno',
+        'TERRA': 'Terra', 'Terra': 'Terra',
+        'VOADOR': 'Voador', 'Voador': 'Voador',
+        'INSETO': 'Inseto', 'Inseto': 'Inseto',
+        'PEDRA': 'Pedra', 'Pedra': 'Pedra',
+        'FANTASMA': 'Fantasma', 'Fantasma': 'Fantasma',
+        'NOTURNO': 'Noturno', 'Noturno': 'Noturno',
+        'FADA': 'Fada', 'Fada': 'Fada',
+        'NORMAL': 'Normal', 'Normal': 'Normal'
+    };
+
     static normalizeType(raw: string): string {
-        const clean = raw.trim();
-        const map: Record<string, string> = {
-            'AGUA': 'Água', 'ÁGUA': 'Água', 'Agua': 'Água', 'Água': 'Água',
-            'ELETRICO': 'Elétrico', 'ELÉTRICO': 'Elétrico', 'Eletrico': 'Elétrico', 'Elétrico': 'Elétrico',
-            'PSIQUICO': 'Psíquico', 'PSÍQUICO': 'Psíquico', 'Psiquico': 'Psíquico', 'Psíquico': 'Psíquico',
-            'DRAGAO': 'Dragão', 'DRAGÃO': 'Dragão', 'Dragao': 'Dragão', 'Dragão': 'Dragão',
-            'ACO': 'Aço', 'AÇO': 'Aço', 'Aco': 'Aço', 'Aço': 'Aço',
-            'FOGO': 'Fogo', 'Fogo': 'Fogo',
-            'GRAMA': 'Grama', 'Grama': 'Grama', 'PLANTA': 'Grama', 'Planta': 'Grama',
-            'GELO': 'Gelo', 'Gelo': 'Gelo',
-            'LUTADOR': 'Lutador', 'Lutador': 'Lutador',
-            'VENENO': 'Veneno', 'Veneno': 'Veneno',
-            'TERRA': 'Terra', 'Terra': 'Terra',
-            'VOADOR': 'Voador', 'Voador': 'Voador',
-            'INSETO': 'Inseto', 'Inseto': 'Inseto',
-            'PEDRA': 'Pedra', 'Pedra': 'Pedra',
-            'FANTASMA': 'Fantasma', 'Fantasma': 'Fantasma',
-            'NOTURNO': 'Noturno', 'Noturno': 'Noturno',
-            'FADA': 'Fada', 'Fada': 'Fada',
-            'NORMAL': 'Normal', 'Normal': 'Normal'
-        };
-        return map[clean] || map[clean.toUpperCase()] || clean;
+        if (!raw) return '';
+        let clean = raw.trim();
+
+        // 1. Remove prefixos comuns como "Tipo ", "Tipo: ", "Isca de tipo: "
+        clean = clean.replace(/^(Tipo|tipo)[:\s]+/i, '').trim();
+        clean = clean.replace(/^Isca de tipo[:\s]+/i, '').trim();
+
+        // 2. Remove multiplicadores como "(2x)", "(1.75x)", "(0.75x)"
+        clean = clean.replace(/\s*\(\d+(\.\d+)?x\)$/i, '').trim();
+
+        // 3. Remove pontuações e emojis decorativos do início e do fim
+        clean = clean.replace(/^[^\p{L}\p{N}]+/u, '').trim();
+        clean = clean.replace(/[^\p{L}\p{N}]+$/u, '').trim();
+
+        // Checagem direta
+        if (this.TYPE_MAP[clean]) return this.TYPE_MAP[clean];
+        if (this.TYPE_MAP[clean.toUpperCase()]) return this.TYPE_MAP[clean.toUpperCase()];
+
+        // Procura palavras individuais se for uma frase/expressão
+        const words = clean.split(/\s+/);
+        for (const w of words) {
+            const up = w.toUpperCase();
+            if (this.TYPE_MAP[up]) return this.TYPE_MAP[up];
+        }
+
+        return clean;
     }
 
     private static createContainer() {
@@ -106,7 +131,6 @@ export class TypeTooltip {
         const type = this.normalizeType(rawType);
         const icon = TYPE_ICONS[type] || '⚪';
         const lore = TYPE_LORE[type] || 'Afinidade elemental primordial de combate.';
-        const color = TYPE_COLORS[type] || '#f1c40f';
 
         // 1. Vantagens e Redutores Ofensivos (Ataque)
         const superEffectiveAtk: string[] = [];
@@ -138,64 +162,110 @@ export class TypeTooltip {
 
         const renderPills = (list: string[], emptyText: string) => {
             if (list.length === 0) {
-                return `<div class="type-tooltip-empty">${emptyText}</div>`;
+                return `
+                    <div class="type-tooltip-empty">
+                        <span class="type-tooltip-empty-dash">—</span>
+                        <span>${emptyText}</span>
+                    </div>`;
             }
-            return `<div class="type-tooltip-pill-list">
-                ${list.map(t => {
-                    const c = TYPE_COLORS[t] || '#777';
-                    const ic = TYPE_ICONS[t] || '';
-                    return `<span class="type-tooltip-pill" style="background-color: ${c};">
-                        <span class="type-tooltip-pill-icon">${ic}</span>
-                        <span>${t}</span>
-                    </span>`;
-                }).join('')}
-            </div>`;
+            return `
+                <div class="type-tooltip-pill-list">
+                    ${list.map(t => {
+                        const c = TYPE_COLORS[t] || '#777';
+                        const ic = TYPE_ICONS[t] || '⚪';
+                        return `
+                            <span class="type-tooltip-pill" style="--pill-bg: ${c};">
+                                <span class="type-tooltip-pill-icon">${ic}</span>
+                                <span class="type-tooltip-pill-name">${t}</span>
+                            </span>`;
+                    }).join('')}
+                </div>`;
         };
 
         return `
+            <div class="type-tooltip-ambient" aria-hidden="true"></div>
+
             <div class="type-tooltip-header">
-                <div class="type-tooltip-title-wrap">
-                    <span class="type-tooltip-orb" style="background:${color}; box-shadow: 0 0 10px ${color};">${icon}</span>
-                    <span class="type-tooltip-title">Tipo ${type}</span>
+                <div class="type-tooltip-header-left">
+                    <div class="type-tooltip-orb-wrap">
+                        <span class="type-tooltip-orb">${icon}</span>
+                    </div>
+                    <div class="type-tooltip-title-col">
+                        <span class="type-tooltip-kicker">Afinidade Elemental</span>
+                        <h4 class="type-tooltip-title">Tipo ${type}</h4>
+                    </div>
                 </div>
-                <span class="type-tooltip-tag">Elemental</span>
-            </div>
-            <div class="type-tooltip-lore">${lore}</div>
-
-            <div class="type-tooltip-section">
-                <div class="type-tooltip-label text-advantage">
-                    <span>⚔️ Causa +75% Dano (1.75x) em:</span>
-                </div>
-                ${renderPills(superEffectiveAtk, 'Nenhuma vantagem elemental')}
-
-                <div class="type-tooltip-label text-disadvantage" style="margin-top: 6px;">
-                    <span>🛡️ Causa -25% Dano (0.75x) em:</span>
-                </div>
-                ${renderPills(notVeryEffectiveAtk, 'Nenhum redutor elemental')}
+                <span class="type-tooltip-elem-badge">Elemental</span>
             </div>
 
-            <div class="type-tooltip-divider"></div>
+            <div class="type-tooltip-lore-box">
+                <p class="type-tooltip-lore-text">${lore}</p>
+            </div>
 
-            <div class="type-tooltip-section">
-                <div class="type-tooltip-label text-weakness">
-                    <span>💥 Sofre +75% Dano (1.75x) de:</span>
-                </div>
-                ${renderPills(weaknessesDef, 'Nenhuma fraqueza elemental')}
+            <div class="type-tooltip-combat-grid">
+                <!-- Card Ofensivo -->
+                <div class="type-combat-card type-combat-card--atk">
+                    <div class="type-combat-card-head">
+                        <span class="type-combat-head-icon">⚔️</span>
+                        <span class="type-combat-head-label">Eficácia Ofensiva (Ataque)</span>
+                    </div>
 
-                <div class="type-tooltip-label text-resistance" style="margin-top: 6px;">
-                    <span>🔰 Resiste com -25% Dano (0.75x) de:</span>
+                    <div class="type-combat-row">
+                        <div class="type-combat-subhead text-advantage">
+                            <span class="type-mult-badge badge-adv">+75% (1.75x)</span>
+                            <span class="type-mult-title">Dano aumentado em:</span>
+                        </div>
+                        ${renderPills(superEffectiveAtk, 'Nenhuma vantagem elemental direta')}
+                    </div>
+
+                    <div class="type-combat-row">
+                        <div class="type-combat-subhead text-disadvantage">
+                            <span class="type-mult-badge badge-disadv">-25% (0.75x)</span>
+                            <span class="type-mult-title">Dano reduzido contra:</span>
+                        </div>
+                        ${renderPills(notVeryEffectiveAtk, 'Nenhum redutor elemental')}
+                    </div>
                 </div>
-                ${renderPills(resistancesDef, 'Nenhuma resistência elemental')}
+
+                <!-- Card Defensivo -->
+                <div class="type-combat-card type-combat-card--def">
+                    <div class="type-combat-card-head">
+                        <span class="type-combat-head-icon">🛡️</span>
+                        <span class="type-combat-head-label">Eficácia Defensiva (Defesa)</span>
+                    </div>
+
+                    <div class="type-combat-row">
+                        <div class="type-combat-subhead text-weakness">
+                            <span class="type-mult-badge badge-weak">+75% (1.75x)</span>
+                            <span class="type-mult-title">Sofre dano crítico de:</span>
+                        </div>
+                        ${renderPills(weaknessesDef, 'Nenhuma fraqueza elemental')}
+                    </div>
+
+                    <div class="type-combat-row">
+                        <div class="type-combat-subhead text-resistance">
+                            <span class="type-mult-badge badge-res">-25% (0.75x)</span>
+                            <span class="type-mult-title">Resiste a golpes de:</span>
+                        </div>
+                        ${renderPills(resistancesDef, 'Nenhuma resistência elemental')}
+                    </div>
+                </div>
             </div>
         `;
     }
 
-    static show(rawType: string, event: MouseEvent | { clientX: number; clientY: number }) {
+    static show(rawType: string, event: MouseEvent | Touch | { clientX: number; clientY: number }) {
         this.createContainer();
         if (!this.container) return;
 
         const normalized = this.normalizeType(rawType);
-        if (!TYPE_COLORS[normalized]) return;
+        const color = TYPE_COLORS[normalized];
+        if (!color) return;
+
+        // Injeta as variáveis de tema elemental dinâmicas no container
+        this.container.style.setProperty('--type-color', color);
+        this.container.style.setProperty('--type-glow', `${color}66`);
+        this.container.style.setProperty('--type-glow-soft', `${color}28`);
 
         if (this.currentType !== normalized || !this.isVisible) {
             this.currentType = normalized;
@@ -207,7 +277,7 @@ export class TypeTooltip {
         this.updatePosition(event);
     }
 
-    static updatePosition(event: MouseEvent | { clientX: number; clientY: number }) {
+    static updatePosition(event: MouseEvent | Touch | { clientX: number; clientY: number }) {
         if (!this.container || !this.isVisible) return;
 
         const pad = 14;
@@ -218,20 +288,20 @@ export class TypeTooltip {
         const winW = window.innerWidth;
         const winH = window.innerHeight;
 
-        // Se passar da borda direita, coloca à esquerda do cursor
-        if (x + rect.width > winW - 10) {
+        // Se passar da borda direita, posiciona à esquerda do cursor
+        if (x + rect.width > winW - 12) {
             x = event.clientX - rect.width - pad;
         }
-        if (x < 10) x = 10;
+        if (x < 12) x = 12;
 
-        // Se passar da borda inferior, coloca acima do cursor
-        if (y + rect.height > winH - 10) {
+        // Se passar da borda inferior, posiciona acima do cursor
+        if (y + rect.height > winH - 12) {
             y = event.clientY - rect.height - pad;
         }
-        if (y < 10) y = 10;
+        if (y < 12) y = 12;
 
-        this.container.style.left = `${x}px`;
-        this.container.style.top = `${y}px`;
+        this.container.style.left = `${Math.round(x)}px`;
+        this.container.style.top = `${Math.round(y)}px`;
     }
 
     static hide() {
@@ -244,17 +314,24 @@ export class TypeTooltip {
     static init() {
         this.createContainer();
 
+        const findTypeTarget = (el: HTMLElement | null): { target: HTMLElement; typeVal: string } | null => {
+            if (!el) return null;
+            const target = el.closest('.poke-type-badge, [data-type], [data-pokemon-type]') as HTMLElement | null;
+            if (!target) return null;
+
+            const typeVal = target.getAttribute('data-type') || 
+                            target.getAttribute('data-pokemon-type') || 
+                            target.textContent?.trim() || '';
+            return typeVal ? { target, typeVal } : null;
+        };
+
+        // 1. Mouse hover no desktop
         document.addEventListener('mouseover', (e: MouseEvent) => {
-            const target = (e.target as HTMLElement).closest('.poke-type-badge, [data-type], [data-pokemon-type]');
-            if (target) {
-                const typeVal = target.getAttribute('data-type') || 
-                                target.getAttribute('data-pokemon-type') || 
-                                target.textContent?.trim();
-                if (typeVal) {
-                    const norm = this.normalizeType(typeVal);
-                    if (TYPE_COLORS[norm]) {
-                        this.show(norm, e);
-                    }
+            const found = findTypeTarget(e.target as HTMLElement);
+            if (found) {
+                const norm = this.normalizeType(found.typeVal);
+                if (TYPE_COLORS[norm]) {
+                    this.show(norm, e);
                 }
             }
         });
@@ -266,8 +343,8 @@ export class TypeTooltip {
         });
 
         document.addEventListener('mouseout', (e: MouseEvent) => {
-            const target = (e.target as HTMLElement).closest('.poke-type-badge, [data-type], [data-pokemon-type]');
-            if (target) {
+            const found = findTypeTarget(e.target as HTMLElement);
+            if (found) {
                 const related = e.relatedTarget as HTMLElement | null;
                 if (!related || !related.closest('.poke-type-badge, [data-type], [data-pokemon-type]')) {
                     this.hide();
@@ -275,6 +352,23 @@ export class TypeTooltip {
             }
         });
 
+        // 2. Suporte a clique / toque mobile
+        document.addEventListener('click', (e: MouseEvent) => {
+            const found = findTypeTarget(e.target as HTMLElement);
+            if (found) {
+                const norm = this.normalizeType(found.typeVal);
+                if (TYPE_COLORS[norm]) {
+                    this.show(norm, e);
+                    e.stopPropagation();
+                    return;
+                }
+            }
+            if (this.isVisible) {
+                this.hide();
+            }
+        });
+
+        // Oculta ao rolar a página
         window.addEventListener('scroll', () => this.hide(), { passive: true });
     }
 }

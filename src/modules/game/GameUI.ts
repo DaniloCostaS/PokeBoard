@@ -172,7 +172,7 @@ export class GameUI {
             const totalCards = p.cards.length;
 
             // Efeitos ativos como "status" no estilo dos jogos (PAR, LENTO...)
-            const status: { cls: string; label: string; title: string; color?: string }[] = [];
+            const status: { cls: string; label: string; title: string; color?: string; type?: string }[] = [];
             const protectedCardsCount = p.cards.filter((c: any) => c.isProtected).length;
             if (protectedCardsCount > 0) status.push({ cls: 'prot', label: `PROT ${protectedCardsCount}`, title: 'Cartas protegidas' });
             if (p.skipTurns > 0) status.push({ cls: 'par', label: `PAR ${p.skipTurns}`, title: `Paralisado: perde ${p.skipTurns} turno(s)` });
@@ -185,10 +185,10 @@ export class GameUI {
             if (p.effects.moonwalker && p.effects.moonwalker > 0) status.push({ cls: 'moon', label: `RÉ ${p.effects.moonwalker}`, title: 'Moonwalker: anda para trás' });
             if (p.effects.lureType && p.effects.lureType.count > 0) {
                 const lType = p.effects.lureType.type;
-                status.push({ cls: 'lure', label: `ISCA ${p.effects.lureType.count}`, title: `Isca de tipo: ${lType}`, color: typeColors[lType] || '#777' });
+                status.push({ cls: 'lure poke-type-badge', label: `ISCA ${p.effects.lureType.count}`, title: `Isca de tipo: ${lType}`, color: typeColors[lType] || '#777', type: lType });
             }
             const effectsHTML = status.length
-                ? `<div class="pb-status-row">${status.map(st => `<span class="pb-status pb-status--${st.cls}" title="${st.title}"${st.color ? ` style="--st:${st.color}"` : ''}>${st.label}</span>`).join('')}</div>`
+                ? `<div class="pb-status-row">${status.map((st: any) => `<span class="pb-status pb-status--${st.cls}" title="${st.title}"${st.color ? ` style="--st:${st.color}"` : ''}${st.type ? ` data-type="${st.type}"` : ''}>${st.label}</span>`).join('')}</div>`
                 : '';
 
             const maxLives = GameState.maxLives();
@@ -1278,7 +1278,7 @@ export class GameUI {
                 return `
                     <div style="margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px dashed rgba(255,255,255,0.08);">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 3px;">
-                            <span class="poke-type-badge pkmn-type-tag" style="background:${badgeColor}; font-size:0.7rem;">Tipo ${t}</span>
+                            <span class="poke-type-badge pkmn-type-tag" data-type="${t}" style="background:${badgeColor}; font-size:0.7rem;">Tipo ${t}</span>
                             <b style="color: ${currentBonus > 0 ? '#2ecc71' : '#e74c3c'}; font-size: 0.85rem;">+${currentBonus}% Dano</b>
                         </div>
                         <div style="font-size:0.7rem; color:var(--pb-text-3); display:flex; justify-content:space-between;">
@@ -1766,7 +1766,7 @@ export class GameUI {
                     const typeColor = colors[t.type] || "#777";
                     const multiStr = `x${t.multi}`;
 
-                    return `<span style="background-color:${typeColor}; color:white; padding:2px 5px; border-radius:4px; font-size:0.6rem; text-shadow:1px 1px 1px rgba(0,0,0,0.5); margin-right:3px; display:inline-block; margin-bottom:2px; display: inline-flex; align-items: center; gap: 3px;">
+                    return `<span class="poke-type-badge" data-type="${t.type}" style="background-color:${typeColor}; color:white; padding:2px 6px; border-radius:4px; font-size:0.6rem; text-shadow:1px 1px 1px rgba(0,0,0,0.5); margin-right:3px; margin-bottom:2px; display: inline-flex; align-items: center; gap: 3px; cursor: help;">
                         ${t.type} <b style="background:rgba(0,0,0,0.3); padding:1px 3px; border-radius:3px; font-size: 0.55rem;">${multiStr}</b>
                     </span>`;
                 }).join('');
@@ -2062,13 +2062,15 @@ export class GameUI {
         const best = [...unlocked].sort((a, b) => typeMastery[b] - typeMastery[a])[0];
         document.getElementById('mastery-summary')!.innerHTML = `
             <div class="pb-mastery-chip"><small>Tipos dominados</small><b>${unlocked.length}/${types.length}</b></div>
-            <div class="pb-mastery-chip"><small>Melhor tipo</small>${best ? `<span class="pb-mastery-type" style="--tc:${typeColors[best]}">${best}</span><b>+${typeMastery[best]}%</b>` : '<em>Nenhum ainda</em>'}</div>`;
+            <div class="pb-mastery-chip"><small>Melhor tipo</small>${best ? `<span class="pb-mastery-type poke-type-badge" data-type="${best}" style="--tc:${typeColors[best]}; cursor:help;">${best}</span><b>+${typeMastery[best]}%</b>` : '<em>Nenhum ainda</em>'}</div>`;
 
         const maxMastery = Math.max(1, ...types.map(t => typeMastery[t]));
         for (const type of types) {
             const mastery = typeMastery[type];
             const d = document.createElement('div');
-            d.className = `pb-mastery-tile ${mastery > 0 ? 'is-on' : 'is-off'}`;
+            d.className = `pb-mastery-tile ${mastery > 0 ? 'is-on' : 'is-off'} poke-type-badge`;
+            d.setAttribute('data-type', type);
+            d.style.cursor = 'help';
             d.style.setProperty('--tc', typeColors[type]);
             d.innerHTML = `
                 <span class="pb-mastery-type">${type}</span>
@@ -2391,7 +2393,7 @@ export class GameUI {
 
         typeEl.innerHTML = gymData.type.map((t: string) => {
             const c = typeColors[t] || '#666';
-            return `<span class="poke-type-badge pkmn-type-tag" style="background:${c}; font-size:0.75rem;">${t}</span>`;
+            return `<span class="poke-type-badge pkmn-type-tag" data-type="${t}" style="background:${c}; font-size:0.75rem;">${t}</span>`;
         }).join('');
 
         badgeEl.src = `/assets/img/Insignias/${gymData.badgeImg}`;
@@ -2411,7 +2413,7 @@ export class GameUI {
 
         const weaknessHTML = Array.from(weaknesses).map(w => {
             const wc = typeColors[w] || '#555';
-            return `<span class="poke-type-badge pkmn-type-tag" style="background:${wc}; font-size:0.7rem;">${w} (2x)</span>`;
+            return `<span class="poke-type-badge pkmn-type-tag" data-type="${w}" style="background:${wc}; font-size:0.7rem;">${w} (2x)</span>`;
         }).join('');
 
         infoEl.innerHTML = `
@@ -2457,7 +2459,7 @@ export class GameUI {
             card.style.setProperty('--mon-color', bgColor);
             card.style.setProperty('--mon-glow', `${bgColor}55`);
 
-            const typeBadges = mon.getTypeBadgesHTML ? mon.getTypeBadgesHTML('center') : `<span style="background:${bgColor}; color:#fff; padding:1px 6px; border-radius:4px; font-size:0.68rem;">${mon.type}</span>`;
+            const typeBadges = mon.getTypeBadgesHTML ? mon.getTypeBadgesHTML('center') : `<span class="poke-type-badge" data-type="${mon.type}" style="background:${bgColor}; color:#fff; padding:1px 6px; border-radius:4px; font-size:0.68rem; cursor:help;">${mon.type}</span>`;
 
             card.innerHTML = `
                 <span class="gym-mon-lv">Lv.${mon.level}</span>

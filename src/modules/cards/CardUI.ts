@@ -719,7 +719,8 @@ export class CardUI {
         Object.keys(typeColors).forEach(type => {
             const btn = document.createElement('button');
             btn.type = 'button';
-            btn.className = 'pb-type-pick';
+            btn.className = 'pb-type-pick poke-type-badge';
+            btn.setAttribute('data-type', type);
             btn.style.setProperty('--tc', typeColors[type]);
             btn.innerText = type;
             btn.onclick = () => {
