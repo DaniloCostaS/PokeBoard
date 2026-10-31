@@ -51,6 +51,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 8px;
+    width: 100%;
 }
 
 #game-container .pb-trainer-card .hud-name-group {
@@ -58,6 +59,7 @@
     align-items: center;
     gap: 9px;
     min-width: 0;
+    width: 100%;
     cursor: pointer;
 }
 
@@ -82,35 +84,40 @@
 }
 
 .pb-trainer-text {
-    display: grid;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
     gap: 3px;
     min-width: 0;
+    flex: 1 1 auto;
 }
 
-/* Nome quebra em até 2 linhas (em cards estreitos "[CPU] Gary" virava "[CP...") */
+/* Nome em linha única com tamanho dinâmico sem quebra e sem reticências */
 #game-container .hud-name-group span.pb-trainer-name {
-    display: -webkit-box;
+    display: block;
     overflow: hidden;
     color: var(--pb-text);
-    font-size: 0.95rem;
+    font-size: var(--pb-name-size, 0.92rem);
     font-weight: 800;
-    line-height: 1.15;
-    white-space: normal;
-    overflow-wrap: anywhere;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
+    line-height: 1.2;
+    white-space: nowrap;
+    text-overflow: clip;
 }
 
 .pb-trainer-meta {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
-    gap: 4px 6px;
+    gap: 6px;
+    flex-wrap: nowrap;
+    min-width: 0;
 }
 
 #game-container .pb-trainer-meta .pb-rank {
-    padding: 2px 6px;
-    font: 400 0.55rem/1.3 'Press Start 2P', var(--pb-font);
+    min-width: 18px;
+    padding: 1.5px 5px;
+    font: 400 0.44rem/1.2 'Press Start 2P', var(--pb-font);
+    border-radius: 4px;
+    box-sizing: border-box;
 }
 
 /* Indicador de vez com pokébola girando */
@@ -144,26 +151,32 @@
     to { transform: rotate(360deg); }
 }
 
-/* Ouro com moeda */
+/* Ouro com moeda alinhado com a tag de posição */
 #game-container .pb-trainer-card .hud-gold {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    padding: 3px 9px 3px 4px;
+    gap: 4px;
+    margin: 0;
+    padding: 2px 7px 2px 4px;
     color: #ffd76a;
-    font-size: 0.8rem !important;
+    font-size: 0.76rem !important;
     background: rgba(0, 0, 0, 0.35);
     border: 1px solid rgba(255, 215, 106, 0.35);
+    border-radius: 999px;
+    line-height: 1.2;
+    flex-shrink: 0;
+    box-sizing: border-box;
 }
 
 #game-container .pb-trainer-card .hud-gold::before {
     content: "";
-    width: 15px;
-    height: 15px;
+    width: 13px;
+    height: 13px;
     background: radial-gradient(circle at 35% 30%, #fff3b0 0 18%, #f4c430 19% 62%, #b8860b 63%);
     border: 1px solid #7a5a00;
     border-radius: 50%;
     box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.15);
+    flex-shrink: 0;
 }
 
 /* Status estilo jogo (PAR, LENTO...) */
@@ -723,13 +736,31 @@
 #game-container .pb-mini:focus-visible { outline: 2px solid #a9e1ef; outline-offset: 1px; }
 #game-container .pb-mini.is-shiny { border-color: rgba(241, 196, 15, 0.7); }
 #game-container .pb-mini.is-legend { box-shadow: inset 0 0 0 1px rgba(170, 120, 255, 0.6); }
-#game-container .pb-mini.fainted img { filter: grayscale(1); opacity: 0.45; }
+#game-container .pb-mini.fainted img:not(.pb-mini-item),
+#game-container .pb-mini.fainted .pb-mini-sprite { filter: grayscale(1); opacity: 0.45; }
 
-#game-container .pb-mini img {
+#game-container .pb-mini img:not(.pb-mini-item),
+#game-container .pb-mini .pb-mini-sprite {
     width: 44px;
     height: 44px;
     image-rendering: pixelated;
     object-fit: contain;
+}
+
+#game-container .pb-mini-item {
+    position: absolute;
+    top: 2px;
+    right: 3px;
+    width: 16px;
+    height: 16px;
+    padding: 1px;
+    box-sizing: border-box;
+    object-fit: contain;
+    background: rgba(0, 0, 0, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.8));
+    z-index: 2;
 }
 
 #game-container .pb-mini-lv {

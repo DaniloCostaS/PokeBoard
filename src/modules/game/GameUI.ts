@@ -142,10 +142,22 @@ export class GameUI {
             const hpColor = (m: Pokemon) => (window as any).Battle?.getHpColor(m.currentHp, m.maxHp) || '';
             const mini = p.team.map((m, slotIndex) => {
                 const hpPct = Math.max(0, Math.min(100, (m.currentHp / m.maxHp) * 100));
+                const heldItemData = m.heldItem ? SHOP_ITEMS.find(item => item.id === m.heldItem) : null;
+                let heldIconHTML = '';
+                let heldTitlePart = '';
+                if (m.megaStone) {
+                    heldIconHTML = `<img class="pb-mini-item" src="/assets/img/megaStone.png" title="Segurando: Mega Pedra" alt="">`;
+                    heldTitlePart = ' · Segurando: Mega Pedra';
+                } else if (heldItemData) {
+                    heldIconHTML = `<img class="pb-mini-item" src="/assets/img/Itens/${heldItemData.icon}" title="Segurando: ${heldItemData.name}" alt="">`;
+                    heldTitlePart = ` · Segurando: ${heldItemData.name}`;
+                }
+
                 return `
-                <button type="button" class="pb-mini${m.isShiny ? ' is-shiny' : ''}${m.isFainted() ? ' fainted' : ''}${m.isLegendary ? ' is-legend' : ''}" onclick="window.Game.openPokemonDetail(${i}, ${slotIndex})" title="${m.name} · Lv.${m.level} · HP ${m.currentHp}/${m.maxHp}" aria-label="${m.name}, nível ${m.level}, HP ${m.currentHp} de ${m.maxHp}">
-                    <img src="${m.getSprite()}" alt="" decoding="async" onerror="if(!this.dataset.retry){this.dataset.retry=1;this.src=this.src.split('?')[0]+'?r='+Date.now()}">
+                <button type="button" class="pb-mini${m.isShiny ? ' is-shiny' : ''}${m.isFainted() ? ' fainted' : ''}${m.isLegendary ? ' is-legend' : ''}" onclick="window.Game.openPokemonDetail(${i}, ${slotIndex})" title="${m.name} · Lv.${m.level} · HP ${m.currentHp}/${m.maxHp}${heldTitlePart}" aria-label="${m.name}, nível ${m.level}, HP ${m.currentHp} de ${m.maxHp}">
+                    <img class="pb-mini-sprite" src="${m.getSprite()}" alt="" decoding="async" onerror="if(!this.dataset.retry){this.dataset.retry=1;this.src=this.src.split('?')[0]+'?r='+Date.now()}">
                     <span class="pb-mini-lv">${m.level}</span>
+                    ${heldIconHTML}
                     <i class="pb-mini-hp"><u class="pb-hp-fill ${hpColor(m)}" style="width:${hpPct}%"></u></i>
                 </button>`;
             }).join('');
@@ -186,6 +198,9 @@ export class GameUI {
             const frame = Cosmetics.frameClass(p.cosmetics?.frame);
             const titleHTML = p.cosmetics?.title ? `<span class="pb-trainer-title">${Cosmetics.escape(p.cosmetics.title)}</span>` : '';
 
+            const nameLen = (p.name || '').length;
+            const nameFontSize = nameLen <= 7 ? '0.92rem' : nameLen <= 10 ? '0.84rem' : nameLen <= 13 ? '0.76rem' : nameLen <= 16 ? '0.70rem' : '0.64rem';
+
             d.innerHTML = ` 
             <div class="hud-header pb-trainer-card" style="--pc:${playerColor}">
                 ${i === GameState.turn ? '<span class="pb-turn-chip pb-turn-ribbon"><i></i>Na vez</span>' : ''}
@@ -193,12 +208,14 @@ export class GameUI {
                     <div class="hud-name-group" onclick="window.Game.openPlayerMastery(${i})" title="Ver Maestria do Treinador">
                         <span class="pb-trainer-avatar ${frame}"><img src="${p.avatar}" class="hud-avatar-img" alt="">${livesHTML}</span>
                         <span class="pb-trainer-text">
-                            <span class="pb-trainer-name">${p.name}</span>
+                            <span class="pb-trainer-name" style="--pb-name-size:${nameFontSize}; font-size:var(--pb-name-size);">${p.name}</span>
                             ${titleHTML}
-                            <span class="pb-trainer-meta"><span class="pb-rank pb-rank--${rank}" data-pb-rank="${p.id}" title="${rank}º no placar">${rank}º</span></span>
+                            <span class="pb-trainer-meta">
+                                <span class="pb-rank pb-rank--${rank}" data-pb-rank="${p.id}" title="${rank}º no placar">${rank}º</span>
+                                <div class="hud-gold" title="Ouro" data-pb-gold="${p.id}">${p.gold} G</div>
+                            </span>
                         </span>
                     </div>
-                    <div class="hud-gold" title="Ouro" data-pb-gold="${p.id}">${p.gold} G</div>
                 </div>
                 ${effectsHTML}
             </div> 
