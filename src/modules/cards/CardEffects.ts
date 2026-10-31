@@ -1629,16 +1629,29 @@ export class CardEffects {
             }
             delete (player as any)._ashGoodbyeContinued;
 
-            // --- NOVO: Registro de Log de Carta ---
+            // --- Registro de Log de Carta (Garante que apenas cartas direcionadas a outro jogador mostrem adversário) ---
+            const targetOpponentCardIds = new Set([
+                'swap', 'slow', 'rocket', 'spy', 'curse', 'trade_fail',
+                'troques', 'new_leader', 'bag', 'michael', 'steal_mega_stone', 'ash_goodbye'
+            ]);
+
             let targetNameForLog = "Si mesmo";
             if (cardData.type === 'global') {
                 targetNameForLog = "Todos";
-            } else if (actualTargetId !== null && actualTargetId !== player.id) {
-                const t = Game.players.find((p: any) => p.id === actualTargetId);
-                if (t) targetNameForLog = t.name;
-            } else if (cardId === 'rocket' || cardId === 'swap' || cardId === 'slow' || cardId === 'curse' || cardId === 'trade_fail' || cardId === 'new_leader' || cardId === 'bag' || cardId === 'troques' || cardId === 'spy' || cardId === 'steal_mega_stone' || cardId === 'ash_goodbye') {
-                // Se for ofensiva mas alvo ainda não definido (abriu modal), não loga aqui.
-                // Mas geralmente quando chega aqui com 'consumed = true', o alvo já foi resolvido ou é global.
+            } else if (cardData.type === 'battle') {
+                if (Battle.isPvP && Battle.enemyPlayer) {
+                    targetNameForLog = Battle.enemyPlayer.name;
+                } else {
+                    const selfBattleCards = ['run', 'guard', 'heal', 'mew', 'destiny'];
+                    targetNameForLog = selfBattleCards.includes(cardId) ? "Si mesmo" : (Battle.opponent ? Battle.opponent.name : "Inimigo");
+                }
+            } else if (targetOpponentCardIds.has(cardId)) {
+                if (actualTargetId !== null && actualTargetId !== player.id) {
+                    const t = Game.players.find((p: any) => p.id === actualTargetId);
+                    if (t) targetNameForLog = t.name;
+                }
+            } else {
+                targetNameForLog = "Si mesmo";
             }
 
             // Só loga se consumiu e tem efeito relevante

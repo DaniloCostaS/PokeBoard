@@ -730,12 +730,27 @@ export class GameUI {
         this.log(msg);
     }
 
+    static isSelfCard(cardName: string): boolean {
+        const selfCardNames = new Set([
+            'Brilho Épico', 'Rare Candy', 'Evolução forçada', 'Mega Pedra',
+            'Recuperar Mega Pedra', 'Vínculo Supremo', 'Cadeado', 'Dado Mágico',
+            'Segunda Chance', 'Água Benta', 'Tênis de Corrida', 'Re-Roll',
+            'Controle do Tempo', 'Lure Shiny', 'Double XP', 'Exp Share',
+            'Chama o SAMU', 'Lure Type', 'Modulador de Eventos', 'Encontro Lendário',
+            'Fumaça Ninja', 'Escudo Protetor', 'Poção Máxima', 'DNA de Mewtwo',
+            'Destino Selado', 'Interferência', 'Silver Tape', 'Pokémon fiel',
+            'Líder Velho', 'Do nada bolinha perdida'
+        ]);
+        return selfCardNames.has(cardName);
+    }
+
     static recordCardLog(attackerName: string, cardName: string, targetName: string) {
+        const cleanTarget = this.isSelfCard(cardName) ? 'Si mesmo' : targetName;
         const entry = {
             round: GameState.round,
             attacker: attackerName,
             card: cardName,
-            target: targetName,
+            target: cleanTarget,
             timestamp: Date.now()
         };
 
@@ -779,11 +794,13 @@ export class GameUI {
             const cardData: any = CARDS_DB.find(c => c.name === entry.card) || { rarity: 'Comum' as any, desc: '' };
             const rarityColor = CARD_RARITIES[cardData.rarity]?.color || '#9aa8b4';
 
+            const displayTarget = this.isSelfCard(entry.card) ? 'Si mesmo' : entry.target;
+
             const attackerP = GameState.players.find(p => p.name === entry.attacker);
-            const targetP = GameState.players.find(p => p.name === entry.target);
+            const targetP = GameState.players.find(p => p.name === displayTarget);
             
             const atkAvatar = attackerP ? attackerP.avatar : '/assets/img/Treinadores/Red.png';
-            const tgtAvatar = targetP ? targetP.avatar : (entry.target === 'Si mesmo' || entry.target === entry.attacker ? atkAvatar : '/assets/img/Treinadores/Red.png');
+            const tgtAvatar = targetP ? targetP.avatar : (displayTarget === 'Si mesmo' || displayTarget === entry.attacker ? atkAvatar : '/assets/img/Treinadores/Red.png');
 
             return `
             <div class="card-log-entry pb-cardlog" style="--rc:${rarityColor}">
@@ -801,7 +818,7 @@ export class GameUI {
                 <div class="pb-cardlog-who">
                     <span><img src="${atkAvatar}" alt="">${entry.attacker}</span>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-                    <span class="is-target"><img src="${tgtAvatar}" alt="">${entry.target}</span>
+                    <span class="is-target"><img src="${tgtAvatar}" alt="">${displayTarget}</span>
                 </div>
             </div>`;
         }).join('');
