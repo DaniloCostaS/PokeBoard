@@ -48,6 +48,113 @@ export class Setup {
         document.getElementById('menu-phase-1')!.style.display = 'flex';
         ProfileTracker.resetCache();
         ProfileTracker.checkAchievements().catch(() => { });
+        this.checkAndRenderUnfinishedMatch(false);
+    }
+
+    private static cachedUnfinishedMatch: any = null;
+
+    static async checkAndRenderUnfinishedMatch(showChecking: boolean = false) {
+        const container = document.getElementById('online-reconnect-container');
+        const checkingEl = document.getElementById('online-reconnect-checking');
+        const cardEl = document.getElementById('online-reconnect-card');
+        const dividerEl = document.getElementById('online-reconnect-divider');
+
+        if (showChecking && container && checkingEl) {
+            container.style.display = 'block';
+            checkingEl.style.display = 'flex';
+            if (cardEl) cardEl.style.display = 'none';
+            if (dividerEl) dividerEl.style.display = 'none';
+        }
+
+        try {
+            const match = await Network.findUnfinishedMatch();
+            this.cachedUnfinishedMatch = match;
+            this.renderReconnectUI(match);
+        } catch (e) {
+            console.warn('Erro ao verificar partida não finalizada:', e);
+            this.cachedUnfinishedMatch = null;
+            this.renderReconnectUI(null);
+        }
+    }
+
+    static renderReconnectUI(match: any) {
+        // 1. Menu Inicial (menu-phase-1)
+        const reconnectArea = document.getElementById('reconnect-area');
+        const titleArea = document.getElementById('reconnect-area-title');
+        const descArea = document.getElementById('reconnect-area-desc');
+        const btnArea = reconnectArea?.querySelector('button.trainer-reconnect-main-btn') as HTMLButtonElement | null;
+
+        if (reconnectArea) {
+            if (match) {
+                if (titleArea) titleArea.textContent = match.status === 'playing' ? 'Uma partida está em andamento' : 'Sala em espera encontrada';
+                if (descArea) descArea.innerHTML = `Sala: <b>${this.escapeHubText(match.alias)}</b> · ${match.status === 'playing' ? `Rodada ${match.round}` : 'Aguardando início'} · ${match.playerCount}/8 Treinadores`;
+                if (btnArea) btnArea.textContent = match.status === 'playing' ? 'Reconectar' : 'Voltar';
+                reconnectArea.style.display = 'grid';
+            } else {
+                reconnectArea.style.display = 'none';
+            }
+        }
+
+        // 2. Menu Online (menu-phase-online)
+        const container = document.getElementById('online-reconnect-container');
+        const checkingEl = document.getElementById('online-reconnect-checking');
+        const cardEl = document.getElementById('online-reconnect-card');
+        const dividerEl = document.getElementById('online-reconnect-divider');
+        const titleOnline = document.getElementById('online-reconnect-title');
+        const descOnline = document.getElementById('online-reconnect-desc');
+        const btnOnline = document.getElementById('btn-online-reconnect') as HTMLButtonElement | null;
+
+        if (checkingEl) checkingEl.style.display = 'none';
+
+        if (container && cardEl) {
+            if (match) {
+                if (titleOnline) titleOnline.textContent = match.status === 'playing' ? 'Partida em andamento encontrada!' : 'Sala em espera encontrada!';
+                if (descOnline) descOnline.innerHTML = `Sala: <b>${this.escapeHubText(match.alias)}</b> · ${match.status === 'playing' ? `Rodada ${match.round}` : 'Aguardando jogadores'} · ${match.playerCount}/8 Treinadores`;
+                if (btnOnline) btnOnline.textContent = match.status === 'playing' ? 'Reconectar à última partida' : 'Voltar à sala';
+                container.style.display = 'block';
+                cardEl.style.display = 'grid';
+                if (dividerEl) dividerEl.style.display = 'flex';
+            } else {
+                cardEl.style.display = 'none';
+                if (dividerEl) dividerEl.style.display = 'none';
+                container.style.display = 'none';
+            }
+        }
+    }
+
+    static async reconnectActiveMatch() {
+        const match = this.cachedUnfinishedMatch;
+        const btnOnline = document.getElementById('btn-online-reconnect') as HTMLButtonElement | null;
+        const btnArea = document.querySelector('#reconnect-area .trainer-reconnect-main-btn') as HTMLButtonElement | null;
+
+        if (btnOnline) { btnOnline.disabled = true; btnOnline.textContent = 'Reconectando...'; }
+        if (btnArea) { btnArea.disabled = true; btnArea.textContent = 'Reconectando...'; }
+
+        try {
+            const ok = await Network.reconnect(match?.roomId, match?.playerIdDb);
+            if (!ok) {
+                this.renderReconnectUI(null);
+            }
+        } catch (err: any) {
+            console.error('Erro na reconexão:', err);
+            GameDialog.toast("Erro ao tentar reconectar à partida.", { tone: 'danger' });
+        } finally {
+            if (btnOnline) {
+                btnOnline.disabled = false;
+                btnOnline.textContent = match?.status === 'playing' ? 'Reconectar à última partida' : 'Voltar à sala';
+            }
+            if (btnArea) {
+                btnArea.disabled = false;
+                btnArea.textContent = match?.status === 'playing' ? 'Reconectar' : 'Voltar';
+            }
+        }
+    }
+
+    static dismissActiveMatch() {
+        this.cachedUnfinishedMatch = null;
+        localStorage.removeItem('pkbd_session');
+        this.renderReconnectUI(null);
+        GameDialog.toast("Sessão da partida descartada.", { tone: 'info' });
     }
 
     static async logout() {
@@ -100,6 +207,7 @@ export class Setup {
             taken: () => new Set((Network.lobbyPlayers || []).filter((p: any) => p.id !== Network.myPlayerIdDb).map((p: any) => String(p.avatar || '').split('/').pop() || ''))
         });
         this.updateOnlinePreview();
+        this.checkAndRenderUnfinishedMatch(true);
     }
     
     static async updateOnlinePreview() {

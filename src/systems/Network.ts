@@ -45,7 +45,8 @@ export class Network {
 
     // --- INPUTS E LOBBY ---
     static checkInput() { return NetworkActions.checkInput(); }
-    static reconnect() { return NetworkActions.reconnect(); }
+    static reconnect(roomId?: string, pid?: string) { return NetworkActions.reconnect(roomId, pid); }
+    static async findUnfinishedMatch() { return await NetworkActions.findUnfinishedMatch(); }
     static async generateRoom() { return await NetworkActions.generateRoom(); }
     static async cancelDraftRoom() { return await NetworkActions.cancelDraftRoom(); }
     static async leaveLobby() { return await NetworkActions.leaveLobby(); }

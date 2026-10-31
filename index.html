@@ -78,8 +78,14 @@
 
                 <div id="reconnect-area" style="display:none;" class="trainer-reconnect-box">
                     <span class="trainer-reconnect-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M20 11a8.2 8.2 0 0 0-14-4L4 9m0-5v5h5M4 13a8.2 8.2 0 0 0 14 4l2-2m0 5v-5h-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-                    <p><strong>Uma partida está em andamento</strong><span>Retome de onde você parou.</span></p>
-                    <button type="button" onclick="window.Network.reconnect()">Reconectar</button>
+                    <div class="trainer-reconnect-info">
+                        <strong id="reconnect-area-title">Uma partida está em andamento</strong>
+                        <span id="reconnect-area-desc">Retome de onde você parou.</span>
+                    </div>
+                    <div class="trainer-reconnect-actions">
+                        <button type="button" class="trainer-reconnect-main-btn" onclick="window.Setup.reconnectActiveMatch()">Reconectar</button>
+                        <button type="button" class="trainer-reconnect-dismiss-btn" title="Descartar esta partida" aria-label="Descartar esta partida" onclick="window.Setup.dismissActiveMatch()">✕</button>
+                    </div>
                 </div>
             </div>
 
@@ -221,6 +227,30 @@
             </div>
 
             <div id="online-lobby-controls" class="trainer-online-controls">
+                <!-- Reconexão de partida não finalizada -->
+                <div id="online-reconnect-container" class="trainer-online-reconnect-wrap" style="display:none;">
+                    <div id="online-reconnect-checking" class="trainer-reconnect-checking" style="display:none;">
+                        <span class="trainer-reconnect-spinner" aria-hidden="true"></span>
+                        <span>Identificando partidas em andamento...</span>
+                    </div>
+                    <div id="online-reconnect-card" class="trainer-reconnect-box" style="display:none;">
+                        <span class="trainer-reconnect-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" focusable="false">
+                                <path d="M20 11a8.2 8.2 0 0 0-14-4L4 9m0-5v5h5M4 13a8.2 8.2 0 0 0 14 4l2-2m0 5v-5h-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </span>
+                        <div class="trainer-reconnect-info">
+                            <strong id="online-reconnect-title">Partida em andamento encontrada!</strong>
+                            <span id="online-reconnect-desc">Sala: <b>-</b> · Rodada -</span>
+                        </div>
+                        <div class="trainer-reconnect-actions">
+                            <button type="button" id="btn-online-reconnect" class="trainer-reconnect-main-btn" onclick="window.Setup.reconnectActiveMatch()">Reconectar à última partida</button>
+                            <button type="button" class="trainer-reconnect-dismiss-btn" title="Descartar esta partida" aria-label="Descartar esta partida" onclick="window.Setup.dismissActiveMatch()">✕</button>
+                        </div>
+                    </div>
+                    <div id="online-reconnect-divider" class="trainer-online-divider" style="display:none;"><span>ou inicie uma nova partida</span></div>
+                </div>
+
                 <section class="trainer-online-create" aria-labelledby="create-room-title">
                     <div class="trainer-online-section-title"><span class="trainer-online-section-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M4 20V10l8-6 8 6v10H4Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 20v-5h6v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span><span><strong id="create-room-title">Criar uma sala</strong><small>Escolha nome, senha e regras antes de abrir a sala.</small></span></div>
                     <button id="btn-create-room" class="trainer-online-primary" onclick="window.Setup.openCreateRoom()"><span>Criar sala</span><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h13M13 7l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>

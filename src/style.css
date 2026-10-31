@@ -739,17 +739,56 @@ body {
     color: #9eb7c0;
 }
 
+.trainer-online-reconnect-wrap {
+    margin-bottom: 14px;
+    animation: fadeInSlideDown 240ms ease-out;
+}
+
+.trainer-reconnect-checking {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 9px 12px;
+    color: #f4ead0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: rgba(190, 141, 50, 0.1);
+    border: 1px dashed rgba(240, 195, 100, 0.35);
+    border-radius: 10px;
+}
+
+.trainer-reconnect-spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(240, 195, 100, 0.25);
+    border-top-color: #f4c75d;
+    border-radius: 50%;
+    animation: trainerSpin 650ms linear infinite;
+}
+
+@keyframes trainerSpin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes fadeInSlideDown {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 .trainer-reconnect-box {
     display: grid;
     grid-template-columns: 32px minmax(0, 1fr) auto;
     align-items: center;
-    gap: 9px;
-    padding: 10px;
+    gap: 10px;
+    padding: 10px 12px;
     color: #f4ead0;
     text-align: left;
-    background: rgba(190, 141, 50, 0.1);
-    border: 1px solid rgba(240, 195, 100, 0.31);
+    background: linear-gradient(180deg, rgba(190, 141, 50, 0.16) 0%, rgba(140, 95, 20, 0.12) 100%);
+    border: 1px solid rgba(240, 195, 100, 0.38);
     border-radius: 11px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22), 0 0 16px rgba(243, 156, 18, 0.08);
 }
 
 .trainer-reconnect-icon {
@@ -757,7 +796,7 @@ body {
     width: 32px;
     height: 32px;
     color: #ffda83;
-    background: rgba(240, 195, 100, 0.12);
+    background: rgba(240, 195, 100, 0.15);
     border-radius: 8px;
     place-items: center;
 }
@@ -767,37 +806,94 @@ body {
     height: 18px;
 }
 
+.trainer-reconnect-info,
 .trainer-reconnect-box p {
     min-width: 0;
     margin: 0;
 }
 
+.trainer-reconnect-info strong,
+.trainer-reconnect-info span,
 .trainer-reconnect-box p strong,
 .trainer-reconnect-box p span {
     display: block;
 }
 
+.trainer-reconnect-info strong,
 .trainer-reconnect-box p strong {
     color: #fff2cf;
-    font-size: 0.76rem;
+    font-size: 0.78rem;
+    font-weight: 750;
 }
 
+.trainer-reconnect-info span,
 .trainer-reconnect-box p span {
     margin-top: 2px;
     color: #d7c69d;
-    font-size: 0.68rem;
+    font-size: 0.69rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.trainer-reconnect-box button {
-    padding: 7px 9px;
-    color: #1f1b10;
+.trainer-reconnect-info span b {
+    color: #ffeaa7;
+}
+
+.trainer-reconnect-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.trainer-reconnect-main-btn,
+.trainer-reconnect-box button:not(.trainer-reconnect-dismiss-btn) {
+    padding: 7px 11px;
+    color: #1f1b10 !important;
     font: inherit;
-    font-size: 0.72rem;
-    font-weight: 750;
-    background: #f4c75d;
-    border: 0;
-    border-radius: 7px;
+    font-size: 0.74rem !important;
+    font-weight: 800 !important;
+    background: linear-gradient(180deg, #f9d776 0%, #e6a827 100%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.45) !important;
+    border-radius: 8px !important;
     cursor: pointer;
+    box-shadow: 0 2px 6px rgba(126, 56, 2, 0.35);
+    transition: transform 120ms ease, filter 120ms ease;
+    white-space: nowrap;
+}
+
+.trainer-reconnect-main-btn:hover,
+.trainer-reconnect-box button:not(.trainer-reconnect-dismiss-btn):hover {
+    filter: brightness(1.08);
+    transform: translateY(-1px);
+}
+
+.trainer-reconnect-main-btn:active,
+.trainer-reconnect-box button:not(.trainer-reconnect-dismiss-btn):active {
+    transform: translateY(1px);
+}
+
+.trainer-reconnect-dismiss-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    color: #c9b17e;
+    font: inherit;
+    font-size: 0.75rem;
+    background: rgba(240, 195, 100, 0.08);
+    border: 1px solid rgba(240, 195, 100, 0.22);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: color 150ms ease, background 150ms ease, border-color 150ms ease;
+}
+
+.trainer-reconnect-dismiss-btn:hover {
+    color: #fff;
+    background: rgba(235, 87, 87, 0.25);
+    border-color: rgba(235, 87, 87, 0.4);
 }
 
 .trainer-menu-utilities {

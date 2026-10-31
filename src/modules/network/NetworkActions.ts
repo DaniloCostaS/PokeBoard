@@ -26,48 +26,222 @@ export class NetworkActions {
         return true;
     }
 
-    static async reconnect() {
+    static async reconnect(targetRoomId?: string, targetPlayerDbId?: string): Promise<boolean> {
+        let roomId = targetRoomId;
+        let pid = targetPlayerDbId;
+
+        if (!roomId) {
+            const stored = localStorage.getItem('pkbd_session');
+            if (stored) {
+                try {
+                    const sess = JSON.parse(stored);
+                    roomId = sess?.roomId;
+                    pid = sess?.pid;
+                } catch { }
+            }
+        }
+
+        const uid = Account.userId;
+
+        // Se ainda não temos roomId, busca a última partida não finalizada do usuário
+        if (!roomId && uid) {
+            const match = await this.findUnfinishedMatch();
+            if (match) {
+                roomId = match.roomId;
+                pid = match.playerIdDb;
+            }
+        }
+
+        if (!roomId) {
+            GameDialog.toast("Nenhuma partida em andamento encontrada.", { tone: 'warning' });
+            return false;
+        }
+
+        const { data: roomData, error } = await supabase.from('rooms').select('*, room_players(*)').eq('id', roomId).maybeSingle();
+        if (error || !roomData) {
+            localStorage.removeItem('pkbd_session');
+            GameDialog.toast("Partida não encontrada ou já encerrada.", { tone: 'danger' });
+            return false;
+        }
+
+        if (roomData.status === 'finished') {
+            localStorage.removeItem('pkbd_session');
+            GameDialog.toast("Esta partida já foi finalizada.", { tone: 'info' });
+            return false;
+        }
+
+        const players = roomData.room_players || [];
+        const playerData = players.find((p: any) => (pid && p.id === pid) || (uid && p.user_id === uid));
+
+        if (!playerData) {
+            localStorage.removeItem('pkbd_session');
+            GameDialog.toast("Você não faz parte desta partida.", { tone: 'warning' });
+            return false;
+        }
+
+        // Limpa canais anteriores e reseta flags para reconexão limpa
+        supabase.getChannels().forEach(ch => supabase.removeChannel(ch));
+        this.gameInitStarted = false;
+        NetworkState.isListenerActive = false;
+
+        NetworkState.currentRoomId = roomData.id;
+        NetworkState.currentRoomAlias = roomData.alias;
+        NetworkState.roomHostUserId = roomData.host_user_id || '';
+        NetworkState.myPlayerId = playerData.local_index;
+        NetworkState.myPlayerIdDb = playerData.id;
+        NetworkState.isHost = this.isHostOf(roomData);
+        NetworkState.isOnline = true;
+        NetworkState.localName = playerData.name;
+        NetworkState.localAvatar = playerData.avatar;
+
+        this.saveSession();
+
+        if (roomData.status === "waiting") {
+            document.getElementById('setup-screen')!.style.display = 'block';
+            document.getElementById('menu-phase-1')!.style.display = 'none';
+            document.getElementById('online-login')!.style.display = 'none';
+            document.getElementById('menu-phase-online')!.style.display = 'flex';
+            
+            const lobbyStatus = document.getElementById('lobby-status');
+            if (lobbyStatus) {
+                lobbyStatus.style.display = 'block';
+                lobbyStatus.innerHTML = `Conectado à sala: <b>${this.esc(roomData.alias || roomData.id)}</b> ${NetworkState.isHost ? '<br>Você é o HOST' : ''}`;
+            }
+            
+            Setup.showLobbyUIOnly(roomData);
+            this.setupLobbyListener();
+            this.refreshLobbyList();
+        } else {
+            document.getElementById('setup-screen')!.style.display = 'none';
+            document.getElementById('game-container')!.style.display = 'flex';
+            this.setupLobbyListener();
+            this.initializeGameFromSupabase();
+        }
+        return true;
+    }
+
+    static async findUnfinishedMatch(): Promise<{
+        roomId: string;
+        alias: string;
+        status: 'playing' | 'waiting';
+        round: number;
+        playerCount: number;
+        playerIdDb: string;
+        isHost: boolean;
+        createdAt?: string;
+    } | null> {
+        const uid = Account.userId;
+
+        // 1. Verificar sessão salva no localStorage
         const stored = localStorage.getItem('pkbd_session');
         if (stored) {
-            const sess = JSON.parse(stored);
-            const { data: roomData, error } = await supabase.from('rooms').select('*, room_players(*)').eq('id', sess.roomId).single();
-            if (roomData && !error) {
-                const playerData = roomData.room_players.find((p: any) => p.id === sess.pid);
-                if (playerData) {
-                    NetworkState.currentRoomId = sess.roomId;
-                    NetworkState.currentRoomAlias = roomData.alias;
-                    NetworkState.roomHostUserId = roomData.host_user_id || '';
-                    NetworkState.myPlayerId = playerData.local_index;
-                    NetworkState.myPlayerIdDb = playerData.id;
-                    NetworkState.isHost = this.isHostOf(roomData);
-                    NetworkState.isOnline = true;
-                    NetworkState.localName = playerData.name;
-                    NetworkState.localAvatar = playerData.avatar;
+            try {
+                const sess = JSON.parse(stored);
+                if (sess && sess.roomId) {
+                    const { data: room, error } = await supabase
+                        .from('rooms')
+                        .select('id, alias, status, current_round, created_at, host_user_id, room_players(id, local_index, user_id, name, avatar)')
+                        .eq('id', sess.roomId)
+                        .maybeSingle();
 
-                    if (roomData.status === "waiting") {
-                        document.getElementById('setup-screen')!.style.display = 'block';
-                        document.getElementById('menu-phase-1')!.style.display = 'none';
-                        document.getElementById('online-login')!.style.display = 'none';
-                        document.getElementById('menu-phase-online')!.style.display = 'flex';
-                        
-                        document.getElementById('lobby-status')!.style.display = 'block';
-                        document.getElementById('lobby-status')!.innerHTML = `Conectado à sala: <b>${this.esc(roomData.alias || sess.roomId)}</b> ${NetworkState.isHost ? '<br>Você é o HOST' : ''}`;
-                        
-                        Setup.showLobbyUIOnly(roomData);
-                        this.setupLobbyListener();
+                    if (!error && room) {
+                        if (room.status === 'finished') {
+                            localStorage.removeItem('pkbd_session');
+                        } else if (room.status === 'playing' || room.status === 'waiting') {
+                            const players = room.room_players || [];
+                            const me = players.find((p: any) => (sess.pid && p.id === sess.pid) || (uid && p.user_id === uid));
+                            if (me) {
+                                return {
+                                    roomId: room.id,
+                                    alias: room.alias || room.id,
+                                    status: room.status as 'playing' | 'waiting',
+                                    round: room.current_round || 1,
+                                    playerCount: players.length,
+                                    playerIdDb: me.id,
+                                    isHost: !!room.host_user_id && room.host_user_id === uid,
+                                    createdAt: room.created_at
+                                };
+                            }
+                        }
                     } else {
-                        document.getElementById('setup-screen')!.style.display = 'none';
-                        document.getElementById('game-container')!.style.display = 'flex';
-                        this.setupLobbyListener();
-                        this.initializeGameFromSupabase();
+                        localStorage.removeItem('pkbd_session');
                     }
-                    return;
                 }
+            } catch (e) {
+                console.warn('Erro ao ler pkbd_session:', e);
             }
-            localStorage.removeItem('pkbd_session');
-            await GameDialog.alert("Sua sessão é inválida ou a partida foi encerrada.", { title: 'Sessão encerrada', okLabel: 'Voltar ao menu' });
-            location.reload();
         }
+
+        // 2. Se não encontrou no localStorage, buscar no Supabase pelo user_id do jogador
+        if (uid) {
+            try {
+                const { data: playerRows, error: pError } = await supabase
+                    .from('room_players')
+                    .select('room_id, id, local_index')
+                    .eq('user_id', uid);
+
+                if (!pError && playerRows && playerRows.length > 0) {
+                    const roomIds = [...new Set(playerRows.map((r: any) => r.room_id))];
+                    const { data: rooms, error: rError } = await supabase
+                        .from('rooms')
+                        .select('id, alias, status, current_round, created_at, host_user_id, room_players(id, user_id)')
+                        .in('id', roomIds)
+                        .in('status', ['playing', 'waiting'])
+                        .order('created_at', { ascending: false });
+
+                    if (!rError && rooms && rooms.length > 0) {
+                        // Prioriza partidas 'playing' (em andamento)
+                        const activeRoom = rooms.find((r: any) => r.status === 'playing') || rooms[0];
+                        const myPlayer = playerRows.find((p: any) => p.room_id === activeRoom.id);
+                        if (myPlayer) {
+                            localStorage.setItem('pkbd_session', JSON.stringify({
+                                roomId: activeRoom.id,
+                                id: myPlayer.local_index,
+                                pid: myPlayer.id
+                            }));
+                            return {
+                                roomId: activeRoom.id,
+                                alias: activeRoom.alias || activeRoom.id,
+                                status: activeRoom.status as 'playing' | 'waiting',
+                                round: activeRoom.current_round || 1,
+                                playerCount: (activeRoom.room_players || []).length,
+                                playerIdDb: myPlayer.id,
+                                isHost: !!activeRoom.host_user_id && activeRoom.host_user_id === uid,
+                                createdAt: activeRoom.created_at
+                            };
+                        }
+                    }
+                }
+
+                // Fallback para sala criada pelo host onde room_players pode ter tido atraso
+                const { data: ownedRooms } = await supabase
+                    .from('rooms')
+                    .select('id, alias, status, current_round, created_at, host_user_id, room_players(id, local_index, user_id)')
+                    .eq('host_user_id', uid)
+                    .in('status', ['playing', 'waiting'])
+                    .order('created_at', { ascending: false });
+                if (ownedRooms && ownedRooms.length > 0) {
+                    const activeRoom = ownedRooms.find((r: any) => r.status === 'playing') || ownedRooms[0];
+                    const me = activeRoom.room_players?.find((p: any) => p.user_id === uid) || activeRoom.room_players?.[0];
+                    if (me) {
+                        return {
+                            roomId: activeRoom.id,
+                            alias: activeRoom.alias || activeRoom.id,
+                            status: activeRoom.status as 'playing' | 'waiting',
+                            round: activeRoom.current_round || 1,
+                            playerCount: (activeRoom.room_players || []).length,
+                            playerIdDb: me.id,
+                            isHost: true,
+                            createdAt: activeRoom.created_at
+                        };
+                    }
+                }
+            } catch (e) {
+                console.warn('Erro ao buscar partidas ativas no Supabase:', e);
+            }
+        }
+
+        return null;
     }
 
     private static esc(value: unknown): string {
@@ -173,6 +347,7 @@ export class NetworkActions {
         NetworkState.myPlayerIdDb = '';
         NetworkState.myPlayerId = -1;
         NetworkState.lobbyPlayers = [];
+        this.gameInitStarted = false;
     }
 
     // Excluir sala pela lista "Minhas salas" (só o host)
