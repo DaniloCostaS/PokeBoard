@@ -178,3 +178,89 @@
         transition: none;
     }
 }
+
+/* ==========================================================================
+   Visualização simplificada do baralho (estilo tela de sacrifício)
+   ========================================================================== */
+button.pb-cardpick {
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    width: 100%;
+    margin: 0;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    text-decoration: none;
+    box-sizing: border-box;
+}
+
+button.pb-cardpick:focus-visible {
+    outline: 2px solid #8cc4ef;
+    outline-offset: 2px;
+}
+
+.pb-cardpick.is-selected {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: var(--rc, #f1c40f) !important;
+    box-shadow: 0 0 12px var(--rc, rgba(241, 196, 15, 0.6));
+    transform: translateY(-3px);
+}
+
+.pb-cardpick.is-selected .pb-cardpick-name {
+    color: #fff;
+    text-shadow: 0 0 4px rgba(255, 255, 255, 0.5);
+}
+
+.pb-cardpick-indicator {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    z-index: 2;
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    background: rgba(13, 20, 26, 0.85);
+    border: 2px solid var(--pb-line-strong, rgba(255, 255, 255, 0.25));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 120ms ease;
+    pointer-events: none;
+    box-sizing: border-box;
+}
+
+.pb-cardpick.is-selected .pb-cardpick-indicator:not(.pb-cardpick-indicator--lock) {
+    background: var(--rc, #f1c40f) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / 12px no-repeat;
+    border-color: #fff;
+    box-shadow: 0 0 6px var(--rc, rgba(241, 196, 15, 0.6));
+}
+
+.pb-cardpick-indicator--lock {
+    border-color: #e0a92e;
+    color: #e0a92e;
+    font-size: 11px;
+    line-height: 1;
+}
+
+.pb-cardpick-grid--deck {
+    max-height: min(340px, 45vh);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.pb-cardpick-grid--deck::-webkit-scrollbar {
+    width: 6px;
+}
+
+.pb-cardpick-grid--deck::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.pb-cardpick-grid--deck::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+}
+

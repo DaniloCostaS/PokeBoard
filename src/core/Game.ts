@@ -102,7 +102,9 @@ export class Game {
     static openPlayerBadgesModal(pId: number) { (GameUI as any).openPlayerBadgesModal(pId); }
     static openCardLibrary() { (GameUI as any).openCardLibrary(); }
     static openItemLibrary() { (GameUI as any).openItemLibrary(); }
-    static openBoardCards(pId: number) { (GameUI as any).openBoardCards(pId); }
+    static openBoardCards(pId?: number) { (GameUI as any).openBoardCards(pId); }
+    static get lastBoardCardsPlayerId() { return (GameUI as any).lastBoardCardsPlayerId; }
+    static toggleSimplifiedDeckView(checked: boolean) { (GameUI as any).toggleSimplifiedDeckView(checked); }
     static openPokedex(pId: number, filterId: number | null = null) { (GameUI as any).openPokedex(pId, filterId); }
     static openPokedexEntry(targetId: number) { (GameUI as any).openPokedexEntry(targetId); }
     static openPlayerMastery(pId: number) { (GameUI as any).openPlayerMastery(pId); }

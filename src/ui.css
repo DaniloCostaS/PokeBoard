@@ -1459,7 +1459,7 @@ body:has(#battle-modal[style*="flex"]) .hud-column {
 
 /* Interruptor de preferência */
 .pb-switch {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 10px;
     min-height: 36px;
@@ -1469,6 +1469,11 @@ body:has(#battle-modal[style*="flex"]) .hud-column {
     font-weight: 600;
     cursor: pointer;
     user-select: none;
+    transition: color 150ms ease;
+}
+
+.pb-switch:hover {
+    color: var(--pb-text);
 }
 
 .pb-switch input {
@@ -1508,6 +1513,10 @@ body:has(#battle-modal[style*="flex"]) .hud-column {
 .pb-switch input:checked + .pb-switch-track::after {
     background: #fff;
     transform: translateX(14px);
+}
+
+.pb-switch input:checked ~ span:not(.pb-switch-track) {
+    color: var(--pb-text);
 }
 
 .pb-switch input:focus-visible + .pb-switch-track {

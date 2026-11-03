@@ -1538,7 +1538,24 @@ export class GameUI {
         if (modal) modal.style.display = 'flex';
     }
 
-    static openBoardCards(pId: number) {
+    static lastBoardCardsPlayerId: number = 0;
+
+    static toggleSimplifiedDeckView(checked: boolean) {
+        localStorage.setItem('pb_simplified_deck_view', checked ? 'true' : 'false');
+        const bCheck = document.getElementById('board-cards-simplified-view') as HTMLInputElement | null;
+        if (bCheck) bCheck.checked = checked;
+        const batCheck = document.getElementById('battle-cards-simplified-view') as HTMLInputElement | null;
+        if (batCheck) batCheck.checked = checked;
+        GameUI.openBoardCards();
+    }
+
+    static openBoardCards(pId?: number) {
+        if (pId !== undefined && pId !== null) {
+            GameUI.lastBoardCardsPlayerId = pId;
+        } else {
+            pId = GameUI.lastBoardCardsPlayerId ?? GameState.turn;
+        }
+
         const NetworkObj = (window as any).Network || Network;
 
         const modalContent = document.querySelector('#board-cards-modal .modal-content') as HTMLElement;
@@ -1620,8 +1637,24 @@ export class GameUI {
             return a.name.localeCompare(b.name);
         });
 
+        const isSimplified = localStorage.getItem('pb_simplified_deck_view') === 'true';
+        const simplifiedToggle = document.getElementById('board-cards-simplified-view') as HTMLInputElement | null;
+        if (simplifiedToggle) simplifiedToggle.checked = isSimplified;
+
         if (filteredCards.length) {
-            CardHand.render(list, p, filteredCards, { isMe, canUseMove, onZoom: (id) => GameUI.showCardZoom(id) });
+            CardHand.render(list, p, filteredCards, {
+                isMe,
+                canUseMove,
+                simplified: isSimplified,
+                onZoom: (id) => GameUI.showCardZoom(id),
+                onUnprotect: (_card, origIdx) => {
+                    const Cards = (window as any).Cards || (window as any).CardEffects;
+                    if (Cards && Cards.unprotectCard) {
+                        Cards.unprotectCard(p.id, origIdx, false);
+                        GameUI.openBoardCards(p.id);
+                    }
+                }
+            });
         }
 
         document.getElementById('board-cards-modal')!.style.display = 'flex';

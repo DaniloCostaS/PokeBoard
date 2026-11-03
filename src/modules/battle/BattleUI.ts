@@ -390,7 +390,12 @@ export class BattleUI {
         if (filteredCards.length === 0) {
             list.innerHTML = `<em style="${isMobile ? '' : 'grid-column: 1/-1;'}">Sem cartas.</em>`;
         } else {
+            const isSimplified = localStorage.getItem('pb_simplified_deck_view') === 'true';
+            const simplifiedToggle = document.getElementById('battle-cards-simplified-view') as HTMLInputElement | null;
+            if (simplifiedToggle) simplifiedToggle.checked = isSimplified;
+
             CardHand.render(list, p, filteredCards, {
+                simplified: isSimplified,
                 isMe: true,
                 isBattle: true,
                 battleCardsLeft: 3 - BattleCore.cardsUsedThisBattle,
@@ -410,6 +415,15 @@ export class BattleUI {
             });
         }
         document.getElementById('battle-cards-modal')!.style.display = 'flex';
+    }
+
+    static toggleSimplifiedDeckView(checked: boolean) {
+        localStorage.setItem('pb_simplified_deck_view', checked ? 'true' : 'false');
+        const bCheck = document.getElementById('board-cards-simplified-view') as HTMLInputElement | null;
+        if (bCheck) bCheck.checked = checked;
+        const batCheck = document.getElementById('battle-cards-simplified-view') as HTMLInputElement | null;
+        if (batCheck) batCheck.checked = checked;
+        BattleUI.openCardSelection();
     }
 
     static async animateCaptureSequence(ballIcon: string, isSuccess: boolean): Promise<void> {

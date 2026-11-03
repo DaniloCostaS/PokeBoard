@@ -209,6 +209,7 @@ export class Battle {
     static viewTeam() { BattleUI.viewTeam(); }
     static openBag() { BattleUI.openBag(); }
     static openCardSelection() { BattleUI.openCardSelection(); }
+    static toggleSimplifiedDeckView(checked: boolean) { BattleUI.toggleSimplifiedDeckView(checked); }
     static getHpColor(current: number, max: number) { return BattleUI.getHpColor(current, max); }
     static logBattle(msg: string, sync: boolean = false) { BattleUI.logBattle(msg, sync); }
     static async animateCaptureSequence(ballIcon: string, isSuccess: boolean) { await BattleUI.animateCaptureSequence(ballIcon, isSuccess); }

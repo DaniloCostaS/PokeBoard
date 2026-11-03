@@ -930,10 +930,10 @@
             <p style="font-size:0.8rem; color:#aaa; margin-bottom: 12px; margin-top: 5px;">Apenas cartas do tipo
                 <b>Move</b> podem ser usadas aqui.
             </p>
-            <div style="display:flex; gap:10px; margin-bottom: 15px; justify-content:center;">
+            <div style="display:flex; gap:10px; margin-bottom: 15px; justify-content:center; align-items:center; flex-wrap:wrap;">
                 <select id="board-cards-rarity-filter" class="form-control"
                     style="background:rgba(0,0,0,0.3); color:#fff; border:1px solid rgba(255,255,255,0.2); border-radius:8px; padding:8px 12px; font-size: 0.9rem;"
-                    onchange="window.Game.openBoardCards(window.Game.turn)">
+                    onchange="window.Game.openBoardCards()">
                     <option value="all" style="background:#222; color:#fff;">Todas as Raridades</option>
                     <option value="Comum" style="background:#222; color:#fff;">Comum</option>
                     <option value="Incomum" style="background:#222; color:#fff;">Incomum</option>
@@ -943,13 +943,18 @@
                 </select>
                 <select id="board-cards-type-filter" class="form-control"
                     style="background:rgba(0,0,0,0.3); color:#fff; border:1px solid rgba(255,255,255,0.2); border-radius:8px; padding:8px 12px; font-size: 0.9rem;"
-                    onchange="window.Game.openBoardCards(window.Game.turn)">
+                    onchange="window.Game.openBoardCards()">
                     <option value="all" style="background:#222; color:#fff;">Todos os Tipos</option>
                     <option value="move" style="background:#222; color:#fff;">Move</option>
                     <option value="battle" style="background:#222; color:#fff;">Battle</option>
                     <option value="auto" style="background:#222; color:#fff;">Auto</option>
                     <option value="global" style="background:#222; color:#fff;">Global</option>
                 </select>
+                <label class="pb-switch" title="Alternar entre visualização em leque e simplificada">
+                    <input type="checkbox" id="board-cards-simplified-view" onchange="window.Game.toggleSimplifiedDeckView(this.checked)">
+                    <span class="pb-switch-track" aria-hidden="true"></span>
+                    <span>Visualização simplificada</span>
+                </label>
             </div>
             <div id="board-cards-list" class="scroll-list" style="flex: 1; overflow-y: auto;"></div>
             <button class="btn btn-secondary stats-close-btn"
@@ -1034,7 +1039,7 @@
             <p style="font-size:0.8rem; color:#aaa; margin-bottom: 12px; margin-top: 5px;">Apenas cartas do tipo
                 <b>Battle</b> podem ser usadas em combate (limite de 3 por batalha).
             </p>
-            <div style="display:flex; gap:10px; margin-bottom: 15px; justify-content:center;">
+            <div style="display:flex; gap:10px; margin-bottom: 15px; justify-content:center; align-items:center; flex-wrap:wrap;">
                 <select id="battle-cards-rarity-filter" class="form-control"
                     style="background:rgba(0,0,0,0.3); color:#fff; border:1px solid rgba(255,255,255,0.2); border-radius:8px; padding:8px 12px; font-size: 0.9rem;"
                     onchange="window.Battle.openCardSelection()">
@@ -1054,6 +1059,11 @@
                     <option value="auto" style="background:#222; color:#fff;">Auto</option>
                     <option value="global" style="background:#222; color:#fff;">Global</option>
                 </select>
+                <label class="pb-switch" title="Alternar entre visualização em leque e simplificada">
+                    <input type="checkbox" id="battle-cards-simplified-view" onchange="window.Battle.toggleSimplifiedDeckView(this.checked)">
+                    <span class="pb-switch-track" aria-hidden="true"></span>
+                    <span>Visualização simplificada</span>
+                </label>
             </div>
             <div id="battle-cards-list" class="scroll-list" style="flex: 1; overflow-y: auto;"></div>
             <button class="btn btn-secondary stats-close-btn"
