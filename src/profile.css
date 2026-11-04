@@ -57,6 +57,60 @@
 .trainer-profile-open svg { width: 16px; height: 16px; }
 .trainer-menu-profile[role="button"]:hover .trainer-profile-open { background: rgba(58, 143, 195, 0.38); border-color: #8fd7f6; }
 
+/* --- Recuperação de senha --- */
+.trainer-link-button[hidden] { display: none; }
+.pb-profile.pb-recover { z-index: 10060; }
+.pb-recover-card { width: min(100%, 460px); }
+.pb-recover-card h2 { line-height: 1.2; }
+.pb-recover-text { margin: 0; color: #c6d8de; font-size: 0.86rem; line-height: 1.45; }
+.pb-recover-field { display: flex; flex-direction: column; gap: 5px; }
+.pb-recover-field span { color: #a9c6d0; font-size: 0.76rem; font-weight: 700; }
+.pb-recover-field input {
+    width: 100%; min-height: 44px; padding: 0 12px; box-sizing: border-box;
+    color: #f8fbfc; font: inherit; font-size: 16px; /* 16px evita o zoom automático no iPhone */
+    background: rgba(2, 12, 21, 0.45); border: 1px solid rgba(174, 207, 221, 0.28); border-radius: 9px;
+}
+.pb-recover-field input:focus { outline: 2px solid #a9e1ef; outline-offset: 1px; }
+#recover-code { text-transform: uppercase; letter-spacing: 0.08em; }
+#recover-code::placeholder { letter-spacing: 0.08em; }
+.pb-recover-primary, .pb-recover-secondary {
+    min-height: 44px; padding: 0 16px; font: inherit; font-size: 0.9rem; font-weight: 700; color: #fff; border-radius: 10px; cursor: pointer;
+}
+.pb-recover-primary { width: 100%; background: rgba(214, 64, 66, 0.9); border: 0; }
+.pb-recover-secondary { margin-top: 10px; background: rgba(58, 143, 195, 0.22); border: 1px solid rgba(143, 215, 246, 0.5); }
+.pb-recover-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+.pb-recover-primary:focus-visible, .pb-recover-secondary:focus-visible, #recover-copy:focus-visible { outline: 2px solid #a9e1ef; outline-offset: 2px; }
+.pb-recover-code {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px;
+    background: rgba(2, 12, 21, 0.55); border: 1px dashed rgba(143, 215, 246, 0.55); border-radius: 12px;
+}
+.pb-recover-code output { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 1.2rem; font-weight: 700; letter-spacing: 0.06em; color: #fff; user-select: all; }
+#recover-copy { min-height: 36px; padding: 0 12px; color: #e7f6fa; font: inherit; font-size: 0.8rem; font-weight: 700; background: rgba(58, 143, 195, 0.3); border: 1px solid rgba(143, 215, 246, 0.5); border-radius: 8px; cursor: pointer; }
+.pb-recover-notes { margin: 0; padding-left: 18px; color: #c6d8de; font-size: 0.8rem; line-height: 1.5; }
+.pb-recover-check { display: flex; align-items: center; gap: 8px; color: #eff7f8; font-size: 0.86rem; cursor: pointer; }
+.pb-recover-check input { width: 18px; height: 18px; margin: 0; }
+
+/* --- Novidades --- */
+#btn-changelog { grid-column: 1 / -1; }
+.pb-news-dot { width: 8px; height: 8px; background: #ff6b6d; border-radius: 50%; box-shadow: 0 0 0 3px rgba(255, 107, 109, 0.22); }
+.pb-news-dot[hidden] { display: none; }
+.pb-news-card { width: min(100%, 640px); overflow: hidden; }
+.pb-news-list { display: flex; flex-direction: column; gap: 10px; min-height: 0; overflow-y: auto; padding-right: 4px; }
+.pb-news-month > summary {
+    position: sticky; top: 0; z-index: 1; padding: 8px 10px; color: #eff7f8; font-size: 0.86rem; font-weight: 700; cursor: pointer;
+    background: #15293b; border: 1px solid rgba(174, 207, 221, 0.18); border-radius: 9px;
+}
+.pb-news-month > summary::first-letter { text-transform: uppercase; }
+.pb-news-month > summary:focus-visible { outline: 2px solid #a9e1ef; outline-offset: 2px; }
+.pb-news-day { margin: 12px 2px 0; }
+.pb-rd-card .pb-news-day h3 { margin: 0 0 6px; text-transform: none; letter-spacing: 0; font-size: 0.8rem; }
+.pb-news-day ul { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.pb-news-day li { display: grid; grid-template-columns: 66px minmax(0, 1fr); gap: 8px; align-items: baseline; color: #d7e6ea; font-size: 0.84rem; line-height: 1.4; }
+.pb-news-tag { padding: 2px 0; text-align: center; font-size: 0.66rem; font-weight: 700; border-radius: 6px; }
+.pb-news-tag.is-novo { color: #d6f6e1; background: rgba(54, 160, 98, 0.24); }
+.pb-news-tag.is-ajuste { color: #cfeafa; background: rgba(58, 143, 195, 0.26); }
+.pb-news-tag.is-correcao { color: #fde6bf; background: rgba(210, 145, 40, 0.24); }
+
 /* --- Tela "Monte sua sala" (mesmo cartão do menu online) --- */
 #menu-phase-create.trainer-online-card {
     position: relative;

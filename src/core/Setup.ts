@@ -9,6 +9,8 @@ import { GameState } from '../modules/game/GameState';
 import { GameDialog } from '../modules/ui/GameDialog';
 import { Account } from '../modules/profile/Account';
 import { ProfileTracker } from '../modules/profile/ProfileTracker';
+import { RecoveryScreen } from '../modules/profile/RecoveryScreen';
+import { ChangelogScreen } from '../modules/ui/ChangelogScreen';
 import { Cosmetics } from '../modules/profile/Cosmetics';
 import { AvatarPicker } from '../modules/ui/AvatarPicker';
 
@@ -49,6 +51,8 @@ export class Setup {
         ProfileTracker.resetCache();
         ProfileTracker.checkAchievements().catch(() => { });
         this.checkAndRenderUnfinishedMatch(false);
+        ChangelogScreen.refreshBadge();
+        RecoveryScreen.promptIfMissing().catch(() => { });
     }
 
     private static cachedUnfinishedMatch: any = null;
@@ -176,6 +180,8 @@ export class Setup {
         document.getElementById('auth-tab-signup')?.setAttribute('aria-selected', String(signup));
         const userField = document.getElementById('signup-username-field');
         if (userField) userField.hidden = !signup;
+        const forgot = document.getElementById('btn-forgot-password');
+        if (forgot) forgot.hidden = signup;
         const label = document.getElementById('btn-login-label');
         if (label) label.textContent = signup ? 'Criar minha conta' : 'Entrar no PokéBoard';
         const pass = document.getElementById('login-password') as HTMLInputElement | null;
@@ -183,6 +189,14 @@ export class Setup {
             pass.autocomplete = signup ? 'new-password' : 'current-password';
             pass.placeholder = signup ? 'Mínimo de 6 caracteres' : 'Digite sua senha';
         }
+    }
+
+    static openForgotPassword() {
+        const emailInput = document.getElementById('login-email') as HTMLInputElement | null;
+        RecoveryScreen.openForgot(emailInput?.value.trim() || '', loggedIn => {
+            if (loggedIn) return this.enterMenu();
+            this.showLoginFeedback('Senha trocada! Entre com a nova senha.', 'ok');
+        });
     }
 
     private static showLoginFeedback(message: string, tone: 'error' | 'ok' = 'error') {

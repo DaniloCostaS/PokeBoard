@@ -102,7 +102,8 @@
     animation: pb-dlg-fade 160ms ease-out;
 }
 
-.pb-dlg-layer { z-index: 10020; }
+/* Acima de perfil e recuperação de senha (.pb-profile), que abrem diálogos e avisos */
+.pb-dlg-layer { z-index: 10070; }
 #custom-global-alert.pb-board-alert { z-index: 9999; }
 
 .pb-dlg-layer.is-leaving { animation: pb-dlg-fade-out 160ms ease-in forwards; pointer-events: none; }
@@ -321,7 +322,7 @@
     position: fixed;
     top: max(16px, env(safe-area-inset-top));
     left: 50%;
-    z-index: 10040;
+    z-index: 10080;
     display: flex;
     flex-direction: column;
     align-items: center;

@@ -44,7 +44,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     { id: 'mega_1', name: 'Mega energia', desc: 'Faça uma Mega Evolução.', icon: '💠', goal: 1, progress: stat('megas') },
     { id: 'cards_100', name: 'Mão pesada', desc: 'Use 100 cartas.', icon: '🃏', goal: 100, progress: stat('cards_used'), title: 'Trapaceiro' },
     { id: 'steps_1000', name: 'Andarilho', desc: 'Ande 1000 casas.', icon: '👟', goal: 1000, progress: stat('steps'), title: 'Andarilho' },
-    { id: 'phoenix_5', name: 'Fênix', desc: 'Use Revive para escapar de 5 derrotas totais.', icon: '🔥', goal: 5, progress: stat('revives_used'), title: 'Fênix' },
+    { id: 'phoenix_5', name: 'Fênix', desc: 'Reanime 5 vezes com itens de Revive.', icon: '🔥', goal: 5, progress: stat('revives_used'), title: 'Fênix' },
     { id: 'resilient_10', name: 'Inquebrável', desc: 'Perca 10 vidas e continue jogando.', icon: '❤️‍🩹', goal: 10, progress: stat('lives_lost') },
 ];
 

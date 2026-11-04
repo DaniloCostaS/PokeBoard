@@ -90,6 +90,11 @@
             </div>
 
             <nav class="trainer-menu-utilities" aria-label="Opções da conta">
+                <button type="button" id="btn-changelog" class="trainer-utility-link" onclick="window.ChangelogScreen.open()">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3l2.3 5.7L20 11l-5.7 2.3L12 19l-2.3-5.7L4 11l5.7-2.3L12 3Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+                    <span>Novidades</span>
+                    <i id="changelog-dot" class="pb-news-dot" aria-label="Há novidades não vistas" hidden></i>
+                </button>
                 <a href="./manual.html" target="_blank" class="trainer-utility-link">
                     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H12v16H6.5A2.5 2.5 0 0 0 4 21.5v-16ZM20 5.5A2.5 2.5 0 0 0 17.5 3H12v16h5.5a2.5 2.5 0 0 1 2.5 2.5v-16Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
                     <span>Manual e regras</span>
@@ -152,6 +157,7 @@
                 <div class="trainer-field">
                     <div class="trainer-label-row">
                         <label for="login-password">Senha</label>
+                        <button type="button" id="btn-forgot-password" class="trainer-link-button" onclick="window.Setup.openForgotPassword()">Esqueci a senha</button>
                     </div>
                     <div class="trainer-input-wrap">
                         <svg class="trainer-input-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
