@@ -119,6 +119,11 @@
     flex: 1 1 auto;
 }
 
+/* A área rola: nenhum bloco é espremido em telas baixas (antes o líder e a insígnia sumiam) */
+.gym-detail-body > * {
+    flex: none;
+}
+
 .gym-detail-body::-webkit-scrollbar {
     width: 6px;
 }

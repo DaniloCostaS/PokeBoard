@@ -67,6 +67,8 @@ export class TypeTooltip {
     private static container: HTMLDivElement | null = null;
     private static currentType: string | null = null;
     private static isVisible: boolean = false;
+    private static initialized: boolean = false;
+    private static anchor: HTMLElement | null = null;
 
     private static TYPE_MAP: Record<string, string> = {
         'AGUA': 'Água', 'ÁGUA': 'Água', 'Agua': 'Água', 'Água': 'Água',
@@ -160,96 +162,33 @@ export class TypeTooltip {
             }
         }
 
-        const renderPills = (list: string[], emptyText: string) => {
-            if (list.length === 0) {
-                return `
-                    <div class="type-tooltip-empty">
-                        <span class="type-tooltip-empty-dash">—</span>
-                        <span>${emptyText}</span>
-                    </div>`;
-            }
-            return `
-                <div class="type-tooltip-pill-list">
-                    ${list.map(t => {
-                        const c = TYPE_COLORS[t] || '#777';
-                        const ic = TYPE_ICONS[t] || '⚪';
-                        return `
-                            <span class="type-tooltip-pill" style="--pill-bg: ${c};">
-                                <span class="type-tooltip-pill-icon">${ic}</span>
-                                <span class="type-tooltip-pill-name">${t}</span>
-                            </span>`;
-                    }).join('')}
-                </div>`;
-        };
+        const renderPills = (list: string[], emptyText: string) => list.length === 0
+            ? `<p class="type-tt-empty">${emptyText}</p>`
+            : `<div class="type-tt-pills">${list.map(t => `<span class="type-tt-pill" style="--pill:${TYPE_COLORS[t] || '#777'}">${TYPE_ICONS[t] || ''} ${t}</span>`).join('')}</div>`;
+
+        const row = (cls: string, title: string, multi: string, list: string[], empty: string) => `
+            <div class="type-tt-row ${cls}">
+                <div class="type-tt-row-head"><span>${title}</span><b>${multi}</b></div>
+                ${renderPills(list, empty)}
+            </div>`;
 
         return `
-            <div class="type-tooltip-ambient" aria-hidden="true"></div>
-
-            <div class="type-tooltip-header">
-                <div class="type-tooltip-header-left">
-                    <div class="type-tooltip-orb-wrap">
-                        <span class="type-tooltip-orb">${icon}</span>
-                    </div>
-                    <div class="type-tooltip-title-col">
-                        <span class="type-tooltip-kicker">Afinidade Elemental</span>
-                        <h4 class="type-tooltip-title">Tipo ${type}</h4>
-                    </div>
-                </div>
-                <span class="type-tooltip-elem-badge">Elemental</span>
+            <div class="type-tt-head">
+                <span class="type-tt-orb" aria-hidden="true">${icon}</span>
+                <div class="type-tt-name"><small>Tipo</small><h4>${type}</h4></div>
             </div>
-
-            <div class="type-tooltip-lore-box">
-                <p class="type-tooltip-lore-text">${lore}</p>
-            </div>
-
-            <div class="type-tooltip-combat-grid">
-                <!-- Card Ofensivo -->
-                <div class="type-combat-card type-combat-card--atk">
-                    <div class="type-combat-card-head">
-                        <span class="type-combat-head-icon">⚔️</span>
-                        <span class="type-combat-head-label">Eficácia Ofensiva (Ataque)</span>
-                    </div>
-
-                    <div class="type-combat-row">
-                        <div class="type-combat-subhead text-advantage">
-                            <span class="type-mult-badge badge-adv">+75% (1.75x)</span>
-                            <span class="type-mult-title">Dano aumentado em:</span>
-                        </div>
-                        ${renderPills(superEffectiveAtk, 'Nenhuma vantagem elemental direta')}
-                    </div>
-
-                    <div class="type-combat-row">
-                        <div class="type-combat-subhead text-disadvantage">
-                            <span class="type-mult-badge badge-disadv">-25% (0.75x)</span>
-                            <span class="type-mult-title">Dano reduzido contra:</span>
-                        </div>
-                        ${renderPills(notVeryEffectiveAtk, 'Nenhum redutor elemental')}
-                    </div>
-                </div>
-
-                <!-- Card Defensivo -->
-                <div class="type-combat-card type-combat-card--def">
-                    <div class="type-combat-card-head">
-                        <span class="type-combat-head-icon">🛡️</span>
-                        <span class="type-combat-head-label">Eficácia Defensiva (Defesa)</span>
-                    </div>
-
-                    <div class="type-combat-row">
-                        <div class="type-combat-subhead text-weakness">
-                            <span class="type-mult-badge badge-weak">+75% (1.75x)</span>
-                            <span class="type-mult-title">Sofre dano crítico de:</span>
-                        </div>
-                        ${renderPills(weaknessesDef, 'Nenhuma fraqueza elemental')}
-                    </div>
-
-                    <div class="type-combat-row">
-                        <div class="type-combat-subhead text-resistance">
-                            <span class="type-mult-badge badge-res">-25% (0.75x)</span>
-                            <span class="type-mult-title">Resiste a golpes de:</span>
-                        </div>
-                        ${renderPills(resistancesDef, 'Nenhuma resistência elemental')}
-                    </div>
-                </div>
+            <p class="type-tt-lore">${lore}</p>
+            <div class="type-tt-grid">
+                <section class="type-tt-col">
+                    <h5>⚔️ Atacando</h5>
+                    ${row('is-good', 'Causa mais dano em', '1.75x', superEffectiveAtk, 'Nenhum tipo')}
+                    ${row('is-bad', 'Causa menos dano em', '0.75x', notVeryEffectiveAtk, 'Nenhum tipo')}
+                </section>
+                <section class="type-tt-col">
+                    <h5>🛡️ Defendendo</h5>
+                    ${row('is-bad', 'Recebe mais dano de', '1.75x', weaknessesDef, 'Nenhum tipo')}
+                    ${row('is-good', 'Recebe menos dano de', '0.75x', resistancesDef, 'Nenhum tipo')}
+                </section>
             </div>
         `;
     }
@@ -265,7 +204,6 @@ export class TypeTooltip {
         // Injeta as variáveis de tema elemental dinâmicas no container
         this.container.style.setProperty('--type-color', color);
         this.container.style.setProperty('--type-glow', `${color}66`);
-        this.container.style.setProperty('--type-glow-soft', `${color}28`);
 
         if (this.currentType !== normalized || !this.isVisible) {
             this.currentType = normalized;
@@ -279,6 +217,15 @@ export class TypeTooltip {
 
     static updatePosition(event: MouseEvent | Touch | { clientX: number; clientY: number }) {
         if (!this.container || !this.isVisible) return;
+
+        // Celular: painel fixo na parte de baixo da tela, sem depender de onde foi o toque
+        const isSheet = window.innerWidth <= 640;
+        this.container.classList.toggle('is-sheet', isSheet);
+        if (isSheet) {
+            this.container.style.left = '';
+            this.container.style.top = '';
+            return;
+        }
 
         const pad = 14;
         let x = event.clientX + pad;
@@ -312,6 +259,8 @@ export class TypeTooltip {
     }
 
     static init() {
+        if (this.initialized) return;
+        this.initialized = true;
         this.createContainer();
 
         const findTypeTarget = (el: HTMLElement | null): { target: HTMLElement; typeVal: string } | null => {
@@ -331,6 +280,7 @@ export class TypeTooltip {
             if (found) {
                 const norm = this.normalizeType(found.typeVal);
                 if (TYPE_COLORS[norm]) {
+                    this.anchor = found.target;
                     this.show(norm, e);
                 }
             }
@@ -358,6 +308,7 @@ export class TypeTooltip {
             if (found) {
                 const norm = this.normalizeType(found.typeVal);
                 if (TYPE_COLORS[norm]) {
+                    this.anchor = found.target;
                     this.show(norm, e);
                     e.stopPropagation();
                     return;
@@ -368,7 +319,10 @@ export class TypeTooltip {
             }
         });
 
-        // Oculta ao rolar a página
-        window.addEventListener('scroll', () => this.hide(), { passive: true });
+        // Oculta só quando rola o que contém a tag (rolagem automática do log, por exemplo, não fecha o painel)
+        window.addEventListener('scroll', e => {
+            const scrolled = e.target as Node;
+            if (this.isVisible && (scrolled === document || scrolled.contains(this.anchor))) this.hide();
+        }, { passive: true, capture: true });
     }
 }

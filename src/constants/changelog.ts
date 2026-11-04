@@ -7,6 +7,10 @@ export const CHANGELOG: ChangelogDay[] = [
     { date: '2026-11-04', changes: [
         ['novo', 'Esqueci a senha: agora dá para criar uma senha nova usando seu código de recuperação, na tela de login.'],
         ['novo', 'Tela de Novidades, com tudo o que mudou no jogo por data.'],
+        ['novo', 'Nova Pokédex: abre bem mais rápido, com ficha do Pokémon, busca por número e filtros por tipo e geração.'],
+        ['novo', 'Novo Porta-Insígnias: toque em uma insígnia para ver o ginásio.'],
+        ['ajuste', 'Novo visual nas insígnias do placar, nas tags de tipo e no painel de vantagens de cada tipo.'],
+        ['correcao', 'Tela de ginásio mostrava fraquezas como 2x, mas o dano real é 1.75x; líder e insígnia não somem mais em telas baixas.'],
         ['ajuste', 'Derrota total agora sempre custa uma vida, mesmo com Revive na mochila. A caixa de escolha foi removida.'],
         ['ajuste', 'A conquista Fênix agora conta as vezes em que você reanima com itens de Revive.'],
     ] },
