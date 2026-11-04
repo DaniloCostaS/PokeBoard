@@ -6307,30 +6307,6 @@ body {
     box-shadow: 0 6px 15px rgba(241, 196, 15, 0.2);
 }
 
-.dex-stats-row {
-    display: flex;
-    justify-content: space-between;
-    width: 100%;
-    font-size: 0.75rem;
-    color: #ddd;
-    margin-top: 8px;
-    background: rgba(255, 255, 255, 0.05);
-    padding: 6px 8px;
-    border-radius: 6px;
-    box-sizing: border-box;
-}
-
-.dex-track-row {
-    width: 100%;
-    border-top: 1px dashed rgba(255, 255, 255, 0.1);
-    margin-top: 8px;
-    padding-top: 8px;
-    display: flex;
-    justify-content: space-around;
-    font-size: 0.85rem;
-    font-weight: bold;
-}
-
 /* Garante que a lista de cartas ocupe 100% da largura do novo modal expandido */
 #board-cards-list,
 #battle-cards-list,

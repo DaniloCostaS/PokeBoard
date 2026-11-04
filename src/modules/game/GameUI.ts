@@ -23,6 +23,8 @@ import { Backpack } from '../ui/Backpack';
 import { GameFeel } from '../ui/GameFeel';
 import { GameDialog } from '../ui/GameDialog';
 import { ScreenKit } from '../ui/ScreenKit';
+import { PokedexScreen } from '../ui/PokedexScreen';
+import { TYPE_COLORS } from '../ui/TypeTooltip';
 import { Cosmetics } from '../profile/Cosmetics';
 import { TurnBar } from '../ui/TurnBar';
 import { SupabaseDataStore } from '../network/SupabaseDataStore';
@@ -1685,220 +1687,56 @@ export class GameUI {
         const p = GameState.players[pId];
         if (!p) return;
 
-        const nameEl = document.getElementById('badges-player-name')!;
-        nameEl.textContent = `- ${p.name}`;
-
+        document.getElementById('badges-player-name')!.textContent = p.name;
         const grid = document.getElementById('badges-case-grid')!;
         grid.innerHTML = '';
 
         const totalGyms = GameState.activeGyms && GameState.activeGyms.length > 0 ? GameState.activeGyms.length : 8;
+        let earned = 0;
         for (let b = 0; b < totalGyms; b++) {
-            const isActive = p.badges[b];
+            const isActive = !!p.badges[b];
+            if (isActive) earned++;
             const actualGymId = GameState.activeGyms ? GameState.activeGyms[b] : (b + 1);
             const gData = GYM_DATA.find(g => g.id === actualGymId);
-
-            const badgeImg = gData ? `/assets/img/Insignias/${gData.badgeImg}` : '';
+            const typeName = gData ? gData.type.join('/') : 'Desconhecido';
             const leaderName = gData ? gData.leaderName : `Líder ${b + 1}`;
-            const gymType = gData ? gData.type.join('/') : 'Desconhecido';
 
-            const d = document.createElement('div');
-            d.style.cssText = "display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 12px; border-radius: 12px; width: 100%; box-sizing: border-box; transition: transform 0.2s, box-shadow: 0.2s; position: relative;";
-
-            if (isActive) {
-                d.style.background = 'rgba(241, 196, 15, 0.08)';
-                d.style.border = '2px solid #f1c40f';
-                d.style.boxShadow = '0 0 12px rgba(241, 196, 15, 0.25), inset 0 0 8px rgba(241, 196, 15, 0.1)';
-
-                d.innerHTML = `
-                    <img src="${badgeImg}" style="width: 55px; height: 55px; object-fit: contain; filter: drop-shadow(0 2px 6px rgba(241,196,15,0.5)); margin-bottom: 8px;" title="Conquistada!">
-                    <span style="font-size: 0.85rem; font-weight: bold; color: #fff; text-align: center;">${gymType}</span>
-                    <span style="font-size: 0.7rem; color: #f1c40f; margin-top: 2px;">${leaderName}</span>
-                    <div style="margin-top: 6px; background: #2ecc71; color: #fff; font-size: 0.6rem; font-weight: bold; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Ganho</div>
-                `;
-            } else {
-                d.style.background = 'rgba(0, 0, 0, 0.4)';
-                d.style.border = '2px dashed rgba(255, 255, 255, 0.1)';
-
-                d.innerHTML = `
-                    <img src="${badgeImg}" style="width: 55px; height: 55px; object-fit: contain; filter: grayscale(100%) opacity(0.2); margin-bottom: 8px;" title="Bloqueada">
-                    <span style="font-size: 0.85rem; font-weight: normal; color: #7f8c8d; text-align: center;">${gymType}</span>
-                    <span style="font-size: 0.7rem; color: #5d6d7e; margin-top: 2px;">${leaderName}</span>
-                    <div style="margin-top: 6px; background: rgba(255,255,255,0.05); color: #7f8c8d; border: 1px solid rgba(255,255,255,0.1); font-size: 0.6rem; font-weight: bold; padding: 1px 5px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Pendente</div>
-                `;
-            }
-            grid.appendChild(d);
+            const slot = document.createElement('button');
+            slot.type = 'button';
+            slot.className = `pb-bslot${isActive ? ' is-on' : ''}`;
+            slot.style.setProperty('--c', TYPE_COLORS[gData?.type[0] || ''] || '#d9a93f');
+            slot.style.setProperty('--i', String(b));
+            slot.setAttribute('aria-label', `Insígnia ${typeName}, líder ${leaderName}, ${isActive ? 'conquistada' : 'pendente'}`);
+            slot.innerHTML = `<span class="pb-bslot-well">${gData ? `<img src="/assets/img/Insignias/${gData.badgeImg}" alt="" draggable="false">` : ''}</span>
+                <strong>${typeName}</strong><small>${leaderName}</small><em>${isActive ? 'Conquistada' : 'Pendente'}</em>`;
+            if (gData) slot.addEventListener('click', () => (GameUI as any).openGymDetail(actualGymId, b + 1));
+            grid.appendChild(slot);
         }
-
+        document.getElementById('badges-count')!.innerHTML = `<b>${earned}</b><i>/${totalGyms}</i>`;
+        GameFeel.vibrate([15]);
         document.getElementById('player-badges-modal')!.style.display = 'flex';
+
+        if (!GameUI.badgeKeysReady) {
+            GameUI.badgeKeysReady = true;
+            document.addEventListener('keydown', e => {
+                if (e.key !== 'Escape' || GameDialog.isOpen()) return;
+                // O ginásio aberto pela insígnia fica por cima: fecha um de cada vez
+                const gym = document.getElementById('gym-detail-modal')!;
+                const badges = document.getElementById('player-badges-modal')!;
+                if (badges.style.display !== 'flex') return;
+                (gym.style.display === 'flex' ? gym : badges).style.display = 'none';
+            });
+        }
     }
+
+    private static badgeKeysReady = false;
 
     static openPokedexEntry(targetId: number) {
         this.openPokedex(GameState.turn, targetId);
     }
 
-    static openPokedex(pId: number, filterId: number | null = null) {
-        const p = GameState.players[pId];
-        const list = document.getElementById('pokedex-list')!;
-        list.innerHTML = '';
-        if (filterId === null) {
-            const searchContainer = document.createElement('div');
-            searchContainer.style.cssText = "width: 100%; grid-column: 1 / -1; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 10px;";
-            searchContainer.innerHTML = `
-                <input type="text" id="pokedex-search" placeholder="Buscar Pokémon por nome" style="flex: 1; padding: 12px 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); font-size: 1rem; box-sizing: border-box; background: rgba(0,0,0,0.3); color: #fff; outline: none; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);" onkeyup="window.Game.filterPokedex()">
-                <select id="pokedex-category-filter" style="padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); font-size: 1rem; background: rgba(0,0,0,0.3); color: #fff; outline: none; cursor: pointer;" onchange="window.Game.filterPokedex()">
-                    <option value="all" style="background:#222; color:#fff;">Todos</option>
-                    <option value="seen" style="background:#222; color:#fff;">Vistos</option>
-                    <option value="caught" style="background:#222; color:#fff;">Capturados</option>
-                    <option value="defeated" style="background:#222; color:#fff;">Derrotados</option>
-                    <option value="unseen" style="background:#222; color:#fff;">Não Vistos</option>
-                    <option value="uncaught" style="background:#222; color:#fff;">Não Capturados</option>
-                </select>
-            `;
-            list.appendChild(searchContainer);
-        }
-
-        const colors: any = { "Normal": "#A8A77A", "Fogo": "#EE8130", "Água": "#6390F0", "Elétrico": "#F7D02C", "Grama": "#7AC74C", "Gelo": "#96D9D6", "Lutador": "#C22E28", "Veneno": "#A33EA1", "Terra": "#E2BF65", "Voador": "#A98FF3", "Psíquico": "#F95587", "Inseto": "#A6B91A", "Pedra": "#B6A136", "Fantasma": "#735797", "Dragão": "#6F35FC", "Noturno": "#705746", "Aço": "#B7B7CE", "Fada": "#D685AD" };
-
-        POKEDEX.forEach(mon => {
-            if (filterId !== null && mon.id !== filterId) return;
-
-            if (GameState.settings) {
-                const getGenById = (id: number) => {
-                    if (id >= 10000) return 0;
-                    if (id <= 151) return 1;
-                    if (id <= 251) return 2;
-                    if (id <= 386) return 3;
-                    if (id <= 493) return 4;
-                    if (id <= 649) return 5;
-                    if (id <= 721) return 6;
-                    if (id <= 809) return 7;
-                    if (id <= 905) return 8;
-                    return 9;
-                };
-
-                const pGen = getGenById(mon.id);
-                if (pGen > 0 && !GameState.settings.generations.includes(pGen)) return;
-                if (mon.id >= 10000 && !GameState.settings.megas) return;
-                if (GameState.settings.legendaries === 'no' && mon.isLegendary) return;
-                if (GameState.settings.legendaries === 'only' && !mon.isLegendary) return;
-            }
-
-            const dexEntry = p.pokedexData[mon.id] || { seen: 0, caught: 0, defeated: 0 };
-
-            const c1 = colors[mon.type] || "#777";
-            let typeHtml = `<span class="poke-type-badge" data-type="${mon.type}" style="background-color:${c1}; color:white; padding:2px 6px; border-radius:4px; font-size:0.6rem; text-shadow:1px 1px 1px rgba(0,0,0,0.5); cursor: help;">${mon.type}</span>`;
-            if (mon.secondType) {
-                const c2 = colors[mon.secondType] || "#777";
-                typeHtml += ` <span class="poke-type-badge" data-type="${mon.secondType}" style="background-color:${c2}; color:white; padding:2px 6px; border-radius:4px; font-size:0.6rem; text-shadow:1px 1px 1px rgba(0,0,0,0.5); cursor: help;">${mon.secondType}</span>`;
-            }
-
-            const weaknesses: { type: string, multi: number }[] = [];
-            const resistances: { type: string, multi: number }[] = [];
-
-            for (const atkType in TYPE_CHART) {
-                let factor = 1;
-                const defTypes = [mon.type, mon.secondType].filter(Boolean);
-                defTypes.forEach(defT => {
-                    if (TYPE_CHART[atkType] && (TYPE_CHART[atkType] as any)[defT] !== undefined) {
-                        const val = (TYPE_CHART[atkType] as any)[defT];
-                        if (val > 1) factor *= 1.75;
-                        else if (val < 1) factor *= 0.75;
-                    }
-                });
-
-                if (factor > 1) weaknesses.push({ type: atkType, multi: Number(factor.toFixed(2)) });
-                if (factor < 1) resistances.push({ type: atkType, multi: Number(factor.toFixed(2)) });
-            }
-
-            const formatTypeList = (types: { type: string, multi: number }[], label: string, titleColor: string) => {
-                if (types.length === 0) return '';
-                const badges = types.map(t => {
-                    const typeColor = colors[t.type] || "#777";
-                    const multiStr = `x${t.multi}`;
-
-                    return `<span class="poke-type-badge" data-type="${t.type}" style="background-color:${typeColor}; color:white; padding:2px 6px; border-radius:4px; font-size:0.6rem; text-shadow:1px 1px 1px rgba(0,0,0,0.5); margin-right:3px; margin-bottom:2px; display: inline-flex; align-items: center; gap: 3px; cursor: help;">
-                        ${t.type} <b style="background:rgba(0,0,0,0.3); padding:1px 3px; border-radius:3px; font-size: 0.55rem;">${multiStr}</b>
-                    </span>`;
-                }).join('');
-                return `<div style="margin-top:4px; font-size:0.7rem; color:${titleColor};"><b>${label}:</b><br>${badges}</div>`;
-            };
-
-            const d = document.createElement('div');
-            d.className = 'dex-card';
-            d.setAttribute('data-name', mon.name);
-            d.setAttribute('data-seen', (dexEntry.seen > 0).toString());
-            d.setAttribute('data-caught', (dexEntry.caught > 0).toString());
-            d.setAttribute('data-defeated', (dexEntry.defeated > 0).toString());
-
-
-            const isDiscovered = dexEntry.seen > 0 || dexEntry.caught > 0;
-            const imgFilter = isDiscovered ? '' : 'filter: brightness(0) invert(1) opacity(0.15);';
-            const displayName = mon.name;
-
-
-            d.innerHTML = `
-                <div style="font-weight: bold; color: #aaa; width: 100%; text-align: left; font-size: 0.8rem;">#${mon.id.toString().padStart(3, '0')}</div>
-                <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${mon.id}.png" style="width: 70px; height: 70px; image-rendering: pixelated; ${imgFilter}">
-                <b style="font-size: 1rem; color: #fff;">${displayName}</b>
-                <div style="display:flex; gap:5px; margin: 5px 0;">${typeHtml}</div>
-                
-                <div class="dex-stats-row">
-                    <span title="HP Base">❤️ ${mon.hp}</span> 
-                    <span title="Ataque Base">⚔️ ${mon.atk}</span> 
-                    <span title="Defesa Base">🛡️ ${mon.def}</span> 
-                    <span title="Velocidade Base">💨 ${mon.spd}</span>
-                </div>
-                
-                <div style="margin-top:5px; text-align:left; width:100%; padding:0 5px;">
-                    ${formatTypeList(weaknesses, 'Fraquezas', '#ff7675')}
-                    ${formatTypeList(resistances, 'Resistências', '#2ecc71')}
-                </div>
-
-                <div style="font-size: 0.75rem; color: #9b59b6; margin-top: 6px; text-align: center; min-height: 15px;">
-                    ${mon.nextForm ? `Evolui: <b>${mon.nextForm}</b> (Lv.${mon.evoTrigger})` : (MAPA_MEGAS[mon.id] ? '<b>Estágio Final <span style="color:#f1c40f;">- Mega Evolui</span></b>' : '<b>Estágio Final</b>')}
-                </div>
-
-                <div class="dex-track-row">
-                    <span title="Vistos" style="color: #3498db;">👁️ ${dexEntry.seen}</span>
-                    <span title="Derrotados" style="color: #e74c3c;">💀 ${dexEntry.defeated}</span>
-                    <span title="Capturados" style="color: #2ecc71;">🦅 ${dexEntry.caught}</span>
-                </div>
-            `;
-            list.appendChild(d);
-        });
-
-        document.getElementById('pokedex-modal')!.style.display = 'flex';
-    }
-
-    static filterPokedex() {
-        const input = document.getElementById('pokedex-search') as HTMLInputElement;
-        const categorySelect = document.getElementById('pokedex-category-filter') as HTMLSelectElement;
-        if (!input) return;
-
-        const filter = input.value.toUpperCase();
-        const category = categorySelect ? categorySelect.value : 'all';
-        const cards = document.getElementsByClassName('dex-card');
-
-        for (let i = 0; i < cards.length; i++) {
-            const card = cards[i] as HTMLElement;
-            const name = card.getAttribute('data-name');
-            const seen = card.getAttribute('data-seen') === 'true';
-            const caught = card.getAttribute('data-caught') === 'true';
-            const defeated = card.getAttribute('data-defeated') === 'true';
-
-            let showByCategory = true;
-            if (category === 'seen' && !seen) showByCategory = false;
-            if (category === 'caught' && !caught) showByCategory = false;
-            if (category === 'defeated' && !defeated) showByCategory = false;
-            if (category === 'unseen' && seen) showByCategory = false;
-            if (category === 'uncaught' && caught) showByCategory = false;
-
-            if (showByCategory && name && name.toUpperCase().indexOf(filter) > -1) {
-                card.style.display = "";
-            } else {
-                card.style.display = "none";
-            }
-        }
+    static openPokedex(pId: number, focusId: number | null = null) {
+        PokedexScreen.open(pId, focusId);
     }
 
     static async openItemTargetSelector(pId: number, itemKey: string) {
@@ -2463,7 +2301,7 @@ export class GameUI {
 
         const weaknessHTML = Array.from(weaknesses).map(w => {
             const wc = typeColors[w] || '#555';
-            return `<span class="poke-type-badge pkmn-type-tag" data-type="${w}" style="background:${wc}; font-size:0.7rem;">${w} (2x)</span>`;
+            return `<span class="poke-type-badge pkmn-type-tag" data-type="${w}" style="background:${wc}; font-size:0.7rem;">${w} (1.75x)</span>`;
         }).join('');
 
         infoEl.innerHTML = `

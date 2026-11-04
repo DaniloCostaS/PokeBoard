@@ -1,0 +1,188 @@
+/* ==========================================================================
+   Insígnias: o estojo (Porta-Insígnias) e os encaixes no placar do jogador.
+   Mesmo marrom e dourado da barra de turno.
+   ========================================================================== */
+
+#player-badges-modal.modal-overlay {
+    padding: 12px;
+    box-sizing: border-box;
+    background: rgba(5, 9, 14, 0.84);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+
+.pb-bcase {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: min(640px, 100%);
+    max-height: 100%;
+    box-sizing: border-box;
+    padding: 16px;
+    overflow: hidden;
+    text-align: left;
+    color: #fff4d8;
+    background: linear-gradient(165deg, #4a3016 0%, #2c1a0b 55%, #1d1107 100%);
+    border: 2px solid #d9a93f;
+    border-radius: 20px;
+    box-shadow: 0 26px 70px rgba(0, 0, 0, 0.75), inset 0 0 0 3px #1d1107, inset 0 0 0 4px rgba(217, 169, 63, 0.45);
+    animation: pbCaseOpen 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes pbCaseOpen {
+    from { opacity: 0; transform: translateY(12px) scale(0.97); }
+    to { opacity: 1; transform: none; }
+}
+
+.pb-bcase-head { display: flex; flex: none; align-items: center; gap: 12px; }
+
+.pb-bcase-medal {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    color: #4a2a06;
+    font-size: 1.3rem;
+    background: radial-gradient(circle at 35% 30%, #fff1b8, #f0bc3e 58%, #a56f13);
+    border: 2px solid #6b4209;
+    border-radius: 50%;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.pb-bcase-title { min-width: 0; margin-right: auto; }
+#player-badges-modal .pb-bcase-title h3 { margin: 0; color: #ffe08a !important; font-size: 1.28rem; font-weight: 850; line-height: 1.15; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.5); }
+.pb-bcase-title span { display: block; overflow: hidden; color: #e6cfa1; font-size: 0.8rem; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+
+.pb-bcase-count { flex: none; padding: 5px 11px; text-align: center; background: rgba(0, 0, 0, 0.36); border: 1px solid rgba(217, 169, 63, 0.5); border-radius: 11px; }
+.pb-bcase-count b { color: #ffe08a; font-size: 1.12rem; font-weight: 850; font-variant-numeric: tabular-nums; }
+.pb-bcase-count i { color: #cdb384; font-size: 0.8rem; font-style: normal; font-weight: 700; }
+
+.pb-bcase-close {
+    flex: none;
+    width: 40px;
+    height: 40px;
+    color: #fff4d8;
+    font: inherit;
+    font-size: 0.95rem;
+    font-weight: 800;
+    background: rgba(0, 0, 0, 0.36);
+    border: 1px solid rgba(217, 169, 63, 0.5);
+    border-radius: 11px;
+    cursor: pointer;
+}
+.pb-bcase-close:hover { background: rgba(0, 0, 0, 0.6); }
+
+/* Forro interno do estojo */
+.pb-bcase-grid {
+    display: grid;
+    flex: 1 1 auto;
+    grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+    gap: 10px;
+    min-height: 0;
+    padding: 14px;
+    overflow-y: auto;
+    background: radial-gradient(circle at 50% 0, #2c2238 0%, #17111f 72%);
+    border: 1px solid rgba(217, 169, 63, 0.55);
+    border-radius: 13px;
+    box-shadow: inset 0 3px 14px rgba(0, 0, 0, 0.7);
+    scrollbar-width: thin;
+    scrollbar-color: #6b4f24 transparent;
+}
+
+.pb-bslot {
+    --c: #d9a93f;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    align-items: center;
+    min-width: 0;
+    padding: 10px 6px;
+    color: #8f8496;
+    font: inherit;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 13px;
+    cursor: pointer;
+    transition: transform 130ms ease, background 130ms ease, border-color 130ms ease;
+}
+.pb-bslot:hover { background: rgba(255, 255, 255, 0.07); transform: translateY(-2px); }
+.pb-bslot:focus-visible, .pb-bcase-close:focus-visible { outline: 2px solid #ffe08a; outline-offset: 2px; }
+
+/* Encaixe circular: vazio é um baixo-relevo; com insígnia ganha aro dourado e brilho do tipo */
+.pb-bslot-well {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 78px;
+    height: 78px;
+    margin-bottom: 6px;
+    overflow: hidden;
+    background: radial-gradient(circle at 50% 38%, #0f0b15, #1f1829);
+    border-radius: 50%;
+    box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.9), inset 0 -1px 0 rgba(255, 255, 255, 0.1);
+}
+.pb-bslot-well img { width: 60px; height: 60px; object-fit: contain; filter: grayscale(1) brightness(0.3) contrast(1.1); opacity: 0.6; }
+
+.pb-bslot strong { max-width: 100%; color: #a79cae; font-size: 0.82rem; font-weight: 700; line-height: 1.2; }
+.pb-bslot small { max-width: 100%; color: #84798b; font-size: 0.7rem; font-weight: 600; }
+.pb-bslot em { margin-top: 5px; padding: 1px 8px; color: #84798b; font-size: 0.62rem; font-style: normal; font-weight: 750; background: rgba(255, 255, 255, 0.05); border-radius: 999px; }
+
+.pb-bslot.is-on { background: rgba(217, 169, 63, 0.14); background: linear-gradient(180deg, color-mix(in srgb, var(--c) 24%, transparent), rgba(255, 255, 255, 0.03)); border-color: #d9a93f; border-color: color-mix(in srgb, var(--c) 55%, #d9a93f); }
+.pb-bslot.is-on .pb-bslot-well {
+    background: #1f1829;
+    background: radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--c) 45%, #1f1829), #151019);
+    box-shadow: 0 0 0 3px #d9a93f, 0 0 0 4px #6b4209, 0 0 14px rgba(217, 169, 63, 0.55), inset 0 2px 6px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 0 0 3px #d9a93f, 0 0 0 4px #6b4209, 0 0 18px color-mix(in srgb, var(--c) 75%, transparent), inset 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+.pb-bslot.is-on .pb-bslot-well img { filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6)); opacity: 1; }
+
+/* Reflexo que passa pelo metal, um de cada vez */
+.pb-bslot.is-on .pb-bslot-well::after {
+    content: "";
+    position: absolute;
+    inset: -20%;
+    background: linear-gradient(115deg, transparent 42%, rgba(255, 255, 255, 0.55) 50%, transparent 58%);
+    transform: translateX(-90%);
+    animation: pbBadgeShine 5.5s ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * 0.45s);
+}
+@keyframes pbBadgeShine {
+    0%, 72% { transform: translateX(-90%); }
+    92%, 100% { transform: translateX(90%); }
+}
+
+.pb-bslot.is-on strong { color: #fff; }
+.pb-bslot.is-on small { color: #ffe08a; }
+.pb-bslot.is-on em { color: #17310f; background: #8fe07a; }
+
+.pb-bcase-hint { flex: none; margin: 0; color: #cdb384; font-size: 0.72rem; text-align: center; }
+
+@media (max-width: 520px) {
+    #player-badges-modal.modal-overlay { padding: 8px; }
+    .pb-bcase { padding: 12px; }
+    .pb-bcase-medal { display: none; }
+    .pb-bcase-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 10px; gap: 8px; }
+}
+
+/* --- Encaixes no placar do jogador --- */
+#game-container .badges-container { transition: border-color 130ms ease; }
+#game-container .badges-container:hover { border-color: #d9a93f; }
+
+#game-container .badge-slot {
+    position: relative;
+    background-color: #0c0906 !important;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.95), 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+}
+#game-container .badge-slot:not(.active) { filter: grayscale(1) brightness(0.42); opacity: 0.85; }
+#game-container .badge-slot.active {
+    background-color: #2a1c0c !important;
+    box-shadow: 0 0 0 1.5px #e2b64d, 0 0 6px rgba(255, 215, 106, 0.75) !important;
+    filter: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pb-bcase, .pb-bslot.is-on .pb-bslot-well::after { animation: none; }
+}

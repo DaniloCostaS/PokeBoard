@@ -920,18 +920,6 @@ body {
     border-color: var(--pb-line) !important;
 }
 
-#pokedex-search {
-    min-width: 0;
-    flex: 1 1 180px !important;
-}
-
-#badges-case-grid {
-    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)) !important;
-    background: var(--pb-bg) !important;
-    border: 1px solid var(--pb-line) !important;
-    box-shadow: none !important;
-}
-
 #admin-modal label {
     color: var(--pb-text-2) !important;
     font-size: 0.85rem !important;

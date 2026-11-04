@@ -830,25 +830,15 @@
     </div>
 
     <div id="player-badges-modal" class="modal-overlay" style="z-index: 2500;">
-        <div
-            style="width: 550px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: rgba(20, 20, 20, 0.98); border: 2px solid #f1c40f; color: #fff; border-radius: 16px; padding: 25px; box-shadow: 0 15px 40px rgba(0,0,0,0.6); box-sizing: border-box;">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
-                <h3
-                    style="color: #f1c40f; margin: 0; display: flex; align-items: center; gap: 8px; font-family: 'Outfit', sans-serif;">
-                    Porta-Insígnias <span id="badges-player-name" style="color: #fff;"></span></h3>
-                <button class="modal-btn-icon close-btn" title="Fechar" onclick="document.getElementById('player-badges-modal').style.display='none'">✕</button>
-            </div>
-
-            <p style="text-align: center; color: #aaa; font-size: 0.85rem; margin-top: 5px; margin-bottom: 15px;">
-                Coleção de Insígnias conquistadas nesta partida</p>
-
-            <div id="badges-case-grid"
-                style="flex: 1; overflow-y: auto; background: radial-gradient(circle at center, #1b160b 0%, #0d0a06 100%); border: 3px double #d68910; border-radius: 12px; padding: 20px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; box-shadow: inset 0 0 20px rgba(0,0,0,0.8); justify-items: center; align-items: center;">
-                <!-- Populada dinamicamente via JS -->
-            </div>
-
-            <button class="btn btn-secondary mt-15" style="height: 45px; font-weight: bold; border-radius: 8px;"
-                onclick="document.getElementById('player-badges-modal').style.display='none'">Fechar</button>
+        <div class="pb-bcase" role="dialog" aria-modal="true" aria-labelledby="pb-bcase-title">
+            <header class="pb-bcase-head">
+                <span class="pb-bcase-medal" aria-hidden="true">★</span>
+                <div class="pb-bcase-title"><h3 id="pb-bcase-title">Porta-Insígnias</h3><span id="badges-player-name"></span></div>
+                <div class="pb-bcase-count" id="badges-count"></div>
+                <button type="button" class="pb-bcase-close" aria-label="Fechar Porta-Insígnias" onclick="document.getElementById('player-badges-modal').style.display='none'">✕</button>
+            </header>
+            <div id="badges-case-grid" class="pb-bcase-grid"></div>
+            <p class="pb-bcase-hint">Toque em uma insígnia para ver o ginásio.</p>
         </div>
     </div>
 
@@ -910,20 +900,9 @@
         </div>
     </div>
     <div id="pokedex-modal" class="modal-overlay" style="z-index: 1500;">
-        <div
-            style="width: 850px; max-width: 95%; max-height: 90vh; display: flex; flex-direction: column; background: rgba(20, 20, 20, 0.95); border: 2px solid #f1c40f; color: #fff; border-radius: 16px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box;">
-            <div class="pb-rules-head">
-                <span class="pb-screen-icon pb-screen-icon--rule" aria-hidden="true"><i class="pb-ico pb-ico-dex"></i></span>
-                <div class="pb-screen-title"><small>Registro do treinador</small><h3>Pokédex regional</h3></div>
-                <button class="modal-btn-icon close-btn" title="Fechar" onclick="document.getElementById('pokedex-modal').style.display='none'">✕</button>
-            </div>
-            <div id="pokedex-list" class="scroll-list"
-                style="flex: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; padding: 10px; max-height: 90%;">
-            </div>
-            <button class="btn btn-secondary mt-15"
-                onclick="document.getElementById('pokedex-modal').style.display='none'">Fechar</button>
-        </div>
+        <div id="pokedex-root" class="pb-dex" role="dialog" aria-modal="true" aria-labelledby="pb-dex-title"></div>
     </div>
+
     <div id="board-cards-modal" class="modal-overlay" style="z-index: 2500;">
         <div class="modal-box stats-modal-box"
             style="width: 850px; max-width: 95%; max-height: 90vh; text-align: center; display: flex; flex-direction: column;">

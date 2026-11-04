@@ -871,3 +871,8 @@
         gap: 6px;
     }
 }
+
+/* A área rola: nenhum bloco é espremido em telas baixas (antes nível e felicidade eram cortados) */
+.pkmn-detail-body > * {
+    flex-shrink: 0;
+}

@@ -108,7 +108,6 @@ export class Game {
     static openPokedex(pId: number, filterId: number | null = null) { (GameUI as any).openPokedex(pId, filterId); }
     static openPokedexEntry(targetId: number) { (GameUI as any).openPokedexEntry(targetId); }
     static openPlayerMastery(pId: number) { (GameUI as any).openPlayerMastery(pId); }
-    static filterPokedex() { (GameUI as any).filterPokedex(); }
     static openGymDetail(actualGymId: number, gid: number) { (GameUI as any).openGymDetail(actualGymId, gid); }
 
     static removeHeldItem(pId: number, slotIdx: number) { GameEvents.removeHeldItem(pId, slotIdx); }

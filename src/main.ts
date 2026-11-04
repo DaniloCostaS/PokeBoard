@@ -35,6 +35,8 @@ import './modules/profile/ProfileScreen';
 import './profile.css';
 import './battle-events.css';
 import './battle-layout.css';
+import './pokedex.css';
+import './badge-case.css';
 
 declare global {
     interface Window {
