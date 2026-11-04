@@ -74,6 +74,35 @@ export class Account {
         return { ok: true };
     }
 
+    // Tela de login: troca a senha com o código de recuperação; devolve o código novo
+    static async resetPassword(email: string, code: string, newPassword: string): Promise<{ ok: boolean; code?: string; message?: string }> {
+        const { data, error } = await supabase.rpc('reset_password_with_code', { p_email: email.trim(), p_code: code, p_new_password: newPassword });
+        if (error) return { ok: false, message: 'Não foi possível trocar a senha agora. Tente novamente mais tarde.' };
+        if (data?.ok) return { ok: true, code: data.code };
+        const reasons: Record<string, string> = {
+            invalid: 'E-mail ou código incorretos.',
+            locked: 'Muitas tentativas erradas. Aguarde 15 minutos e tente de novo.',
+            weak_password: 'A senha precisa ter de 6 a 72 caracteres.',
+        };
+        return { ok: false, message: reasons[data?.reason] || 'Não foi possível trocar a senha.' };
+    }
+
+    // Gera o código só se a conta ainda não tiver um. Em caso de erro, o jogo segue sem mostrar nada.
+    static async ensureRecoveryCode(): Promise<string | null> {
+        const { data, error } = await supabase.rpc('generate_recovery_code', { p_replace: false });
+        return error ? null : (data as string | null);
+    }
+
+    static async regenerateRecoveryCode(): Promise<string | null> {
+        const { data, error } = await supabase.rpc('generate_recovery_code', { p_replace: true });
+        return error ? null : (data as string | null);
+    }
+
+    static async recoveryCodeCreatedAt(): Promise<string | null> {
+        const { data, error } = await supabase.rpc('recovery_code_created_at');
+        return error ? null : (data as string | null);
+    }
+
     static async signOut() {
         await supabase.auth.signOut();
         this.profile = null;

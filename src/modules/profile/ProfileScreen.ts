@@ -4,6 +4,7 @@ import { ACHIEVEMENTS, Achievements, FRAMES } from './Achievements';
 import type { Stats } from './Achievements';
 import { ProfileTracker } from './ProfileTracker';
 import { Cosmetics } from './Cosmetics';
+import { RecoveryScreen } from './RecoveryScreen';
 import { GameDialog } from '../ui/GameDialog';
 import { AvatarPicker } from '../ui/AvatarPicker';
 import { TRAINER_IMAGES } from '../../constants/trainerImages';
@@ -21,14 +22,14 @@ import { MEGA_POKEDEX } from '../../constants/pokedex/megas';
 const GENS = [GEN1, GEN2, GEN3, GEN4, GEN5, GEN6, GEN7, GEN8, GEN9];
 const TOTAL_SPECIES = GENS.reduce((n, g) => n + g.length, 0);
 
-type Tab = 'resumo' | 'pokedex' | 'conquistas' | 'visual' | 'historico';
+type Tab = 'resumo' | 'pokedex' | 'conquistas' | 'visual' | 'historico' | 'conta';
 
 const STAT_LABELS: [keyof Stats, string][] = [
     ['games_played', 'Partidas'], ['games_won', 'Vitórias'], ['battles_won', 'Batalhas vencidas'], ['battles_lost', 'Batalhas perdidas'],
     ['pvp_wins', 'Vitórias PvP'], ['gym_wins', 'Ginásios vencidos'], ['badges', 'Insígnias'], ['catches', 'Capturas'],
     ['shiny_catches', 'Shinies'], ['legendary_catches', 'Lendários'], ['evolutions', 'Evoluções'], ['megas', 'Mega Evoluções'],
     ['cards_used', 'Cartas usadas'], ['items_used', 'Itens usados'], ['steps', 'Casas andadas'], ['total_defeats', 'Derrotas totais'],
-    ['lives_lost', 'Vidas perdidas'], ['revives_used', 'Revives salvadores'],
+    ['lives_lost', 'Vidas perdidas'], ['revives_used', 'Revives usados'],
 ];
 
 const esc = (v: unknown) => Cosmetics.escape(v);
@@ -43,7 +44,7 @@ export class ProfileScreen {
     private static layer: HTMLElement | null = null;
     private static tab: Tab = 'resumo';
     private static gen = 0;
-    private static data: { stats: Stats; dex: Map<number, { caught: number; shiny: number }>; unlocked: Set<string>; history: any[] } | null = null;
+    private static data: { stats: Stats; dex: Map<number, { caught: number; shiny: number }>; unlocked: Set<string>; history: any[]; recoveryAt: string | null } | null = null;
 
     static async open(tab: Tab = 'resumo') {
         if (!Account.isLogged) return GameDialog.toast('Entre na sua conta para ver o perfil.', { tone: 'warning' });
@@ -71,15 +72,16 @@ export class ProfileScreen {
 
     private static async load() {
         const uid = Account.userId!;
-        const [statsRes, dexRes, unlocked, histRes] = await Promise.all([
+        const [statsRes, dexRes, unlocked, histRes, recoveryAt] = await Promise.all([
             supabase.from('profile_stats').select('stats').eq('user_id', uid).maybeSingle(),
             supabase.from('profile_pokedex').select('pokemon_id, caught, shiny_caught').eq('user_id', uid),
             ProfileTracker.loadUnlocked(uid),
             supabase.from('match_history').select('room_alias, won, rounds, badges, players, team, finished_at').eq('user_id', uid).order('finished_at', { ascending: false }).limit(20),
+            Account.recoveryCodeCreatedAt(),
         ]);
         const dex = new Map<number, { caught: number; shiny: number }>();
         (dexRes.data || []).forEach((r: any) => dex.set(r.pokemon_id, { caught: r.caught, shiny: r.shiny_caught }));
-        this.data = { stats: (statsRes.data?.stats || {}) as Stats, dex, unlocked, history: histRes.data || [] };
+        this.data = { stats: (statsRes.data?.stats || {}) as Stats, dex, unlocked, history: histRes.data || [], recoveryAt };
     }
 
     private static dexSpecies(): number {
@@ -92,7 +94,7 @@ export class ProfileScreen {
     private static render() {
         if (!this.layer || !this.data || !Account.profile) return;
         const p = Account.profile;
-        const tabs: [Tab, string][] = [['resumo', 'Resumo'], ['pokedex', 'Pokédex'], ['conquistas', 'Conquistas'], ['visual', 'Visual'], ['historico', 'Histórico']];
+        const tabs: [Tab, string][] = [['resumo', 'Resumo'], ['pokedex', 'Pokédex'], ['conquistas', 'Conquistas'], ['visual', 'Visual'], ['historico', 'Histórico'], ['conta', 'Conta']];
         const caught = this.dexSpecies();
         const pct = Math.round((caught / TOTAL_SPECIES) * 100);
         this.layer.innerHTML = `<div class="modal-content pb-profile-card" role="dialog" aria-modal="true" aria-labelledby="pb-profile-name">
@@ -187,7 +189,24 @@ export class ProfileScreen {
                         <span class="pb-rd-team">${(Array.isArray(h.team) ? h.team : []).map((m: any) => `<img src="${sprite(Number(m.id), !!m.shiny)}" alt="" title="${esc(m.name)} Lv.${Number(m.level)}" loading="lazy">`).join('')}</span>
                     </li>`).join('')}</ul>`;
             }
+            case 'conta': {
+                const at = d.recoveryAt ? new Date(d.recoveryAt).toLocaleDateString('pt-BR') : null;
+                return `<section class="pb-vis-block"><h3>Código de recuperação</h3>
+                        <p class="pb-recover-text">${at ? `Seu código atual foi criado em <b>${at}</b>. Ele serve para trocar a senha em <b>Esqueci a senha</b>, na tela de login.` : 'Esta conta ainda não tem código de recuperação.'}</p>
+                        <button type="button" id="profile-new-recovery" class="pb-recover-secondary">Gerar novo código</button>
+                        <p class="trainer-room-hint">Por segurança, o código só é mostrado quando é criado. Ao gerar outro, o anterior para de funcionar.</p>
+                    </section>`;
+            }
         }
+    }
+
+    private static async newRecoveryCode() {
+        if (this.data?.recoveryAt && !(await GameDialog.confirm('O código atual vai parar de funcionar. Quer gerar outro?', { title: 'Gerar novo código', okLabel: 'Gerar', danger: true }))) return;
+        const code = await Account.regenerateRecoveryCode();
+        if (!code) return GameDialog.toast('Não foi possível gerar o código.', { tone: 'danger' });
+        if (this.data) this.data.recoveryAt = new Date().toISOString();
+        this.render();
+        RecoveryScreen.showCode(code, undefined, 'Este é o seu novo código. O anterior parou de funcionar.');
     }
 
     private static bindTab() {
@@ -200,6 +219,7 @@ export class ProfileScreen {
         }
         body.querySelectorAll<HTMLButtonElement>('[data-frame]').forEach(b => b.addEventListener('click', () => this.save({ frame: b.dataset.frame || null })));
         body.querySelectorAll<HTMLButtonElement>('[data-title]').forEach(b => b.addEventListener('click', () => this.save({ title: b.dataset.title || null })));
+        body.querySelector('#profile-new-recovery')?.addEventListener('click', () => this.newRecoveryCode());
     }
 
     private static async save(patch: { avatar?: string; frame?: string | null; title?: string | null }) {

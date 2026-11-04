@@ -259,7 +259,7 @@ mark{background:rgba(224,169,46,.35);color:#fff;border-radius:3px;padding:0 1px}
   <li><h4>A casa onde você para decide o que acontece</h4><p>Mato, água ou terra: Pokémon selvagem. Cidade: Centro Pokémon e loja. Treinador: batalha contra NPC. Ginásio: batalha contra o líder. Casa <b>???</b>: evento surpresa. Parou onde está outro jogador: batalha PvP.</p></li>
   <li><h4>Batalhe e capture</h4><p>Escolha seu Pokémon, ataque, use itens e até 3 cartas por batalha. Enfraqueça o selvagem e jogue uma Pokébola para capturar. Seu time tem no máximo 6 Pokémon.</p></li>
   <li><h4>Cresça a cada volta</h4><p>Ao completar uma volta no tabuleiro você ganha <b>500G, 2 cartas e +1 nível</b> para todo o time. Vitórias dão XP, ouro e cartas.</p></li>
-  <li><h4>Cuidado com a derrota total</h4><p>Se todos os seus Pokémon desmaiarem, você perde uma vida (se a partida usar vidas) ou volta ao último Centro Pokémon e perde 2 turnos. Com um Revive na mochila, você pode escolher usá-lo e escapar.</p></li>
+  <li><h4>Cuidado com a derrota total</h4><p>Se todos os seus Pokémon desmaiarem, você perde uma vida (se a partida usar vidas) ou volta ao último Centro Pokémon e perde 2 turnos. Ter Revive na mochila não evita a perda.</p></li>
   <li><h4>Vença</h4><p>Junte as <b>8 insígnias</b> dos ginásios (4 no mapa Micro). Online, quem chega às 8 ainda pode desafiar o <b>Campeão</b> da Liga para vencer.</p></li>
 </ol>
 <div class="tip"><b>Dica de iniciante</b>Não corra para os ginásios cedo demais: os líderes ficam sempre 1 nível acima da média da mesa e têm status bem mais altos. Capture, evolua e guarde Poções e Revives antes.</div>
@@ -272,7 +272,7 @@ mark{background:rgba(224,169,46,.35);color:#fff;border-radius:3px;padding:0 1px}
 <div class="grid">
   <div class="ref s-item"><h4>Criar conta</h4><p>Na tela inicial, aba <b>Criar conta</b>: informe e-mail, um <b>nome de treinador</b> (3 a 15 caracteres, único no jogo) e uma senha de pelo menos 6 caracteres. Não há confirmação por e-mail: a conta já fica pronta para entrar.</p></div>
   <div class="ref s-item"><h4>Entrar</h4><p>Aba <b>Entrar</b>: e-mail e senha. O aparelho lembra a sua sessão; para trocar de conta use <b>Sair da conta</b> no menu.</p></div>
-  <div class="ref s-item"><h4>Esqueceu a senha?</h4><p>Ainda <b>não existe recuperação de senha</b> pelo jogo. Guarde sua senha em um lugar seguro.</p></div>
+  <div class="ref s-item"><h4>Esqueceu a senha?</h4><p>Ao entrar, o jogo mostra uma vez o seu <b>código de recuperação</b>: guarde-o. Na tela de login, toque em <b>Esqueci a senha</b> e informe e-mail, código e a senha nova. Se perder o código, gere outro em <b>Meu perfil → Conta</b> enquanto estiver com a conta aberta. Sem código e sem acesso à conta, peça a um admin do jogo um código avulso.</p></div>
   <div class="ref s-item"><h4>Jogar sem conta</h4><p>Na tela de login, <b>Jogar com bots</b> abre o modo offline sem precisar entrar. Sem conta, nada é registrado no perfil.</p></div>
 </div>
 </section>
@@ -533,7 +533,7 @@ mark{background:rgba(224,169,46,.35);color:#fff;border-radius:3px;padding:0 1px}
   <li>Acontece quando você para na casa de outro jogador. Cada lado luta com Pokémon vivos sorteados, na mesma quantidade (a do lado com menos Pokémon vivos).</li>
   <li>A luta é automática. Quem iniciou o PvP pode usar cartas de batalha nos intervalos entre os golpes; a <b>Interferência</b> do rival anula Ataque Surpresa, Super Crítico, Foco Total e Sniper Americano.</li>
   <li>Os dois lados ganham XP ao derrubar Pokémon do rival.</li>
-  <li>Quem perde sofre <a href="#derrota">derrota total</a> (vale também para o defensor, que pode usar Revive).</li>
+  <li>Quem perde sofre <a href="#derrota">derrota total</a> (vale também para o defensor).</li>
   <li>Na Lua Sangrenta, o ouro transferido sobe para 60%.</li>
 </ul>
 </section>
@@ -553,17 +553,12 @@ mark{background:rgba(224,169,46,.35);color:#fff;border-radius:3px;padding:0 1px}
 </tbody></table></div>
 <p>Com <b>1 vida</b>, toda derrota total leva ao Centro Pokémon. Quem usou <b>Tremembé</b> não perde os 2 turnos enquanto o decreto dura. A derrota total também zera o progresso das missões de sequência de vitórias e da missão Mochileiro (quando vai ao Centro).</p>
 
-<h3>Escolha do Revive</h3>
-<p>Se você tiver <b>Revive, Max Revive ou Ultra Max Revive</b> na mochila no momento da derrota total, o jogo pergunta:</p>
-<ul>
-  <li><b>Usar Revive</b>: gasta um (Revive primeiro, depois Max Revive, depois Ultra Max Revive), reanima seu Pokémon mais forte (maior nível) com 50% de HP (Max Revive: 100%; Ultra Max Revive reanima <b>todos</b> com 100%). Você continua na casa, <b>sem perder vida</b> nem turnos.</li>
-  <li><b>Aceitar derrota</b>: aplica a regra de vidas acima.</li>
-</ul>
-<p>A escolha também vale para o <b>defensor de um PvP</b>. Online, o defensor recebe a pergunta no próprio aparelho e tem <b>20 segundos</b> para decidir; se o tempo acabar, a derrota é aplicada. Bots usam o Revive automaticamente.</p>
+<h3>E o Revive?</h3>
+<p><b>Revive, Max Revive e Ultra Max Revive não evitam a derrota total.</b> Quando todo o time desmaia, a regra de vidas acima é aplicada na hora, sem nenhuma pergunta, para jogadores e bots, e o item continua na mochila. Use esses itens no tabuleiro para reanimar Pokémon desmaiados antes de a situação chegar a esse ponto.</p>
 
 <h3>Derrota em cima de um ginásio</h3>
-<p>Se você sofrer a derrota total num ginásio que ainda não venceu e continuar na casa (por vida ou Revive), no próximo turno você <b>sai andando normalmente</b>, sem ser puxado de novo para a batalha, igual ao efeito da Fumaça Ninja.</p>
-<div class="tip"><b>Dica</b>Guardar 1 ou 2 Revives baratos (200G) é a forma mais simples de não perder vidas em lutas arriscadas.</div>
+<p>Se você sofrer a derrota total num ginásio que ainda não venceu e continuar na casa (por ainda ter vidas), no próximo turno você <b>sai andando normalmente</b>, sem ser puxado de novo para a batalha, igual ao efeito da Fumaça Ninja.</p>
+<div class="tip"><b>Dica</b>Antes de uma luta arriscada, reanime os Pokémon desmaiados com Revive (200G): quanto mais Pokémon de pé, menor a chance de perder uma vida.</div>
 </section>
 
 <!-- ============ 13. GINÁSIOS ============ -->
@@ -817,9 +812,9 @@ mark{background:rgba(224,169,46,.35);color:#fff;border-radius:3px;padding:0 1px}
 <div class="item s-item"><img src="assets/img/Itens/UltraFullRestore.png" alt="" loading="lazy" width="44" height="44"><div><h4>Ultra Full Restore</h4><p>No tabuleiro, cura 100% do HP de todos os Pokémon vivos. Em batalha, cura totalmente o Pokémon ativo.</p></div><span class="price">2.500G</span></div>
 </div>
 <h3>Reviver</h3><div class="items">
-<div class="item s-item"><img src="assets/img/Itens/Revive.png" alt="" loading="lazy" width="44" height="44"><div><h4>Revive</h4><p>Fora da batalha, reanima um Pokémon desmaiado com 50% do HP. Também serve para escapar da derrota total.</p></div><span class="price">200G</span></div>
-<div class="item s-item"><img src="assets/img/Itens/MaxRevive.png" alt="" loading="lazy" width="44" height="44"><div><h4>Max Revive</h4><p>Reanima com 100% do HP. Também serve para escapar da derrota total.</p></div><span class="price">500G</span></div>
-<div class="item s-item"><img src="assets/img/Itens/UltraMaxRevive.png" alt="" loading="lazy" width="44" height="44"><div><h4>Ultra Max Revive</h4><p>Reanima todos os desmaiados com 100% do HP. Na derrota total, reanima o time inteiro.</p></div><span class="price">2.000G</span></div>
+<div class="item s-item"><img src="assets/img/Itens/Revive.png" alt="" loading="lazy" width="44" height="44"><div><h4>Revive</h4><p>Fora da batalha, reanima um Pokémon desmaiado com 50% do HP.</p></div><span class="price">200G</span></div>
+<div class="item s-item"><img src="assets/img/Itens/MaxRevive.png" alt="" loading="lazy" width="44" height="44"><div><h4>Max Revive</h4><p>Fora da batalha, reanima um Pokémon desmaiado com 100% do HP.</p></div><span class="price">500G</span></div>
+<div class="item s-item"><img src="assets/img/Itens/UltraMaxRevive.png" alt="" loading="lazy" width="44" height="44"><div><h4>Ultra Max Revive</h4><p>Fora da batalha, reanima todos os desmaiados com 100% do HP.</p></div><span class="price">2.000G</span></div>
 </div>
 <h3>Captura</h3><div class="items">
 <div class="item s-item"><img src="assets/img/Itens/poke_ball.png" alt="" loading="lazy" width="44" height="44"><div><h4>Pokébola</h4><p>Bola básica (sem bônus na captura).</p></div><span class="price">100G</span></div>
@@ -967,7 +962,7 @@ mark{background:rgba(224,169,46,.35);color:#fff;border-radius:3px;padding:0 1px}
 <div class="ref s-item"><h4>💠 Mega energia</h4><p>Faça uma Mega Evolução.</p></div>
 <div class="ref s-item"><h4>🃏 Mão pesada</h4><p>Use 100 cartas.</p><div class="meta">Libera: título “Trapaceiro”</div></div>
 <div class="ref s-item"><h4>👟 Andarilho</h4><p>Ande 1000 casas.</p><div class="meta">Libera: título “Andarilho”</div></div>
-<div class="ref s-item"><h4>🔥 Fênix</h4><p>Use Revive para escapar de 5 derrotas totais.</p><div class="meta">Libera: título “Fênix”</div></div>
+<div class="ref s-item"><h4>🔥 Fênix</h4><p>Reanime 5 vezes com itens de Revive.</p><div class="meta">Libera: título “Fênix”</div></div>
 <div class="ref s-item"><h4>❤️‍🩹 Inquebrável</h4><p>Perca 10 vidas e continue jogando.</p></div>
 </div>
 </section>
@@ -975,7 +970,7 @@ mark{background:rgba(224,169,46,.35);color:#fff;border-radius:3px;padding:0 1px}
 <!-- ============ 24. FAQ ============ -->
 <section id="faq">
 <h2><span class="n">24</span>Perguntas frequentes</h2>
-<details class="s-item"><summary>Esqueci minha senha. Como recupero?</summary><div>Ainda não há recuperação de senha no jogo. Se não lembrar, será preciso criar outra conta com outro e-mail.</div></details>
+<details class="s-item"><summary>Esqueci minha senha. Como recupero?</summary><div>Na tela de login, toque em <b>Esqueci a senha</b> e informe seu e-mail, seu código de recuperação e a senha nova. Sem o código, peça a um admin do jogo um código avulso.</div></details>
 <details class="s-item"><summary>Criei a sala, mas quero mudar as regras.</summary><div>Na sala de espera, toque em <b>Voltar e excluir sala</b>. A sala é apagada e você volta à tela de criação com as mesmas escolhas para ajustar e gerar de novo.</div></details>
 <details class="s-item"><summary>Fechei o jogo no meio da partida. Perdi tudo?</summary><div>Não. No menu aparece <b>Reconectar</b>, ou abra <b>Minhas salas</b> e toque em Reconectar na partida. Só jogadores que já estavam na partida podem voltar a ela.</div></details>
 <details class="s-item"><summary>Posso entrar numa partida que já começou?</summary><div>Não como jogador. Você pode assisti-la em <b>Buscar partidas → Em andamento → Assistir</b>.</div></details>
@@ -983,7 +978,7 @@ mark{background:rgba(224,169,46,.35);color:#fff;border-radius:3px;padding:0 1px}
 <details class="s-item"><summary>Quem começa jogando?</summary><div>A ordem é sorteada no início da partida, online e offline.</div></details>
 <details class="s-item"><summary>Perdi uma batalha e continuei no mesmo lugar. Isso é normal?</summary><div>Sim, se a partida usa vidas: você perdeu 1 vida, o time foi curado e você ficou na casa. Só na última vida (ou sem vidas) você volta ao Centro Pokémon e perde 2 turnos.</div></details>
 <details class="s-item"><summary>Fui derrotado num ginásio. Vou ter que lutar de novo no próximo turno?</summary><div>Não. Se você continuou na casa do ginásio depois da derrota total, no próximo turno rola o dado e sai andando normalmente.</div></details>
-<details class="s-item"><summary>Por que o jogo perguntou se quero usar Revive?</summary><div>Você sofreu uma derrota total com um Revive na mochila. Usar o Revive reanima seu Pokémon mais forte e evita perder a vida (e os turnos). No PvP online, o defensor tem 20 segundos para responder.</div></details>
+<details class="s-item"><summary>Tenho Revive na mochila. Por que perdi uma vida?</summary><div>O Revive não evita a derrota total: quando todo o time desmaia, a vida é perdida automaticamente e o item continua na mochila. Use-o no tabuleiro para reanimar Pokémon desmaiados antes da próxima luta.</div></details>
 <details class="s-item"><summary>Por que não consigo usar uma carta?</summary><div>Verifique: é a sua vez e você já tocou em Iniciar turno? Cartas de tabuleiro só valem antes de rolar o dado. Cartas de batalha têm limite de 3 por batalha e não valem no Campeão nem na Tempestade EMP. Cartas protegidas pelo Cadeado precisam ser desprotegidas. Você já usou 3 cartas contra jogadores neste turno? Já usou sua carta lendária da partida?</div></details>
 <details class="s-item"><summary>Minha carta foi “bloqueada”. O que houve?</summary><div>O alvo tinha uma defesa automática (Interferência, Silver Tape, Pokémon fiel, Líder Velho ou Do nada bolinha perdida). As duas cartas foram descartadas.</div></details>
 <details class="s-item"><summary>Posso capturar o Pokémon de um treinador ou líder?</summary><div>Não, só selvagens. A carta <b>Sequestro Relâmpago</b> permite trocar um Pokémon seu por um do adversário em batalhas contra selvagens e NPCs.</div></details>

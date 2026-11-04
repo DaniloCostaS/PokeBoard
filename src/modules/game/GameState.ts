@@ -28,8 +28,6 @@ export class GameState {
     static turn: number = 0;
     static round: number = 1;
     static alertEndsTurn: boolean = true;
-    // Derrota total esperando o jogador escolher entre usar Revive ou aceitar a derrota: o fim do turno aguarda
-    static defeatChoice: Promise<void> | null = null;
 
     static maxLives(): number {
         const n = Number(this.settings?.maxLives || 0);

@@ -1236,8 +1236,7 @@ export class BattleCore {
             if (NetworkObj.isOnline) {
                 NetworkObj.syncPlayerObjects([this.player!]);
                 const loser = this.enemyPlayer, winner = this.player!;
-                // Defensor pode estar escolhendo se usa Revive: o estado final vai depois da escolha
-                (window as any).GameEvents.afterDefeatChoice(() => NetworkObj.sendAction('PVP_SYNC_DAMAGE', this.buildPvpResultPayload(loser, winner)));
+                NetworkObj.sendAction('PVP_SYNC_DAMAGE', this.buildPvpResultPayload(loser, winner));
             }
         } else if (NetworkObj.isOnline) {
             NetworkObj.syncPlayerState();
@@ -1308,8 +1307,7 @@ export class BattleCore {
             if (NetworkObj.isOnline) {
                 NetworkObj.syncPlayerObjects([this.enemyPlayer]);
                 const loser = this.player!, winner = this.enemyPlayer;
-                // Com Revive na mochila o atacante ainda está escolhendo: manda o estado final depois
-                (window as any).GameEvents.afterDefeatChoice(() => NetworkObj.sendAction('PVP_SYNC_DAMAGE', this.buildPvpResultPayload(loser, winner)));
+                NetworkObj.sendAction('PVP_SYNC_DAMAGE', this.buildPvpResultPayload(loser, winner));
             }
 
             GameFeel.battleResult(false, this.player!.id);
