@@ -1,3 +1,5 @@
+import { Sfx } from '../audio/Sfx';
+import { GameFeel } from '../ui/GameFeel';
 import { GameState } from './GameState';
 import { GameUI } from './GameUI';
 import { Player } from '../../models/Player';
@@ -57,6 +59,7 @@ export class GameEvents {
         }
 
         document.getElementById('victory-modal')!.style.display = 'flex';
+        GameFeel.playMatchEnd(winnerId);
         ProfileTracker.matchEnd(winnerId);
         (window as any).Cinematics?.podium(winnerId);
         console.log("GAME OVER - VITORIA!");
@@ -96,6 +99,7 @@ export class GameEvents {
         // Ainda tem vida: cura a equipe e continua na mesma casa, sem perder ouro nem turnos
         if (maxLives > 0 && p.lives > 1) {
             p.lives -= 1;
+            Sfx.play('lifeLost');
             p.team.forEach(mon => { mon.currentHp = mon.maxHp; });
             const left = p.lives === 1 ? 'resta 1 vida' : `restam ${p.lives} vidas`;
             GameUI.sendGlobalLog(`💔 ${p.name} perdeu uma vida (${left}). Equipe curada, continua no mesmo lugar.`);
@@ -108,6 +112,7 @@ export class GameEvents {
             return;
         }
 
+        Sfx.play('lifeLost');
         const msg = `🚑 ${p.name} sofreu uma derrota total!\n${maxLives > 0 ? 'Era a última vida: será' : 'Será'} levado ao último Centro Pokémon para recuperação emergencial.`;
         const city = this.getLastCityCoord(p);
         p.x = city.x;
@@ -466,6 +471,7 @@ export class GameEvents {
 
         if (c === 'heal') {
             player.team.forEach(p => { p.currentHp = p.maxHp; });
+            Sfx.play('heal');
             GameUI.sendGlobalLog(`🏥 ${player.name} recuperou seu time no Centro Pokémon!`);
             GameUI.updateHUD();
             GameState.isCityEvent = false;

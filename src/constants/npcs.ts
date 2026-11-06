@@ -20,7 +20,7 @@ export const NPC_DATA: Record<number, {name: string, gold: number, team: number[
             827, 828, // Nickit, Thievul (Galar)
             944       // Shroodle (Paldea)
         ], 
-        img: "Rocket.jpg" 
+        img: "Rocket.webp" 
     }, 
     
     // Tema: Veneno, Lutador, Fogo e visual "punk" ou agressivo
@@ -42,7 +42,7 @@ export const NPC_DATA: Record<number, {name: string, gold: number, team: number[
             861,      // Grimmsnarl (Galar)
             965, 966  // Varoom, Revavroom (Paldea - O Pokémon motor!)
         ], 
-        img: "Motoqueiro.jpg" 
+        img: "Motoqueiro.webp" 
     }, 
     
     // Tema: Insetos, Pássaros e Roedores de rota inicial (Pokémons pequenos e fofos)
@@ -65,7 +65,7 @@ export const NPC_DATA: Record<number, {name: string, gold: number, team: number[
             819, 831, // Skwovet, Wooloo
             915, 917, 921 // Lechonk, Tarountula, Pawmi
         ], 
-        img: "Jovem.jpg" 
+        img: "Jovem.webp" 
     }, 
     
     // Tema: Pokémon de estimação "caros", Fogo (Caninos) e Elétrico
@@ -89,7 +89,7 @@ export const NPC_DATA: Record<number, {name: string, gold: number, team: number[
             854, 855, // Sinistea, Polteageist (Hora do chá)
             942, 943  // Maschiff, Mabosstiff
         ], 
-        img: "Velho.jpg" 
+        img: "Velho.webp" 
     }, 
 
     // --- GERAÇÃO 2 (Johto) ---
@@ -114,7 +114,7 @@ export const NPC_DATA: Record<number, {name: string, gold: number, team: number[
             824, 872, // Blipbug, Snom
             919, 953  // Nymble, Rellor
         ], 
-        img: "CaçadorInsetos.jpg" 
+        img: "CaçadorInsetos.webp" 
     },
     
     // Tema: Água (Marinhos, Peixes e Pescadores)
@@ -139,7 +139,7 @@ export const NPC_DATA: Record<number, {name: string, gold: number, team: number[
             833, 846, // Chewtle, Arrokuda
             960, 963, 976 // Wiglett, Finizen, Veluza
         ], 
-        img: "Nadador.jpg" 
+        img: "Nadador.webp" 
     }, 
     
     // Tema: Eeveelutions, Fada, Psíquico e Pokémon "Elegantes/Bonitos"
@@ -166,7 +166,7 @@ export const NPC_DATA: Record<number, {name: string, gold: number, team: number[
             869,      // Alcremie
             959       // Tinkaton
         ], 
-        img: "KimonoGirl.jpg" 
+        img: "KimonoGirl.webp" 
     }, 
     
     // Tema: Rival Silver (Noturno, Voador, Fantasma, Aço - Time balanceado e forte)
@@ -189,7 +189,7 @@ export const NPC_DATA: Record<number, {name: string, gold: number, team: number[
             658,      // Greninja
             908       // Meowscarada
         ], 
-        img: "RivalJohto.jpg" 
+        img: "RivalJohto.webp" 
     }, 
 
     // --- GERAÇÃO 3 (Hoenn) ---
@@ -213,7 +213,7 @@ export const NPC_DATA: Record<number, {name: string, gold: number, team: number[
             847,      // Barraskewda
             912       // Quaxly
         ], 
-        img: "TeamAqua.jpg" 
+        img: "TeamAqua.webp" 
     }, 
     
     // Tema: Fogo, Terra, Veneno, Pedra (Foco em vulcões e cavernas)
@@ -235,7 +235,7 @@ export const NPC_DATA: Record<number, {name: string, gold: number, team: number[
             838, 839, // Carkol, Coalossal
             952       // Scovillain
         ], 
-        img: "TeamMagma.jpg" 
+        img: "TeamMagma.webp" 
     }, 
     
     // Tema: Pedra, Terra, Lutador (Montanhistas e cavernas)
@@ -259,7 +259,7 @@ export const NPC_DATA: Record<number, {name: string, gold: number, team: number[
             932, 933, 934, // Nacli, Naclstack, Garganacl (O sal da terra)
             950         // Klawf
         ], 
-        img: "Montanhista.jpg" 
+        img: "Montanhista.webp" 
     }, 
     
     // Tema: Pokémon "Inteligentes", Psíquicos, Elétricos ou Estratégicos
@@ -285,6 +285,6 @@ export const NPC_DATA: Record<number, {name: string, gold: number, team: number[
             825, 856, // Dottler, Hatenna
             935, 938  // Charcadet, Tadbulb
         ], 
-        img: "Schoolboy.jpg" 
+        img: "Schoolboy.webp" 
     } 
 };

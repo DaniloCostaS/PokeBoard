@@ -1,11 +1,12 @@
 // Service worker do PokéBoard: shell offline + cache de imagens e sprites.
 // Ao mudar a estratégia de cache, incremente CACHE_VERSION para limpar os caches antigos.
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const SHELL_CACHE = `pokeboard-shell-${CACHE_VERSION}`;
 const ASSET_CACHE = `pokeboard-assets-${CACHE_VERSION}`;
 const SPRITE_CACHE = `pokeboard-sprites-${CACHE_VERSION}`;
 const SPRITE_PREFIX = 'https://raw.githubusercontent.com/PokeAPI/sprites/';
 const SPRITE_MAX_ENTRIES = 400;
+const ASSET_MAX_ENTRIES = 500; // bundles de deploys antigos não podem se acumular para sempre
 const SHELL_URLS = ['/manifest.webmanifest', '/favicon.png'];
 // Com cleanUrls o Firebase redireciona /index.html -> /, então o shell é baixado de "/" e guardado como /index.html
 const SHELL_KEY = '/index.html';
@@ -84,7 +85,10 @@ async function cacheFirst(request, cacheName) {
     const cached = await cache.match(request);
     if (cached) return cached;
     const response = await fetch(request);
-    if (response && response.ok) cache.put(request, response.clone());
+    if (response && response.ok) {
+        const copy = response.clone();
+        cache.put(request, copy).then(() => trimCache(cache, ASSET_MAX_ENTRIES)).catch(() => { });
+    }
     return response;
 }
 

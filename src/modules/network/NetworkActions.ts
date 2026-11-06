@@ -13,9 +13,18 @@ import { Account } from '../profile/Account';
 import { Cosmetics } from '../profile/Cosmetics';
 import { AvatarPicker } from '../ui/AvatarPicker';
 
+// battle_lines é grande e só é lido ao abrir o log de uma batalha
+const LOG_COLUMNS = 'message, log_text, style, log_type, battle_id, created_at';
+
 export class NetworkActions {
     private static playerRefreshTimer: number | null = null;
     private static playerRefreshSeq: number = 0;
+    private static playerRefreshFirstAt = 0;
+    private static roomPlayerIds = new Set<string>();
+
+    private static rememberRoomPlayers(rows: any[]) {
+        this.roomPlayerIds = new Set(rows.map(r => r.id).filter(Boolean));
+    }
 
     static checkInput(): boolean {
         const nameInput = document.getElementById('online-player-name') as HTMLInputElement;
@@ -577,7 +586,7 @@ export class NetworkActions {
         Game.eventEndRound = eventState.eventEndRound;
 
         // Fetch logs
-        const { data: logsData } = await supabase.from('room_logs').select('*').eq('room_id', NetworkState.currentRoomId).order('created_at', { ascending: false }).limit(200);
+        const { data: logsData } = await supabase.from('room_logs').select(LOG_COLUMNS).eq('room_id', NetworkState.currentRoomId).order('created_at', { ascending: false }).limit(200);
         if (logsData) {
             Game.globalLogs = logsData.map((row: any) => SupabaseDataStore.logFromRow(row));
             const GameUIObj = (window as any).GameUI || GameUI;
@@ -585,14 +594,19 @@ export class NetworkActions {
         }
 
         const playerArray = SupabaseDataStore.hydratePlayers(roomData.room_players || []);
-        GameState.cardLogs = await SupabaseDataStore.loadCardLogs(NetworkState.currentRoomId);
-        GameState.lixeira = await SupabaseDataStore.loadDiscardPile(NetworkState.currentRoomId);
+        [GameState.cardLogs, GameState.lixeira] = await Promise.all([
+            SupabaseDataStore.loadCardLogs(NetworkState.currentRoomId),
+            SupabaseDataStore.loadDiscardPile(NetworkState.currentRoomId)
+        ]);
+        this.rememberRoomPlayers(roomData.room_players || []);
 
         document.getElementById('setup-screen')!.style.display = 'none';
         document.getElementById('game-container')!.style.display = 'flex';
         Game.init(playerArray, MapSystem.size, boardState.settings);
         (window as any).Cinematics?.loading();
         this.setupGameLoopListener();
+        // Já na partida: o canal do lobby só gastaria tráfego daqui em diante
+        supabase.getChannels().filter(ch => ch.topic.endsWith(`lobby:${NetworkState.currentRoomId}`)).forEach(ch => supabase.removeChannel(ch));
         if (NetworkState.isSpectator) this.showSpectatorBanner();
     }
 
@@ -656,7 +670,7 @@ export class NetworkActions {
                     Game.globalLogs.unshift(logObj);
                     if (Game.globalLogs.length > 200) Game.globalLogs.pop();
                     const GameUIObj = (window as any).GameUI || GameUI;
-                    if (GameUIObj.renderAllLogs) GameUIObj.renderAllLogs();
+                    if (GameUIObj.prependLog) GameUIObj.prependLog(logObj);
                 }
             });
             
@@ -666,8 +680,12 @@ export class NetworkActions {
             });
 
         refreshPlayerTables.forEach(table => {
-            channel.on('postgres_changes', { event: '*', schema: 'public', table }, () => {
-                this.schedulePlayerRefresh();
+            channel.on('postgres_changes', { event: '*', schema: 'public', table }, (payload: any) => {
+                // Estas tabelas não têm room_id: os eventos chegam de todas as salas do jogo, então descarta os de outras salas.
+                // DELETE pode vir só com o id (sem dono): continua atualizando, mas com calma, para nunca perder uma remoção.
+                const owner = payload.new?.player_id ?? payload.old?.player_id;
+                if (owner && this.roomPlayerIds.size && !this.roomPlayerIds.has(owner)) return;
+                this.schedulePlayerRefresh(owner ? 150 : 1200);
             });
         });
             
@@ -692,11 +710,15 @@ export class NetworkActions {
     }
 
     private static schedulePlayerRefresh(delay: number = 150) {
+        const now = Date.now();
+        // Rajada contínua de eventos não pode adiar a atualização para sempre
+        if (this.playerRefreshTimer === null) this.playerRefreshFirstAt = now;
+        const wait = Math.min(delay, Math.max(0, this.playerRefreshFirstAt + 1500 - now));
         if (this.playerRefreshTimer !== null) window.clearTimeout(this.playerRefreshTimer);
         this.playerRefreshTimer = window.setTimeout(() => {
             this.playerRefreshTimer = null;
             this.refreshPlayersFromSupabase();
-        }, delay);
+        }, wait);
     }
 
     private static async refreshPlayersFromSupabase() {
@@ -714,6 +736,7 @@ export class NetworkActions {
         // Uma resposta mais antiga que chega depois de uma mais nova não pode sobrescrever o estado
         if (requestSeq !== this.playerRefreshSeq) return;
 
+        this.rememberRoomPlayers(roomData.room_players);
         const refreshedPlayers = SupabaseDataStore.hydratePlayers(roomData.room_players);
         const iAmActing = Game.canAct && Game.canAct();
         const keepLocalPlayer = iAmActing && (GameState.turnStarted || GameState.hasRolled);
@@ -865,6 +888,7 @@ export class NetworkActions {
 
     static sendAction(type: string, payload: any) {
         if (!NetworkState.isOnline || NetworkState.isSpectator) return;
+        if (type === 'LOG') return; // quem recebe ignora: o histórico chega pela tabela room_logs
 
         // Migrado para Supabase Broadcast
         const actionData = { type, payload, playerId: NetworkState.myPlayerId, timestamp: Date.now() };
@@ -942,7 +966,7 @@ export class NetworkActions {
 
     static async syncLogsManually() {
         if (!NetworkState.isOnline) return;
-        const { data } = await supabase.from('room_logs').select('*').eq('room_id', NetworkState.currentRoomId).order('created_at', { ascending: false }).limit(200);
+        const { data } = await supabase.from('room_logs').select(LOG_COLUMNS).eq('room_id', NetworkState.currentRoomId).order('created_at', { ascending: false }).limit(200);
         if (data) {
             GameState.globalLogs = data.map((row: any) => SupabaseDataStore.logFromRow(row));
             const GameUIObj = (window as any).GameUI || GameUI;

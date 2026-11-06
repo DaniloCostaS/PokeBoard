@@ -1,3 +1,4 @@
+import { Sfx } from '../modules/audio/Sfx';
 import { POKEDEX } from '../constants/pokedex';
 import type { Player } from './Player';
 import { MAPA_MEGAS } from '../constants/mapaMegas';
@@ -372,6 +373,7 @@ export class Pokemon {
         this.recalculateStats(false);
         
         if(player && Game) {
+             Sfx.play('levelUp');
              Game.sendGlobalLog(`🎉 ${this.name} subiu para o Nível ${this.level}! (+${gains.hp} HP | +${gains.atk} ATK | +${gains.def} DEF | +${gains.spd} SPD)`); 
         }
         

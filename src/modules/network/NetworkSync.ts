@@ -6,6 +6,7 @@ export class NetworkSync {
     // Fila de gravação por jogador: garante que saves do mesmo jogador cheguem ao banco na ordem em que foram disparados
     private static saveChains = new Map<number, Promise<void>>();
     private static pendingSaves = new Map<number, number>();
+    private static queuedSaves = new Map<number, { player: Player; dbId?: string; promise: Promise<void> }>();
 
     // Enquanto este cliente tiver gravações pendentes de um jogador, o estado local dele é o mais recente
     static hasPendingSave(playerId: number): boolean {
@@ -28,14 +29,21 @@ export class NetworkSync {
     }
 
     private static enqueueSave(player: Player, playerIdDb?: string): Promise<void> {
+        // Já tem uma gravação deste mesmo objeto esperando na fila: ela lê o estado ao começar, então leva esta mudança junto
+        const waiting = this.queuedSaves.get(player.id);
+        if (waiting && waiting.player === player && waiting.dbId === playerIdDb) return waiting.promise;
         const previous = this.saveChains.get(player.id) || Promise.resolve();
         this.pendingSaves.set(player.id, (this.pendingSaves.get(player.id) || 0) + 1);
         const next = previous
             .catch(() => { })
-            .then(() => SupabaseDataStore.savePlayer(player, playerIdDb))
+            .then(() => {
+                if (this.queuedSaves.get(player.id)?.promise === next) this.queuedSaves.delete(player.id);
+                return SupabaseDataStore.savePlayer(player, playerIdDb);
+            })
             .catch(e => console.error(`[NetworkSync] Erro ao salvar ${player.name}`, e))
             .finally(() => this.pendingSaves.set(player.id, Math.max(0, (this.pendingSaves.get(player.id) || 1) - 1)));
         this.saveChains.set(player.id, next);
+        this.queuedSaves.set(player.id, { player, dbId: playerIdDb, promise: next });
         return next;
     }
 

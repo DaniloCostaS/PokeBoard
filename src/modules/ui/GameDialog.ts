@@ -1,3 +1,4 @@
+import { Sfx } from '../audio/Sfx';
 /**
  * GameDialog — diálogos "dentro do jogo" (substituem alert/confirm/prompt nativos).
  *
@@ -86,6 +87,7 @@ function toast(message: unknown, opts: ToastOptions = {}): void {
     if (!text) return;
     const tone: ToastTone = opts.tone || 'info';
     const stack = getToastStack();
+    Sfx.play(tone === 'danger' || tone === 'warning' ? 'error' : 'toast');
 
     // Evita spam do mesmo aviso: renova o existente
     const existing = Array.from(stack.children).find(c => (c as HTMLElement).dataset.msg === text) as HTMLElement | undefined;

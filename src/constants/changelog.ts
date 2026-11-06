@@ -4,6 +4,13 @@ export type ChangeKind = 'novo' | 'ajuste' | 'correcao';
 export type ChangelogDay = { date: string; changes: [ChangeKind, string][] };
 
 export const CHANGELOG: ChangelogDay[] = [
+    { date: '2026-11-06', changes: [
+        ['novo', 'Sons no jogo: dado, passos, batalha, captura, cartas, moedas, vitória e muito mais. Ajuste o volume no menu lateral; o botão na barra de turno ou a tecla M liga e desliga.'],
+        ['novo', 'Opção de gráficos (Automático, Completo ou Leve). No automático, o jogo reduz os efeitos sozinho se o aparelho não acompanhar.'],
+        ['ajuste', 'O tabuleiro abre bem mais rápido e gasta muito menos internet: as imagens do jogo ficaram até 7 vezes menores.'],
+        ['ajuste', 'Partida mais leve: o tabuleiro não é redesenhado atrás de janelas abertas e o placar só atualiza o que mudou.'],
+        ['ajuste', 'Online mais leve: movimentos de outras salas não fazem mais sua partida recarregar os jogadores.'],
+    ] },
     { date: '2026-11-04', changes: [
         ['novo', 'Esqueci a senha: agora dá para criar uma senha nova usando seu código de recuperação, na tela de login.'],
         ['novo', 'Tela de Novidades, com tudo o que mudou no jogo por data.'],

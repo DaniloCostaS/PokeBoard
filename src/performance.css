@@ -1,0 +1,66 @@
+/* ==========================================================================
+   Desempenho: animações que rodam sem repintar a tela e o modo leve.
+   ========================================================================== */
+
+/* Brilho da vez: pulsa ao começar o turno e fica aceso, sem manter uma animação rodando durante toda a jogada */
+#pb-turn-bar.is-mine { animation: none !important; box-shadow: 0 0 0 1px rgba(242, 201, 76, 0.2); }
+#pb-turn-bar.is-mine::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: 0 0 0 5px rgba(242, 201, 76, 0.25), 0 0 22px rgba(242, 201, 76, 0.55);
+    opacity: 0.55;
+    pointer-events: none;
+    animation: pbGlowFade 1.8s ease-in-out 3;
+}
+.pb-lives-badge.is-last { animation: pbGlowBlink 1.6s ease-in-out infinite !important; }
+.pb-frame--mestre { animation: none !important; }
+
+@keyframes pbGlowFade { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+@keyframes pbGlowBlink { 50% { opacity: 0.62; } }
+
+/* O histórico só calcula as linhas que estão na tela */
+.log-entry { content-visibility: auto; contain-intrinsic-size: auto 62px; }
+
+/* Controles de som na barra de turno e no menu */
+.pb-tb-sound {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    color: inherit;
+    background: rgba(0, 0, 0, 0.28);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 10px;
+    cursor: pointer;
+}
+.pb-tb-sound:hover { background: rgba(0, 0, 0, 0.45); }
+.pb-tb-sound:focus-visible { outline: 2px solid #ffe08a; outline-offset: 2px; }
+.pb-tb-sound svg { width: 20px; height: 20px; }
+.pb-tb-sound .pb-sound-off { display: none; }
+.pb-tb-sound.is-muted { color: #ff9c8f; }
+.pb-tb-sound.is-muted .pb-sound-on { display: none; }
+.pb-tb-sound.is-muted .pb-sound-off { display: inline; }
+
+.pb-setting-row { display: flex; align-items: center; gap: 8px; min-height: 36px; font-size: 0.82rem; font-weight: 700; text-align: left; }
+.pb-setting-row > span { flex: 1 1 auto; }
+.pb-setting-row input[type="range"] { flex: 0 1 112px; min-width: 70px; height: 24px; accent-color: #f2c94c; cursor: pointer; }
+.pb-setting-row select { flex: 0 1 112px; min-height: 30px; color: #fff; font: inherit; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.25); border-radius: 8px; }
+.pb-setting-row select option { color: #111; }
+
+/* --- Modo leve --- */
+html.pb-lite *, html.pb-lite *::before, html.pb-lite *::after {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    text-shadow: none !important;
+}
+html.pb-lite .modal-overlay { background-color: rgba(5, 9, 14, 0.9); }
+html.pb-lite #pb-turn-bar.is-mine::after { animation: none; opacity: 0.8; }
+html.pb-lite .pb-lives-badge.is-last,
+html.pb-lite .pb-bslot.is-on .pb-bslot-well::after { animation: none !important; }
+
+/* Bolinha do selo "Na vez": gira ao começar o turno e para; girando sem parar, forçava recálculo de estilo a cada quadro */
+.pb-turn-chip i { animation-iteration-count: 3 !important; }

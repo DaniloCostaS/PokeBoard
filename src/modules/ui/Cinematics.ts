@@ -1,3 +1,5 @@
+import { boardThumb } from '../board/BoardTextures';
+import { Sfx } from '../audio/Sfx';
 import { GYM_DATA } from '../../constants/gyms';
 
 // ==========================================================================
@@ -214,6 +216,7 @@ export class Cinematics {
     static battleIntro(bc: any, label: string = '', npcImage: string = '') {
         try {
             if (!bc || !bc.player) return;
+            Sfx.play('battleStart');
             const isTrainer = bc.isPvP || bc.isGym || bc.isNPC || bc.isChampion;
             if (!isTrainer) {
                 const mon = bc.opponent || (bc.oppTeamList || [])[0];
@@ -234,7 +237,7 @@ export class Cinematics {
                 foe = {
                     name: gym ? `Líder ${gym.leaderName}` : 'Líder de Ginásio',
                     sub: gym ? `Ginásio ${gym.type.join(' / ')}` : 'Ginásio',
-                    img: gym ? `/assets/img/LideresGym/${gym.leaderImg}` : '/assets/img/Ginasio.jpg',
+                    img: gym ? `/assets/img/LideresGym/${gym.leaderImg}` : '/assets/img/Ginasio.webp',
                     kind: 'pixel',
                     taunt: GYM_TAUNTS[t] || pick(GENERIC_TAUNTS)
                 };
@@ -344,7 +347,7 @@ export class Cinematics {
 
     // ---------------------------------------------------------- celebrations
     private static celebrate(cls: string, html: string, ms: number) {
-        this.enqueue(() => ({ el: this.div(`cine cine-cele ${cls}`, `<div class="cine-rays"></div>${html}<div class="cine-flash"></div><div class="cine-hint">Toque para continuar</div>`), ms }));
+        this.enqueue(() => (Sfx.play(cls.includes('cine-quest') ? 'quest' : 'celebrate'), { el: this.div(`cine cine-cele ${cls}`, `<div class="cine-rays"></div>${html}<div class="cine-flash"></div><div class="cine-hint">Toque para continuar</div>`), ms }));
     }
 
     /** Vitória de ginásio (BattleCore.win). gymIndex = posição 1..N no tabuleiro. */
@@ -586,15 +589,15 @@ export class Cinematics {
 
     private static matchImages(): string[] {
         const set = new Set<string>([
-            '/assets/img/Terrenos/Grama.jpg', '/assets/img/Terrenos/Agua.jpg', '/assets/img/Terrenos/Areia.jpg',
-            '/assets/img/Terrenos/BarrancoRio.png', '/assets/img/PCMart.jpg', '/assets/img/PokeBolaItem.jpg', '/assets/img/Ginasio.jpg'
+            boardThumb('/assets/img/Terrenos/Grama.webp'), boardThumb('/assets/img/Terrenos/Agua.webp'), boardThumb('/assets/img/Terrenos/Areia.webp'),
+            boardThumb('/assets/img/PCMart.webp'), boardThumb('/assets/img/PokeBolaItem.webp')
         ]);
         try {
             const GS = (window as any).GameState || (window as any).Game || {};
             const gyms: number[] = GS.activeGyms || [];
             gyms.forEach(id => {
                 const g = GYM_DATA.find(x => x.id === id);
-                if (g) { set.add(`/assets/img/Ginasios/${g.gymImg}`); set.add(`/assets/img/LideresGym/${g.leaderImg}`); }
+                if (g) { set.add(boardThumb(`/assets/img/Ginasios/${g.gymImg}`)); set.add(`/assets/img/LideresGym/${g.leaderImg}`); }
             });
             (GS.players || []).forEach((p: AnyPlayer) => {
                 if (p.avatar) set.add(avatarUrl(p.avatar));

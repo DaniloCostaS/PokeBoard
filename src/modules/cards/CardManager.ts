@@ -1,3 +1,4 @@
+import { Sfx } from '../audio/Sfx';
 import { CARDS_DB } from '../../constants';
 import type { Player } from '../../models/Player';
 import { GameState } from '../game/GameState';
@@ -44,6 +45,7 @@ export class CardManager {
         const card = { ...finalPool[Math.floor(Math.random() * finalPool.length)] };
 
         player.cards.push(card);
+        Sfx.play('cardDraw');
 
         // Registro de Extrato de Cartas (Global)
         Game.sendGlobalLog(`🃏 [Extrato] ${player.name} obteve uma carta. Total: ${player.cards.length}`);
@@ -74,6 +76,7 @@ export class CardManager {
         const card = { ...finalPool[Math.floor(Math.random() * finalPool.length)] };
 
         player.cards.push(card);
+        Sfx.play('cardDraw');
 
         // Registro de Extrato de Cartas (Global)
         Game.sendGlobalLog(`🃏 [Extrato] ${player.name} obteve uma carta. Total: ${player.cards.length}`);
@@ -105,6 +108,7 @@ export class CardManager {
 
         const card = { ...cardRef };
         player.cards.push(card);
+        Sfx.play('cardDraw');
 
         // Registro de Extrato de Cartas (Global)
         Game.sendGlobalLog(`🃏 [Extrato] ${player.name} obteve uma carta específica. Total: ${player.cards.length}`);

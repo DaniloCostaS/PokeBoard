@@ -1,3 +1,4 @@
+import { Sfx } from '../audio/Sfx';
 import { SHOP_ITEMS } from '../../constants';
 import { ShopUI } from './ShopUI';
 
@@ -24,6 +25,7 @@ export class ShopLogic {
             }
 
             p.gold -= price;
+            Sfx.play('buy');
             Game.addItem(p, id, 1);
 
             // Log Global de Compra

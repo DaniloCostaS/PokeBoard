@@ -16,6 +16,15 @@ export type BoardTex = {
 
 let cache: BoardTex | null = null;
 
+// Miniatura leve (256 px) de uma imagem de casa, gerada por scripts/optimize-images.mjs
+export function boardThumb(url: string): string {
+    const m = url.match(/\/([^/]+)\.webp$/);
+    if (!m) return url;
+    const name = m[1].normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9]+/g, '_');
+    const kind = url.includes('/Ginasios/') ? 'gym' : url.includes('/NPCs/') ? 'npc' : 'tile';
+    return `/assets/img/board/${kind}-${name}.webp`;
+}
+
 const canvas = (w: number, h = w) => {
     const c = document.createElement('canvas');
     c.width = w; c.height = h;
