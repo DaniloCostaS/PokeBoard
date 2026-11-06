@@ -1,3 +1,4 @@
+import { Sfx } from '../audio/Sfx';
 import { GameState } from '../game/GameState';
 import { Network } from '../../systems/Network';
 import { Presence } from './Presence';
@@ -11,6 +12,12 @@ const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)'
 const board = () => (window as any).PBBoard;
 
 export class GameFeel {
+    private static lastField = '';
+
+    static playMatchEnd(winnerId: number) {
+        Sfx.play(this.isMe(winnerId) ? 'victory' : 'defeat');
+    }
+
     private static lastGold = new Map<number, number>();
     private static lastTurn: number | null = null;
     private static lastHp = new WeakMap<object, number>();
@@ -58,6 +65,7 @@ export class GameFeel {
             const prev = this.lastGold.get(p.id);
             if (prev !== undefined && prev !== p.gold) {
                 const diff = p.gold - prev;
+                Sfx.play(diff > 0 ? 'coin' : 'coinLoss');
                 board()?.floatText(idx, `${diff > 0 ? '+' : ''}${diff}G`, diff > 0 ? '#ffd36b' : '#ff8a80');
                 const pill = document.querySelector<HTMLElement>(`[data-pb-gold="${p.id}"]`);
                 pill?.classList.add(diff > 0 ? 'pb-pop-up' : 'pb-pop-down');
@@ -89,6 +97,7 @@ export class GameFeel {
             const first = this.lastTurn === null;
             this.lastTurn = GameState.turn;
             const current = GameState.players[GameState.turn];
+            if (current && !first && !current.isCPU && this.isMe(current.id)) Sfx.play('myTurn');
             if (current && !first) this.showTurnBanner(current.name, this.isMe(current.id) && ((window as any).Network || Network).isOnline);
         }
     }
@@ -177,6 +186,9 @@ export class GameFeel {
     // ------------------------------------------------------------------
     // Chamado ao final de BattleUI.updateUI: compara o HP com a última leitura de cada Pokémon
     static onBattleUpdate(ply: any, opp: any, plyOwnerId: number) {
+        const field = `${ply?.id}|${opp?.id}`;
+        if (this.lastField && field !== this.lastField && !ply?.isMegaEvolution && !opp?.isMegaEvolution) Sfx.play('sendOut');
+        this.lastField = field;
         const plyDiff = this.hpDiff(ply);
         const oppDiff = this.hpDiff(opp);
         // Se só um lado perdeu HP, foi um golpe do outro lado (clima/veneno atingem os dois)
@@ -209,6 +221,9 @@ export class GameFeel {
 
         if (diff < 0) {
             const heavy = -diff >= mon.maxHp * 0.3;
+            if (heavy) Sfx.play('hitHeavy');
+            if (mon.currentHp <= 0) Sfx.play('faint');
+            else if (isMine && mon.currentHp <= mon.maxHp * 0.25) Sfx.play('lowHp');
             this.restartClass(img, 'pb-hit');
             if (heavy) {
                 this.restartClass(document.querySelector('#battle-modal .battle-scene'), 'pb-shake');
@@ -219,6 +234,7 @@ export class GameFeel {
             if (mon.currentHp <= 0) img?.classList.add('pb-faint');
         } else {
             img?.classList.remove('pb-faint');
+            Sfx.play('heal');
             this.spawnImpact(img, 'heal');
         }
     }
@@ -388,9 +404,20 @@ export class GameFeel {
         }
     }
 
+    private static battleLogSound(msg: string) {
+        if (/Mega Evolução para/.test(msg)) Sfx.play('mega');
+        else if (/ESQUIVOU|BLOQUEIO TOTAL/.test(msg)) Sfx.play('miss');
+        else if (/Crit/.test(msg)) Sfx.play('crit');
+        else if (/🔥!/.test(msg)) { Sfx.play('hit'); Sfx.play('superHit'); }
+        else if (/🛡️\./.test(msg)) { Sfx.play('hit'); Sfx.play('weakHit'); }
+        else if (/💥/.test(msg)) Sfx.play('hit');
+        else if (/atordoad|congelou/.test(msg)) Sfx.play('status');
+    }
+
     static onBattleLog(msg: string) {
         if (!msg || !document.getElementById('battle-modal')?.style.display.includes('flex')) return;
         BattleEventFx.onLog(msg);
+        this.battleLogSound(msg);
         let callout = '';
         let tone = '';
         if (/ESQUIVOU/.test(msg)) { callout = 'Esquivou!'; tone = 'miss'; }
@@ -432,7 +459,9 @@ export class GameFeel {
     }
 
     static battleResult(won: boolean, playerId: number) {
+        this.lastField = '';
         if (!this.isMe(playerId)) return;
+        Sfx.play(won ? 'battleWin' : 'battleLose');
         this.vibrate(won ? [50, 50, 50, 50, 120] : [200]);
         const scene = document.querySelector('#battle-modal .battle-scene');
         this.restartClass(scene, won ? 'pb-victory' : 'pb-defeat');

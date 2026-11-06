@@ -52,16 +52,22 @@ export class GameUI {
 
     private static hudOneColumn = window.matchMedia('(max-width: 1599px)');
     private static hudLayoutWatched = false;
+    private static hudSlots: { key: string; el: HTMLElement }[] = [];
 
     static updateHUD() {
         const left = document.getElementById('hud-col-left')!;
-        left.innerHTML = '';
         const right = document.getElementById('hud-col-right')!;
-        right.innerHTML = '';
+        if (!GameState.players || GameState.players.length === 0) {
+            left.innerHTML = '';
+            right.innerHTML = '';
+            this.hudSlots = [];
+            return;
+        }
+        const leftSlots: HTMLElement[] = [];
+        const rightSlots: HTMLElement[] = [];
 
         const typeColors: any = { "Normal": "#A8A77A", "Fogo": "#EE8130", "Água": "#6390F0", "Elétrico": "#F7D02C", "Grama": "#7AC74C", "Gelo": "#96D9D6", "Lutador": "#C22E28", "Veneno": "#A33EA1", "Terra": "#E2BF65", "Voador": "#A98FF3", "Psíquico": "#F95587", "Inseto": "#A6B91A", "Pedra": "#B6A136", "Fantasma": "#735797", "Dragão": "#6F35FC", "Noturno": "#705746", "Aço": "#B7B7CE", "Fada": "#D685AD" };
 
-        if (!GameState.players || GameState.players.length === 0) return;
         const oneColumn = this.hudOneColumn.matches;
         if (!this.hudLayoutWatched) {
             this.hudLayoutWatched = true;
@@ -203,7 +209,7 @@ export class GameUI {
             const nameLen = (p.name || '').length;
             const nameFontSize = nameLen <= 7 ? '0.92rem' : nameLen <= 10 ? '0.84rem' : nameLen <= 13 ? '0.76rem' : nameLen <= 16 ? '0.70rem' : '0.64rem';
 
-            d.innerHTML = ` 
+            const slotHtml = ` 
             <div class="hud-header pb-trainer-card" style="--pc:${playerColor}">
                 ${i === GameState.turn ? '<span class="pb-turn-chip pb-turn-ribbon"><i></i>Na vez</span>' : ''}
                 <div class="pb-trainer-row">
@@ -229,10 +235,27 @@ export class GameUI {
                 <button class="btn btn-secondary btn-mini" onclick="window.Game.openBoardCards(${i})" title="Cartas" aria-label="Cartas: ${totalCards}"><i class="pb-ico pb-ico-cards"></i><span>${totalCards}</span></button>
                 <button class="btn btn-secondary btn-mini" onclick="window.Game.openPokedex(${i})" title="Pokédex" aria-label="Pokédex"><i class="pb-ico pb-ico-dex"></i><span>Dex</span></button>
             </div>`;
+            // Card igual ao anterior não é recriado: evita refazer imagens e layout a cada atualização vinda da rede
+            const slotKey = `${d.className}|${d.style.cssText}|${slotHtml}`;
+            let slotEl = this.hudSlots[i]?.key === slotKey ? this.hudSlots[i].el : null;
+            if (!slotEl) {
+                d.innerHTML = slotHtml;
+                slotEl = d;
+                this.hudSlots[i] = { key: slotKey, el: d };
+            }
             // Até 1599px (notebook e celular) todos os cards ficam numa coluna/carrossel só; antes eram duas caixas de meia altura que cortavam os cards
-            if (oneColumn || i < Math.ceil(GameState.players.length / 2)) left.appendChild(d);
-            else right.appendChild(d);
+            if (oneColumn || i < Math.ceil(GameState.players.length / 2)) leftSlots.push(slotEl);
+            else rightSlots.push(slotEl);
         });
+        this.hudSlots.length = GameState.players.length;
+        const placeSlots = (col: HTMLElement, slots: HTMLElement[]) => {
+            const current = Array.from(col.children).filter(n => n.classList.contains('player-slot'));
+            if (current.length === slots.length && current.every((n, k) => n === slots[k])) return;
+            current.forEach(n => n.remove());
+            col.append(...slots);
+        };
+        placeSlots(left, leftSlots);
+        placeSlots(right, rightSlots);
 
         const turnPlayer = GameState.players[GameState.turn];
         if (turnPlayer) document.getElementById('turn-indicator')!.innerText = turnPlayer.name;
@@ -437,15 +460,25 @@ export class GameUI {
     static renderAllLogs() {
         const container = document.getElementById('log-container');
         if (!container) return;
-        container.innerHTML = '';
+        container.innerHTML = GameState.globalLogs.map((l: any) => this.logEntryHtml(l)).join('');
+        container.scrollTop = 0;
+    }
 
-        const logsToRender = GameState.globalLogs.slice().reverse();
+    // Log novo vindo da rede: entra só a linha nova, sem refazer as outras 200
+    static prependLog(l: any) {
+        const container = document.getElementById('log-container');
+        if (!container) return;
+        container.insertAdjacentHTML('afterbegin', this.logEntryHtml(l));
+        while (container.children.length > 200) container.lastElementChild!.remove();
+        container.scrollTop = 0;
+    }
 
+    private static logEntryHtml(l: any): string {
         const currentFilter = (this as any).currentLogFilter || 'all';
         const searchInput = document.getElementById('log-search-input') as HTMLInputElement;
         const searchText = searchInput ? searchInput.value.toLowerCase().trim() : "";
 
-        logsToRender.forEach((l: any) => {
+        {
             let icon = "📟";
             if (l.type === "battle") icon = "⚔️";
             else if (l.type === "cards") icon = "🃏";
@@ -468,7 +501,7 @@ export class GameUI {
                 battleBtn = `<button class="btn-view-log" onclick="window.Game.viewBattleLog('${l.battleId}')">Ver Log de Combate</button>`;
             }
 
-            const logHtml = `
+            return `
                 <div class="log-entry" style="${l.style || ''}; display:${displayStyle}" data-type="${l.type}">
                     <div class="log-header">
                         <span class="log-time">${l.timestamp}</span>
@@ -482,9 +515,7 @@ export class GameUI {
                     </div>
                 </div>
             `;
-            container.insertAdjacentHTML('afterbegin', logHtml);
-        });
-        container.scrollTop = 0;
+        }
     }
 
     static openAdminPanel() {

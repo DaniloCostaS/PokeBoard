@@ -1,3 +1,4 @@
+import { Sfx } from '../audio/Sfx';
 import { GameState } from '../game/GameState';
 import { NetworkState } from '../network/SupabaseInit';
 
@@ -95,6 +96,7 @@ export class Presence {
 
     static showEmote(playerId: number, emoji: string) {
         if (!EMOTES.includes(emoji)) return;
+        Sfx.play('emote');
         const idx = this.playerIndex(playerId);
         if (idx < 0) return;
         (window as any).PBBoard?.emote(idx, emoji);

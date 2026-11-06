@@ -377,7 +377,15 @@ export class SupabaseDataStore {
     }
 
 
-    static async saveDiscardPile(roomId: string, mons: any[]) {
+    // Em fila: apagar e reinserir ao mesmo tempo que outra gravação duplicaria ou perderia linhas
+    private static discardChain: Promise<unknown> = Promise.resolve();
+    static saveDiscardPile(roomId: string, mons: any[]) {
+        const snapshot = [...mons];
+        this.discardChain = this.discardChain.catch(() => { }).then(() => this.writeDiscardPile(roomId, snapshot));
+        return this.discardChain;
+    }
+
+    private static async writeDiscardPile(roomId: string, mons: any[]) {
         await supabase.from('room_discarded_pokemons').delete().eq('room_id', roomId);
         if (mons.length) {
             await supabase.from('room_discarded_pokemons').insert(mons.map((mon, index) => {

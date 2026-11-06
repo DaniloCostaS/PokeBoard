@@ -1,3 +1,4 @@
+import { Sfx } from '../audio/Sfx';
 import { supabase, NetworkState } from '../network/SupabaseInit';
 import { Account } from './Account';
 import { ACHIEVEMENTS, Achievements } from './Achievements';
@@ -159,6 +160,7 @@ export class ProfileTracker {
         if (!fresh.length) return;
         const { error } = await supabase.from('profile_achievements').upsert(fresh.map(id => ({ user_id: uid, achievement_id: id })), { onConflict: 'user_id,achievement_id', ignoreDuplicates: true });
         if (error) return;
+        if (fresh.length) Sfx.play('achievement');
         fresh.forEach(id => {
             this.knownUnlocked!.add(id);
             const a = ACHIEVEMENTS.find(x => x.id === id);

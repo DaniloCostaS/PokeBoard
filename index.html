@@ -15,17 +15,10 @@
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Press+Start+2P&display=swap">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Press+Start+2P&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Press+Start+2P&display=swap"></noscript>
 
 
-    <script type="importmap">
-      {
-        "imports": {
-          "firebase/app": "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js",
-          "firebase/database": "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js"
-        }
-      }
-    </script>
 </head>
 
 <body>
@@ -427,6 +420,18 @@
                     <input type="checkbox" data-pb-setting="animatedSprites">
                     <span class="pb-switch-track" aria-hidden="true"></span>
                     <span>Pokémon animados</span>
+                </label>
+                <label class="pb-setting-row">
+                    <span>Volume</span>
+                    <input type="range" min="0" max="100" step="5" data-pb-sfx-volume aria-label="Volume dos efeitos sonoros">
+                </label>
+                <label class="pb-setting-row" title="Automático reduz os efeitos visuais se o aparelho não acompanhar">
+                    <span>Gráficos</span>
+                    <select data-pb-quality aria-label="Qualidade gráfica">
+                        <option value="auto">Automático</option>
+                        <option value="high">Completo</option>
+                        <option value="lite">Leve</option>
+                    </select>
                 </label>
                 <div><small id="online-indicator">OFFLINE</small></div>
             </div>

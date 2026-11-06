@@ -1,3 +1,4 @@
+import { Sfx } from '../audio/Sfx';
 import { GameState } from '../game/GameState';
 import { NetworkState } from '../network/SupabaseInit';
 import { PLAYER_COLORS } from '../../constants/playerColors';
@@ -44,11 +45,20 @@ export class TurnBar {
             </button>
             <button type="button" class="pb-tb-me" title="Ir até o meu time (itens, cartas e Pokédex)">
                 <span class="pb-tb-avatar"><img alt=""></span><span class="pb-tb-me-label">Meu time</span>
+            </button>
+            <button type="button" class="pb-tb-sound" data-pb-sfx-mute aria-label="Som do jogo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z" fill="currentColor"/>
+                    <path class="pb-sound-on" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>
+                    <path class="pb-sound-off" d="M16 9.5l5 5M21 9.5l-5 5"/>
+                </svg>
             </button>`;
+        bar.querySelector('.pb-tb-sound')!.addEventListener('click', () => Sfx.toggleMuted());
         bar.querySelector('.pb-tb-turn')!.addEventListener('click', () => this.focusPlayer(GameState.turn));
         bar.querySelector('.pb-tb-me')!.addEventListener('click', () => this.focusPlayer(this.mePlayerIndex()));
         bar.querySelector('.pb-tb-event')!.addEventListener('click', () => (window as any).Game?.showEventDetails?.());
         host.appendChild(bar);
+        Sfx.refreshControls();
         document.body.classList.add('pb-has-turnbar');
         this.el = bar;
         return bar;
@@ -110,6 +120,7 @@ export class TurnBar {
         // Evento novo: destaque rápido
         if (ev.id !== this.lastEventId) {
             this.lastEventId = ev.id;
+            Sfx.play('weather');
             btn.classList.remove('is-new');
             void btn.offsetWidth;
             btn.classList.add('is-new');

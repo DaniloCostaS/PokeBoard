@@ -52,7 +52,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {
 
 body {
     font-family: 'Segoe UI', Tahoma, sans-serif;
-    background-image: url('/assets/img/Background/PokemonBoardGameImagemConceitual.jpeg');
+    background-image: url('/assets/img/Background/PokemonBoardGameImagemConceitual.webp');
     background-size: 100% 100%;
     display: flex;
     justify-content: center;
@@ -2402,7 +2402,7 @@ body {
     display: none;
     width: 100vw;
     height: 100vh;
-    background: url('/assets/img/Terrenos/BarrancoRio.png') no-repeat center center;
+    background: url('/assets/img/Terrenos/BarrancoRio.webp') no-repeat center center;
     background-size: 100% 100%;
     flex-direction: row;
     overflow: hidden;
@@ -3355,31 +3355,31 @@ body {
 
 /* Caminhos absolutos */
 .tile.grass {
-    background-image: url('/assets/img/Terrenos/Grama.jpg');
+    background-image: url('/assets/img/Terrenos/Grama.webp');
     background-size: 100% 100%;
     image-rendering: pixelated;
 }
 
 .tile.water {
-    background-image: url('/assets/img/Terrenos/Agua.jpg');
+    background-image: url('/assets/img/Terrenos/Agua.webp');
     background-size: 100% 100%;
     image-rendering: pixelated;
 }
 
 .tile.ground {
-    background-image: url('/assets/img/Terrenos/Areia.jpg');
+    background-image: url('/assets/img/Terrenos/Areia.webp');
     background-size: 100% 100%;
     image-rendering: pixelated;
 }
 
 .tile.city {
-    background-image: url('/assets/img/PCMart.jpg');
+    background-image: url('/assets/img/PCMart.webp');
     background-size: 100% 100%;
     image-rendering: pixelated;
 }
 
 .tile.event {
-    background-image: url('/assets/img/PokeBolaItem.jpg');
+    background-image: url('/assets/img/PokeBolaItem.webp');
     background-size: 100% 100%;
     image-rendering: pixelated;
 }
@@ -3461,7 +3461,7 @@ body {
 }
 
 .tile.rocket {
-    background-image: url('/assets/img/NPCs/Rocket.jpg');
+    background-image: url('/assets/img/NPCs/Rocket.webp');
     background-size: 100% 100%;
     image-rendering: pixelated;
     background-position: center;
@@ -3469,7 +3469,7 @@ body {
 }
 
 .tile.biker {
-    background-image: url('/assets/img/NPCs/Motoqueiro.jpg');
+    background-image: url('/assets/img/NPCs/Motoqueiro.webp');
     background-size: 100% 100%;
     image-rendering: pixelated;
     background-position: center;
@@ -3477,7 +3477,7 @@ body {
 }
 
 .tile.young {
-    background-image: url('/assets/img/NPCs/Jovem.jpg');
+    background-image: url('/assets/img/NPCs/Jovem.webp');
     background-size: 100% 100%;
     image-rendering: pixelated;
     background-position: center;
@@ -3485,7 +3485,7 @@ body {
 }
 
 .tile.old {
-    background-image: url('/assets/img/NPCs/Velho.jpg');
+    background-image: url('/assets/img/NPCs/Velho.webp');
     background-size: 100% 100%;
     image-rendering: pixelated;
     background-position: center;
@@ -5172,7 +5172,7 @@ body {
     }
 
     body {
-        background-image: url('/assets/img/Background/PokemonBoardGameImagemConceitual.jpeg');
+        background-image: url('/assets/img/Background/PokemonBoardGameImagemConceitual.webp');
         background-size: cover;
         background-position: center;
         background-attachment: fixed;

@@ -1,3 +1,4 @@
+import { Sfx } from '../audio/Sfx';
 import { CARD_RARITIES } from '../../constants';
 
 // Mão de cartas em leque: passar o mouse ou deslizar o dedo levanta a carta no topo e mostra o detalhe; usar faz a carta voar para o tabuleiro/batalha.
@@ -107,6 +108,7 @@ export class CardHand {
 
                 // Hover no desktop: levanta imediatamente a carta ao passar o cursor
                 el.addEventListener('mouseenter', () => {
+                    Sfx.play('hover');
                     selectCard(el, c, originalIndex, false);
                 });
 

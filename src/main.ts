@@ -1,3 +1,5 @@
+import { Sfx } from './modules/audio/Sfx';
+import { Quality } from './modules/ui/Quality';
 import './style.css'
 import './ui.css'
 import './battle.css'
@@ -37,6 +39,7 @@ import './battle-events.css';
 import './battle-layout.css';
 import './pokedex.css';
 import './badge-case.css';
+import './performance.css';
 
 declare global {
     interface Window {
@@ -195,27 +198,29 @@ function initModalBackdropDismissal() {
     });
 }
 
-// Inicialização
-document.addEventListener('DOMContentLoaded', () => {
+// Inicialização (módulos rodam com o documento já lido, antes do DOMContentLoaded: precisa acontecer uma vez só)
+function boot() {
     Setup.updateSlots();
     Setup.checkCachedLogin();
     initModalBackdropDismissal();
     TypeTooltip.init();
     MobileLayout.init();
     Settings.init();
+    Quality.init();
+    Sfx.init();
     if (DemoMode.shouldStart()) setTimeout(() => DemoMode.start(), 300);
     Presence.init();
     PwaSetup.init();
-});
-
-if (document.readyState === "complete" || document.readyState === "interactive") {
-    Setup.updateSlots();
-    Setup.checkCachedLogin();
-    initModalBackdropDismissal();
-    TypeTooltip.init();
-    MobileLayout.init();
-    Settings.init();
-    if (DemoMode.shouldStart()) setTimeout(() => DemoMode.start(), 300);
-    Presence.init();
-    PwaSetup.init();
+    preloadBoard();
 }
+
+// Deixa o motor do tabuleiro pronto enquanto o jogador está no menu, sem competir com a tela nem gastar dados em modo econômico
+function preloadBoard() {
+    if ((navigator as any).connection?.saveData) return;
+    const load = () => { import('pixi.js').catch(() => null); };
+    if ('requestIdleCallback' in window) window.requestIdleCallback(load, { timeout: 4000 });
+    else setTimeout(load, 2000);
+}
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
+else boot();

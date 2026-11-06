@@ -401,6 +401,7 @@ export class BoardWeather {
     private glows: { s: Sprite; phase: number }[] = [];
     private emitters: Emitter[] = [];
     private eventId: string | null | undefined = undefined;
+    private density = 1; // fração das partículas (modo leve usa menos)
     private forcedEvent: string | null | undefined = undefined;
     private phase = -1;
     private look: Look = {};
@@ -504,6 +505,7 @@ export class BoardWeather {
     private makeEmitter(key: string): Emitter {
         const P = this.P;
         const def = EMITTERS[key]();
+        def.cap = Math.max(6, Math.round(def.cap * this.density));
         const node = new P.Container();
         node.alpha = 0;
         (def.space === 'screen' ? this.screenFx : this.worldFx).addChild(node);
@@ -594,6 +596,12 @@ export class BoardWeather {
     }
 
     get eventKey() { return this.eventId; }
+
+    setDensity(value: number) {
+        if (value === this.density) return;
+        this.density = value;
+        this.eventId = undefined; // refaz as partículas no próximo quadro
+    }
     get dayPhase() { return this.phase; }
     get particleCount() {
         let n = 0;

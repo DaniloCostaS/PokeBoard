@@ -9,7 +9,9 @@ import { GYM_DATA } from '../../constants/gyms';
 import { PLAYER_COLORS } from '../../constants/playerColors';
 import { BoardWeather, type Rect } from './BoardWeather';
 import { BoardAmbient } from './BoardAmbient';
-import { boardTextures } from './BoardTextures';
+import { boardTextures, boardThumb } from './BoardTextures';
+import { Quality } from '../ui/Quality';
+import { Sfx } from '../audio/Sfx';
 import { BoardReach, computeReach } from './BoardReach';
 
 // Tabuleiro renderizado em WebGL (PixiJS): câmera com zoom/arrasto, peões animados e efeitos.
@@ -17,12 +19,18 @@ import { BoardReach, computeReach } from './BoardReach';
 
 const T = 64; // tamanho de uma casa em unidades de mundo
 const TILE_TEXTURES: Record<number, string> = {
-    [TILE.GRASS]: '/assets/img/Terrenos/Grama.jpg',
-    [TILE.WATER]: '/assets/img/Terrenos/Agua.jpg',
-    [TILE.GROUND]: '/assets/img/Terrenos/Areia.jpg',
-    [TILE.CITY]: '/assets/img/PCMart.jpg',
-    [TILE.EVENT]: '/assets/img/PokeBolaItem.jpg'
+    [TILE.GRASS]: '/assets/img/Terrenos/Grama.webp',
+    [TILE.WATER]: '/assets/img/Terrenos/Agua.webp',
+    [TILE.GROUND]: '/assets/img/Terrenos/Areia.webp',
+    [TILE.CITY]: '/assets/img/PCMart.webp',
+    [TILE.EVENT]: '/assets/img/PokeBolaItem.webp'
 };
+// Cor provisória da casa enquanto a imagem chega (o tabuleiro aparece na hora, mesmo em rede lenta)
+const TILE_PLACEHOLDER: Record<number, number> = {
+    [TILE.GRASS]: 0x5c9e45, [TILE.WATER]: 0x3b7fc4, [TILE.GROUND]: 0xc9a769, [TILE.CITY]: 0xc94f4f, [TILE.EVENT]: 0xd9d9d9, [TILE.GYM]: 0x6a5a8c
+};
+// Uma janela aberta cobre o tabuleiro: não há por que redesenhá-lo atrás (e o blur da janela custaria caro a cada quadro)
+const COVERING_LAYERS = '.modal-overlay[style*="display: flex"], .pb-dlg-layer--modal';
 const TILE_TOOLTIPS: Record<number, string> = {
     [TILE.GRASS]: 'Grama · Grama, Inseto, Normal, Veneno, Voador, Noturno',
     [TILE.WATER]: 'Água · Água, Gelo, Dragão, Fada',
@@ -89,7 +97,10 @@ export class BoardRenderer {
     static weather: BoardWeather | null = null;
     static ambient: BoardAmbient | null = null;
     private static screenRect: Rect = { x: 0, y: 0, w: 1, h: 1 };
-    private static water: { g: Graphics; phase: number }[] = [];
+    private static water: { g: Sprite; phase: number }[] = [];
+    private static renderGen = 0;
+    private static paused = false;
+    private static lastInteraction = 0;
     private static events: { s: Sprite; phase: number }[] = [];
     private static tokens = new Map<number, Token>();
     private static fx: Fx[] = [];
@@ -130,9 +141,9 @@ export class BoardRenderer {
                 await app.init({
                     resizeTo: host,
                     backgroundAlpha: 0,
-                    antialias: true,
+                    antialias: Quality.antialias,
                     autoDensity: true,
-                    resolution: Math.min(window.devicePixelRatio || 1, 2),
+                    resolution: Quality.resolution,
                     preference: 'webgl'
                 });
                 app.canvas.classList.add('pb-board-canvas');
@@ -155,6 +166,9 @@ export class BoardRenderer {
                 });
                 app.ticker.add(() => this.tick());
                 this.app = app;
+                window.setInterval(() => this.governLoop(), 350);
+                Quality.onChange(() => this.applyQuality());
+                this.applyQuality();
                 this.bindInput(app.canvas);
                 const recenter = document.createElement('button');
                 recenter.type = 'button';
@@ -200,10 +214,23 @@ export class BoardRenderer {
         const bg = new P.Graphics().rect(-2, -2, this.size * T + 4, this.size * T + 4).fill(0x0d141a);
         this.tileLayer.addChild(bg);
 
-        P.Assets.load([...urls]).catch(() => null).finally(() => {
-            for (let y = 0; y < this.size; y++) {
-                for (let x = 0; x < this.size; x++) this.drawTile(x, y);
-            }
+        // Desenha já com a cor do terreno e troca cada casa pela imagem assim que ela chega
+        const gen = ++this.renderGen;
+        const waiting = new Map<string, Sprite[]>();
+        for (let y = 0; y < this.size; y++) {
+            for (let x = 0; x < this.size; x++) this.drawTile(x, y, waiting);
+        }
+        waiting.forEach((sprites, url) => {
+            P.Assets.load<Texture>({ src: url, data: { autoGenerateMipmaps: true } }).then(tex => {
+                if (gen !== this.renderGen || !tex) return;
+                sprites.forEach(s => {
+                    if (s.destroyed) return;
+                    s.texture = tex;
+                    s.tint = 0xffffff;
+                    s.width = T - 2;
+                    s.height = T - 2;
+                });
+            }).catch(() => null);
         });
 
         this.fitCamera(true);
@@ -214,11 +241,11 @@ export class BoardRenderer {
 
     private static tileImage(x: number, y: number): string | null {
         const t = MapSystem.grid[y]?.[x];
-        if (TILE_TEXTURES[t]) return TILE_TEXTURES[t];
-        if (NPC_DATA[t]?.img) return `/assets/img/NPCs/${NPC_DATA[t].img}`;
+        if (TILE_TEXTURES[t]) return boardThumb(TILE_TEXTURES[t]);
+        if (NPC_DATA[t]?.img) return boardThumb(`/assets/img/NPCs/${NPC_DATA[t].img}`);
         if (t === TILE.GYM) {
             const gData = this.gymAt(x, y);
-            if (gData) return `/assets/img/Ginasios/${gData.gymImg}`;
+            if (gData) return boardThumb(`/assets/img/Ginasios/${gData.gymImg}`);
         }
         return null;
     }
@@ -231,15 +258,21 @@ export class BoardRenderer {
         return gData ? { ...gData, gid, actualGymId } : null;
     }
 
-    private static drawTile(x: number, y: number) {
+    private static drawTile(x: number, y: number, waiting: Map<string, Sprite[]>) {
         const t = MapSystem.grid[y][x];
         const px = x * T, py = y * T;
         const url = this.tileImage(x, y);
         if (url) {
-            const s = new P.Sprite((P.Assets.get(url) as Texture | undefined) || P.Texture.WHITE);
+            const loaded = P.Assets.get(url) as Texture | undefined;
+            const s = new P.Sprite(loaded || P.Texture.WHITE);
             s.position.set(px + 1, py + 1);
             s.width = T - 2;
             s.height = T - 2;
+            if (!loaded) {
+                s.tint = TILE_PLACEHOLDER[t] ?? 0x8a8f98;
+                const list = waiting.get(url);
+                if (list) list.push(s); else waiting.set(url, [s]);
+            }
             this.tileLayer.addChild(s);
             if (t === TILE.EVENT) this.events.push({ s, phase: (x * 7 + y * 13) % 10 });
         } else {
@@ -247,7 +280,10 @@ export class BoardRenderer {
         }
 
         if (t === TILE.WATER) {
-            const g = new P.Graphics().rect(px + 1, py + 1, T - 2, T - 2).fill(0xffffff);
+            const g = new P.Sprite(P.Texture.WHITE);
+            g.position.set(px + 1, py + 1);
+            g.width = T - 2;
+            g.height = T - 2;
             g.alpha = 0;
             g.blendMode = 'add';
             this.tileLayer.addChild(g);
@@ -399,7 +435,8 @@ export class BoardRenderer {
     // Pisão: poeira (ou respingo na água / folhinhas na grama) saindo dos pés
     private static footfall(tok: Token, tx: number, ty: number, now: number) {
         tok.footAt = now;
-        if (this.reducedMotion()) return;
+        Sfx.play('step');
+        if (this.reducedMotion() || Quality.lite) return;
         const tile = MapSystem.grid[ty]?.[tx];
         const tint = tile === TILE.WATER ? 0xcdeeff : tile === TILE.GRASS ? 0xd8f0b8 : 0xe9dcc0;
         const fx = tok.root.x, fy = tok.root.y + tok.r * 0.95 * tok.root.scale.y;
@@ -856,10 +893,10 @@ export class BoardRenderer {
         if (!this.ready) return;
         this.ambient?.clearPath(true);
         this.reach?.fade();
-        if (pvp) { this.pvpFx(x, y); return; }
-        if (type === TILE.CITY) this.healFx(x, y);
-        else if (type === TILE.EVENT) this.eventFx(x, y);
-        else if (type === TILE.GYM) this.gymFx(x, y);
+        if (pvp) { Sfx.play('landPvp'); this.pvpFx(x, y); return; }
+        if (type === TILE.CITY) { Sfx.play('landCity'); this.healFx(x, y); }
+        else if (type === TILE.EVENT) { Sfx.play('landEvent'); this.eventFx(x, y); }
+        else if (type === TILE.GYM) { Sfx.play('landGym'); this.gymFx(x, y); }
         else if (NPC_DATA[type]) this.npcFx(x, y);
     }
 
@@ -933,6 +970,9 @@ export class BoardRenderer {
     // Entrada: arrastar, pinça, roda do mouse, toque em casa
     // ------------------------------------------------------------------
     private static bindInput(canvas: HTMLCanvasElement) {
+        for (const type of ['pointerdown', 'pointermove', 'wheel']) {
+            canvas.addEventListener(type, () => { this.lastInteraction = performance.now(); }, { passive: true });
+        }
         const pointers = new Map<number, { x: number; y: number }>();
         let downAt = { x: 0, y: 0, t: 0 };
         let moved = false;
@@ -1068,8 +1108,38 @@ export class BoardRenderer {
     // ------------------------------------------------------------------
     // Loop
     // ------------------------------------------------------------------
+    private static isBusy(now: number) {
+        if (this.camTarget || this.fx.length || this.puffs.length || now < this.shakeUntil || now - this.lastInteraction < 1200) return true;
+        for (const tok of this.tokens.values()) {
+            if (tok.anim || tok.walk.seg || tok.walk.queue.length) return true;
+        }
+        return false;
+    }
+
+    // Janela cobrindo o tabuleiro pausa o desenho; nunca enquanto um peão anda, para o jogo não esperar por ele
+    private static governLoop() {
+        if (!this.app || document.hidden) return;
+        const covered = !this.isBusy(performance.now()) && !!document.querySelector(COVERING_LAYERS);
+        if (covered === this.paused) return;
+        this.paused = covered;
+        if (covered) this.app.ticker.stop(); else this.app.ticker.start();
+    }
+
+    private static applyQuality() {
+        const app = this.app;
+        if (!app) return;
+        this.weather?.setDensity(Quality.lite ? 0.45 : 1);
+        if (app.renderer.resolution !== Quality.resolution) {
+            app.renderer.resize(app.screen.width, app.screen.height, Quality.resolution);
+        }
+    }
+
     private static tick() {
         const now = performance.now();
+        const ticker = this.app!.ticker;
+        const maxFps = this.isBusy(now) ? 0 : Quality.idleFps;
+        if (ticker.maxFPS !== maxFps) ticker.maxFPS = maxFps;
+        Quality.reportFrame(ticker.deltaMS, 1000 / (maxFps || 60), now);
 
         if (this.camTarget) {
             const k = 0.12;
@@ -1092,7 +1162,7 @@ export class BoardRenderer {
 
         // Brilho da água e pokébolas de evento "respirando"
         const t = now / 1000;
-        this.water.forEach(w => { w.g.alpha = 0.06 + Math.sin(t * 1.6 + w.phase) * 0.06; });
+        if (!Quality.lite) this.water.forEach(w => { w.g.alpha = 0.06 + Math.sin(t * 1.6 + w.phase) * 0.06; });
         this.events.forEach(ev => {
             const s = 1 + Math.sin(t * 2.4 + ev.phase) * 0.03;
             ev.s.scale.set((T - 2) / ev.s.texture.width * s, (T - 2) / ev.s.texture.height * s);

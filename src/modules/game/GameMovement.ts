@@ -1,3 +1,4 @@
+import { Sfx } from '../audio/Sfx';
 import { MapSystem } from '../../systems/MapSystem';
 import { Network } from '../../systems/Network';
 import { Cards } from '../../systems/Cards';
@@ -136,6 +137,7 @@ export class GameMovement {
     }
 
     static async animateDice(result: number, playerId: number) {
+        Sfx.play('dice');
         (window as any).PBBoard?.previewReach?.(playerId); // casas alcançáveis (no online, também para quem assiste)
         // Nova animação visual no centro do tabuleiro
         await this.showDiceAnimation(result);
@@ -258,6 +260,7 @@ export class GameMovement {
 
         // Ao parar: a face do resultado brilha, o número salta e o primeiro Pokémon do jogador comemora
         await this.wait(1500);
+        Sfx.play('diceResult');
         dice3d.querySelector('.face-top')?.classList.add('is-result');
         (window as any).PBBoard?.reachResult?.(result);
         const cheer = this.diceCheer(board, result);

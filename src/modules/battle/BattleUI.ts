@@ -1,3 +1,4 @@
+import { Sfx } from '../audio/Sfx';
 import { CardHand } from '../cards/CardHand';
 import { BattleCore } from './BattleCore';
 import { Pokemon } from '../../models/Pokemon';
@@ -138,11 +139,11 @@ export class BattleUI {
         const scene = document.querySelector('.battle-scene') as HTMLElement;
         let bgImage: string;
         switch (BattleCore.currentTerrain) {
-            case 1: bgImage = 'BatalhaTerrenoGrama.png'; break;
-            case 2: bgImage = 'BatalhaTerrenoAgua.png'; break;
-            case 3: bgImage = 'BatalhaTerrenoAreia.png'; break;
-            case 5: bgImage = 'BatalhaTerrenoGym.png'; break;
-            default: bgImage = 'BatalhaTerrenoGrama.png'; break;
+            case 1: bgImage = 'BatalhaTerrenoGrama.webp'; break;
+            case 2: bgImage = 'BatalhaTerrenoAgua.webp'; break;
+            case 3: bgImage = 'BatalhaTerrenoAreia.webp'; break;
+            case 5: bgImage = 'BatalhaTerrenoGym.webp'; break;
+            default: bgImage = 'BatalhaTerrenoGrama.webp'; break;
         }
         scene.style.backgroundImage = `url('/assets/img/Background/${bgImage}')`;
         scene.style.backgroundSize = 'cover';
@@ -437,6 +438,7 @@ export class BattleUI {
         ball.style.backgroundImage = `url('/assets/img/Itens/${ballIcon}')`;
         scene.appendChild(ball);
 
+        Sfx.play('throw');
         ball.classList.add('anim-throwing');
         await this.wait(600);
 
@@ -455,6 +457,7 @@ export class BattleUI {
 
         for (let i = 0; i < totalShakes; i++) {
             await this.wait(400);
+            Sfx.play('shake');
             ball.classList.add('anim-shaking');
             this.logBattle(`... (${i + 1})`, false);
             await this.wait(600);
@@ -463,6 +466,7 @@ export class BattleUI {
 
         await this.wait(400);
 
+        Sfx.play(isSuccess ? 'catch' : 'catchFail');
         if (isSuccess) {
             ball.style.filter = "brightness(0.5)";
             await this.wait(500);
