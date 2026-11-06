@@ -1357,7 +1357,7 @@
                 <label style="font-weight: bold; color: #ffa502; display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 1.1rem;">
                     Jogador alvo
                 </label>
-                <select id="admin-player-select"
+                <select id="admin-player-select" onchange="window.Game.updateAdminPlayerInfo()"
                     style="width: 100%; padding: 12px; background: #2f3542; color: #fff; border: 1px solid #57606f; border-radius: 8px; font-size: 1rem; outline: none; transition: border 0.2s;"></select>
                 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;">
@@ -1389,12 +1389,48 @@
                             onclick="window.Game.adminGiveSpecificCard()">Dar Carta Específica</button>
                     </div>
 
+                    <div style="grid-column: span 2; display: flex; flex-direction: column; gap: 8px; background: rgba(241, 196, 15, 0.08); padding: 12px; border-radius: 8px; border: 1px solid rgba(241, 196, 15, 0.35);">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-weight: bold; font-size: 0.95rem; color: #f1c40f; display: flex; align-items: center; gap: 6px;">
+                                👑 Carta Lendária
+                            </span>
+                            <span id="admin-legendary-status-badge" style="font-size: 0.8rem; font-weight: bold; padding: 4px 10px; border-radius: 6px; background: rgba(46, 213, 115, 0.2); color: #2ed573; border: 1px solid #2ed573;">
+                                🟢 Liberada (Pode usar)
+                            </span>
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn" style="flex: 1; margin: 0; font-size: 0.9rem; padding: 10px; background: linear-gradient(135deg, #2ed573, #26af5f); color: #1e272e; border: none; font-weight: bold; box-shadow: 0 2px 6px rgba(46, 213, 115, 0.3);" onclick="window.Game.adminSetLegendaryUsage(false)">
+                                🟢 Liberar Lendária
+                            </button>
+                            <button class="btn" style="flex: 1; margin: 0; font-size: 0.9rem; padding: 10px; background: linear-gradient(135deg, #ff4757, #c0392b); color: #ffffff; border: none; font-weight: bold; box-shadow: 0 2px 6px rgba(255, 71, 87, 0.3);" onclick="window.Game.adminSetLegendaryUsage(true)">
+                                🔴 Bloquear Lendária
+                            </button>
+                        </div>
+                    </div>
+
                     <div style="grid-column: span 2; display: flex; gap: 10px; background: rgba(155,89,182,0.1); padding: 12px; border-radius: 8px; border: 1px solid rgba(155,89,182,0.3);">
                         <select id="admin-quest-select"
                             style="flex: 1; padding: 10px; background: #2f3542; color: #fff; border: 1px solid #57606f; border-radius: 6px; outline: none;">
                         </select>
                         <button class="btn" style="margin:0; font-size: 0.95rem; padding: 10px 20px; background: #9b59b6; border: none; font-weight: bold;"
                             onclick="window.Game.adminGiveQuest()">Conceder Missão</button>
+                    </div>
+
+                    <div style="grid-column: span 2; display: flex; flex-direction: column; gap: 8px; background: rgba(46, 213, 115, 0.1); padding: 12px; border-radius: 8px; border: 1px solid rgba(46, 213, 115, 0.3);">
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="text" id="admin-pokemon-search" placeholder="🔍 Digite para filtrar (ex: Gyarados, Charizard, 130)..."
+                                style="flex: 1; padding: 10px 12px; background: #2f3542; color: #fff; border: 1px solid #57606f; border-radius: 6px; outline: none; font-size: 0.9rem;"
+                                oninput="window.Game.adminFilterPokemon(this.value)"
+                                onkeydown="if(event.key==='Enter'){event.preventDefault(); window.Game.adminGivePokemon();}">
+                        </div>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <select id="admin-pokemon-select"
+                                style="flex: 2; padding: 10px; background: #2f3542; color: #fff; border: 1px solid #57606f; border-radius: 6px; outline: none;">
+                            </select>
+                            <input type="number" id="admin-pokemon-level" value="20" min="1" max="100" style="width: 65px; text-align: center; background: #2f3542; color: #fff; border: 1px solid #57606f; border-radius: 6px; padding: 10px; outline: none;" title="Nível do Pokémon">
+                            <button class="btn" style="margin:0; font-size: 0.95rem; padding: 10px 20px; background: #2ed573; border: none; font-weight: bold; color: #1e272e;"
+                                onclick="window.Game.adminGivePokemon()">Dar Pokémon</button>
+                        </div>
                     </div>
                 </div>
             </div>

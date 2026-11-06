@@ -399,12 +399,12 @@ export class CardUI {
         const Game = (window as any).Game;
         const currentPlayer = Game.getCurrentPlayer();
 
-        const targets = Game.players.filter((p: any) => p.id !== currentPlayer.id);
-
-        if (targets.length === 0) {
-            Game.showGlobalAlert("Nenhum adversário encontrado!", currentPlayer.name, true, false);
-            return;
-        }
+        // Alvos elegíveis: adversários com mais de 1 pokémon e com pelo menos 1 pokémon que possa ser removido
+        const targets = Game.players.filter((p: any) => 
+            p.id !== currentPlayer.id && 
+            p.team.length > 1 && 
+            p.team.some((mon: any) => CardEffects.canLoseByCard(mon))
+        );
 
         const modal = document.getElementById('pkmn-select-modal')!;
         const list = document.getElementById('pkmn-select-list')!;
@@ -412,8 +412,15 @@ export class CardUI {
         const boardCardsModal = document.getElementById('board-cards-modal');
         if (boardCardsModal) boardCardsModal.style.display = 'none';
 
-        document.getElementById('select-title')!.innerText = "Escolha de qual jogador mandar o Pokémon embora:";
+        const remaining = currentPlayer.effects?.ashGoodbyeRemaining ?? 2;
+        const stepText = remaining === 1 ? "(2/2) Escolha o 2º jogador" : "(1/2) Escolha o 1º jogador";
+        document.getElementById('select-title')!.innerText = `O Adeus de Ash ${stepText} para mandar um Pokémon embora:`;
         list.innerHTML = '';
+
+        if (targets.length === 0) {
+            GameDialog.toast("Nenhum adversário possui Pokémon que possam ser mandados embora!", { tone: 'warning' });
+            return;
+        }
 
         targets.forEach((target: any) => {
             const div = document.createElement('div');
@@ -431,11 +438,17 @@ export class CardUI {
             list.appendChild(div);
         });
 
-        const cancelBtn = document.createElement('button');
-        cancelBtn.className = 'btn btn-secondary mt-15';
-        cancelBtn.innerText = 'Cancelar';
-        cancelBtn.onclick = () => { modal.style.display = 'none'; };
-        list.appendChild(cancelBtn);
+        // Só permite cancelar se ainda não removeu nenhum Pokémon. Se já removeu 1, deve escolher o segundo!
+        if (remaining === 2) {
+            const cancelBtn = document.createElement('button');
+            cancelBtn.className = 'btn btn-secondary mt-15';
+            cancelBtn.innerText = 'Cancelar';
+            cancelBtn.onclick = () => {
+                delete currentPlayer.effects?.ashGoodbyeRemaining;
+                modal.style.display = 'none';
+            };
+            list.appendChild(cancelBtn);
+        }
 
         modal.style.display = 'flex';
     }
@@ -452,21 +465,26 @@ export class CardUI {
         list.innerHTML = '';
 
         target.team.forEach((mon: any, index: number) => {
-            const div = document.createElement('div');
+            // Pokémon com Vínculo Supremo ou Felicidade 100% NÃO aparecem na listagem
+            if (!CardEffects.canLoseByCard(mon)) return;
+            if (target.team.length <= 1) return;
 
-            if (target.team.length === 1) {
-                div.className = `mon-select-item disabled`;
-                div.innerHTML = `<img src="${mon.getSprite()}" width="40" style="filter: grayscale(100%);"><b>${mon.name}</b><br><small style="color:#e74c3c">Último Pokémon</small>`;
-            } else {
-                div.className = `mon-select-item`;
-                div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>Lv.${mon.level}</small>`;
-                div.onclick = () => {
-                    modal.style.display = 'none';
-                    CardEffects.activate(cardId, { targetId, pokemonIndex: index });
-                };
-            }
+            const div = document.createElement('div');
+            div.className = `mon-select-item`;
+            div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>Lv.${mon.level}</small>`;
+            div.onclick = () => {
+                modal.style.display = 'none';
+                CardEffects.activate(cardId, { targetId, pokemonIndex: index });
+            };
             list.appendChild(div);
         });
+
+        if (list.children.length === 0) {
+            const emptyDiv = document.createElement('div');
+            emptyDiv.style.cssText = 'padding: 15px; color: #bdc3c7; text-align: center; font-size: 0.9rem;';
+            emptyDiv.innerText = `${target.name} não possui Pokémon disponíveis para remoção.`;
+            list.appendChild(emptyDiv);
+        }
 
         const cancelBtn = document.createElement('button');
         cancelBtn.className = 'btn btn-secondary mt-15';
@@ -588,19 +606,24 @@ export class CardUI {
         list.innerHTML = '';
 
         player.team.forEach((mon: any, index: number) => {
+            // Pokémon com Vínculo Supremo ou Felicidade 100% NÃO aparecem na listagem
+            if (!CardEffects.canLoseByCard(mon)) return;
+
             const div = document.createElement('div');
-            if (!CardEffects.canLoseByCard(mon)) {
-                div.className = `mon-select-item disabled`;
-                div.innerHTML = `<img src="${mon.getSprite()}" width="40" style="filter: grayscale(100%);"><b>${mon.name}</b> <small>Vínculo Supremo</small>`;
-            } else {
-                div.className = `mon-select-item`;
-                div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>Lv.${mon.level}</small>`;
-                div.onclick = () => {
-                    this.continueTradeFlow(player, target, index);
-                };
-            }
+            div.className = `mon-select-item`;
+            div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>Lv.${mon.level}</small>`;
+            div.onclick = () => {
+                this.continueTradeFlow(player, target, index);
+            };
             list.appendChild(div);
         });
+
+        if (list.children.length === 0) {
+            const emptyDiv = document.createElement('div');
+            emptyDiv.style.cssText = 'padding: 15px; color: #bdc3c7; text-align: center; font-size: 0.9rem;';
+            emptyDiv.innerText = 'Você não possui Pokémon que possam ser trocados.';
+            list.appendChild(emptyDiv);
+        }
 
         const cancelBtn = document.createElement('button');
         cancelBtn.className = 'btn btn-secondary mt-15';
@@ -619,20 +642,25 @@ export class CardUI {
         list.innerHTML = '';
 
         target.team.forEach((mon: any, index: number) => {
+            // Pokémon com Vínculo Supremo ou Felicidade 100% NÃO aparecem na listagem
+            if (!CardEffects.canLoseByCard(mon)) return;
+
             const div = document.createElement('div');
-            if (!CardEffects.canLoseByCard(mon)) {
-                div.className = `mon-select-item disabled`;
-                div.innerHTML = `<img src="${mon.getSprite()}" width="40" style="filter: grayscale(100%);"><b>${mon.name}</b> <small>Vínculo Supremo</small>`;
-            } else {
-                div.className = `mon-select-item`;
-                div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>Lv.${mon.level}</small>`;
-                div.onclick = () => {
-                    modal.style.display = 'none';
-                    CardEffects.executeTrade(player, target, myChoice, index);
-                };
-            }
+            div.className = `mon-select-item`;
+            div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>Lv.${mon.level}</small>`;
+            div.onclick = () => {
+                modal.style.display = 'none';
+                CardEffects.executeTrade(player, target, myChoice, index);
+            };
             list.appendChild(div);
         });
+
+        if (list.children.length === 0) {
+            const emptyDiv = document.createElement('div');
+            emptyDiv.style.cssText = 'padding: 15px; color: #bdc3c7; text-align: center; font-size: 0.9rem;';
+            emptyDiv.innerText = `${target.name} não possui Pokémon que possam ser trocados.`;
+            list.appendChild(emptyDiv);
+        }
 
         const cancelBtn = document.createElement('button');
         cancelBtn.className = 'btn btn-secondary mt-15';
@@ -649,19 +677,24 @@ export class CardUI {
         list.innerHTML = '';
 
         player.team.forEach((mon: any, index: number) => {
+            // Pokémon com Vínculo Supremo ou Felicidade 100% NÃO aparecem na listagem
+            if (!CardEffects.canLoseByCard(mon)) return;
+
             const div = document.createElement('div');
-            if (!CardEffects.canLoseByCard(mon)) {
-                div.className = `mon-select-item disabled`;
-                div.innerHTML = `<img src="${mon.getSprite()}" width="40" style="filter: grayscale(100%);"><b>${mon.name}</b> <small style="color:red;">${mon.vinculoSupremo ? 'Vínculo Supremo' : 'Bloqueado'}</small>`;
-            } else {
-                div.className = `mon-select-item`;
-                div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>Lv.${mon.level}</small>`;
-                div.onclick = () => {
-                    this.continueNPCBattleTradeFlow(player, index);
-                };
-            }
+            div.className = `mon-select-item`;
+            div.innerHTML = `<img src="${mon.getSprite()}" width="40"><b>${mon.name}</b> <small>Lv.${mon.level}</small>`;
+            div.onclick = () => {
+                this.continueNPCBattleTradeFlow(player, index);
+            };
             list.appendChild(div);
         });
+
+        if (list.children.length === 0) {
+            const emptyDiv = document.createElement('div');
+            emptyDiv.style.cssText = 'padding: 15px; color: #bdc3c7; text-align: center; font-size: 0.9rem;';
+            emptyDiv.innerText = 'Você não possui Pokémon que possam ser entregues.';
+            list.appendChild(emptyDiv);
+        }
 
         const cancelBtn = document.createElement('button');
         cancelBtn.className = 'btn btn-secondary mt-15';

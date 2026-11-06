@@ -122,6 +122,10 @@ export class Game {
     static openAdminPanel() { (GameUI as any).openAdminPanel(); }
     static adminGiveCard() { (GameEvents as any).adminGiveCard(); }
     static adminGiveSpecificCard() { (GameEvents as any).adminGiveSpecificCard(); }
+    static adminGivePokemon() { (GameEvents as any).adminGivePokemon(); }
+    static adminFilterPokemon(query: string) { (GameUI as any).adminFilterPokemon(query); }
+    static adminSetLegendaryUsage(blocked: boolean) { (GameEvents as any).adminSetLegendaryUsage(blocked); }
+    static updateAdminPlayerInfo() { (GameUI as any).updateAdminPlayerInfo(); }
     static adminGiveQuest() { (GameEvents as any).adminGiveQuest(); }
     static adminClearDebuffs() { (GameEvents as any).adminClearDebuffs(); }
     static adminSetSkipTurns() { (GameEvents as any).adminSetSkipTurns(); }

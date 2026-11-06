@@ -518,6 +518,68 @@ export class GameUI {
         }
     }
 
+    static updateAdminPlayerInfo() {
+        const pSelect = document.getElementById('admin-player-select') as HTMLSelectElement;
+        const badge = document.getElementById('admin-legendary-status-badge');
+        if (!pSelect || !badge) return;
+
+        const pIdx = parseInt(pSelect.value, 10);
+        const p = GameState.players[pIdx];
+        if (!p) return;
+
+        const isBlocked = !!(p.effects && p.effects.playedLegendary);
+        if (isBlocked) {
+            badge.style.background = 'rgba(231, 76, 60, 0.2)';
+            badge.style.color = '#ff6b6b';
+            badge.style.borderColor = '#e74c3c';
+            badge.innerHTML = '🔴 Bloqueada (Já usou)';
+        } else {
+            badge.style.background = 'rgba(46, 213, 115, 0.2)';
+            badge.style.color = '#2ed573';
+            badge.style.borderColor = '#2ed573';
+            badge.innerHTML = '🟢 Liberada (Pode usar)';
+        }
+    }
+
+    static adminFilterPokemon(query: string = "") {
+        const pkmnSelect = document.getElementById('admin-pokemon-select') as HTMLSelectElement;
+        if (!pkmnSelect) return;
+
+        const currentVal = pkmnSelect.value;
+        const q = query.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+        pkmnSelect.innerHTML = '';
+
+        const allMons = [...POKEDEX].sort((a, b) => a.name.localeCompare(b.name));
+        const filtered = allMons.filter(p => {
+            if (!q) return true;
+            const nameNorm = p.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            return nameNorm.includes(q) || p.id.toString() === q || `#${p.id}`.includes(q);
+        });
+
+        if (filtered.length === 0) {
+            const opt = document.createElement('option');
+            opt.value = "";
+            opt.innerText = "Nenhum Pokémon encontrado";
+            pkmnSelect.appendChild(opt);
+            return;
+        }
+
+        filtered.forEach((p, idx) => {
+            const opt = document.createElement('option');
+            opt.value = p.id.toString();
+            opt.innerText = `[#${p.id}] ${p.name}`;
+            if (p.id.toString() === currentVal || (!currentVal && idx === 0)) {
+                opt.selected = true;
+            }
+            pkmnSelect.appendChild(opt);
+        });
+
+        if (!filtered.some(p => p.id.toString() === currentVal) && filtered.length > 0) {
+            pkmnSelect.selectedIndex = 0;
+        }
+    }
+
     static openAdminPanel() {
         const modal = document.getElementById('admin-modal');
         const pSelect = document.getElementById('admin-player-select') as HTMLSelectElement;
@@ -545,8 +607,17 @@ export class GameUI {
                 const opt = document.createElement('option');
                 opt.value = c.id;
                 opt.innerText = `[${c.rarity}] ${c.name}`;
+                if (c.id === 'ash_goodbye') opt.selected = true;
                 cSelect.appendChild(opt);
             });
+        }
+
+        const pkmnSearch = document.getElementById('admin-pokemon-search') as HTMLInputElement;
+        if (pkmnSearch) pkmnSearch.value = '';
+        this.adminFilterPokemon('');
+        const pkmnSelect = document.getElementById('admin-pokemon-select') as HTMLSelectElement;
+        if (pkmnSelect && pkmnSelect.querySelector('option[value="130"]')) {
+            pkmnSelect.value = "130";
         }
 
         const eSelect = document.getElementById('admin-event-select') as HTMLSelectElement;
@@ -575,6 +646,9 @@ export class GameUI {
 
         rInput.value = GameState.round.toString();
         tSelect.value = GameState.turn.toString();
+
+        pSelect.onchange = () => this.updateAdminPlayerInfo();
+        this.updateAdminPlayerInfo();
 
         modal.style.display = 'flex';
     }
@@ -2158,24 +2232,32 @@ export class GameUI {
         }
 
         banner.style.cssText = `
-            background: linear-gradient(135deg, rgba(0,0,0,0.9) 0%, rgba(44,62,80,0.9) 100%);
-            border: 2px solid #f1c40f;
+            background: linear-gradient(135deg, rgba(13, 20, 26, 0.95) 0%, rgba(35, 48, 62, 0.95) 100%);
+            border: 1.5px solid #f1c40f;
             border-radius: 8px;
-            padding: 10px;
-            margin-bottom: 15px;
+            padding: 6px 8px;
+            margin-bottom: 2px;
             color: white;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5), 0 0 8px rgba(241, 196, 15, 0.4);
+            box-shadow: 0 3px 8px rgba(0,0,0,0.4), 0 0 6px rgba(241, 196, 15, 0.3);
             cursor: pointer;
-            transition: transform 0.2s;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
             width: 100%;
             box-sizing: border-box;
         `;
 
-        banner.onmouseover = () => banner!.style.transform = 'scale(1.03)';
-        banner.onmouseout = () => banner!.style.transform = 'scale(1)';
+        banner.onmouseover = () => {
+            banner!.style.transform = 'translateY(-1px)';
+            banner!.style.borderColor = '#f9e79f';
+            banner!.style.boxShadow = '0 4px 10px rgba(0,0,0,0.5), 0 0 10px rgba(241, 196, 15, 0.55)';
+        };
+        banner.onmouseout = () => {
+            banner!.style.transform = 'none';
+            banner!.style.borderColor = '#f1c40f';
+            banner!.style.boxShadow = '0 3px 8px rgba(0,0,0,0.4), 0 0 6px rgba(241, 196, 15, 0.3)';
+        };
         banner.onclick = () => {
             if (champion && champion.team) {
                 GameFeel.vibrate([20, 40, 20]);
@@ -2256,13 +2338,13 @@ export class GameUI {
         const leadSprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${leadMon.isShiny ? 'shiny/' : ''}${leadMon.id}.png`;
 
         banner.innerHTML = `
-            <div style="text-align: left; text-shadow: 1px 1px 2px black;">
-                <div style="color: #f1c40f; font-weight: 900; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px;">Rei da Liga</div>
-                <div style="font-size: 1.1rem; font-weight: bold; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${champion.name || 'Desconhecido'}</div>
+            <div style="text-align: left; text-shadow: 1px 1px 2px black; min-width: 0; flex: 1;">
+                <div style="color: #f1c40f; font-weight: 900; font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.1;">Rei da Liga</div>
+                <div style="font-size: 0.88rem; font-weight: 700; max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.2;">${champion.name || 'Desconhecido'}</div>
             </div>
-            <div style="position: relative; width: 50px; height: 50px; flex-shrink: 0;">
-                <img src="${avatarSrc}" style="width: 50px; height: 50px; border-radius: 50%; border: 2px solid #ecf0f1; object-fit: cover;">
-                <img src="${leadSprite}" style="position: absolute; bottom: -10px; left: -15px; width: 45px; filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.8));">
+            <div style="position: relative; width: 36px; height: 36px; flex-shrink: 0; margin-left: 6px;">
+                <img src="${avatarSrc}" style="width: 36px; height: 36px; border-radius: 50%; border: 1.5px solid #ecf0f1; object-fit: cover; display: block;">
+                <img src="${leadSprite}" style="position: absolute; bottom: -3px; left: -7px; width: 28px; height: 28px; object-fit: contain; filter: drop-shadow(1px 1px 2px rgba(0,0,0,0.8));">
             </div>
         `;
 

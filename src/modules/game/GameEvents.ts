@@ -1168,6 +1168,60 @@ export class GameEvents {
         }
     }
 
+    static adminGivePokemon() {
+        const pSelect = document.getElementById('admin-player-select') as HTMLSelectElement;
+        const pkmnSelect = document.getElementById('admin-pokemon-select') as HTMLSelectElement;
+        const lvlInput = document.getElementById('admin-pokemon-level') as HTMLInputElement;
+        if (!pSelect || !pkmnSelect) return;
+
+        const pIdx = parseInt(pSelect.value, 10);
+        const p = GameState.players[pIdx];
+        if (!p) return;
+
+        if (p.team.length >= 6) {
+            GameDialog.toast(`${p.name} já possui 6 Pokémon no time!`, { tone: 'warning' });
+            return;
+        }
+
+        const templateId = parseInt(pkmnSelect.value, 10);
+        const level = parseInt(lvlInput?.value || "20", 10);
+        const PokemonClass = (window as any).Pokemon || p.team[0]?.constructor;
+        const newMon = new PokemonClass(templateId, level);
+
+        p.team.push(newMon);
+        GameUI.sendGlobalLog(`🛠️ ADMIN HOST: Adicionou [${newMon.name} Lv.${newMon.level}] ao time de ${p.name}!`);
+        const NetworkObj = (window as any).Network;
+        if (NetworkObj && NetworkObj.isOnline) NetworkObj.syncSpecificPlayer(p.id, true);
+        GameUI.updateHUD();
+        GameDialog.toast(`${newMon.name} Lv.${level} adicionado ao time de ${p.name}!`, { tone: 'success' });
+    }
+
+    static adminSetLegendaryUsage(blocked: boolean) {
+        const pSelect = document.getElementById('admin-player-select') as HTMLSelectElement;
+        if (!pSelect) return;
+        const pIdx = parseInt(pSelect.value, 10);
+        const p = GameState.players[pIdx];
+        if (!p) return;
+
+        if (!p.effects) p.effects = {};
+        p.effects.playedLegendary = blocked;
+
+        if (!blocked) {
+            delete p.effects.ashGoodbyeRemaining;
+            delete (p as any)._ashGoodbyeContinued;
+        }
+
+        const actionText = blocked ? 'BLOQUEADO' : 'LIBERADO';
+        const tone: 'warning' | 'success' = blocked ? 'warning' : 'success';
+        GameUI.sendGlobalLog(`🛠️ ADMIN HOST: Uso de Carta Lendária ${actionText} para ${p.name}!`);
+        GameDialog.toast(`Uso de Carta Lendária ${blocked ? 'bloqueado' : 'liberado'} para ${p.name}!`, { tone });
+
+        const NetworkObj = (window as any).Network;
+        if (NetworkObj && NetworkObj.isOnline) NetworkObj.syncSpecificPlayer(p.id, true);
+        GameUI.updateHUD();
+        GameUI.updateAdminPlayerInfo();
+    }
+
     static adminGiveQuest() {
         const pSelect = document.getElementById('admin-player-select') as HTMLSelectElement;
         const qSelect = document.getElementById('admin-quest-select') as HTMLSelectElement;
@@ -1201,6 +1255,7 @@ export class GameEvents {
         const NetworkObj = (window as any).Network;
         if (NetworkObj && NetworkObj.isOnline) NetworkObj.syncSpecificPlayer(p.id, true);
         GameUI.updateHUD();
+        GameUI.updateAdminPlayerInfo();
     }
 
     static adminSetSkipTurns() {

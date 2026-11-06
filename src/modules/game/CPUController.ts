@@ -217,7 +217,7 @@ export class CPUController {
                     break;
                 case 'ash_goodbye': {
                     const opponents = Game.players.filter((pl: any) => pl.id !== p.id);
-                    conditionMet = opponents.some((opp: any) => opp.team.length > 1 && opp.team.some((mon: any) => !mon.vinculoSupremo && mon.happiness !== 100));
+                    conditionMet = opponents.some((opp: any) => opp.team.length > 1 && opp.team.some((mon: any) => CardEffects.canLoseByCard(mon)));
                     break;
                 }
                 case 'steal_mega_stone': {

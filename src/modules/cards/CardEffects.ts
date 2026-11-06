@@ -128,15 +128,19 @@ export class CardEffects {
             case 'steal_mega_stone':
                 return target.team.some((m: any) => m.megaStone && !m.vinculoSupremo && m.happiness !== 100) ? null : `${target.name} não tem Mega Pedra que possa ser destruída.`;
             case 'ash_goodbye':
-                return target.team.length > 1 && target.team.some((m: any) => !m.vinculoSupremo && m.happiness !== 100) ? null : `${target.name} não tem Pokémon que possa ser removido.`;
+                return target.team.length > 1 && target.team.some((m: any) => this.canLoseByCard(m)) ? null : `${target.name} não tem Pokémon que possa ser removido.`;
             default:
                 return null;
         }
     }
 
-    // Vínculo Supremo: o Pokémon nunca sai do time por efeito de carta (só se o dono trocar por uma captura)
-    static canLoseByCard(mon: any) {
-        return !!mon && !mon.vinculoSupremo && !mon.isTemp && !mon.isMegaEvolution;
+    // Vínculo Supremo ou Afetivo (Felicidade 100%): o Pokémon nunca sai do time por efeito de carta (só se o dono trocar por uma captura)
+    static canLoseByCard(mon: any): boolean {
+        if (!mon) return false;
+        if (mon.vinculoSupremo) return false;
+        if (mon.happiness !== undefined && mon.happiness >= 100) return false;
+        if (mon.isTemp || mon.isMegaEvolution) return false;
+        return true;
     }
 
     static tradeableIndices(team: any[]) {
@@ -1042,7 +1046,7 @@ export class CardEffects {
                         if (opp.team.length <= 1) continue;
                         for (let idx = 0; idx < opp.team.length; idx++) {
                             const mon = opp.team[idx];
-                            if (!mon.vinculoSupremo && mon.happiness !== 100) {
+                            if (CardEffects.canLoseByCard(mon)) {
                                 const stats = mon.maxHp + mon.atk + mon.def + mon.speed;
                                 if (stats > bestStats) {
                                     bestStats = stats;
@@ -1063,7 +1067,15 @@ export class CardEffects {
                     const tId = targetId.targetId;
                     const pIdx = targetId.pokemonIndex;
                     const target = Game.players.find((p: any) => p.id === tId);
-                    if (!target) { consumed = false; break; }
+                    if (!target) {
+                        consumed = false;
+                        if (player.isCPU) {
+                            setTimeout(() => { CardEffects.activate(cardId); }, 300);
+                        } else {
+                            setTimeout(() => { CardUI.openAshGoodbyeTargetSelection(cardId); }, 300);
+                        }
+                        break;
+                    }
 
                     // Garante que ashGoodbyeRemaining está inicializado
                     if (player.effects.ashGoodbyeRemaining === undefined) {
@@ -1082,7 +1094,7 @@ export class CardEffects {
                         break;
                     }
 
-                    if (target.team.length === 1) {
+                    if (target.team.length <= 1) {
                         if (!player.isCPU) GameDialog.toast("Você não pode mandar embora o último Pokémon do treinador!", { tone: 'warning' });
                         consumed = false;
                         if (player.isCPU) {
@@ -1093,13 +1105,26 @@ export class CardEffects {
                         break;
                     }
 
-                    if (targetMon.vinculoSupremo || targetMon.happiness === 100) {
+                    if (!CardEffects.canLoseByCard(targetMon)) {
                         effectLog = `🤝 O ADEUS DE ASH FALHOU! ${targetMon.name} se recusa a ir embora devido ao Vínculo Supremo/Afetivo!`;
-                        // Não remove, mas conta a tentativa
-                    } else {
-                        target.team.splice(pIdx, 1);
-                        effectLog = `👋 ADEUS! ${player.name} fez ${target.name} libertar seu ${targetMon.name} para todo o sempre!`;
+                        Game.log(effectLog);
+                        Game.showGlobalAlert(effectLog, player.name, true, false);
+                        if (!player.isCPU) GameDialog.toast(`${targetMon.name} possui Vínculo Supremo/Afetivo e não pode ser mandado embora! Escolha outro.`, { tone: 'warning' });
+                        // NÃO consome a tentativa nem a carta; reabre a seleção para escolher outro Pokémon
+                        consumed = false;
+                        (player as any)._ashGoodbyeContinued = true;
+                        skipBottomSync = true;
+                        if (player.isCPU) {
+                            setTimeout(() => { CardEffects.activate(cardId); }, 1200);
+                        } else {
+                            setTimeout(() => { CardUI.openAshGoodbyeTargetSelection(cardId); }, 1200);
+                        }
+                        break;
                     }
+
+                    // Remoção efetivada com sucesso
+                    target.team.splice(pIdx, 1);
+                    effectLog = `👋 ADEUS! ${player.name} fez ${target.name} libertar seu ${targetMon.name} para todo o sempre!`;
 
                     player.effects.ashGoodbyeRemaining--;
                     const remaining = player.effects.ashGoodbyeRemaining;
@@ -1111,7 +1136,14 @@ export class CardEffects {
 
                     Game.updateHUD();
 
-                    if (remaining > 0) {
+                    // Checa se ainda há alvos válidos disponíveis no tabuleiro inteiro
+                    const hasMoreTargets = Game.players.some((p: any) => 
+                        p.id !== player.id && 
+                        p.team.length > 1 && 
+                        p.team.some((m: any) => CardEffects.canLoseByCard(m))
+                    );
+
+                    if (remaining > 0 && hasMoreTargets) {
                         // Ainda há seleções a fazer — marca como continuação para não consumir a carta ainda
                         (player as any)._ashGoodbyeContinued = true;
                         skipBottomSync = true;
@@ -1122,7 +1154,10 @@ export class CardEffects {
                             setTimeout(() => { CardUI.openAshGoodbyeTargetSelection(cardId); }, 1200);
                         }
                     } else {
-                        // Última seleção — finaliza normalmente
+                        // Concluiu as 2 remoções de fato (ou não há mais alvos elegíveis no tabuleiro)
+                        if (remaining > 0 && !hasMoreTargets) {
+                            Game.log(`👋 Não há mais Pokémon de outros jogadores disponíveis para mandar embora.`);
+                        }
                         delete player.effects.ashGoodbyeRemaining;
                         consumed = true;
                     }

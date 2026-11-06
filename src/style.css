@@ -2634,7 +2634,8 @@ body {
 }
 
 .extra-space {
-    flex: 1;
+    flex: 0 0 auto;
+    min-height: auto;
     opacity: 1;
     display: flex;
     flex-direction: column;
