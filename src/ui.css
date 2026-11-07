@@ -221,50 +221,18 @@ body {
    -------------------------------------------------------------------------- */
 #left-panel {
     width: 210px;
-    height: 100%;
-    max-height: 100vh;
-    min-height: 0;
-    padding: 12px 10px 20px 12px;
-    gap: 8px;
+    padding: 14px;
+    gap: 10px;
     background: rgba(13, 20, 26, 0.94);
     border-right: 1px solid var(--pb-line);
     box-shadow: none;
     backdrop-filter: none;
-    display: flex;
-    flex-direction: column;
-    box-sizing: border-box;
     overflow-y: auto;
-    overflow-x: hidden;
-    overscroll-behavior: contain;
     scrollbar-width: thin;
-    scrollbar-color: rgba(241, 196, 15, 0.35) transparent;
-}
-
-#left-panel::-webkit-scrollbar {
-    width: 5px;
-}
-
-#left-panel::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.15);
-    border-radius: 4px;
-}
-
-#left-panel::-webkit-scrollbar-thumb {
-    background: rgba(241, 196, 15, 0.35);
-    border-radius: 4px;
-    transition: background 0.2s ease;
-}
-
-#left-panel::-webkit-scrollbar-thumb:hover {
-    background: rgba(241, 196, 15, 0.65);
-}
-
-#left-panel > .panel-box {
-    flex-shrink: 0;
 }
 
 #left-panel .panel-box {
-    padding: 10px 12px;
+    padding: 12px;
     text-align: left;
     color: var(--pb-text);
     background: var(--pb-surface);
@@ -422,99 +390,169 @@ body {
 }
 
 #left-panel .extra-space {
-    display: flex;
-    flex-direction: column;
-    align-content: stretch;
-    justify-content: flex-start;
-    gap: 5px;
-    padding: 8px 10px 10px;
-    flex: 0 0 auto;
-    min-height: auto;
-    overflow: visible;
-}
-
-#left-panel .extra-space > #champion-global-banner {
-    flex-shrink: 0;
+    display: grid;
+    align-content: start;
+    justify-content: stretch;
+    gap: 6px;
 }
 
 #left-panel .extra-space .btn {
     width: 100%;
-    min-height: 28px;
-    padding: 4px 8px;
     margin: 0;
-    font-size: 0.76rem;
-    font-weight: 600;
-    border-radius: 7px;
-    flex-shrink: 0;
+    font-size: 0.82rem;
+    outline-offset: 2px;
 }
 
-#left-panel .extra-space .pb-switch {
-    min-height: 24px;
-    padding: 2px 0;
-    font-size: 0.74rem;
-    gap: 8px;
-    cursor: pointer;
-    flex-shrink: 0;
+#left-panel .extra-space > .pb-switch {
+    grid-column: 1 / -1;
 }
 
-#left-panel .extra-space .pb-switch-track {
-    width: 26px;
-    height: 15px;
-}
-
-#left-panel .extra-space .pb-switch-track::after {
-    width: 11px;
-    height: 11px;
-}
-
-#left-panel .extra-space .pb-switch input:checked + .pb-switch-track::after {
-    transform: translateX(11px);
-}
-
-#left-panel .extra-space .pb-setting-row {
-    min-height: 24px;
-    padding: 1px 0;
-    font-size: 0.74rem;
-    gap: 6px;
-    flex-shrink: 0;
-}
-
-#left-panel .extra-space .pb-setting-row span {
-    font-size: 0.74rem;
-    color: var(--pb-text-2);
-}
-
-#left-panel .extra-space .pb-setting-row input[type="range"] {
-    flex: 0 1 80px;
-    min-width: 50px;
-    height: 16px;
-}
-
-#left-panel .extra-space .pb-setting-row select {
-    flex: 0 1 80px;
-    min-height: 22px;
-    padding: 1px 4px;
-    font-size: 0.72rem;
-    border-radius: 6px;
-}
-
-#left-panel .extra-space > div:last-child {
-    text-align: center;
-    padding-top: 2px;
-    flex-shrink: 0;
-}
-
-#left-panel #online-indicator {
+#online-indicator {
     color: var(--pb-text-3) !important;
-    font-size: 0.65rem;
-    letter-spacing: 0.05em;
-    opacity: 0.8;
+    font-size: 0.7rem;
+    letter-spacing: 0.04em;
 }
 
 /* --------------------------------------------------------------------------
    Layout desktop: tabuleiro sempre cabe na área disponível
    -------------------------------------------------------------------------- */
 @media (min-width: 1001px) {
+    #left-panel {
+        width: 210px;
+        height: 100%;
+        max-height: 100vh;
+        min-height: 0;
+        padding: 12px 10px 20px 12px;
+        gap: 8px;
+        background: rgba(13, 20, 26, 0.94);
+        border-right: 1px solid var(--pb-line);
+        display: flex;
+        flex-direction: column;
+        box-sizing: border-box;
+        overflow-y: auto;
+        overflow-x: hidden;
+        overscroll-behavior: contain;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(241, 196, 15, 0.35) transparent;
+    }
+
+    #left-panel::-webkit-scrollbar {
+        width: 5px;
+    }
+
+    #left-panel::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.15);
+        border-radius: 4px;
+    }
+
+    #left-panel::-webkit-scrollbar-thumb {
+        background: rgba(241, 196, 15, 0.35);
+        border-radius: 4px;
+        transition: background 0.2s ease;
+    }
+
+    #left-panel::-webkit-scrollbar-thumb:hover {
+        background: rgba(241, 196, 15, 0.65);
+    }
+
+    #left-panel > .panel-box {
+        flex-shrink: 0;
+    }
+
+    #left-panel .panel-box {
+        padding: 10px 12px;
+    }
+
+    #left-panel .extra-space {
+        display: flex;
+        flex-direction: column;
+        align-content: stretch;
+        justify-content: flex-start;
+        gap: 5px;
+        padding: 8px 10px 10px;
+        flex: 0 0 auto;
+        min-height: auto;
+        overflow: visible;
+    }
+
+    #left-panel .extra-space > #champion-global-banner {
+        flex-shrink: 0;
+    }
+
+    #left-panel .extra-space .btn {
+        width: 100%;
+        min-height: 28px;
+        padding: 4px 8px;
+        margin: 0;
+        font-size: 0.76rem;
+        font-weight: 600;
+        border-radius: 7px;
+        flex-shrink: 0;
+    }
+
+    #left-panel .extra-space .pb-switch {
+        min-height: 24px;
+        padding: 2px 0;
+        font-size: 0.74rem;
+        gap: 8px;
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+
+    #left-panel .extra-space .pb-switch-track {
+        width: 26px;
+        height: 15px;
+    }
+
+    #left-panel .extra-space .pb-switch-track::after {
+        width: 11px;
+        height: 11px;
+    }
+
+    #left-panel .extra-space .pb-switch input:checked + .pb-switch-track::after {
+        transform: translateX(11px);
+    }
+
+    #left-panel .extra-space .pb-setting-row {
+        min-height: 24px;
+        padding: 1px 0;
+        font-size: 0.74rem;
+        gap: 6px;
+        flex-shrink: 0;
+    }
+
+    #left-panel .extra-space .pb-setting-row span {
+        font-size: 0.74rem;
+        color: var(--pb-text-2);
+    }
+
+    #left-panel .extra-space .pb-setting-row input[type="range"] {
+        flex: 0 1 80px;
+        min-width: 50px;
+        height: 16px;
+    }
+
+    #left-panel .extra-space .pb-setting-row select {
+        flex: 0 1 80px;
+        min-height: 22px;
+        padding: 1px 4px;
+        font-size: 0.72rem;
+        border-radius: 6px;
+    }
+
+    #left-panel .extra-space > div:last-child {
+        text-align: center;
+        padding-top: 2px;
+        flex-shrink: 0;
+    }
+
+    #left-panel #online-indicator {
+        color: var(--pb-text-3) !important;
+        font-size: 0.65rem;
+        letter-spacing: 0.05em;
+        opacity: 0.8;
+    }
+
     #center-stage {
         min-width: 0;
         container-type: size;
@@ -1799,6 +1837,12 @@ body:has(#battle-modal[style*="flex"]) .hud-column {
     html,
     body {
         overflow-x: hidden;
+    }
+
+    #left-panel,
+    #center-stage,
+    #right-panel {
+        display: contents !important;
     }
 
     #game-container {
