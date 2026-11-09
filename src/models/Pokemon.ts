@@ -293,17 +293,20 @@ export class Pokemon {
         this.currentHp = Math.max(1, healAmount); 
     }
     
-    gainXp(amount: number, player: Player) { 
+    /** source: de onde veio o XP (aparece no log de XP). */
+    gainXp(amount: number, player: Player, source: string = '') { 
         if(this.level >= 25) return; 
 
         let finalAmount = amount;
         let usedEffect = false;
+        const notes: string[] = source ? [source] : [];
         const Game = (window as any).Game;
 
         if (player && player.effects) {
             if ((player.effects.doubleXp && player.effects.doubleXp > 0) || Game.currentGlobalEvent?.id === 'EXP_BURST') {
                 finalAmount *= 2;
                 usedEffect = true;
+                notes.push(player.effects.doubleXp && player.effects.doubleXp > 0 ? 'Double XP ×2' : 'Explosão de XP ×2');
                 // Carta Double XP: conta por ganho de XP ("próximos 5 ganhos"), não por turno
                 if (player.effects.doubleXp && player.effects.doubleXp > 0) {
                     player.effects.doubleXp--;
@@ -321,7 +324,7 @@ export class Pokemon {
                 
                 Game.sendGlobalLog(`🤩 Exp Share ativado! Todos os vivos do time de ${player.name} receberam ${finalAmount} XP integralmente!`);
                 
-                aliveTeam.forEach(mon => mon._applyXp(finalAmount, player));
+                aliveTeam.forEach(mon => mon._applyXp(finalAmount, player, [...notes, 'Exp. Share'].join(' · ')));
                 
                 if (usedEffect && (window as any).Network && (window as any).Network.isOnline) {
                     (window as any).Network.syncPlayerState();
@@ -330,15 +333,14 @@ export class Pokemon {
             }
         }
 
-        this._applyXp(finalAmount, player);
+        this._applyXp(finalAmount, player, notes.join(' · '));
         
         if (usedEffect && (window as any).Network && (window as any).Network.isOnline) {
             (window as any).Network.syncPlayerState();
         }
     }
 
-    _applyXp(amount: number, player: Player) {
-        (window as any).Game.sendGlobalLog(`💹 ${this.name} ganhou ${amount} XP!`);
+    _applyXp(amount: number, player: Player, note: string = '') {
         this.currentXp += amount; 
         const levelBefore = this.level;
         
@@ -346,6 +348,17 @@ export class Pokemon {
             this.currentXp -= this.maxXp; 
             this.levelUp(player); 
         } 
+        // Log de XP (filtro "XP" no histórico): quem ganhou, de quem é, de onde veio e como ficou a barra
+        const Game = (window as any).Game;
+        if (Game?.log && levelBefore < 25) {
+            const players: any[] = Game.players || [];
+            let idx = player ? players.indexOf(player) : -1;
+            if (idx < 0 && player) idx = players.findIndex(p => p.id === player.id);
+            const lvl = this.level > levelBefore ? `Nv ${levelBefore} → ${this.level}` : `Nv ${this.level}`;
+            const bar = this.level >= 25 ? 'nível máximo' : `${Math.floor(this.currentXp)}/${this.maxXp} XP`;
+            const owner = player ? ` de ${player.name}` : '';
+            Game.log(`💹 ${this.name}${owner} ganhou +${amount} XP${note ? ` (${note})` : ''} · ${lvl} · ${bar}`, idx >= 0 ? idx : undefined);
+        }
         // Só visual: barra de XP e "subiu de nível" na batalha/HUD
         (window as any).GameFeel?.onXp?.(this, amount, this.level - levelBefore);
     }

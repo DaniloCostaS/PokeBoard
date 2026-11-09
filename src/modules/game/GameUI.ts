@@ -3,7 +3,10 @@ import { GameEvents } from './GameEvents';
 import { Pokemon } from '../../models/Pokemon';
 import { MapSystem } from '../../systems/MapSystem';
 import { Network } from '../../systems/Network';
-import { QUESTS_DB } from '../../constants/quests';
+import { QUESTS_DB, readyQuests } from '../../constants/quests';
+import { activeEffects } from '../ui/PlayerEffects';
+import { newCardsOf } from '../cards/NewCards';
+import { Sfx } from '../audio/Sfx';
 import {
     TILE,
     SHOP_ITEMS,
@@ -66,8 +69,6 @@ export class GameUI {
         const leftSlots: HTMLElement[] = [];
         const rightSlots: HTMLElement[] = [];
 
-        const typeColors: any = { "Normal": "#A8A77A", "Fogo": "#EE8130", "Água": "#6390F0", "Elétrico": "#F7D02C", "Grama": "#7AC74C", "Gelo": "#96D9D6", "Lutador": "#C22E28", "Veneno": "#A33EA1", "Terra": "#E2BF65", "Voador": "#A98FF3", "Psíquico": "#F95587", "Inseto": "#A6B91A", "Pedra": "#B6A136", "Fantasma": "#735797", "Dragão": "#6F35FC", "Noturno": "#705746", "Aço": "#B7B7CE", "Fada": "#D685AD" };
-
         const oneColumn = this.hudOneColumn.matches;
         if (!this.hudLayoutWatched) {
             this.hudLayoutWatched = true;
@@ -90,6 +91,7 @@ export class GameUI {
         GameState.players.forEach((p, i) => {
             const rank = ranking.indexOf(p.id) + 1;
             const d = document.createElement('div');
+            const NetworkObj = (window as any).Network || Network;
             d.className = `player-slot ${i === GameState.turn ? 'active' : ''}${i === TurnBar.mePlayerIndex() ? ' is-me' : ''}`;
             d.dataset.playerIndex = String(i);
             const playerColor = PLAYER_COLORS[i % PLAYER_COLORS.length];
@@ -179,25 +181,16 @@ export class GameUI {
             const totalItems = Object.values(p.items).reduce((sum, val) => sum + val, 0);
             const totalCards = p.cards.length;
 
-            // Efeitos ativos como "status" no estilo dos jogos (PAR, LENTO...)
-            const status: { cls: string; label: string; title: string; color?: string; type?: string }[] = [];
-            const protectedCardsCount = p.cards.filter((c: any) => c.isProtected).length;
-            if (protectedCardsCount > 0) status.push({ cls: 'prot', label: `PROT ${protectedCardsCount}`, title: 'Cartas protegidas' });
-            if (p.skipTurns > 0) status.push({ cls: 'par', label: `PAR ${p.skipTurns}`, title: `Paralisado: perde ${p.skipTurns} turno(s)` });
-            if (p.effects.slow && p.effects.slow > 0) status.push({ cls: 'slow', label: `LENTO ${p.effects.slow}`, title: 'Lentidão: o dado vale 1' });
-            if (p.effects.curse) status.push({ cls: 'curse', label: 'MALD', title: 'Amaldiçoado: dano reduzido e itens bloqueados no ginásio' });
-            if (p.effects.lureShiny && p.effects.lureShiny > 0) status.push({ cls: 'shiny', label: `SHINY ${p.effects.lureShiny}`, title: 'Isca de shiny' });
-            if (p.effects.extraTurn) status.push({ cls: 'extra', label: 'EXTRA', title: 'Joga de novo' });
-            if (p.effects.doubleXp && p.effects.doubleXp > 0) status.push({ cls: 'xp', label: `XP×2 ${p.effects.doubleXp}`, title: 'XP em dobro' });
-            if (p.effects.expShare && p.effects.expShare > 0) status.push({ cls: 'share', label: `EXP ${p.effects.expShare}`, title: 'Exp. Share' });
-            if (p.effects.moonwalker && p.effects.moonwalker > 0) status.push({ cls: 'moon', label: `RÉ ${p.effects.moonwalker}`, title: 'Moonwalker: anda para trás' });
-            if (p.effects.lureType && p.effects.lureType.count > 0) {
-                const lType = p.effects.lureType.type;
-                status.push({ cls: 'lure poke-type-badge', label: `ISCA ${p.effects.lureType.count}`, title: `Isca de tipo: ${lType}`, color: typeColors[lType] || '#777', type: lType });
-            }
-            const effectsHTML = status.length
-                ? `<div class="pb-status-row">${status.map((st: any) => `<span class="pb-status pb-status--${st.cls}" title="${st.title}"${st.color ? ` style="--st:${st.color}"` : ''}${st.type ? ` data-type="${st.type}"` : ''}>${st.label}</span>`).join('')}</div>`
+            // Efeitos ativos (cartas e status) bem visíveis: ícone, nome e quantas vezes ainda valem
+            const effects = activeEffects(p);
+            const effectsHTML = effects.length
+                ? `<div class="pb-fx-row">${effects.map(fx => `<span class="pb-fx pb-fx--${fx.tone} pb-fx--${fx.key}" title="${fx.name}: ${fx.detail}"${fx.color ? ` style="--fx:${fx.color}"` : ''}><i aria-hidden="true">${fx.icon}</i><span class="pb-fx-name">${fx.name}</span>${fx.count ? `<b>${fx.count}</b>` : ''}</span>`).join('')}</div>`
                 : '';
+
+            // Missão pronta para resgatar e cartas novas da rodada (só para quem pode agir sobre elas)
+            const canSeeOwn = !NetworkObj.isOnline || p.id === NetworkObj.myPlayerId;
+            const readyCount = canSeeOwn ? readyQuests(p).length : 0;
+            const newCards = canSeeOwn ? newCardsOf(p).size : 0;
 
             const maxLives = GameState.maxLives();
             const livesHTML = maxLives > 0
@@ -231,8 +224,8 @@ export class GameUI {
             ${teamHTML}
             <div class="hud-actions">
                 <button class="btn btn-secondary btn-mini" onclick="window.Game.openInventoryModal(${i})" title="Mochila" aria-label="Mochila: ${totalItems} itens"><i class="pb-ico pb-ico-bag"></i><span>${totalItems}</span></button>
-                <button class="btn btn-secondary btn-mini" onclick="window.QuestManager.openQuestsModal(window.Game.players[${i}])" title="Missões" aria-label="Missões: ${p.activeQuests ? p.activeQuests.length : 0}"><i class="pb-ico pb-ico-quest"></i><span>${p.activeQuests ? p.activeQuests.length : 0}</span></button>
-                <button class="btn btn-secondary btn-mini" onclick="window.Game.openBoardCards(${i})" title="Cartas" aria-label="Cartas: ${totalCards}"><i class="pb-ico pb-ico-cards"></i><span>${totalCards}</span></button>
+                <button class="btn btn-secondary btn-mini${readyCount ? ' has-alert' : ''}" onclick="window.QuestManager.openQuestsModal(window.Game.players[${i}])" title="${readyCount ? `${readyCount} missão(ões) pronta(s) para resgatar!` : 'Missões'}" aria-label="Missões: ${p.activeQuests ? p.activeQuests.length : 0}${readyCount ? `, ${readyCount} pronta(s) para resgatar` : ''}"><i class="pb-ico pb-ico-quest"></i><span>${p.activeQuests ? p.activeQuests.length : 0}</span>${readyCount ? `<em class="pb-hud-alert">!</em>` : ''}</button>
+                <button class="btn btn-secondary btn-mini${newCards ? ' has-new' : ''}" onclick="window.Game.openBoardCards(${i})" title="${newCards ? `${newCards} carta(s) nova(s) nesta rodada` : 'Cartas'}" aria-label="Cartas: ${totalCards}${newCards ? `, ${newCards} nova(s)` : ''}"><i class="pb-ico pb-ico-cards"></i><span>${totalCards}</span>${newCards ? `<em class="pb-hud-new">+${newCards}</em>` : ''}</button>
                 <button class="btn btn-secondary btn-mini" onclick="window.Game.openPokedex(${i})" title="Pokédex" aria-label="Pokédex"><i class="pb-ico pb-ico-dex"></i><span>Dex</span></button>
             </div>`;
             // Card igual ao anterior não é recriado: evita refazer imagens e layout a cada atualização vinda da rede
@@ -326,7 +319,31 @@ export class GameUI {
             btnSave.style.display = NetworkObj.isOnline ? 'none' : 'block';
         }
 
+        if (!BoardRenderer.failed) { BoardRenderer.refreshGymMarks(); BoardRenderer.refreshEffectTags(); }
+        this.notifyReadyQuests();
         GameFeel.onHudUpdate();
+    }
+
+    // Aviso (uma vez por missão) quando uma missão fica pronta para resgatar, venha a mudança de onde vier
+    private static notifiedQuests = new Set<string>();
+    private static notifyReadyQuests() {
+        const NetworkObj = (window as any).Network || Network;
+        if (NetworkObj.isOnline && NetworkObj.isSpectator) return;
+        GameState.players.forEach(p => {
+            if (p.isCPU || (NetworkObj.isOnline && p.id !== NetworkObj.myPlayerId)) return;
+            readyQuests(p).forEach(q => {
+                const key = `${p.id}:${q.id}`;
+                if (this.notifiedQuests.has(key)) return;
+                this.notifiedQuests.add(key);
+                const who = NetworkObj.isOnline ? '' : ` (${p.name})`;
+                GameDialog.toast(`🎯 Missão pronta para resgatar${who}: ${q.name}. Abra Missões para pegar a recompensa.`, { tone: 'success', duration: 6000 });
+                Sfx.play('achievement');
+            });
+        });
+        // Missão resgatada ou trocada sai da lista: se voltar a ficar pronta, avisa de novo
+        const live = new Set<string>();
+        GameState.players.forEach(p => readyQuests(p).forEach(q => live.add(`${p.id}:${q.id}`)));
+        this.notifiedQuests.forEach(k => { if (!live.has(k)) this.notifiedQuests.delete(k); });
     }
 
     static renderBoard() {
@@ -486,6 +503,7 @@ export class GameUI {
             else if (l.type === "items") icon = "🎒";
             else if (l.type === "turn") icon = "🛑";
             else if (l.type === "start_turn") icon = "▶️";
+            else if (l.type === "xp") icon = l.text.includes("subiu para o Nível") ? "⬆️" : "💹";
 
             const mLower = l.text.toLowerCase();
             if (mLower.includes("rolou o dado")) icon = "🎲";
@@ -696,7 +714,10 @@ export class GameUI {
         let logType = "system";
         const mLower = m.toLowerCase();
 
-        if (m.includes("[Batalha]") || mLower.includes("batalha") || mLower.includes("dano") || mLower.includes("desmaiou") || mLower.includes("capturou") || mLower.includes("selvagem") || mLower.includes("fugiu")) {
+        const isXpLog = m.includes("💹") || (m.includes("🎉") && m.includes("subiu para o Nível"));
+        if (isXpLog) {
+            logType = "xp";
+        } else if (m.includes("[Batalha]") || mLower.includes("batalha") || mLower.includes("dano") || mLower.includes("desmaiou") || mLower.includes("capturou") || mLower.includes("selvagem") || mLower.includes("fugiu")) {
             logType = "battle";
         } else if (mLower.includes("carta") || m.includes("🃏") || m.includes("||CARD:")) {
             logType = "cards";
@@ -719,6 +740,7 @@ export class GameUI {
         else if (logType === "items") icon = "🎒";
         else if (logType === "turn") icon = "🛑";
         else if (logType === "start_turn") icon = "▶️";
+        else if (logType === "xp") icon = m.includes("subiu para o Nível") ? "⬆️" : "💹";
 
         if (m.includes("rolou o dado")) icon = "🎲";
         if (mLower.includes("poção") || mLower.includes("curou")) icon = "🧪";
@@ -730,6 +752,8 @@ export class GameUI {
             customStyle = "background: rgba(255, 152, 0, 0.1); border-left: 4px solid #ff9800; font-weight: bold;";
         } else if (logType === "start_turn") {
             customStyle = "background: rgba(46, 204, 113, 0.1); border-left: 4px solid #2ecc71; font-weight: bold; color: #2ecc71;";
+        } else if (logType === "xp") {
+            customStyle = "background: rgba(155, 109, 255, 0.1); border-left: 4px solid #9b6dff;";
         }
 
         m = m.replace(/\n/g, '<br>');

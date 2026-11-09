@@ -3,6 +3,7 @@ import { CARDS_DB } from '../../constants';
 import type { Player } from '../../models/Player';
 import { GameState } from '../game/GameState';
 import { GameDialog } from '../ui/GameDialog';
+import { markNewCards } from './NewCards';
 
 export class CardManager {
     static getRarityWeight(rarity: string): number {
@@ -45,6 +46,7 @@ export class CardManager {
         const card = { ...finalPool[Math.floor(Math.random() * finalPool.length)] };
 
         player.cards.push(card);
+        markNewCards(player, [card]);
         Sfx.play('cardDraw');
 
         // Registro de Extrato de Cartas (Global)
@@ -76,6 +78,7 @@ export class CardManager {
         const card = { ...finalPool[Math.floor(Math.random() * finalPool.length)] };
 
         player.cards.push(card);
+        markNewCards(player, [card]);
         Sfx.play('cardDraw');
 
         // Registro de Extrato de Cartas (Global)
@@ -108,6 +111,7 @@ export class CardManager {
 
         const card = { ...cardRef };
         player.cards.push(card);
+        markNewCards(player, [card]);
         Sfx.play('cardDraw');
 
         // Registro de Extrato de Cartas (Global)
@@ -178,6 +182,7 @@ export class CardManager {
 
         const newCard = { ...finalPool[Math.floor(Math.random() * finalPool.length)] };
         player.cards.push(newCard);
+        markNewCards(player, [newCard]);
 
         const QuestManagerObj = (window as any).QuestManager || (window as any).modules?.QuestManager;
         if (QuestManagerObj) {
@@ -249,6 +254,7 @@ export class CardManager {
 
         const newCard = { ...finalFinalPool[Math.floor(Math.random() * finalFinalPool.length)] };
         player.cards.push(newCard);
+        markNewCards(player, [newCard]);
 
         const QuestManagerObj = (window as any).QuestManager || (window as any).modules?.QuestManager;
         if (QuestManagerObj) {

@@ -744,7 +744,7 @@ export class BattleCore {
             (this as any).finalPlayerLevelForQuests = this.activeMon.level;
             const oppStats = this.opponent.maxHp + this.opponent.atk + this.opponent.def + this.opponent.speed;
             const xpGain = Math.max(1, Math.floor(oppStats / 9));
-            this.activeMon.gainXp(xpGain, this.player!);
+            this.activeMon.gainXp(xpGain, this.player!, this.xpSource());
             this.activeMon.addHappiness(3);
 
             // amulet_coin: +100G ao derrotar um pokémon
@@ -866,7 +866,7 @@ export class BattleCore {
             if (this.isPvP && this.enemyPlayer) {
                 const plyStats = this.activeMon.maxHp + this.activeMon.atk + this.activeMon.def + this.activeMon.speed;
                 const oppXpGain = Math.max(1, Math.floor(plyStats / 9));
-                this.opponent.gainXp(oppXpGain, this.enemyPlayer);
+                this.opponent.gainXp(oppXpGain, this.enemyPlayer, 'Vitória PvP');
 
                 // amulet_coin: +100G ao derrotar um pokémon (para o inimigo)
                 if ((this.opponent as any).heldItem === 'amulet_coin') {
@@ -884,7 +884,7 @@ export class BattleCore {
             (this as any).finalPlayerLevelForQuests = this.activeMon.level;
             const oppStats = this.opponent.maxHp + this.opponent.atk + this.opponent.def + this.opponent.speed;
             const xpGain = Math.max(1, Math.floor(oppStats / 9));
-            this.activeMon.gainXp(xpGain, this.player!);
+            this.activeMon.gainXp(xpGain, this.player!, this.xpSource());
             this.activeMon.addHappiness(3);
             BattleUI.updateUI();
             if (NetworkObj.isOnline) NetworkObj.syncPlayerState();
@@ -1451,6 +1451,13 @@ export class BattleCore {
         }
     }
 
+    private static xpSource(): string {
+        if (this.isPvP) return 'Vitória PvP';
+        if (this.isGym) return 'Vitória no Ginásio';
+        if (this.isNPC) return 'Vitória contra Treinador';
+        return 'Vitória contra Selvagem';
+    }
+
     static run() {
         if (this.isPvP || this.isNPC || this.isGym) return GameDialog.toast("Não dá para fugir de uma batalha contra treinadores!", { tone: 'warning' });
         this.processingAction = true;
@@ -1471,7 +1478,7 @@ export class BattleCore {
                 const QuestManagerObj = (window as any).QuestManager || (window as any).modules?.QuestManager;
                 if (QuestManagerObj && this.player) QuestManagerObj.resetProgress(this.player, 'WIN_STREAK');
 
-                this.activeMon!.gainXp(5, this.player!);
+                this.activeMon!.gainXp(5, this.player!, 'Fuga');
 
                 if (this.opponent) {
                     if (this.opponent.isLegendary || this.opponent.isShiny) {
@@ -1709,7 +1716,7 @@ export class BattleCore {
             }
         }
 
-        this.activeMon!.gainXp(5, this.player!);
+        this.activeMon!.gainXp(5, this.player!, 'Captura');
 
         if (this.player!.team.length < 6) {
             this.player!.team.push(this.opponent!);
