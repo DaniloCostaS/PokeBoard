@@ -55,7 +55,7 @@ export class Player {
         playedCardThisTurn?: boolean;
         isWaitingCardAnimation?: boolean;
         cardsPlayedThisTurn?: number;
-        newCards?: { r: number; ids: string[] }; // cartas ganhas na rodada (tag NOVO)
+        newCards?: { r: number; add: Record<string, number>; base: Record<string, number> }; // cartas ganhas na rodada (tag NOVO)
     } = {};
 
     // --- ESTATÍSTICAS DE JOGO ---
