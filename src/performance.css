@@ -45,10 +45,10 @@
 .pb-tb-sound.is-muted .pb-sound-on { display: none; }
 .pb-tb-sound.is-muted .pb-sound-off { display: inline; }
 
-.pb-setting-row { display: flex; align-items: center; gap: 8px; min-height: 36px; font-size: 0.82rem; font-weight: 700; text-align: left; }
-.pb-setting-row > span { flex: 1 1 auto; }
+.pb-setting-row { display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; min-height: 36px; box-sizing: border-box; font-size: 0.82rem; font-weight: 700; text-align: left; }
+.pb-setting-row > span { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pb-setting-row input[type="range"] { flex: 0 1 112px; min-width: 70px; height: 24px; accent-color: #f2c94c; cursor: pointer; }
-.pb-setting-row select { flex: 0 1 112px; min-height: 30px; color: #fff; font: inherit; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.25); border-radius: 8px; }
+.pb-setting-row select { flex: 0 1 112px; min-width: 0; max-width: 100%; min-height: 30px; color: #fff; font: inherit; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.25); border-radius: 8px; }
 .pb-setting-row select option { color: #111; }
 
 /* --- Modo leve --- */

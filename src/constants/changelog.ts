@@ -4,6 +4,14 @@ export type ChangeKind = 'novo' | 'ajuste' | 'correcao';
 export type ChangelogDay = { date: string; changes: [ChangeKind, string][] };
 
 export const CHANGELOG: ChangelogDay[] = [
+    { date: '2026-11-09', changes: [
+        ['novo', 'Ginásio que você já venceu aparece no tabuleiro com um visto e a sua insígnia no canto.'],
+        ['novo', 'Missão pronta para resgatar: aviso na tela e um "!" no botão Missões do seu card até você pegar a recompensa.'],
+        ['novo', 'Cartas ganhas na rodada aparecem com a etiqueta NOVO na mão, e o botão de cartas mostra quantas são novas.'],
+        ['novo', 'Log de XP dos Pokémon: cada ganho mostra de onde veio, o nível e a barra. Filtre por "XP dos Pokémon" no histórico.'],
+        ['ajuste', 'Efeitos ativos (Campo Grudento, Exp. Share, Double XP, Maldição...) agora aparecem com ícone, nome e quantas vezes ainda valem, em vermelho os ruins e em verde os bons, e também em cima do peão no tabuleiro.'],
+        ['correcao', 'Volume e Gráficos no menu não ficam mais cortados ou escondidos no celular e no tablet.'],
+    ] },
     { date: '2026-11-06', changes: [
         ['novo', 'Sons no jogo: dado, passos, batalha, captura, cartas, moedas, vitória e muito mais. Ajuste o volume no menu lateral; o botão na barra de turno ou a tecla M liga e desliga.'],
         ['novo', 'Opção de gráficos (Automático, Completo ou Leve). No automático, o jogo reduz os efeitos sozinho se o aparelho não acompanhar.'],

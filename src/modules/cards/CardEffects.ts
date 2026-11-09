@@ -8,6 +8,7 @@ import { MAPA_MEGAS } from '../../constants/mapaMegas';
 import { POKEDEX } from '../../constants/pokedex';
 import { SupabaseDataStore } from '../network/SupabaseDataStore';
 import { GameDialog } from '../ui/GameDialog';
+import { markNewCards } from './NewCards';
 
 export class CardEffects {
     static async checkAutoDefense(attacker: Player, target: Player, incomingCardId: string, incomingCardName: string): Promise<boolean> {
@@ -609,6 +610,7 @@ export class CardEffects {
                             const stolenIdx = nonLegendaryIndices[Math.floor(Math.random() * nonLegendaryIndices.length)];
                             const stolenCard = target.cards.splice(stolenIdx, 1)[0];
                             player.cards.push(stolenCard);
+                            markNewCards(player, [stolenCard]);
 
                             Game.sendGlobalLog(`🃏 [Extrato] ${target.name} perdeu uma carta (Roubo). Total: ${target.cards.length}`);
                             Game.sendGlobalLog(`🃏 [Extrato] ${player.name} roubou uma carta. Total: ${player.cards.length}`);
@@ -958,7 +960,9 @@ export class CardEffects {
                     targetMon.megaStone = false;
                     const megaStoneCardData = CARDS_DB.find((c: any) => c.id === 'mega_stone');
                     if (megaStoneCardData) {
-                        player.cards.push({ ...megaStoneCardData });
+                        const back = { ...megaStoneCardData };
+                        player.cards.push(back);
+                        markNewCards(player, [back]);
                         Game.sendGlobalLog(`🃏 [Extrato] ${player.name} recuperou sua Mega Pedra como carta. Total: ${player.cards.length}`);
                     }
                     effectLog = `⛏️ A Mega Pedra foi retirada de ${targetMon.name} com segurança!`;
@@ -1240,6 +1244,7 @@ export class CardEffects {
                 const cardsCount = Math.floor(shuffledCards.length / 2);
                 const cardsReceived = shuffledCards.slice(0, cardsCount);
                 player.cards.push(...cardsReceived);
+                markNewCards(player, cardsReceived);
 
                 Game.sendGlobalLog(`💰 [Extrato] Assalto: Arrecadado ${totalStolenGold}G (recebeu ${goldReceived}G). Itens: ${stolenItemsList.length} (recebeu ${itemsCount}). Cartas: ${stolenCardsList.length} (recebeu ${cardsCount}).`);
                 effectLog = `💰 O GRANDE ASSALTO! ${player.name} roubou de todos, mas recebeu apenas metade dos espólios devido ao balanceamento!`;
@@ -1373,7 +1378,9 @@ export class CardEffects {
                     const leftovers = cardPool.length % Game.players.length;
 
                     Game.players.forEach((p: any) => {
-                        for (let i = 0; i < perPlayer; i++) { if (cardPool.length > 0) p.cards.push(cardPool.pop()); }
+                        const got: any[] = [];
+                        for (let i = 0; i < perPlayer; i++) { if (cardPool.length > 0) { const c = cardPool.pop(); p.cards.push(c); got.push(c); } }
+                        markNewCards(p, got);
                         Game.sendGlobalLog(`🃏 [Extrato] ${p.name} agora possui ${p.cards.length} cartas (Comunismo).`);
                     });
                     if (Network.isOnline) Network.syncPlayers(Game.players.map((p: any) => p.id));

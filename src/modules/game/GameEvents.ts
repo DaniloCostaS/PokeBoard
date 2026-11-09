@@ -17,6 +17,7 @@ import { GameSpawns } from './GameSpawns';
 import { NotificationSystem } from './NotificationSystem';
 import { CPUController } from './CPUController';
 import { QuestManager } from '../quests/QuestManager';
+import { readyQuests } from '../../constants/quests';
 import type { ItemData } from '../../constants';
 import { supabase, NetworkState } from '../network/SupabaseInit';
 import { NetworkSync } from '../network/NetworkSync';
@@ -794,6 +795,8 @@ export class GameEvents {
 
         const currP = GameState.players[NetworkObj.isOnline ? me : GameState.turn];
         GameUI.sendGlobalLog(`▶️ ${currP.name} iniciou o turno.`);
+        const ready = readyQuests(currP);
+        if (ready.length) GameDialog.toast(`🎯 Você tem ${ready.length === 1 ? `a missão "${ready[0].name}" pronta` : `${ready.length} missões prontas`} para resgatar! Abra Missões no seu card.`, { tone: 'success', duration: 6000 });
 
         // Bônus de década
         if (GameState.round > 1 && GameState.round % 10 === 0) {

@@ -1,5 +1,6 @@
 import { Sfx } from '../audio/Sfx';
 import { CARD_RARITIES } from '../../constants';
+import { newCardsOf } from './NewCards';
 
 // Mão de cartas em leque: passar o mouse ou deslizar o dedo levanta a carta no topo e mostra o detalhe; usar faz a carta voar para o tabuleiro/batalha.
 
@@ -31,6 +32,9 @@ export class CardHand {
         detail.innerHTML = `<p class="pb-hand-hint">${isSimplified ? 'Clique em uma carta para ver detalhes e ações.' : 'Passe o mouse ou deslize o dedo para inspecionar cada carta.'}</p>`;
 
         const n = cards.length;
+        // Cartas ganhas nesta rodada (só na mão do próprio jogador)
+        const fresh = opts.isMe ? newCardsOf(player) : new Set<any>();
+        const newTag = '<span class="pb-card-new" title="Obtida nesta rodada">NOVO</span>';
         const spread = Math.min(7, 48 / Math.max(n, 1));
         let activeIndex = -1;
 
@@ -58,7 +62,7 @@ export class CardHand {
 
                 const el = document.createElement('button');
                 el.type = 'button';
-                el.className = 'pb-cardpick';
+                el.className = fresh.has(c) ? 'pb-cardpick is-new' : 'pb-cardpick';
                 el.style.setProperty('--rc', rarityColor);
                 el.title = `${c.name} (${c.rarity} - ${typeLabel[c.type] || c.type})`;
                 el.setAttribute('aria-label', `${c.name}, ${c.rarity}`);
@@ -68,7 +72,7 @@ export class CardHand {
                     : `<span class="pb-cardpick-indicator" aria-hidden="true"></span>`;
 
                 el.innerHTML = `
-                    ${indicator}
+                    ${indicator}${fresh.has(c) ? newTag : ''}
                     <span class="pb-cardpick-art">
                         <img src="${this.thumb(c.id)}" alt="" loading="lazy" onerror="this.onerror=null;this.src='/assets/img/Cartas/${safeId}.jpg'">
                     </span>
@@ -95,7 +99,7 @@ export class CardHand {
                 const offset = i - (n - 1) / 2;
                 const el = document.createElement('button');
                 el.type = 'button';
-                el.className = 'pb-hand-card';
+                el.className = fresh.has(c) ? 'pb-hand-card is-new' : 'pb-hand-card';
                 el.style.setProperty('--rot', `${offset * spread}deg`);
                 el.style.setProperty('--lift', `${Math.abs(offset) * Math.abs(offset) * 1.6}px`);
                 el.style.setProperty('--rarity', rarityColor);
@@ -104,6 +108,7 @@ export class CardHand {
                 el.innerHTML = `
                     <img src="${this.thumb(c.id)}" alt="" loading="lazy" draggable="false" onerror="this.onerror=null;this.src='/assets/img/Cartas/${escapeHtml(c.id)}.jpg'">
                     ${c.isProtected ? '<span class="pb-hand-lock" title="Protegida">Protegida</span>' : ''}
+                    ${fresh.has(c) ? newTag : ''}
                 `;
 
                 // Hover no desktop: levanta imediatamente a carta ao passar o cursor

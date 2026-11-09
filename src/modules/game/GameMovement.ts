@@ -193,7 +193,7 @@ export class GameMovement {
 
             if (aliveTeam.length > 0) {
                 const luckyMon = aliveTeam[Math.floor(Math.random() * aliveTeam.length)];
-                luckyMon.gainXp(xpGain, p);
+                luckyMon.gainXp(xpGain, p, `Dado ${xpGain}`);
             }
         }
 

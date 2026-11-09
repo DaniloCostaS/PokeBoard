@@ -12,6 +12,8 @@ import { BoardAmbient } from './BoardAmbient';
 import { boardTextures, boardThumb } from './BoardTextures';
 import { Quality } from '../ui/Quality';
 import { Sfx } from '../audio/Sfx';
+import { TurnBar } from '../ui/TurnBar';
+import { activeEffects } from '../ui/PlayerEffects';
 import { BoardReach, computeReach } from './BoardReach';
 
 // Tabuleiro renderizado em WebGL (PixiJS): câmera com zoom/arrasto, peões animados e efeitos.
@@ -62,6 +64,8 @@ type Token = {
     faceCur: number;
     footAt: number;       // último "pisão" (achata o corpo)
     settleAt: number;     // chegada (quique final)
+    fxTag: Container | null; // ícones dos efeitos ativos acima do peão
+    fxKey: string;
 };
 
 type Puff = { s: Sprite; start: number; dur: number; x: number; y: number; vx: number; vy: number; size: number };
@@ -106,6 +110,7 @@ export class BoardRenderer {
     private static fx: Fx[] = [];
     private static size = 0;
     private static tooltip: HTMLElement | null = null;
+    private static gymMarkKey = '';
     static onGymTap: ((actualGymId: number, gid: number) => void) | null = null;
 
     // Câmera
@@ -148,8 +153,8 @@ export class BoardRenderer {
                 });
                 app.canvas.classList.add('pb-board-canvas');
                 host.appendChild(app.canvas);
-                // Ordem: casas → selvagens → marcações → grading/noite → luzes → brilhos → caminho → peões → efeitos
-                this.world.addChild(this.tileLayer, this.wildLayer, this.markLayer, this.gradeLayer, this.glowLayer, this.worldFxLayer, this.reachLayer, this.pathLayer, this.dustLayer, this.tokenLayer, this.fxLayer);
+                // Ordem: casas → selvagens → grading/noite → luzes → marcações (insígnias, efeitos) → brilhos → caminho → peões → efeitos
+                this.world.addChild(this.tileLayer, this.wildLayer, this.gradeLayer, this.glowLayer, this.markLayer, this.worldFxLayer, this.reachLayer, this.pathLayer, this.dustLayer, this.tokenLayer, this.fxLayer);
                 app.stage.addChild(this.world, this.screenLayer);
                 this.weather = new BoardWeather(P, { grade: this.gradeLayer, glow: this.glowLayer, worldFx: this.worldFxLayer, screen: this.screenLayer }, T);
                 this.ambient = new BoardAmbient(P, { wild: this.wildLayer, path: this.pathLayer }, T);
@@ -233,6 +238,8 @@ export class BoardRenderer {
             }).catch(() => null);
         });
 
+        this.gymMarkKey = '';
+        this.refreshGymMarks();
         this.fitCamera(true);
         this.syncTokens(true);
         this.weather?.rebuild();
@@ -295,6 +302,85 @@ export class BoardRenderer {
         }
     }
 
+    // Ginásio que o jogador desta tela já venceu: casa escurecida com a insígnia dele no canto
+    static refreshGymMarks() {
+        if (!this.ready || !this.size) return;
+        const me = TurnBar.mePlayerIndex();
+        const p = me >= 0 ? GameState.players[me] : null;
+        const key = `${me}|${p ? p.badges.map(b => (b ? 1 : 0)).join('') : ''}|${(GameState.activeGyms || []).join(',')}|${this.renderGen}`;
+        if (key === this.gymMarkKey) return;
+        this.gymMarkKey = key;
+        this.markLayer.removeChildren().forEach(c => c.destroy({ children: true }));
+        if (!p) return;
+        Object.entries(MapSystem.gymLocations || {}).forEach(([pos, gid]) => {
+            if (!p.badges[(gid as number) - 1]) return;
+            const [x, y] = pos.split(',').map(Number);
+            const g = this.gymAt(x, y);
+            if (!g) return;
+            const px = x * T, py = y * T;
+            const mark = new P.Container();
+            mark.addChild(new P.Graphics().rect(px + 1, py + 1, T - 2, T - 2).fill({ color: 0x0b1a10, alpha: 0.42 }));
+            mark.addChild(new P.Graphics().rect(px + 2, py + 2, T - 4, T - 4).stroke({ width: 3, color: 0x3ddc84 }));
+            const r = T * 0.24;
+            const cx = px + T - r - 3, cy = py + T - r - 3;
+            mark.addChild(new P.Graphics().circle(cx, cy, r).fill(0xffffff).stroke({ width: 2.5, color: 0x3ddc84 }));
+            const badge = new P.Sprite(P.Texture.EMPTY);
+            badge.anchor.set(0.5);
+            badge.position.set(cx, cy);
+            mark.addChild(badge);
+            const check = new P.Graphics()
+                .circle(px + 13, py + 13, 10).fill(0x2fb36b).stroke({ width: 2, color: 0xffffff })
+                .moveTo(px + 8, py + 13).lineTo(px + 12, py + 17).lineTo(px + 18, py + 9).stroke({ width: 2.6, color: 0xffffff, cap: 'round', join: 'round' });
+            mark.addChild(check);
+            P.Assets.load<Texture>(`/assets/img/Insignias/${g.badgeImg}`).then(tex => {
+                if (badge.destroyed || !tex) return;
+                badge.texture = tex;
+                const sc = (r * 1.6) / Math.max(tex.width, tex.height);
+                badge.scale.set(sc);
+            }).catch(() => null);
+            this.markLayer.addChild(mark);
+        });
+    }
+
+    // Efeitos ativos (Campo Grudento, Exp. Share...) como ícones numa plaquinha acima do peão; borda vermelha se houver efeito ruim
+    static refreshEffectTags() {
+        if (!this.ready) return;
+        this.tokens.forEach((tok, idx) => {
+            const p = GameState.players[idx];
+            const list = p ? activeEffects(p).filter(fx => fx.onBoard) : [];
+            const key = list.map(fx => `${fx.key}${fx.count ?? ''}`).join('|');
+            if (key === tok.fxKey && (tok.fxTag || !list.length)) return;
+            tok.fxKey = key;
+            tok.fxTag?.destroy({ children: true });
+            tok.fxTag = null;
+            if (!list.length) return;
+            const bad = list.some(fx => fx.tone === 'bad');
+            const shown = list.slice(0, 4);
+            const cell = 19, pad = 4, h = 22;
+            const w = shown.length * cell + pad * 2 + (list.length > shown.length ? 12 : 0);
+            const tag = new P.Container();
+            tag.addChild(new P.Graphics().roundRect(-w / 2, -h / 2, w, h, 9).fill({ color: 0x0e151c, alpha: 0.9 }).stroke({ width: 2, color: bad ? 0xff5a5a : 0x4ade80 }));
+            shown.forEach((fx, k) => {
+                const t = new P.Text({ text: fx.icon, style: { fontSize: 14, fontFamily: 'system-ui, "Apple Color Emoji", "Segoe UI Emoji", sans-serif' } });
+                t.resolution = 3;
+                t.anchor.set(0.5);
+                t.position.set(-w / 2 + pad + cell * k + cell / 2, 0.5);
+                tag.addChild(t);
+            });
+            if (list.length > shown.length) {
+                const more = new P.Text({ text: `+${list.length - shown.length}`, style: { fontSize: 10, fontWeight: '800', fill: 0xffffff } });
+                more.resolution = 3;
+                more.anchor.set(0.5);
+                more.position.set(w / 2 - pad - 5, 0.5);
+                tag.addChild(more);
+            }
+            // Dentro da casa (por cima da borda de cima do peão): na primeira linha do tabuleiro não sai cortada
+            tag.position.set(0, -tok.r + 3);
+            tok.root.addChild(tag);
+            tok.fxTag = tag;
+        });
+    }
+
     // ------------------------------------------------------------------
     // Peões
     // ------------------------------------------------------------------
@@ -327,7 +413,7 @@ export class BoardRenderer {
         const tok: Token = {
             root, body, shadow, avatar, avatarScale: 1, ring, r, avatarUrl, tileX: -1, tileY: -1, anim: null,
             walk: { queue: [], seg: null, fromX: 0, fromY: 0, start: 0, dur: 0, n: 0 },
-            idx, face: 1, dir: 1, faceCur: 1, footAt: 0, settleAt: 0
+            idx, face: 1, dir: 1, faceCur: 1, footAt: 0, settleAt: 0, fxTag: null, fxKey: ''
         };
         P.Assets.load(avatarUrl).then((tex: Texture) => {
             avatar.texture = tex;
@@ -405,6 +491,7 @@ export class BoardRenderer {
             if (moved && !instant && idx === GameState.turn) this.follow(p.x, p.y);
         });
         this.tokenLayer.sortableChildren = true;
+        this.refreshEffectTags();
         [...this.tokens.keys()].forEach(k => {
             if (!seen.has(k)) { this.tokens.get(k)!.root.destroy({ children: true }); this.tokens.delete(k); }
         });
@@ -1059,6 +1146,8 @@ export class BoardRenderer {
         if (t === TILE.GYM) {
             const g = this.gymAt(x, y);
             text = g ? `Ginásio ${g.type.join(' / ')} · Líder ${g.leaderName} · Insígnia ${g.gid}` : 'Ginásio';
+            const me = TurnBar.mePlayerIndex();
+            if (g && me >= 0 && GameState.players[me]?.badges[g.gid - 1]) text += '\n✓ Você já venceu este ginásio';
         }
         if (here.length) text += `\n${here.join(', ')}`;
         return text;

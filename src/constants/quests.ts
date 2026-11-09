@@ -1,4 +1,5 @@
 import { CARDS_DB } from './cards';
+import { markNewCards } from '../modules/cards/NewCards';
 
 export interface QuestData {
     id: number;
@@ -57,7 +58,9 @@ export const QUESTS_DB: QuestData[] = [
             const moveCards = CARDS_DB.filter(c => c.type === 'move' && c.rarity === 'Comum');
             if (moveCards.length > 0) {
                 const card = moveCards[Math.floor(Math.random() * moveCards.length)];
-                player.cards.push(card);
+                const copy = { ...card };
+                player.cards.push(copy);
+                markNewCards(player, [copy]);
             }
         }
     },
@@ -505,3 +508,12 @@ export const QUESTS_DB: QuestData[] = [
         }
     }
 ];
+
+/** Missões do jogador já cumpridas e esperando o resgate da recompensa. */
+export function readyQuests(player: any): QuestData[] {
+    if (!player?.activeQuests?.length) return [];
+    return player.activeQuests
+        .map((aq: any) => ({ aq, q: QUESTS_DB.find(def => def.id === aq.questId) }))
+        .filter(({ aq, q }: any) => q && !aq.completed && aq.progress >= q.target)
+        .map(({ q }: any) => q as QuestData);
+}
