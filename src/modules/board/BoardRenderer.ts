@@ -302,7 +302,7 @@ export class BoardRenderer {
         }
     }
 
-    // Ginásio que o jogador desta tela já venceu: casa escurecida com a insígnia dele no canto
+    // Ginásio que o jogador desta tela já venceu: casa escurecida com borda e visto (a arte do ginásio já mostra a insígnia)
     static refreshGymMarks() {
         if (!this.ready || !this.size) return;
         const me = TurnBar.mePlayerIndex();
@@ -321,34 +321,23 @@ export class BoardRenderer {
             const mark = new P.Container();
             mark.addChild(new P.Graphics().rect(px + 1, py + 1, T - 2, T - 2).fill({ color: 0x0b1a10, alpha: 0.42 }));
             mark.addChild(new P.Graphics().rect(px + 2, py + 2, T - 4, T - 4).stroke({ width: 3, color: 0x3ddc84 }));
-            const r = T * 0.24;
-            const cx = px + T - r - 3, cy = py + T - r - 3;
-            mark.addChild(new P.Graphics().circle(cx, cy, r).fill(0xffffff).stroke({ width: 2.5, color: 0x3ddc84 }));
-            const badge = new P.Sprite(P.Texture.EMPTY);
-            badge.anchor.set(0.5);
-            badge.position.set(cx, cy);
-            mark.addChild(badge);
             const check = new P.Graphics()
                 .circle(px + 13, py + 13, 10).fill(0x2fb36b).stroke({ width: 2, color: 0xffffff })
                 .moveTo(px + 8, py + 13).lineTo(px + 12, py + 17).lineTo(px + 18, py + 9).stroke({ width: 2.6, color: 0xffffff, cap: 'round', join: 'round' });
             mark.addChild(check);
-            P.Assets.load<Texture>(`/assets/img/Insignias/${g.badgeImg}`).then(tex => {
-                if (badge.destroyed || !tex) return;
-                badge.texture = tex;
-                const sc = (r * 1.6) / Math.max(tex.width, tex.height);
-                badge.scale.set(sc);
-            }).catch(() => null);
             this.markLayer.addChild(mark);
         });
     }
 
-    // Efeitos ativos (Campo Grudento, Exp. Share...) como ícones numa plaquinha acima do peão; borda vermelha se houver efeito ruim
+    // Efeitos ativos (Campo Grudento, Exp. Share...) como ícones numa plaquinha nos pés do peão; borda vermelha se houver efeito ruim
     static refreshEffectTags() {
         if (!this.ready) return;
         this.tokens.forEach((tok, idx) => {
             const p = GameState.players[idx];
             const list = p ? activeEffects(p).filter(fx => fx.onBoard) : [];
-            const key = list.map(fx => `${fx.key}${fx.count ?? ''}`).join('|');
+            // Casa dividida: os peões da fileira de cima mostram a plaquinha acima da cabeça, para não cobrir o rosto dos de baixo
+            const above = !!p && this.tileSlot(idx, p.x, p.y).y < p.y * T + T / 2;
+            const key = `${above ? 'a' : 'b'}:` + list.map(fx => `${fx.key}${fx.count ?? ''}`).join('|');
             if (key === tok.fxKey && (tok.fxTag || !list.length)) return;
             tok.fxKey = key;
             tok.fxTag?.destroy({ children: true });
@@ -356,26 +345,26 @@ export class BoardRenderer {
             if (!list.length) return;
             const bad = list.some(fx => fx.tone === 'bad');
             const shown = list.slice(0, 4);
-            const cell = 19, pad = 4, h = 22;
-            const w = shown.length * cell + pad * 2 + (list.length > shown.length ? 12 : 0);
+            const cell = 15, pad = 3, h = 17;
+            const w = shown.length * cell + pad * 2 + (list.length > shown.length ? 10 : 0);
             const tag = new P.Container();
-            tag.addChild(new P.Graphics().roundRect(-w / 2, -h / 2, w, h, 9).fill({ color: 0x0e151c, alpha: 0.9 }).stroke({ width: 2, color: bad ? 0xff5a5a : 0x4ade80 }));
+            tag.addChild(new P.Graphics().roundRect(-w / 2, -h / 2, w, h, 8).fill({ color: 0x0e151c, alpha: 0.9 }).stroke({ width: 2, color: bad ? 0xff5a5a : 0x4ade80 }));
             shown.forEach((fx, k) => {
-                const t = new P.Text({ text: fx.icon, style: { fontSize: 14, fontFamily: 'system-ui, "Apple Color Emoji", "Segoe UI Emoji", sans-serif' } });
+                const t = new P.Text({ text: fx.icon, style: { fontSize: 11, fontFamily: 'system-ui, "Apple Color Emoji", "Segoe UI Emoji", sans-serif' } });
                 t.resolution = 3;
                 t.anchor.set(0.5);
                 t.position.set(-w / 2 + pad + cell * k + cell / 2, 0.5);
                 tag.addChild(t);
             });
             if (list.length > shown.length) {
-                const more = new P.Text({ text: `+${list.length - shown.length}`, style: { fontSize: 10, fontWeight: '800', fill: 0xffffff } });
+                const more = new P.Text({ text: `+${list.length - shown.length}`, style: { fontSize: 9, fontWeight: '800', fill: 0xffffff } });
                 more.resolution = 3;
                 more.anchor.set(0.5);
-                more.position.set(w / 2 - pad - 5, 0.5);
+                more.position.set(w / 2 - pad - 4, 0.5);
                 tag.addChild(more);
             }
-            // Dentro da casa (por cima da borda de cima do peão): na primeira linha do tabuleiro não sai cortada
-            tag.position.set(0, -tok.r + 3);
+            // Nos pés do peão, por cima da sombra: não cobre o rosto do avatar e fica quase toda dentro da casa
+            tag.position.set(0, above ? -tok.r - 2 : tok.r + 2);
             tok.root.addChild(tag);
             tok.fxTag = tag;
         });

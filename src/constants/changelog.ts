@@ -4,12 +4,17 @@ export type ChangeKind = 'novo' | 'ajuste' | 'correcao';
 export type ChangelogDay = { date: string; changes: [ChangeKind, string][] };
 
 export const CHANGELOG: ChangelogDay[] = [
+    { date: '2026-11-10', changes: [
+        ['novo', 'Itens novos na mochila: o botão Mochila do seu card mostra quantos itens você ganhou, e eles aparecem com a etiqueta NOVO até você abrir a mochila.'],
+        ['ajuste', 'O contador de cartas novas no seu card some assim que você abre a mão. A etiqueta NOVO nas cartas continua até o fim da rodada.'],
+        ['ajuste', 'Os efeitos ativos no tabuleiro saíram de cima da cabeça do peão: agora ficam numa plaquinha menor, nos pés dele.'],
+    ] },
     { date: '2026-11-09', changes: [
-        ['novo', 'Ginásio que você já venceu aparece no tabuleiro com um visto e a sua insígnia no canto.'],
+        ['novo', 'Ginásio que você já venceu aparece no tabuleiro escurecido e com um visto.'],
         ['novo', 'Missão pronta para resgatar: aviso na tela e um "!" no botão Missões do seu card até você pegar a recompensa.'],
         ['novo', 'Cartas ganhas na rodada aparecem com a etiqueta NOVO na mão, e o botão de cartas mostra quantas são novas.'],
         ['novo', 'Log de XP dos Pokémon: cada ganho mostra de onde veio, o nível e a barra. Filtre por "XP dos Pokémon" no histórico.'],
-        ['ajuste', 'Efeitos ativos (Campo Grudento, Exp. Share, Double XP, Maldição...) agora aparecem com ícone, nome e quantas vezes ainda valem, em vermelho os ruins e em verde os bons, e também em cima do peão no tabuleiro.'],
+        ['ajuste', 'Efeitos ativos (Campo Grudento, Exp. Share, Double XP, Maldição...) agora aparecem com ícone, nome e quantas vezes ainda valem, em vermelho os ruins e em verde os bons, e também numa plaquinha junto do peão no tabuleiro.'],
         ['correcao', 'Volume e Gráficos no menu não ficam mais cortados ou escondidos no celular e no tablet.'],
     ] },
     { date: '2026-11-06', changes: [
