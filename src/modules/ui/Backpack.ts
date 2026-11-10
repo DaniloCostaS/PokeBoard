@@ -14,6 +14,7 @@ export type BackpackOptions = {
     onUse: (key: string, item: ItemData) => void;
     defaultPocket?: string;
     actionLabel?: (item: ItemData) => string;
+    fresh?: Record<string, number>; // itens novos (etiqueta NOVO no espaço)
 };
 
 const POCKETS: Pocket[] = [
@@ -104,10 +105,11 @@ export class Backpack {
                     continue;
                 }
                 const state = opts.usable(entry.item);
-                cell.className = `pb-bag-slot${state.ok ? '' : ' is-locked'}`;
+                const fresh = opts.fresh?.[entry.key] || 0;
+                cell.className = `pb-bag-slot${state.ok ? '' : ' is-locked'}${fresh ? ' is-new' : ''}`;
                 cell.setAttribute('role', 'option');
-                cell.setAttribute('aria-label', `${entry.item.name}, ${entry.qty} unidades`);
-                cell.innerHTML = `<img src="${icon(entry.item.icon)}" alt="" draggable="false"><span class="pb-bag-qty">${entry.qty}</span>`;
+                cell.setAttribute('aria-label', `${entry.item.name}, ${entry.qty} unidades${fresh ? `, ${fresh} novo(s)` : ''}`);
+                cell.innerHTML = `<img src="${icon(entry.item.icon)}" alt="" draggable="false"><span class="pb-bag-qty">${entry.qty}</span>${fresh ? `<span class="pb-bag-new" title="${fresh} novo(s)">NOVO</span>` : ''}`;
                 cell.addEventListener('click', () => {
                     grid.querySelectorAll('.pb-bag-slot.is-selected').forEach(n => n.classList.remove('is-selected'));
                     cell.classList.add('is-selected');
@@ -127,7 +129,9 @@ export class Backpack {
             b.dataset.pocket = pocket.id;
             b.setAttribute('role', 'tab');
             const n = countIn(pocket);
-            b.innerHTML = `<img src="${icon(pocket.icon)}" alt=""><span>${pocket.label}</span>${n ? `<em>${n}</em>` : ''}`;
+            const hasNew = owned.some(e => pocket.types.includes(e.item.type) && (opts.fresh?.[e.key] || 0) > 0);
+            if (hasNew) { b.classList.add('has-new'); b.title = 'Tem item novo neste bolso'; }
+            b.innerHTML = `<img src="${icon(pocket.icon)}" alt=""><span>${pocket.label}</span>${n ? `<em>${n}</em>` : ''}${hasNew ? '<i class="pb-bag-pocket-new" aria-label="item novo"></i>' : ''}`;
             b.addEventListener('click', () => { current = pocket.id; drawPocket(); });
             tabs.appendChild(b);
         });

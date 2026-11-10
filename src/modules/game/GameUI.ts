@@ -5,7 +5,8 @@ import { MapSystem } from '../../systems/MapSystem';
 import { Network } from '../../systems/Network';
 import { QUESTS_DB, readyQuests } from '../../constants/quests';
 import { activeEffects } from '../ui/PlayerEffects';
-import { newCardsOf } from '../cards/NewCards';
+import { unseenNewCards } from '../cards/NewCards';
+import { newItemsOf, unseenItemsCount, markItemsSeen, seenChanged } from '../ui/NewItems';
 import { Sfx } from '../audio/Sfx';
 import {
     TILE,
@@ -190,7 +191,8 @@ export class GameUI {
             // Missão pronta para resgatar e cartas novas da rodada (só para quem pode agir sobre elas)
             const canSeeOwn = !NetworkObj.isOnline || p.id === NetworkObj.myPlayerId;
             const readyCount = canSeeOwn ? readyQuests(p).length : 0;
-            const newCards = canSeeOwn ? newCardsOf(p).size : 0;
+            const newCards = canSeeOwn ? unseenNewCards(p) : 0;
+            const newItems = canSeeOwn ? unseenItemsCount(p) : 0;
 
             const maxLives = GameState.maxLives();
             const livesHTML = maxLives > 0
@@ -223,7 +225,7 @@ export class GameUI {
             ${badgeHTML} 
             ${teamHTML}
             <div class="hud-actions">
-                <button class="btn btn-secondary btn-mini" onclick="window.Game.openInventoryModal(${i})" title="Mochila" aria-label="Mochila: ${totalItems} itens"><i class="pb-ico pb-ico-bag"></i><span>${totalItems}</span></button>
+                <button class="btn btn-secondary btn-mini${newItems ? ' has-new' : ''}" onclick="window.Game.openInventoryModal(${i})" title="${newItems ? `${newItems} item(ns) novo(s) na mochila` : 'Mochila'}" aria-label="Mochila: ${totalItems} itens${newItems ? `, ${newItems} novo(s)` : ''}"><i class="pb-ico pb-ico-bag"></i><span>${totalItems}</span>${newItems ? `<em class="pb-hud-new">+${newItems}</em>` : ''}</button>
                 <button class="btn btn-secondary btn-mini${readyCount ? ' has-alert' : ''}" onclick="window.QuestManager.openQuestsModal(window.Game.players[${i}])" title="${readyCount ? `${readyCount} missão(ões) pronta(s) para resgatar!` : 'Missões'}" aria-label="Missões: ${p.activeQuests ? p.activeQuests.length : 0}${readyCount ? `, ${readyCount} pronta(s) para resgatar` : ''}"><i class="pb-ico pb-ico-quest"></i><span>${p.activeQuests ? p.activeQuests.length : 0}</span>${readyCount ? `<em class="pb-hud-alert">!</em>` : ''}</button>
                 <button class="btn btn-secondary btn-mini${newCards ? ' has-new' : ''}" onclick="window.Game.openBoardCards(${i})" title="${newCards ? `${newCards} carta(s) nova(s) nesta rodada` : 'Cartas'}" aria-label="Cartas: ${totalCards}${newCards ? `, ${newCards} nova(s)` : ''}"><i class="pb-ico pb-ico-cards"></i><span>${totalCards}</span>${newCards ? `<em class="pb-hud-new">+${newCards}</em>` : ''}</button>
                 <button class="btn btn-secondary btn-mini" onclick="window.Game.openPokedex(${i})" title="Pokédex" aria-label="Pokédex"><i class="pb-ico pb-ico-dex"></i><span>Dex</span></button>
@@ -1797,9 +1799,16 @@ export class GameUI {
         const canUse = (!readOnly && GameState.canAct() && GameState.turn === pId);
         const boardTypes = ['heal', 'revive', 'boost', 'mega', 'hold'];
 
+        // Só o dono vê o que é novo; abrir a própria mochila marca tudo como visto
+        const NetworkObj = (window as any).Network || Network;
+        const isMe = !NetworkObj.isOnline || p.id === NetworkObj.myPlayerId;
+        const fresh = isMe ? newItemsOf(p) : {};
+        if (isMe && markItemsSeen(p)) seenChanged();
+
         Backpack.render(list, {
             ownerName: p.name,
             items: p.items,
+            fresh,
             usable: (item) => {
                 if (!boardTypes.includes(item.type)) return { ok: false, reason: 'Pokébolas só servem em batalhas contra Pokémon selvagens.' };
                 if (readOnly) return { ok: false, reason: 'Feche a loja e abra a mochila pelo seu card para usar.' };

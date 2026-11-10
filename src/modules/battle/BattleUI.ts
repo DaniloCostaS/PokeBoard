@@ -1,3 +1,4 @@
+import { newItemsOf, markItemsSeen, seenChanged } from '../ui/NewItems';
 import { Sfx } from '../audio/Sfx';
 import { CardHand } from '../cards/CardHand';
 import { BattleCore } from './BattleCore';
@@ -308,9 +309,14 @@ export class BattleUI {
         const list = document.getElementById('battle-bag-list')!;
 
         // Mesmas regras de BattleCore.useItem, explicadas no próprio item
+        // Batalha é sempre do próprio jogador: abrir a mochila marca os itens novos como vistos
+        const fresh = newItemsOf(BattleCore.player);
+        if (markItemsSeen(BattleCore.player)) seenChanged();
+
         Backpack.render(list, {
             ownerName: BattleCore.player!.name,
             items: BattleCore.player!.items,
+            fresh,
             defaultPocket: isTrainerBattle ? 'medicine' : 'balls',
             usable: (item) => {
                 if (item.type === 'capture') {

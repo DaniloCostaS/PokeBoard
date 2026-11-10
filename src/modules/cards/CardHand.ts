@@ -1,6 +1,7 @@
 import { Sfx } from '../audio/Sfx';
 import { CARD_RARITIES } from '../../constants';
-import { newCardsOf } from './NewCards';
+import { newCardsOf, markCardsSeen } from './NewCards';
+import { seenChanged } from '../ui/NewItems';
 
 // Mão de cartas em leque: passar o mouse ou deslizar o dedo levanta a carta no topo e mostra o detalhe; usar faz a carta voar para o tabuleiro/batalha.
 
@@ -34,6 +35,8 @@ export class CardHand {
         const n = cards.length;
         // Cartas ganhas nesta rodada (só na mão do próprio jogador)
         const fresh = opts.isMe ? newCardsOf(player) : new Set<any>();
+        // Abriu a própria mão: o contador do placar some (a etiqueta NOVO fica até o fim da rodada)
+        if (opts.isMe && markCardsSeen(player)) seenChanged();
         const newTag = '<span class="pb-card-new" title="Obtida nesta rodada">NOVO</span>';
         const spread = Math.min(7, 48 / Math.max(n, 1));
         let activeIndex = -1;

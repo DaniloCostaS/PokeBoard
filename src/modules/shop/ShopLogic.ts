@@ -1,3 +1,4 @@
+import { markItemSeen } from '../ui/NewItems';
 import { Sfx } from '../audio/Sfx';
 import { SHOP_ITEMS } from '../../constants';
 import { ShopUI } from './ShopUI';
@@ -26,6 +27,7 @@ export class ShopLogic {
 
             p.gold -= price;
             Sfx.play('buy');
+            markItemSeen(p, id, 1); // comprou agora, não precisa de aviso de novo
             Game.addItem(p, id, 1);
 
             // Log Global de Compra
