@@ -55,10 +55,8 @@ export class CardManager {
         if (!silentLog) {
             const isMe = !Network.isOnline || player.id === Network.myPlayerId;
             if (isMe) {
-                Game.log(`🃏 Você obteve a carta: ${card.icon} ${card.name} (Total: ${player.cards.length})`);
-                if (Network.isOnline) {
-                    Network.sendAction('LOG', { msg: `🃏 ${player.name} obteve uma Carta Misteriosa!` });
-                }
+                // Só quem pegou vê qual carta veio (os outros já veem o "[Extrato] obteve uma carta")
+                Game.logPrivate(`🃏 Você obteve a carta: ${card.icon} ${card.name} (Total: ${player.cards.length})`, null, player.id);
             }
         }
 
@@ -87,10 +85,8 @@ export class CardManager {
         if (!silentLog) {
             const isMe = !Network.isOnline || player.id === Network.myPlayerId;
             if (isMe) {
-                Game.log(`🃏 Você obteve a carta: ${card.icon} ${card.name} (Total: ${player.cards.length})`);
-                if (Network.isOnline) {
-                    Network.sendAction('LOG', { msg: `🃏 ${player.name} obteve uma Carta Misteriosa!` });
-                }
+                // Só quem pegou vê qual carta veio (os outros já veem o "[Extrato] obteve uma carta")
+                Game.logPrivate(`🃏 Você obteve a carta: ${card.icon} ${card.name} (Total: ${player.cards.length})`, null, player.id);
             }
         }
 
@@ -120,10 +116,8 @@ export class CardManager {
         if (!silentLog) {
             const isMe = !Network.isOnline || player.id === Network.myPlayerId;
             if (isMe) {
-                Game.log(`🃏 Você obteve a carta: ${card.icon} ${card.name} (Total: ${player.cards.length})`);
-                if (Network.isOnline) {
-                    Network.sendAction('LOG', { msg: `🃏 ${player.name} obteve uma carta do Host!` });
-                }
+                // Só quem pegou vê qual carta veio (os outros já veem o "[Extrato] obteve uma carta")
+                Game.logPrivate(`🃏 Você obteve a carta: ${card.icon} ${card.name} (Total: ${player.cards.length})`, null, player.id);
             }
         }
 
@@ -197,12 +191,12 @@ export class CardManager {
         const logMsg = `🔥 ${player.name} sacrificou [${removedNames.join(', ')}] e invocou uma nova carta: [${newCard.name}]! (Total: ${player.cards.length})`;
         const logMsgGlobal = `🔥 ${player.name} sacrificou duas cartas e invocou uma nova carta!`;
 
-        Game.log(logMsg);
+        // Nome das cartas só para o dono (antes ia para o log de todos)
+        Game.logPrivate(logMsg, logMsgGlobal, player.id);
         Game.sendGlobalLog(`🃏 [Extrato] ${player.name} sacrificou cartas. Total: ${player.cards.length}`);
         Game.showGlobalAlert(logMsg, player.name, true, false);
 
         if (Network.isOnline) {
-            Network.sendAction('LOG', { msg: logMsgGlobal });
             Network.sendAction('SHOW_ALERT', { msg: logMsgGlobal, playerName: player.name, endsTurn: false });
             Network.syncPlayerState();
         }
@@ -269,12 +263,12 @@ export class CardManager {
         const logMsg = `💎 ${player.name} fundiu cartas [${baseRarity}] e obteve uma nova carta [${targetRarity}]: [${newCard.name}]! (Total: ${player.cards.length})`;
         const logMsgGlobal = `💎 ${player.name} fundiu cartas e obteve uma [${targetRarity}]!`;
 
-        Game.log(logMsg);
+        // Nome da carta nova só para o dono (antes ia para o log de todos)
+        Game.logPrivate(logMsg, logMsgGlobal, player.id);
         Game.sendGlobalLog(`🃏 [Extrato] ${player.name} fundiu cartas. Total: ${player.cards.length}`);
         Game.showGlobalAlert(logMsg, player.name, true, false);
 
         if (Network.isOnline) {
-            Network.sendAction('LOG', { msg: logMsgGlobal });
             Network.sendAction('SHOW_ALERT', { msg: logMsgGlobal, playerName: player.name, endsTurn: false });
             Network.syncPlayerState();
         }

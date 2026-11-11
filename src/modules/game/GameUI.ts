@@ -129,10 +129,9 @@ export class GameUI {
                     <div class="pb-party-info">
                         <div class="pb-party-top">
                             <span class="pb-party-name">${m.name}</span>
-                            ${megaIcon}${itemIcon}${vinculoIcon}${happinessIcon}
                             <span class="pb-party-lv">Lv${m.level}</span>
                         </div>
-                        <div class="pb-party-types">${m.getTypeBadgesHTML ? m.getTypeBadgesHTML('flex-start') : ''}</div>
+                        <div class="pb-party-types">${m.getTypeBadgesHTML ? m.getTypeBadgesHTML('flex-start') : ''}${(megaIcon || itemIcon || vinculoIcon || happinessIcon) ? `<span class="pb-party-icons">${megaIcon}${itemIcon}${vinculoIcon}${happinessIcon}</span>` : ''}</div>
                         <div class="pb-hp" title="HP ${m.currentHp}/${m.maxHp}">
                             <span class="pb-hp-label">HP</span>
                             <div class="pb-hp-track"><div class="pb-hp-fill ${(window as any).Battle?.getHpColor(m.currentHp, m.maxHp)}" style="width:${hpPct}%"></div></div>
@@ -684,13 +683,16 @@ export class GameUI {
             return;
         }
 
-        if (m.includes('||PRIVATE:')) {
-            const parts = m.split('||PRIVATE:');
-            const cleanMsg = parts[0];
-            const targetId = parseInt(parts[1], 10);
+        // Visibilidade da linha: ||PRIVATE:id só o jogador id vê; ||OTHERS:id todos menos ele (ver logPrivate).
+        // Online a marca vai junto para o banco e cada aparelho filtra ao exibir (SupabaseDataStore.logVisible).
+        let visibility = '';
+        const vis = m.match(/\|\|(PRIVATE|OTHERS):(-?\d+)/);
+        if (vis) {
+            visibility = vis[0];
+            m = m.replace(vis[0], '');
             const NetworkObj = (window as any).Network || Network;
-            if (NetworkObj && NetworkObj.isOnline && NetworkObj.myPlayerId !== targetId) return;
-            m = cleanMsg;
+            // Offline todos olham a mesma tela: vale a versão privada (logPrivate não grava a pública offline)
+            if (!(NetworkObj && NetworkObj.isOnline) && vis[1] === 'OTHERS') return;
         }
 
         if (m.includes('||EVENT:')) {
@@ -764,7 +766,7 @@ export class GameUI {
         if (NetworkObj.isOnline && !skipSync) {
             if (typeof NetworkObj.syncLogs === 'function') {
                 NetworkObj.syncLogs([{
-                    text: m,
+                    text: m + visibility,
                     style: customStyle,
                     type: logType,
                     battleId: battleId
@@ -861,6 +863,14 @@ export class GameUI {
 
     static sendGlobalLog(msg: string) {
         this.log(msg);
+    }
+
+    /** Linha com informação secreta (qual carta pegou, quais perdeu...): o dono vê privateMsg; os outros, publicMsg. */
+    static logPrivate(privateMsg: string, publicMsg: string | null, ownerId: number) {
+        const NetworkObj = (window as any).Network || Network;
+        if (!NetworkObj || !NetworkObj.isOnline) { this.log(privateMsg); return; }
+        if (publicMsg) this.log(`${publicMsg}||OTHERS:${ownerId}`);
+        this.log(`${privateMsg}||PRIVATE:${ownerId}`);
     }
 
     static isSelfCard(cardName: string): boolean {

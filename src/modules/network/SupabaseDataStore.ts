@@ -3,7 +3,7 @@ import { GLOBAL_EVENTS } from '../../constants/globalEvents';
 import { Player } from '../../models/Player';
 import { Pokemon } from '../../models/Pokemon';
 import { MapSystem } from '../../systems/MapSystem';
-import { supabase } from './SupabaseInit';
+import { supabase, NetworkState } from './SupabaseInit';
 
 type LogEntry = { text: string; style: string; type?: string; battleId?: string; timestamp?: string };
 
@@ -342,6 +342,21 @@ export class SupabaseDataStore {
         const { data, error } = await supabase.from('room_logs').select('battle_lines').eq('room_id', roomId).eq('battle_id', battleId).not('battle_lines', 'is', null).limit(1).maybeSingle();
         if (error || !data || !Array.isArray(data.battle_lines)) return null;
         return data.battle_lines as string[];
+    }
+
+    /** Linha marcada por GameUI.logPrivate: some para quem não deve ver; para quem vê, sai sem a marca. */
+    static logVisible(entry: LogEntry): LogEntry | null {
+        const text = entry.text || '';
+        const vis = text.match(/\|\|(PRIVATE|OTHERS):(-?\d+)/);
+        if (!vis) return entry;
+        const id = parseInt(vis[2], 10);
+        const me = NetworkState.isSpectator ? -999 : NetworkState.myPlayerId;
+        const show = vis[1] === 'PRIVATE' ? id === me : id !== me;
+        return show ? { ...entry, text: text.replace(vis[0], '') } : null;
+    }
+
+    static logsFromRows(rows: any[]): LogEntry[] {
+        return (rows || []).map(r => this.logVisible(this.logFromRow(r))).filter((l): l is LogEntry => !!l);
     }
 
     static logFromRow(row: any): LogEntry {

@@ -11,6 +11,7 @@ import './usefx.css'
 import './modules/ui/UseFx';
 import './dialog.css'
 import './cinematics.css'
+import './legendary.css'
 import './board.css'
 import './screens.css'
 import './pokemon-detail.css'

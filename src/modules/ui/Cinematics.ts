@@ -1,6 +1,8 @@
 import { boardThumb } from '../board/BoardTextures';
 import { Sfx } from '../audio/Sfx';
 import { GYM_DATA } from '../../constants/gyms';
+import { CARDS_DB } from '../../constants';
+import { PLAYER_COLORS } from '../../constants/playerColors';
 
 // ==========================================================================
 // Cinematics — momentos de "jogo Pokémon" (intro VS, encontro selvagem,
@@ -132,6 +134,10 @@ function relay(kind: string, data: Record<string, unknown>) {
 function toast(msg: string, tone: string = 'success') {
     try { (window as any).GameDialog?.toast?.(msg, { tone }); } catch { /* opcional */ }
 }
+
+// Cartas lendárias com cena própria (o voo genérico da carta é trocado pela cena)
+const LEGEND_CARDS = ['ash_goodbye', 'supreme_bond', 'tremembe', 'grande_assalto', 'legendary_encounter'];
+type LegendData = { monId?: number; monName?: string; shiny?: boolean; ownerId?: number; ids?: number[] };
 
 interface Fighter { name: string; sub: string; img: string; kind: 'figure' | 'card' | 'pixel'; taunt?: string; }
 
@@ -341,8 +347,128 @@ export class Cinematics {
                 case 'lap':
                     toast(`${who} completou uma volta no mapa (+${num(data.gold)}G)!`);
                     break;
+                case 'legend': {
+                    const cardId = str(data.cardId);
+                    if (!LEGEND_CARDS.includes(cardId) || !player) return;
+                    const ids = Array.isArray(data.ids) ? (data.ids as unknown[]).slice(0, 3).map(num).filter(n => n > 0) : [];
+                    this.showLegendary(cardId, player, { monId: num(data.monId), monName: str(data.monName), shiny: !!data.shiny, ownerId: num(data.ownerId), ids });
+                    break;
+                }
             }
         } catch (e) { console.warn('Cinematics.fromRemote', e); }
+    }
+
+    // ----------------------------------------------------- cartas lendárias
+    /** Cena "UAU" de carta lendária. Chamar onde o efeito acontece; quem jogou avisa a sala e todos veem a mesma cena. */
+    static legendaryCard(cardId: string, player: AnyPlayer, data: LegendData = {}) {
+        try {
+            if (!LEGEND_CARDS.includes(cardId) || !player) return;
+            const Net = (window as any).Network;
+            // Online, só quem jogou dispara (os outros recebem pelo relay); offline todos olham a mesma tela
+            if (Net && Net.isOnline && Net.myPlayerId !== player.id) return;
+            relay('legend', { cardId, ...data });
+            this.showLegendary(cardId, player, data);
+        } catch (e) { console.warn('Cinematics.legendaryCard', e); }
+    }
+
+    static hasLegendaryScene(cardId: string) { return LEGEND_CARDS.includes(cardId); }
+
+    static showLegendary(cardId: string, player: AnyPlayer, d: LegendData = {}) {
+        const card: any = CARDS_DB.find((c: any) => c.id === cardId);
+        if (!card) return;
+        const players: AnyPlayer[] = (window as any).Game?.players || [];
+        const who = stripTags(player?.name || 'Um treinador');
+        const others = players.filter(p => p && p.id !== player?.id);
+        const colorOf = (p: AnyPlayer) => PLAYER_COLORS[Math.max(0, players.indexOf(p)) % PLAYER_COLORS.length];
+        const face = (p: AnyPlayer, cls = '') => `<span class="lg-face ${cls}" style="--pc:${esc(colorOf(p))}"><img src="${esc(avatarUrl(p?.avatar))}" alt="" draggable="false"><b>${esc(stripTags(p?.name || ''))}</b></span>`;
+        const head = `
+            <div class="lg-head">
+                <img class="lg-card" src="/assets/img/Cartas/thumbs/${esc(cardId)}.webp" alt="" draggable="false" onerror="this.onerror=null;this.src='/assets/img/Cartas/${esc(cardId)}.jpg'">
+                <div class="lg-head-text">
+                    <div class="cine-kicker">Carta lendária!</div>
+                    <div class="lg-card-name">${esc(card.name)}</div>
+                    <div class="lg-who">${esc(who)} usou</div>
+                </div>
+            </div>`;
+        const caption = (title: string, sub: string) => `<div class="lg-caption"><div class="cine-title">${title}</div><div class="cine-sub">${sub}</div></div>`;
+        let body = '';
+        let ms = 5000;
+        let sound: 'legendary' | 'farewell' | 'jail' | 'heist' = 'legendary';
+
+        if (cardId === 'ash_goodbye') {
+            const owner = players.find(p => p?.id === d.ownerId) || player;
+            const monName = esc(d.monName || 'Pokémon');
+            const ownerName = esc(stripTags(owner?.name || ''));
+            sound = 'farewell';
+            ms = 6200;
+            body = `
+                <div class="lg-sky"></div><div class="lg-sun"></div><div class="lg-hills"></div><div class="lg-path"></div>
+                <div class="lg-stage lg-ash">
+                    ${face(owner, 'lg-ash-trainer')}
+                    <div class="lg-ash-mon">
+                        <div class="lg-ash-travel"><div class="lg-ash-hop">${imgTag(artUrls(d.monId || 25, !!d.shiny), 'lg-mon', d.monName || '')}</div></div>
+                        <span class="lg-ash-hand" aria-hidden="true">👋</span>
+                        <div class="lg-bubble">Tchau, ${ownerName}!</div>
+                    </div>
+                </div>
+                ${caption(`Adeus, ${monName}!`, `O ${monName} de ${ownerName} se despediu e seguiu o próprio caminho.`)}`;
+        } else if (cardId === 'supreme_bond') {
+            const monName = esc(d.monName || 'Pokémon');
+            ms = 5200;
+            const sparks = Array.from({ length: 12 }, (_, i) => `<b class="lg-spark" style="--i:${i}"></b>`).join('');
+            body = `
+                <div class="lg-stage lg-bond">
+                    ${face(player, 'lg-bond-trainer')}
+                    <div class="lg-bond-thread"><i></i></div>
+                    <div class="lg-bond-heart" aria-hidden="true">❤</div>
+                    <div class="lg-bond-mon">
+                        ${imgTag(artUrls(d.monId || 25, false), 'lg-mon lg-mon-plain', d.monName || '')}
+                        ${imgTag(artUrls(d.monId || 25, true), 'lg-mon lg-mon-shiny', d.monName || '')}
+                        <div class="lg-bond-ring"></div>${sparks}
+                    </div>
+                </div>
+                ${caption('Vínculo Supremo!', `${monName} prometeu nunca abandonar ${esc(who)}. Agora brilha como shiny!`)}`;
+        } else if (cardId === 'tremembe') {
+            sound = 'jail';
+            const cells = others.slice(0, 7).map((p, i) => `<div class="lg-cell" style="--i:${i}">${face(p)}<div class="lg-bars"></div></div>`).join('');
+            body = `
+                <div class="lg-stage lg-jail">
+                    <div class="lg-judge">${face(player)}<span class="lg-gavel" aria-hidden="true">⚖️</span></div>
+                    <div class="lg-cells">${cells}</div>
+                    <div class="lg-stamp">15 RODADAS</div>
+                </div>
+                ${caption('Decreto de Tremembé!', `Todos os outros jogadores estão presos por 15 rodadas.`)}`;
+        } else if (cardId === 'grande_assalto') {
+            sound = 'heist';
+            const victims = others.slice(0, 7);
+            const loot = victims.flatMap((_, v) => [0, 1, 2].map(k => `<span class="lg-loot" style="--v:${v};--n:${victims.length};--k:${k}">${k === 1 ? '💰' : k === 2 ? '🃏' : '🪙'}</span>`)).join('');
+            body = `
+                <div class="lg-siren lg-siren-l"></div><div class="lg-siren lg-siren-r"></div><div class="lg-torch"></div>
+                <div class="lg-stage lg-heist">
+                    <div class="lg-victims">${victims.map((p, i) => `<div class="lg-victim" style="--i:${i}">${face(p)}</div>`).join('')}</div>
+                    ${loot}
+                    <div class="lg-thief">${face(player)}<span class="lg-mask" aria-hidden="true">🕶️</span></div>
+                </div>
+                ${caption('O Grande Assalto!', `${esc(who)} levou o ouro, os itens e as cartas de todo mundo!`)}`;
+        } else if (cardId === 'legendary_encounter') {
+            const ids = (d.ids && d.ids.length ? d.ids : [d.monId || 150]).slice(0, 3);
+            ms = 5400;
+            const notes = Array.from({ length: 6 }, (_, i) => `<span class="lg-note" style="--i:${i}">${i % 2 ? '♪' : '♫'}</span>`).join('');
+            const stars = Array.from({ length: 28 }, (_, i) => `<b class="lg-star" style="--x:${(i * 37) % 100};--y:${(i * 53) % 70};--i:${i % 7}"></b>`).join('');
+            body = `
+                <div class="lg-night">${stars}</div>
+                <div class="lg-stage lg-encounter">
+                    ${notes}
+                    <div class="lg-gods" style="--n:${ids.length}">${ids.map((id, i) => `<div class="lg-god" style="--i:${i}"><div class="lg-beam"></div>${imgTag(artUrls(id, false), 'lg-mon', '')}</div>`).join('')}</div>
+                </div>
+                ${caption('Encontro Lendário!', ids.length > 1 ? `Três lendários atenderam ao chamado de ${esc(who)}!` : `Um lendário atendeu ao chamado de ${esc(who)}!`)}`;
+        }
+
+        this.enqueue(() => {
+            Sfx.play(sound);
+            const el = this.div(`cine cine-legend cine-legend--${cardId}`, `${body}${head}<div class="cine-flash"></div><div class="cine-hint">Toque para continuar</div>`);
+            return { el, ms };
+        });
     }
 
     // ---------------------------------------------------------- celebrations

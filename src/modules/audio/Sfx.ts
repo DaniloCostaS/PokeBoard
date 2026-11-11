@@ -7,7 +7,8 @@ export type SfxName =
     | 'coin' | 'coinLoss' | 'buy' | 'cardDraw' | 'cardPlay'
     | 'battleStart' | 'hit' | 'hitHeavy' | 'crit' | 'superHit' | 'weakHit' | 'miss' | 'status' | 'lowHp' | 'faint' | 'sendOut'
     | 'throw' | 'shake' | 'catch' | 'catchFail' | 'heal' | 'levelUp' | 'celebrate' | 'mega' | 'quest' | 'achievement'
-    | 'lifeLost' | 'battleWin' | 'battleLose' | 'victory' | 'defeat';
+    | 'lifeLost' | 'battleWin' | 'battleLose' | 'victory' | 'defeat'
+    | 'legendary' | 'farewell' | 'jail' | 'heist';
 
 type Wave = OscillatorType;
 type Note = { f: number; to?: number; at?: number; dur: number; wave?: Wave; vol?: number };
@@ -83,7 +84,12 @@ const SOUNDS: Record<SfxName, { parts: Part[]; gap?: number }> = {
     battleWin: { parts: seq([G4, C5, E5, G5], 0.09, 0.2, 'square', 0.1), gap: 800 },
     battleLose: { parts: seq([E4, D4, C4], 0.15, 0.27, 'triangle', 0.15), gap: 800 },
     victory: { parts: [...seq([C5, C5, C5, E5, G5], 0.11, 0.13, 'square', 0.105), ...seq([E5, G5, C6], 0, 0.72, 'square', 0.065, 0.56), ...seq([C4, G4], 0.28, 0.5, 'triangle', 0.15, 0.56)], gap: 3000 },
-    defeat: { parts: seq([G4, F4, E4, D4, C4], 0.18, 0.31, 'triangle', 0.15), gap: 3000 }
+    defeat: { parts: seq([G4, F4, E4, D4, C4], 0.18, 0.31, 'triangle', 0.15), gap: 3000 },
+    // Cartas lendárias: fanfarra grande, despedida (Adeus de Ash), grades batendo (Tremembé) e sirene (Grande Assalto)
+    legendary: { parts: [{ f: 65, to: 98, dur: 0.6, wave: 'sawtooth', vol: 0.12 }, { noise: true, dur: 0.6, vol: 0.07, freq: 400, toFreq: 4200, q: 0.8 }, ...seq([C5, G5, C6], 0.13, 0.26, 'square', 0.11, 0.5), ...seq([E5, G5, C6], 0, 0.9, 'triangle', 0.08, 0.92), { f: 65, to: 49, at: 0.92, dur: 0.6, wave: 'sine', vol: 0.3 }], gap: 2500 },
+    farewell: { parts: [...seq([E5, D5, C5, G4], 0.32, 0.42, 'triangle', 0.13), ...seq([C5, E5], 0, 1.1, 'sine', 0.08, 1.3), { f: 130.81, at: 1.3, dur: 1.1, wave: 'sine', vol: 0.12 }], gap: 2500 },
+    jail: { parts: [{ noise: true, dur: 0.12, vol: 0.28, freq: 900, toFreq: 300, q: 1.2 }, { f: 110, to: 55, dur: 0.3, wave: 'square', vol: 0.16 }, { noise: true, at: 0.22, dur: 0.1, vol: 0.22, freq: 2600, q: 6 }, { f: 1400, at: 0.22, dur: 0.25, wave: 'triangle', vol: 0.05 }, ...seq([A4, E4], 0.2, 0.3, 'sawtooth', 0.08, 0.55)], gap: 2500 },
+    heist: { parts: [...Array.from({ length: 4 }, (_, i) => ({ f: i % 2 ? 660 : 880, to: i % 2 ? 880 : 660, at: i * 0.28, dur: 0.28, wave: 'square' as Wave, vol: 0.07 })), ...seq([B4 * 2, E5 * 2, B4 * 2, E5 * 2], 0.07, 0.12, 'square', 0.07, 1.15)], gap: 2500 }
 };
 
 export class Sfx {
