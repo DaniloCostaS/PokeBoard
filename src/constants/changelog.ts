@@ -5,6 +5,8 @@ export type ChangelogDay = { date: string; changes: [ChangeKind, string][] };
 
 export const CHANGELOG: ChangelogDay[] = [
     { date: '2026-11-10', changes: [
+        ['ajuste', 'Não precisa mais tocar em "Iniciar turno": quando chega a sua vez, o turno começa sozinho. No online, se a aba estiver em segundo plano, ele espera você voltar para a partida.'],
+        ['correcao', 'Online: a vez só passa para o próximo jogador depois que tudo o que aconteceu no turno foi salvo, então ninguém começa com cartas, itens ou ouro desatualizados.'],
         ['novo', 'Itens novos na mochila: o botão Mochila do seu card mostra quantos itens você ganhou, e eles aparecem com a etiqueta NOVO até você abrir a mochila.'],
         ['ajuste', 'O contador de cartas novas no seu card some assim que você abre a mão. A etiqueta NOVO nas cartas continua até o fim da rodada.'],
         ['ajuste', 'Os efeitos ativos no tabuleiro saíram de cima da cabeça do peão: agora ficam numa plaquinha menor, nos pés dele.'],

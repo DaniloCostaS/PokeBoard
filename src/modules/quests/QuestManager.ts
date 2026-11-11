@@ -362,7 +362,7 @@ export class QuestManager {
         }
 
         if (!GameState.turnStarted) {
-            return GameDialog.toast("Inicie o seu turno antes de concluir missões.", { tone: 'warning' });
+            return GameDialog.toast("Seu turno ainda está começando. Tente de novo em instantes.", { tone: 'warning' });
         }
 
         if (NetworkObj && NetworkObj.isOnline && NetworkObj.myPlayerId !== playerId) {

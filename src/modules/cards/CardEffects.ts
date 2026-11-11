@@ -366,7 +366,7 @@ export class CardEffects {
         // Bloquear qualquer carta (exceto auto) se o turno ainda não foi iniciado
         if (cardData.type !== 'auto') {
             if (Network && Network.isOnline && !Game.turnStarted) {
-                return GameDialog.toast('Toque em "Iniciar turno" antes de usar cartas!', { tone: 'warning' });
+                return GameDialog.toast('Seu turno ainda está começando. Tente de novo em instantes.', { tone: 'warning' });
             }
         }
 
