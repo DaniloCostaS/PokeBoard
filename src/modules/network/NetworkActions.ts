@@ -588,7 +588,7 @@ export class NetworkActions {
         // Fetch logs
         const { data: logsData } = await supabase.from('room_logs').select(LOG_COLUMNS).eq('room_id', NetworkState.currentRoomId).order('created_at', { ascending: false }).limit(200);
         if (logsData) {
-            Game.globalLogs = logsData.map((row: any) => SupabaseDataStore.logFromRow(row));
+            Game.globalLogs = SupabaseDataStore.logsFromRows(logsData);
             const GameUIObj = (window as any).GameUI || GameUI;
             if (GameUIObj.renderAllLogs) GameUIObj.renderAllLogs();
         }
@@ -664,7 +664,8 @@ export class NetworkActions {
             })
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'room_logs', filter: `room_id=eq.${NetworkState.currentRoomId}` }, (payload) => {
                 const logData = payload.new;
-                const logObj = SupabaseDataStore.logFromRow(logData);
+                const logObj = SupabaseDataStore.logVisible(SupabaseDataStore.logFromRow(logData));
+                if (!logObj) return; // linha privada de outro jogador
                 const isDuplicate = Game.globalLogs.some((l: any) => l.text === logObj.text && l.timestamp === logObj.timestamp);
                 if (!isDuplicate) {
                     Game.globalLogs.unshift(logObj);
@@ -991,7 +992,7 @@ export class NetworkActions {
         if (!NetworkState.isOnline) return;
         const { data } = await supabase.from('room_logs').select(LOG_COLUMNS).eq('room_id', NetworkState.currentRoomId).order('created_at', { ascending: false }).limit(200);
         if (data) {
-            GameState.globalLogs = data.map((row: any) => SupabaseDataStore.logFromRow(row));
+            GameState.globalLogs = SupabaseDataStore.logsFromRows(data);
             const GameUIObj = (window as any).GameUI || GameUI;
             if (GameUIObj.renderAllLogs) {
                 GameUIObj.renderAllLogs();

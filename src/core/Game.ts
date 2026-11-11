@@ -81,6 +81,7 @@ export class Game {
 
     static log(m: string, actionPlayerId?: number, battleId?: string, skipSync: boolean = false) { GameUI.log(m, actionPlayerId, battleId, skipSync); }
     static sendGlobalLog(msg: string) { GameUI.sendGlobalLog(msg); }
+    static logPrivate(privateMsg: string, publicMsg: string | null, ownerId: number) { GameUI.logPrivate(privateMsg, publicMsg, ownerId); }
     static recordCardLog(attacker: string, card: string, target: string) { GameUI.recordCardLog(attacker, card, target); }
     static renderCardLogs() { GameUI.renderCardLogs(); }
     static filterLogs(type: string) { (GameUI as any).filterLogs(type); }

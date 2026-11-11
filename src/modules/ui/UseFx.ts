@@ -78,6 +78,8 @@ export class UseFx {
     static showCard(cardId: string, player: any, blocked = false) {
         const card = CARDS_DB.find((c: any) => c.id === cardId);
         if (!card || this.seenRecently(`${player.id}:${cardId}`)) return;
+        // Carta lendária com cena própria (Cinematics.showLegendary): a cena substitui o voo da carta
+        if (!blocked && (window as any).Cinematics?.hasLegendaryScene?.(cardId)) return;
         Sfx.play('cardPlay');
         const rarity = CARD_RARITIES[card.rarity]?.color || '#8d99ae';
         const el = document.createElement('div');

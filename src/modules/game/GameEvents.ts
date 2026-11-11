@@ -181,10 +181,8 @@ export class GameEvents {
                 GameState.pendingTileEvent = true;
                 GameUI.showGlobalAlert(msgLocal, p.name, true, false);
 
-                if (NetworkObj.isOnline) {
-                    NetworkObj.syncPlayerState();
-                    NetworkObj.sendAction('LOG', { msg: `🌀 VÓRTICE! ${p.name} foi sugado para um Ginásio na Rodada ${GameState.round}!` });
-                }
+                GameUI.logPrivate(msgLocal.replace(/\n\n/g, ' '), `🌀 VÓRTICE! ${p.name} foi sugado para um Ginásio na Rodada ${GameState.round}!`, p.id);
+                if (NetworkObj.isOnline) NetworkObj.syncPlayerState();
                 return;
             }
         }
@@ -197,10 +195,9 @@ export class GameEvents {
         GameUI.updateHUD();
         GameUI.showGlobalAlert(msgLocal, p.name, true, false);
 
-        if (NetworkObj.isOnline) {
-            NetworkObj.syncPlayerState();
-            NetworkObj.sendAction('LOG', { msg: `🎁 ${p.name} recebeu 2 Cartas bônus da Rodada ${GameState.round}!` });
-        }
+        // Quais cartas vieram, só o dono vê
+        GameUI.logPrivate(`🎁 Bônus da Rodada ${GameState.round}: você ganhou ${c1.icon} ${c1.name} e ${c2.icon} ${c2.name}.`, `🎁 ${p.name} recebeu 2 Cartas bônus da Rodada ${GameState.round}!`, p.id);
+        if (NetworkObj.isOnline) NetworkObj.syncPlayerState();
     }
 
     static handleTile(p: Player) {
@@ -271,12 +268,9 @@ export class GameEvents {
                 this.addItem(p, randomItem.id, 1);
 
                 const lotteryMsg = `🎰 DIA DE LOTERIA! Você visitou a casa de Evento e ganhou o prêmio acumulado de 500G, 1 Carta e 1 ${randomItem.name}!`;
-                GameUI.sendGlobalLog(lotteryMsg);
+                GameUI.logPrivate(lotteryMsg, `🎰 DIA DE LOTERIA! ${p.name} ganhou o prêmio acumulado de 500G, 1 Carta e 1 ${randomItem.name}!`, p.id);
                 GameUI.showGlobalAlert(lotteryMsg, p.name, true);
-                if (NetworkObj.isOnline) {
-                    NetworkObj.syncPlayerState();
-                    NetworkObj.sendAction('LOG', { msg: lotteryMsg });
-                }
+                if (NetworkObj.isOnline) NetworkObj.syncPlayerState();
                 return;
             }
 
@@ -296,13 +290,12 @@ export class GameEvents {
                 localMsg = `🌀 UM VÓRTICE SE ABRIU!\n\nVocê pisou em uma fenda espacial e foi teletransportado para uma área aleatória do mapa!`;
                 remoteMsg = `🌀 ${p.name} pisou em um vórtice e foi teletransportado!`;
 
-                GameUI.log(localMsg.replace(/\n\n/g, ' '));
+                GameUI.logPrivate(localMsg.replace(/\n\n/g, ' '), remoteMsg, p.id);
                 GameState.pendingTileEvent = true;
                 GameUI.showGlobalAlert(localMsg, p.name, true, false);
 
                 if (NetworkObj.isOnline) {
                     NetworkObj.syncPlayerState();
-                    NetworkObj.sendAction('LOG', { msg: remoteMsg });
                     NetworkObj.sendAction('SHOW_ALERT', { msg: remoteMsg, playerName: p.name, endsTurn: false });
                 }
                 return;
@@ -349,11 +342,11 @@ export class GameEvents {
                 remoteMsg = `🌟 ${p.name} explorou o evento e encontrou: ${itemName}!`;
             }
 
-            GameUI.log(localMsg.replace(/<[^>]*>?/gm, '').replace(/\n\n/g, ' '));
+            // A carta encontrada só aparece para quem achou (antes ia para o log de todos)
+            GameUI.logPrivate(localMsg.replace(/<[^>]*>?/gm, '').replace(/\n\n/g, ' '), remoteMsg, p.id);
             GameUI.showGlobalAlert(localMsg, p.name, true);
 
             if (NetworkObj.isOnline) {
-                NetworkObj.sendAction('LOG', { msg: remoteMsg });
                 NetworkObj.sendAction('SHOW_ALERT', { msg: remoteMsg, playerName: p.name });
             }
         }
@@ -367,7 +360,7 @@ export class GameEvents {
             }
 
             if (p.effects.escapedGym) {
-                GameUI.log("💨 Você usou Fumaça Ninja e o Líder ainda não te notou...");
+                GameUI.logPrivate("💨 Você usou Fumaça Ninja e o Líder ainda não te notou...", `💨 ${p.name} passou pelo Ginásio escondido com a Fumaça Ninja.`, p.id);
                 this.nextTurn();
                 return;
             }
@@ -409,11 +402,10 @@ export class GameEvents {
                     const CardsObj = (window as any).Cards || Cards;
                     if (CardsObj) CardsObj.draw(p, true);
 
-                    GameUI.log(msgLocal.replace(/\n\n/g, ' '));
+                    GameUI.logPrivate(msgLocal.replace(/\n\n/g, ' '), msgGlobal, p.id);
                     GameUI.showGlobalAlert(msgLocal, p.name, true);
 
                     if (NetworkObj.isOnline) {
-                        NetworkObj.sendAction('LOG', { msg: msgGlobal });
                         NetworkObj.sendAction('SHOW_ALERT', { msg: msgGlobal, playerName: p.name });
                     }
                 }
@@ -432,11 +424,10 @@ export class GameEvents {
                     const msgLocal = `⚠️ ALERTA LENDÁRIO!\n\nVocê encontrou um ${wildMon.name} selvagem!||LEGENDARY:${wildMon.name}||MY_ENCOUNTER`;
                     const msgGlobal = `⚠️ ALERTA LENDÁRIO! ${p.name} encontrou um ${wildMon.name} selvagem!||LEGENDARY:${wildMon.name}`;
 
-                    GameUI.log(msgLocal.replace(/\n\n/g, ' ').split('||')[0]);
+                    GameUI.logPrivate(msgLocal.replace(/\n\n/g, ' ').split('||')[0], msgGlobal.split('||')[0], p.id);
                     GameUI.showGlobalAlert(msgLocal, p.name, true, false);
 
                     if (NetworkObj.isOnline) {
-                        NetworkObj.sendAction('LOG', { msg: msgGlobal.split('||')[0] });
                         NetworkObj.sendAction('SHOW_ALERT', { msg: msgGlobal, playerName: p.name, endsTurn: false });
                     }
                 } else {
@@ -494,7 +485,8 @@ export class GameEvents {
                 const localMsg = `Você comprou uma carta misteriosa no mercado negro por 500G:\n\n${card.icon} ${card.name}`;
                 const remoteMsg = `🃏 ${player.name} comprou uma Carta Misteriosa no Centro Pokémon!`;
 
-                GameUI.log(localMsg.replace(/\n\n/g, ' '));
+                // Qual carta saiu, só quem comprou vê (antes ia para o log de todos)
+                GameUI.logPrivate(localMsg.replace(/\n\n/g, ' '), remoteMsg, player.id);
                 GameUI.sendGlobalLog(`💰 [Extrato] ${player.name} gastou -500G (Compra de Carta).`);
                 GameUI.sendGlobalLog(`💰 [Extrato] Novo Saldo: ${player.gold}G.`);
                 GameUI.updateHUD();
@@ -503,7 +495,6 @@ export class GameEvents {
 
                 if (NetworkObj.isOnline) {
                     NetworkObj.syncPlayerState();
-                    NetworkObj.sendAction('LOG', { msg: remoteMsg });
                     NetworkObj.sendAction('SHOW_ALERT', { msg: remoteMsg, playerName: player.name });
                 }
             } else {
@@ -659,8 +650,9 @@ export class GameEvents {
                         }
                         for (const k in p.items) if (p.items[k] > 0) p.items[k] = Math.ceil(p.items[k] / 2);
 
-                        const lostNames = lostCards.length > 0 ? `: ${lostCards.join(', ')}` : "";
-                        GameUI.sendGlobalLog(`🃏 [Extrato] ${p.name} pagou impostos${lostNames}. Cartas restantes: ${p.cards.length}`);
+                        // Quais cartas cada um perdeu revela a mão: só o dono vê os nomes
+                        GameUI.sendGlobalLog(`🃏 [Extrato] ${p.name} pagou impostos (${lostCards.length} carta(s)). Cartas restantes: ${p.cards.length}`);
+                        if (lostCards.length) GameUI.logPrivate(`🃏 Imposto de Renda levou suas cartas: ${lostCards.join(', ')}.`, null, p.id);
                     });
                     GameUI.sendGlobalLog("📜 IMPOSTO DE RENDA: Todos os jogadores perderam metade de suas cartas e itens!");
                     if (NetworkObj.isOnline) NetworkObj.syncPlayers(GameState.players.map(p => p.id));
@@ -902,7 +894,7 @@ export class GameEvents {
                 if (actuallyLost.length > 0) {
                     currP.cards = [...legendaryCards, ...nonLegendaryCards];
                     const lostNames = actuallyLost.map((c: any) => `${c.icon} ${c.name}`).join(', ');
-                    GameUI.sendGlobalLog(`🃏 ${currP.name} excedeu o limite do TRUCO e perdeu ${actuallyLost.length} carta(s): ${lostNames}! (Total: ${currP.cards.length})`);
+                    GameUI.logPrivate(`🃏 TRUCO! Você tinha mais de 6 cartas e perdeu: ${lostNames}. (Total: ${currP.cards.length})`, `🃏 ${currP.name} excedeu o limite do TRUCO e perdeu ${actuallyLost.length} carta(s)! (Total: ${currP.cards.length})`, currP.id);
                     GameUI.showGlobalAlert(`🃏 GRITARAM TRUCO!\n\nVocê tinha mais de 6 cartas e precisou descartar ${actuallyLost.length} aleatoriamente.\n\nPerdidas: ${lostNames}`, currP.name, true, false);
                     GameUI.updateHUD();
                     if (NetworkObj.isOnline) NetworkObj.syncSpecificPlayer(currP.id);
@@ -1097,7 +1089,8 @@ export class GameEvents {
             GameState.saveGame();
             const NetworkObj = (window as any).Network || Network;
             if (NetworkObj.isOnline) {
-                NetworkObj.sendAction('LOG', { msg: `${p.name} usou ${item.name}.` });
+                // Os outros jogadores veem no log o item usado (o sendAction LOG não chega a ninguém desde os logs no banco)
+                GameUI.log(`🎒 ${p.name} usou ${item.name}.||OTHERS:${p.id}`);
                 NetworkObj.syncPlayerState();
             }
         }

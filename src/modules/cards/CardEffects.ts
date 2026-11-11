@@ -331,9 +331,7 @@ export class CardEffects {
 
         Game.log(`🔓 ${player.name} removeu a proteção de uma carta.`);
         
-        const privateMsg = `🔓 Você removeu a proteção da carta [${player.cards[index].name}].||PRIVATE:${player.id}`;
-        Game.log(privateMsg);
-        if (Network.isOnline) Network.sendAction('LOG', { msg: privateMsg });
+        Game.logPrivate(`🔓 Você removeu a proteção da carta [${player.cards[index].name}].`, null, player.id);
 
         if (Network.isOnline) {
             Network.syncPlayerState();
@@ -617,8 +615,8 @@ export class CardEffects {
 
                             effectLog = `🚀 BINGO! Uma carta foi roubada e foi parar na mão de ${player.name}!`;
 
-                            const privateMsg = `🕵️ ALERTA: A Equipe Rocket roubou sua carta [${stolenCard.name}]!||PRIVATE:${target.id}`;
-                            if (Network.isOnline) Network.sendAction('LOG', { msg: privateMsg });
+                            // A vítima fica sabendo qual carta perdeu; o ladrão vê a carta na mão
+                            if (Network.isOnline) Game.logPrivate(`🕵️ ALERTA: A Equipe Rocket roubou sua carta [${stolenCard.name}]!`, null, target.id);
                             else Game.log(`🕵️ ALERTA: A Equipe Rocket roubou a carta [${stolenCard.name}] de ${target.name}!`);
                         } else { if (!player.isCPU) GameDialog.toast("O alvo não tem cartas!", { tone: 'warning' }); consumed = false; }
                     }
@@ -921,7 +919,8 @@ export class CardEffects {
                         });
                         const targetIdx = eligibleIndices[0].index;
                         player.cards[targetIdx].isProtected = true;
-                        effectLog = `🔒 CADEADO ATIVADO! ${player.name} protegeu sua carta [${player.cards[targetIdx].name}] contra roubos!`;
+                        effectLog = `🔒 CADEADO ATIVADO! ${player.name} protegeu uma de suas cartas contra roubos!`;
+                        if (!player.isCPU) Game.logPrivate(`🔒 Você protegeu a carta [${player.cards[targetIdx].name}]!`, null, player.id);
                     } else {
                         consumed = false;
                     }
@@ -935,9 +934,7 @@ export class CardEffects {
                         targetCard.isProtected = true;
                         effectLog = `🔒 CADEADO ATIVADO! ${player.name} protegeu uma de suas cartas contra roubos!`;
                         
-                        const privateMsg = `🔒 Você protegeu a carta [${targetCard.name}]!||PRIVATE:${player.id}`;
-                        Game.log(privateMsg);
-                        if (Network.isOnline) Network.sendAction('LOG', { msg: privateMsg });
+                        Game.logPrivate(`🔒 Você protegeu a carta [${targetCard.name}]!`, null, player.id);
                     } else {
                         CardUI.openProtectCardSelection(cardId);
                         consumed = false;
@@ -1038,6 +1035,7 @@ export class CardEffects {
                     }
 
                     effectLog = `🤝 VÍNCULO SUPREMO! ${targetMon.name} prometeu nunca abandonar ${player.name}${shinyMsg}${megaMsg}`;
+                    (window as any).Cinematics?.legendaryCard?.('supreme_bond', player, { monId: targetMon.id, monName: targetMon.name });
                 } else { CardUI.openPokemonSelectionForCard(cardId, "Escolha um Pokémon para criar um Vínculo Supremo:"); consumed = false; }
                 break;
 
@@ -1129,6 +1127,8 @@ export class CardEffects {
                     // Remoção efetivada com sucesso
                     target.team.splice(pIdx, 1);
                     effectLog = `👋 ADEUS! ${player.name} fez ${target.name} libertar seu ${targetMon.name} para todo o sempre!`;
+                    // Cena da despedida (uma para cada Pokémon mandado embora)
+                    (window as any).Cinematics?.legendaryCard?.('ash_goodbye', player, { monId: targetMon.id, monName: targetMon.name, shiny: !!targetMon.isShiny, ownerId: target.id });
 
                     player.effects.ashGoodbyeRemaining--;
                     const remaining = player.effects.ashGoodbyeRemaining;
@@ -1190,6 +1190,7 @@ export class CardEffects {
                 });
                 player.effects.tremembeUserTurns = 15;
                 effectLog = `⛓️ DECRETO DA PRISÃO DE TREMEMBÉ! Todos os outros jogadores ficarão enjaulados por 15 rodadas!`;
+                (window as any).Cinematics?.legendaryCard?.('tremembe', player);
                 requiresGlobalSync = true;
                 break;
 
@@ -1248,6 +1249,7 @@ export class CardEffects {
 
                 Game.sendGlobalLog(`💰 [Extrato] Assalto: Arrecadado ${totalStolenGold}G (recebeu ${goldReceived}G). Itens: ${stolenItemsList.length} (recebeu ${itemsCount}). Cartas: ${stolenCardsList.length} (recebeu ${cardsCount}).`);
                 effectLog = `💰 O GRANDE ASSALTO! ${player.name} roubou de todos, mas recebeu apenas metade dos espólios devido ao balanceamento!`;
+                (window as any).Cinematics?.legendaryCard?.('grande_assalto', player);
                 requiresGlobalSync = true;
                 break;
             }
@@ -1279,8 +1281,10 @@ export class CardEffects {
                         BattleObj.setup(player, wildMon, false, "Selvagem", 0, null, false, 0, "", 1);
                     }, 500);
                     effectLog = `🦅 ${player.name} atraiu a presença de ${wildMon.name}!`;
+                    (window as any).Cinematics?.legendaryCard?.('legendary_encounter', player, { ids: [monTemplate.id] });
                 } else {
                     CardUI.openLegendaryEncounterSelection(options);
+                    (window as any).Cinematics?.legendaryCard?.('legendary_encounter', player, { ids: options.map((o: any) => o.id) });
                     effectLog = `🦅 ${player.name} tocou a Flauta do Tempo e atraiu a presença de três divindades!`;
                 }
                 break;
@@ -1595,8 +1599,10 @@ export class CardEffects {
                             if (p.items) {
                                 for (const k in p.items) if (p.items[k] > 0) p.items[k] = Math.ceil(p.items[k] / 2);
                             }
-                            const lostNames = lostCards.length > 0 ? `: ${lostCards.join(', ')}` : "";
-                            Game.sendGlobalLog(`🃏 [Extrato] ${p.name} pagou impostos${lostNames}. Cartas restantes: ${p.cards ? p.cards.length : 0}`);
+                            // Quais cartas cada um perdeu revela a mão: só o dono vê os nomes
+                            const restantes = p.cards ? p.cards.length : 0;
+                            Game.sendGlobalLog(`🃏 [Extrato] ${p.name} pagou impostos (${lostCards.length} carta(s)). Cartas restantes: ${restantes}`);
+                            if (lostCards.length) Game.logPrivate(`🃏 Imposto de Renda levou suas cartas: ${lostCards.join(', ')}.`, null, p.id);
                         });
                         effectLog += `\n\n📜 IMPOSTO DE RENDA: Todos os jogadores perderam metade de suas cartas e itens!`;
                     }

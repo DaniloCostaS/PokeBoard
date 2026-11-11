@@ -4,6 +4,12 @@ export type ChangeKind = 'novo' | 'ajuste' | 'correcao';
 export type ChangelogDay = { date: string; changes: [ChangeKind, string][] };
 
 export const CHANGELOG: ChangelogDay[] = [
+    { date: '2026-11-11', changes: [
+        ['novo', 'Cartas lendárias agora têm cena própria, vista por toda a sala: no Adeus de Ash o Pokémon acena e vai embora pelo pôr do sol; no Vínculo Supremo ele se liga ao treinador e vira shiny; no Tremembé as grades caem; no Grande Assalto o ouro voa para quem usou; e no Encontro Lendário os lendários surgem da luz.'],
+        ['correcao', 'O histórico não revela mais quais cartas os outros jogadores pegaram: fusão, sacrifício, compra, sorteio, evento, bônus da rodada, Cadeado, Imposto de Renda e Truco mostram o nome da carta só para o dono.'],
+        ['correcao', 'Online: quem tem a carta roubada pela Equipe Rocket volta a ser avisado de qual carta perdeu, e os outros jogadores voltam a ver no histórico os eventos e itens usados pelos adversários.'],
+        ['correcao', 'Time em "Detalhes" no placar: nome, nível, tipos, HP, EXP e atributos não vazam mais para fora do card do Pokémon. Mega Pedra, item e vínculos passaram para a linha dos tipos, deixando o nome inteiro à vista.'],
+    ] },
     { date: '2026-11-10', changes: [
         ['ajuste', 'Não precisa mais tocar em "Iniciar turno": quando chega a sua vez, o turno começa sozinho. No online, se a aba estiver em segundo plano, ele espera você voltar para a partida.'],
         ['correcao', 'Online: a vez só passa para o próximo jogador depois que tudo o que aconteceu no turno foi salvo, então ninguém começa com cartas, itens ou ouro desatualizados.'],

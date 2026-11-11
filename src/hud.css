@@ -307,6 +307,8 @@
 
 .pb-party-info {
     display: grid;
+    /* Sem coluna definida o grid crescia até o conteúdo mais largo (dois tipos lado a lado) e tudo vazava do card */
+    grid-template-columns: minmax(0, 1fr);
     gap: 3px;
     min-width: 0;
 }
@@ -350,13 +352,32 @@
 .pb-party-types {
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
     gap: 3px;
     min-height: 0;
 }
 
-.pb-party-types > * {
-    transform: scale(0.88);
-    transform-origin: left center;
+/* Mega Pedra, item e vínculos ficam na linha dos tipos: na linha de cima tiravam o espaço do nome */
+.pb-party-icons {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    margin-left: auto;
+}
+
+/* O wrapper vem de getTypeBadgesHTML com estilo inline: aqui pode quebrar linha e as tags encolhem de verdade
+   (o antigo scale(0.88) só diminuía o desenho, o espaço ocupado continuava o mesmo) */
+.pb-party-types > div {
+    flex-wrap: wrap;
+    min-width: 0;
+    margin: 0 !important;
+}
+
+#game-container .pb-party .poke-type-badge {
+    max-width: 100%;
+    padding: 1px 4px !important;
+    font-size: 0.5rem !important;
+    letter-spacing: 0.2px !important;
 }
 
 /* HP no estilo clássico: rótulo amarelo "HP" e barra com contorno */
