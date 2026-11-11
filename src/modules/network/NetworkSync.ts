@@ -13,6 +13,14 @@ export class NetworkSync {
         return (this.pendingSaves.get(playerId) || 0) > 0;
     }
 
+    // Espera todas as gravações de jogadores disparadas por este cliente chegarem ao banco (com limite de tempo).
+    // Usado antes de passar a vez: o próximo jogador relê o banco ao começar e não pode ler um estado pela metade.
+    static async flushSaves(timeoutMs: number = 8000): Promise<boolean> {
+        const all = Promise.all([...this.saveChains.values()].map(p => p.catch(() => { }))).then(() => true);
+        const limit = new Promise<boolean>(resolve => window.setTimeout(() => resolve(false), timeoutMs));
+        return Promise.race([all, limit]);
+    }
+
     // Apenas o dono do turno pode gravar no banco (evita race conditions entre clientes)
     static canSyncDatabase(): boolean {
         if (!NetworkState.isOnline) return true;

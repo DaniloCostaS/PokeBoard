@@ -44,6 +44,8 @@ export class NetworkState {
     static isListenerActive: boolean = false;
     // Quando este cliente gravou a vez pela última vez: a leitura do banco pode chegar antes da própria gravação
     static lastTurnWriteAt: number = 0;
+    // Passagem de vez esperando as gravações do turno chegarem ao banco antes de gravar a vez nova
+    static turnWritePending: boolean = false;
     // Registrado pelo ConnectionMonitor (evita import circular)
     static onHeartbeat: ((status: string) => void) | null = null;
     static lobbyPlayers: any[] = [];

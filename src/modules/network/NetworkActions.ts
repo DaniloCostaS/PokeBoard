@@ -721,20 +721,42 @@ export class NetworkActions {
         }, wait);
     }
 
-    private static async refreshPlayersFromSupabase() {
+    // Releitura mais recente em andamento (a de um pedido mais novo é a que vale)
+    private static latestRefresh: Promise<boolean> | null = null;
+
+    /** Relê todos os jogadores do banco e só termina quando a releitura mais recente foi aplicada. Devolve false se falhou. */
+    static async refreshPlayersNow(): Promise<boolean> {
+        let mine = this.refreshPlayersFromSupabase();
+        let ok = await mine;
+        // Outro pedido começou depois do meu: o meu foi descartado, espera o mais novo
+        while (this.latestRefresh && this.latestRefresh !== mine) {
+            mine = this.latestRefresh;
+            ok = await mine;
+        }
+        return ok;
+    }
+
+    private static refreshPlayersFromSupabase(): Promise<boolean> {
+        const run = this.doRefreshPlayers();
+        this.latestRefresh = run;
+        run.finally(() => { if (this.latestRefresh === run) this.latestRefresh = null; });
+        return run;
+    }
+
+    private static async doRefreshPlayers(): Promise<boolean> {
         const Game = (window as any).Game;
-        if (!NetworkState.isOnline || !NetworkState.currentRoomId || !Game?.players) return;
+        if (!NetworkState.isOnline || !NetworkState.currentRoomId || !Game?.players) return false;
         const requestSeq = ++this.playerRefreshSeq;
 
-        const { data: roomData } = await supabase
+        const { data: roomData, error } = await supabase
             .from('rooms')
             .select('room_players(*, player_pokemons(*), player_items(*), player_cards(*), player_badges(*), player_effects(*), player_stats(*), player_pokedex(*))')
             .eq('id', NetworkState.currentRoomId)
             .single();
 
-        if (!roomData?.room_players) return;
+        if (error || !roomData?.room_players) return false;
         // Uma resposta mais antiga que chega depois de uma mais nova não pode sobrescrever o estado
-        if (requestSeq !== this.playerRefreshSeq) return;
+        if (requestSeq !== this.playerRefreshSeq) return true;
 
         this.rememberRoomPlayers(roomData.room_players);
         const refreshedPlayers = SupabaseDataStore.hydratePlayers(roomData.room_players);
@@ -757,6 +779,7 @@ export class NetworkActions {
         GameState.players = refreshedPlayers;
         Game.updateHUD();
         Game.moveVisuals();
+        return true;
     }
 
     // Mantido intacto da versão anterior para não quebrar lógicas de Batalha
@@ -913,7 +936,7 @@ export class NetworkActions {
 
     // A gravação da vez feita por este cliente ainda pode não ter chegado ao banco
     private static recentlyWroteTurn(): boolean {
-        return Date.now() - NetworkState.lastTurnWriteAt < 4000;
+        return NetworkState.turnWritePending || Date.now() - NetworkState.lastTurnWriteAt < 4000;
     }
 
     // Aplica vez/rodada lidas do banco (realtime ou ressincronização) e limpa o que ficou preso de turnos anteriores

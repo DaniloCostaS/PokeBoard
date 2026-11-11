@@ -58,6 +58,8 @@ export class Network {
     static async removePlayer(playerId: number) { await NetworkActions.removePlayer(playerId); }
     static async initializeGameFromSupabase() { await NetworkActions.initializeGameFromSupabase(); }
     static setupGameLoopListener() { NetworkActions.setupGameLoopListener(); }
+    static refreshPlayersNow() { return NetworkActions.refreshPlayersNow(); }
+    static flushSaves(timeoutMs?: number) { return NetworkSync.flushSaves(timeoutMs); }
 
     // --- AÇÕES REMOTAS (QUEUE) ---
     static handleRemoteAction(action: any) { NetworkActions.handleRemoteAction(action); }

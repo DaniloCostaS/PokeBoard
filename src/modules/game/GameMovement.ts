@@ -9,6 +9,7 @@ import { GameEvents } from './GameEvents';
 import { GameDialog } from '../ui/GameDialog';
 import { ScreenKit } from '../ui/ScreenKit';
 import { ProfileTracker } from '../profile/ProfileTracker';
+import { NotificationSystem } from './NotificationSystem';
 
 export class GameMovement {
     /** true enquanto o diálogo de insígnias/campeão está aberto (bloqueia rolagens repetidas). */
@@ -36,6 +37,8 @@ export class GameMovement {
 
     static async rollDice() {
         if (!GameState.canAct() || GameState.hasRolled) return;
+        // Pede permissão de notificação ("é a sua vez") num clique do jogador: o Safari só aceita assim. Só pede uma vez.
+        if ((window as any).Network?.isOnline) NotificationSystem.requestPermission();
 
         const p = GameState.getCurrentPlayer();
         const badgesCount = p.badges.filter((b: boolean) => b).length;

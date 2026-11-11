@@ -678,13 +678,23 @@ export class GameEvents {
         GameState.hasRolled = false;
 
         if (NetworkObj.isOnline) {
+            // A vez só é gravada depois que todas as gravações deste turno chegaram ao banco: o próximo jogador
+            // relê o banco e começa sozinho, então não pode encontrar um estado pela metade (carta roubada, imposto...)
             NetworkState.lastTurnWriteAt = Date.now();
-            supabase.from('rooms').update({
+            const roomId = NetworkObj.currentRoomId;
+            const turnRow = {
                 current_turn: GameState.turn,
                 current_round: GameState.round,
                 current_event_id: GameState.currentGlobalEvent ? GameState.currentGlobalEvent.id : null,
                 event_end_round: GameState.eventEndRound
-            }).eq('id', NetworkObj.currentRoomId).then();
+            };
+            NetworkState.turnWritePending = true;
+            NetworkSync.flushSaves().then(done => {
+                if (!done) console.warn('[nextTurn] Gravações ainda pendentes após 8s; passando a vez mesmo assim.');
+                NetworkState.lastTurnWriteAt = Date.now();
+                return supabase.from('rooms').update(turnRow).eq('id', roomId);
+            }).catch(e => console.error('[nextTurn] Falha ao gravar a vez:', e))
+              .finally(() => { NetworkState.turnWritePending = false; NetworkState.lastTurnWriteAt = Date.now(); });
             SupabaseDataStore.saveRoomConfig(NetworkObj.currentRoomId, GameState.settings, MapSystem.size).then();
         } else if (!NetworkObj.isOnline) {
             const nextP = GameState.players[GameState.turn];
@@ -731,22 +741,19 @@ export class GameEvents {
             return;
         }
 
-        // É a vez deste jogador
+        // É a vez deste jogador: o turno começa sozinho (CPU offline continua com o próprio controle)
         if (!GameState.turnStarted) {
-            // Aguardando o jogador clicar em "Iniciar Turno"
+            if (iniciarBtn) iniciarBtn.style.display = 'none';
+            rollBtn.style.display = '';
             rollBtn.disabled = true;
-            rollBtn.style.display = 'none';
-            if (iniciarBtn) {
-                iniciarBtn.style.display = '';
-                iniciarBtn.disabled = false;
-                iniciarBtn.innerText = 'Iniciar turno';
-            }
+            const hidden = NetworkObj.isOnline && document.visibilityState === 'hidden';
+            rollBtn.innerText = hidden ? 'Sua vez! Volte para a partida' : 'Preparando seu turno…';
             // 🔔 Notifica o jogador se ele não estiver olhando para a aba
             if (NetworkObj.isOnline) {
                 const currP = GameState.players[me];
                 if (currP) NotificationSystem.notifyMyTurn(currP.name, GameState.round, GameState.turn);
             }
-            CPUController.handleTurn();
+            if (!CPUController.handleTurn()) this.autoStartTurn();
             return;
         }
 
@@ -775,6 +782,76 @@ export class GameEvents {
         CPUController.handleTurn();
     }
 
+    // Início automático do turno (substitui o antigo botão "Iniciar turno").
+    // Online, só começa com a aba visível e depois de reler todos os jogadores do banco, para nunca agir sobre um
+    // estado velho: com a aba em segundo plano o navegador atrasa ou congela timers e o websocket, então o turno
+    // espera a aba voltar (e o jogador recebe a notificação de que é a vez dele).
+    private static autoStarting = false;
+    private static autoStartRetry: number | null = null;
+    private static visibleWaitInstalled = false;
+
+    private static waitForVisibleTab() {
+        if (this.visibleWaitInstalled) return;
+        this.visibleWaitInstalled = true;
+        const onVisible = () => {
+            if (document.visibilityState !== 'visible') return;
+            document.removeEventListener('visibilitychange', onVisible);
+            this.visibleWaitInstalled = false;
+            this.checkTurnControl();
+        };
+        document.addEventListener('visibilitychange', onVisible);
+    }
+
+    private static myTurnToStart(): boolean {
+        const NetworkObj = (window as any).Network || Network;
+        const BattleObj = (window as any).Battle || Battle;
+        if (GameState.turnStarted || (BattleObj && BattleObj.active)) return false;
+        if (NetworkObj.isOnline) return !NetworkObj.isSpectator && GameState.turn === NetworkObj.myPlayerId;
+        return true;
+    }
+
+    static async autoStartTurn() {
+        const NetworkObj = (window as any).Network || Network;
+        if (this.autoStarting || !this.myTurnToStart()) return;
+        if (this.autoStartRetry !== null) { window.clearTimeout(this.autoStartRetry); this.autoStartRetry = null; }
+
+        if (!NetworkObj.isOnline) {
+            // Offline: pausa curta para a troca de vez aparecer na tela
+            this.autoStarting = true;
+            await new Promise(r => window.setTimeout(r, 600));
+            this.autoStarting = false;
+            if (this.myTurnToStart()) this.iniciarTurno();
+            return;
+        }
+
+        if (document.visibilityState === 'hidden') { this.waitForVisibleTab(); return; }
+
+        this.autoStarting = true;
+        let fresh = false;
+        try {
+            // Minhas próprias gravações pendentes (ex.: turno extra) primeiro; depois o estado de todos direto do banco
+            await NetworkSync.flushSaves(5000);
+            // Requisição pendurada (rede travada sem erro) não pode prender o início do turno: conta como falha e tenta de novo
+            fresh = await Promise.race([
+                NetworkObj.refreshPlayersNow() as Promise<boolean>,
+                new Promise<boolean>(r => window.setTimeout(() => r(false), 10000))
+            ]);
+        } catch (e) {
+            console.warn('[autoStartTurn] Falha ao reler os jogadores:', e);
+        } finally {
+            this.autoStarting = false;
+        }
+
+        if (!this.myTurnToStart()) return;
+        if (document.hidden) { this.waitForVisibleTab(); this.checkTurnControl(); return; }
+        if (!fresh) {
+            // Sem conseguir ler o banco não começa (agiria sobre dados velhos): tenta de novo em instantes
+            this.autoStartRetry = window.setTimeout(() => { this.autoStartRetry = null; this.checkTurnControl(); }, 2500);
+            return;
+        }
+        this.iniciarTurno();
+    }
+
     static iniciarTurno() {
         const NetworkObj = (window as any).Network || Network;
         const me = NetworkObj.myPlayerId;
@@ -785,13 +862,10 @@ export class GameEvents {
         GameUI.moveVisuals();
         GameUI.updateHUD();
 
-        // Solicitar permissão de notificação (idempotente, só pede uma vez)
-        NotificationSystem.requestPermission();
         // Cancela notificação pendente — jogador já está aqui
         NotificationSystem.cancelPending();
 
-        const iniciarBtn = document.getElementById('iniciar-turno-btn') as HTMLButtonElement;
-        if (iniciarBtn) { iniciarBtn.disabled = true; iniciarBtn.innerText = 'Iniciando...'; }
+        const iniciarBtn = document.getElementById('iniciar-turno-btn') as HTMLButtonElement | null;
 
         const currP = GameState.players[NetworkObj.isOnline ? me : GameState.turn];
         GameUI.sendGlobalLog(`▶️ ${currP.name} iniciou o turno.`);
@@ -929,7 +1003,7 @@ export class GameEvents {
         // Bloquear uso de itens do tabuleiro se o turno ainda não foi iniciado
         const NetworkObj = (window as any).Network || Network;
         if (NetworkObj.isOnline && !GameState.turnStarted && GameState.turn === NetworkObj.myPlayerId) {
-            GameDialog.toast('Toque em "Iniciar turno" antes de usar itens!', { tone: 'warning' });
+            GameDialog.toast('Seu turno ainda está começando. Tente de novo em instantes.', { tone: 'warning' });
             return;
         }
         if (item.type === 'heal' || item.type === 'revive' || item.type === 'boost' || item.type === 'mega' || item.type === 'hold') {
