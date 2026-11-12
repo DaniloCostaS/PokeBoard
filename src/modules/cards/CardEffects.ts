@@ -152,6 +152,21 @@ export class CardEffects {
         const Game = (window as any).Game;
         const Network = (window as any).Network;
 
+        // A tela de escolha guarda os objetos de quando abriu; enquanto o jogador escolhe, a releitura do banco troca
+        // os objetos em Game.players. Trocar no objeto antigo fazia o Pokémon enviado sumir (o salvamento pegava o novo).
+        const chosenMine = player.team[myChoice];
+        const chosenHis = target.team[hisChoice];
+        player = Game.players.find((p: any) => p.id === player.id) || player;
+        target = Game.players.find((p: any) => p.id === target.id) || target;
+        const sameMon = (a: any, b: any) => !!a && !!b && a.id === b.id && a.name === b.name && a.level === b.level && !!a.isShiny === !!b.isShiny;
+        const findIdx = (team: any[], mon: any, hint: number) => sameMon(team[hint], mon) ? hint : team.findIndex((m: any) => sameMon(m, mon));
+        myChoice = findIdx(player.team, chosenMine, myChoice);
+        hisChoice = findIdx(target.team, chosenHis, hisChoice);
+        if (myChoice < 0 || hisChoice < 0) {
+            if (!player.isCPU) GameDialog.toast("Os times mudaram enquanto você escolhia. Escolha a troca de novo.", { tone: 'warning' });
+            return;
+        }
+
         const myMon = player.team[myChoice];
         const hisMon = target.team[hisChoice];
         if (!this.canLoseByCard(myMon) || !this.canLoseByCard(hisMon)) {
@@ -195,7 +210,8 @@ export class CardEffects {
 
         if (Network.isOnline) {
             try {
-                Network.syncPlayers([player.id, target.id]);
+                // Salva exatamente os objetos alterados (não busca de novo em Game.players)
+                Network.syncPlayerObjects([player, target]);
             } catch (e) { console.error('[executeTrade] Sync Atômico:', e); }
 
             Network.sendAction('SHOW_ALERT', { msg: fullMsg, playerName: player.name, endsTurn: false });
