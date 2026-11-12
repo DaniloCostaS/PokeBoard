@@ -740,7 +740,12 @@ export class BattleCore {
             }
         }
 
-        if (this.opponent.currentHp <= 0) {
+        if (this.activeMon.currentHp <= 0) {
+            BattleUI.updateUI();
+            if (NetworkObj.isOnline) NetworkObj.syncPlayerState();
+            setTimeout(() => { this.handleFaint(); }, 1000);
+        }
+        else if (this.opponent.currentHp <= 0) {
             (this as any).finalPlayerLevelForQuests = this.activeMon.level;
             const oppStats = this.opponent.maxHp + this.opponent.atk + this.opponent.def + this.opponent.speed;
             const xpGain = Math.max(1, Math.floor(oppStats / 9));
@@ -756,11 +761,6 @@ export class BattleCore {
             BattleUI.updateUI();
             if (NetworkObj.isOnline) NetworkObj.syncPlayerState();
             setTimeout(() => { this.checkWinCondition(); }, 1000);
-        }
-        else if (this.activeMon.currentHp <= 0) {
-            BattleUI.updateUI();
-            if (NetworkObj.isOnline) NetworkObj.syncPlayerState();
-            setTimeout(() => { this.handleFaint(); }, 1000);
         }
         else {
             if (callback) callback();
@@ -1020,6 +1020,10 @@ export class BattleCore {
                 BattleUI.updateButtons();
                 const NetworkObj = (window as any).Network || Network;
                 if (NetworkObj.isOnline) NetworkObj.syncPlayerState();
+                if (this.opponent && this.opponent.currentHp <= 0) {
+                    setTimeout(() => this.checkWinCondition(), 1000);
+                    return;
+                }
                 if (this.isPvP) setTimeout(() => this.autoAttackNext(), 1500);
                 return;
             }
@@ -1031,6 +1035,55 @@ export class BattleCore {
         if (nextPly) {
             this.activeMon!.removeHappiness(10);
             BattleUI.logBattle(`${this.activeMon!.name} desmaiou!`, true);
+
+            // Se o oponente também caiu no mesmo golpe (ex.: reflect/contra-ataque), resolve a troca/derrota do oponente
+            if (this.opponent && this.opponent.currentHp <= 0) {
+                if ((this.opponent as any).isTemp || (this.opponent as any).isMegaEvolution) {
+                    const isOppMega = (this.opponent as any).isMegaEvolution;
+                    this.revertOpponentMew();
+                    if (this.opponent.currentHp > 0) {
+                        BattleUI.logBattle(isOppMega
+                            ? "🧬 A Mega Evolução inimiga foi derrotada, mas o Pokémon original retornou e continua a lutar!"
+                            : "🧬 O Mewtwo inimigo foi derrotado, mas o Pokémon original retornou e continua a lutar!");
+                    } else {
+                        BattleUI.logBattle("🧬 A transformação inimiga desfez após a derrota!");
+                    }
+                }
+
+                if (this.opponent.currentHp <= 0) {
+                    let nextOpp = this.oppTeamList.find(p => !p.isFainted() && p !== this.opponent);
+                    if (this.isGym || this.isChampion) {
+                        const availableOpp = this.oppTeamList.filter(p => !p.isFainted() && p !== this.opponent);
+                        if (availableOpp.length > 0) {
+                            nextOpp = availableOpp[Math.floor(Math.random() * availableOpp.length)];
+                        }
+                    }
+
+                    if (nextOpp) {
+                        const oldImg = (this.opponent as any)._npcImage;
+                        const oldName = (this.opponent as any)._npcName;
+                        this.opponent = nextOpp;
+                        if (oldImg) (this.opponent as any)._npcImage = oldImg;
+                        if (oldName) (this.opponent as any)._npcName = oldName;
+                        if (this.activeEffects.stunOpponent) this.activeEffects.stunOpponent = 0;
+
+                        BattleUI.logBattle(`Rival enviou ${nextOpp.name}!`, true);
+                        if (nextOpp.happiness === 100) {
+                            BattleUI.logBattle(`<span style="color:#ff9ff3; font-weight:bold;">💖 [Vínculo Afetivo]</span> O oponente ${nextOpp.name} está com Felicidade máxima e recebeu +5% de status nesta batalha!`, true);
+                        }
+                        const NetworkObj = (window as any).Network || Network;
+                        if (NetworkObj.isOnline && this.player && this.player.id === NetworkObj.myPlayerId) {
+                            const sanitizedNextOpp = NetworkObj.getSanitizedTeam([nextOpp])[0];
+                            NetworkObj.sendAction('BATTLE_OPP_SWITCH', { nextOpp: sanitizedNextOpp });
+                        }
+                    } else {
+                        this.activeMon = nextPly;
+                        BattleUI.updateUI();
+                        this.win();
+                        return;
+                    }
+                }
+            }
 
             if (this.isPvP) {
                 this.activeMon = nextPly;
@@ -1054,6 +1107,7 @@ export class BattleCore {
         }
         else { 
             this.activeMon!.removeHappiness(10);
+            BattleUI.logBattle(`${this.activeMon!.name} desmaiou!`, true);
             this.lose(); 
         }
     }
@@ -1078,6 +1132,12 @@ export class BattleCore {
 
         if (this.isGym || this.isChampion) this.player!.effects.curse = false;
         this.revertMew();
+        this.clearResonance(this.player);
+
+        if (this.player && this.player.isDefeated()) {
+            this.lose();
+            return;
+        }
         
         const QuestManagerObj = (window as any).QuestManager || (window as any).modules?.QuestManager;
         if (QuestManagerObj && this.player) {
@@ -1258,6 +1318,7 @@ export class BattleCore {
         if (NetworkObj.isOnline && this.player && this.player.id !== NetworkObj.myPlayerId) return;
         if (this.isGym || this.isChampion) this.player!.effects.curse = false;
         this.revertMew();
+        this.clearResonance(this.player);
         let msg = "DERROTA... ";
 
         const QuestManagerObj = (window as any).QuestManager || (window as any).modules?.QuestManager;
@@ -1370,18 +1431,24 @@ export class BattleCore {
         setTimeout(() => { this.end(false); Game.moveVisuals(); }, 2500);
     }
 
+    static clearResonance(player: Player | null) {
+        if (!player || !player.team) return;
+        player.team.forEach(mon => {
+            if ((mon as any).isResonant) {
+                (mon as any).isResonant = false;
+                (mon as any).resonantBonus = 0;
+                mon.recalculateStats(false);
+            }
+        });
+    }
+
     // Desfaz efeitos temporários do defensor (Mega/Mew e Ressonância) e garante que Game.players aponte
     // para os mesmos objetos da batalha, para que nenhuma gravação por id salve uma cópia desatualizada
     static preparePvpResolution() {
         if (!this.enemyPlayer) return;
         this.revertOpponentMew();
-        this.enemyPlayer.team.forEach(mon => {
-            if ((mon as any).isResonant) {
-                mon.recalculateStats(false);
-                (mon as any).isResonant = false;
-                (mon as any).resonantBonus = 0;
-            }
-        });
+        this.clearResonance(this.player);
+        this.clearResonance(this.enemyPlayer);
 
         const Game = (window as any).Game;
         [this.player, this.enemyPlayer].forEach(battlePlayer => {
@@ -1426,21 +1493,17 @@ export class BattleCore {
         this.oppTeamList = [];
         this.isChampion = false;
 
-        if (this.player && this.player.team) {
-            this.player.team.forEach(mon => {
-                if ((mon as any).isResonant) {
-                    mon.recalculateStats(false);
-                    (mon as any).isResonant = false;
-                    (mon as any).resonantBonus = 0;
-                }
-            });
-        }
+        this.clearResonance(this.player);
+        this.clearResonance(this.enemyPlayer);
 
         this.activeEffects = {};
         document.getElementById('battle-modal')!.style.display = 'none';
         GameFeel.battleExit();
 
         if (!isRemote) {
+            if (this.player && this.player.isDefeated()) {
+                Game.handleTotalDefeat(this.player);
+            }
             if (NetworkObj.isOnline) {
                 // Notifica o fim da batalha via ação (para outros clients limparem a UI)
                 NetworkObj.sendAction('BATTLE_END', {});
@@ -1478,6 +1541,8 @@ export class BattleCore {
                 const QuestManagerObj = (window as any).QuestManager || (window as any).modules?.QuestManager;
                 if (QuestManagerObj && this.player) QuestManagerObj.resetProgress(this.player, 'WIN_STREAK');
 
+                this.revertMew();
+                this.clearResonance(this.player);
                 this.activeMon!.gainXp(5, this.player!, 'Fuga');
 
                 if (this.opponent) {
@@ -1532,6 +1597,8 @@ export class BattleCore {
 
                     if (this.player) {
                         if (this.isGym || this.isChampion) this.player.effects.curse = false;
+                        this.revertMew();
+                        this.clearResonance(this.player);
                         const lostGold = this.player.gold >= 100 ? 100 : this.player.gold;
                         this.player.gold = Math.max(0, this.player.gold - 100);
                         if (lostGold > 0) {
@@ -1685,6 +1752,7 @@ export class BattleCore {
 
         Game.sendGlobalLog(`✨ ${this.player?.name} capturou um ${this.opponent!.name}!`);
         this.revertMew();
+        this.clearResonance(this.player);
         (window as any).Cinematics?.capture(this.player, this.opponent);
         
         const QuestManagerObj = (window as any).QuestManager || (window as any).modules?.QuestManager;
@@ -1947,17 +2015,15 @@ export class BattleCore {
         const captures = data.caught || 0;
 
         if (captures > 1) {
-            mon.recalculateStats(false);
+            if (!(mon as any).isResonant) {
+                mon.recalculateStats(false);
+            }
             const extraCount = captures - 1;
             const bonusPercent = Math.min(1.0, extraCount * 0.10);
 
-            mon.maxHp = Math.floor(mon.maxHp * (1 + bonusPercent));
-            mon.currentHp = Math.floor(mon.currentHp * (1 + bonusPercent));
-            mon.atk = Math.floor(mon.atk * (1 + bonusPercent));
-            mon.def = Math.floor(mon.def * (1 + bonusPercent));
-            mon.speed = Math.floor(mon.speed * (1 + bonusPercent));
             (mon as any).isResonant = true;
             (mon as any).resonantBonus = Math.floor(bonusPercent * 100);
+            mon.recalculateStats(false);
         }
     }
 

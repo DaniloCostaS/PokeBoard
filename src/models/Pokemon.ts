@@ -228,6 +228,7 @@ export class Pokemon {
         const calc = (base: number, iv: number, bonus: number) => Math.floor((base + iv + bonus) * totalMultiplier);
 
         const oldMaxHp = this.maxHp;
+        const wasFullHp = oldMaxHp > 0 && this.currentHp >= oldMaxHp;
 
         this.maxHp = calc(this.baseStats.hp, this.ivs.hp, this.bonusStats.hp); 
         this.maxHp = Math.max(1, this.maxHp);
@@ -236,11 +237,20 @@ export class Pokemon {
         this.def = calc(this.baseStats.def, this.ivs.def, this.bonusStats.def);
         this.speed = calc(this.baseStats.spd, this.ivs.spd, this.bonusStats.spd);
 
+        if ((this as any).isResonant && (this as any).resonantBonus > 0) {
+            const bonusPercent = (this as any).resonantBonus / 100;
+            this.maxHp = Math.floor(this.maxHp * (1 + bonusPercent));
+            this.atk = Math.floor(this.atk * (1 + bonusPercent));
+            this.def = Math.floor(this.def * (1 + bonusPercent));
+            this.speed = Math.floor(this.speed * (1 + bonusPercent));
+        }
+
         if (resetHp) {
             this.currentHp = this.maxHp;
+        } else if (wasFullHp && this.maxHp > oldMaxHp) {
+            this.currentHp = this.maxHp;
         } else {
-            const diff = this.maxHp - oldMaxHp;
-            this.currentHp = Math.min(this.maxHp, Math.max(0, this.currentHp + diff));
+            this.currentHp = Math.min(this.maxHp, this.currentHp);
         }
     }
 

@@ -177,6 +177,9 @@ export class CardEffects {
         player.team[myChoice] = hisMon;
         target.team[hisChoice] = myMon;
 
+        if (typeof player.isDefeated === 'function' && player.isDefeated()) Game.handleTotalDefeat(player);
+        if (typeof target.isDefeated === 'function' && target.isDefeated()) Game.handleTotalDefeat(target);
+
         const idx = player.cards.findIndex((c: any) => c.id === 'troques' && !c.isProtected);
         if (idx > -1) player.cards.splice(idx, 1);
         (window as any).UseFx?.cardPlayed?.('troques', player);
@@ -1142,6 +1145,7 @@ export class CardEffects {
 
                     // Remoção efetivada com sucesso
                     target.team.splice(pIdx, 1);
+                    if (typeof target.isDefeated === 'function' && target.isDefeated()) Game.handleTotalDefeat(target);
                     effectLog = `👋 ADEUS! ${player.name} fez ${target.name} libertar seu ${targetMon.name} para todo o sempre!`;
                     // Cena da despedida (uma para cada Pokémon mandado embora)
                     (window as any).Cinematics?.legendaryCard?.('ash_goodbye', player, { monId: targetMon.id, monName: targetMon.name, shiny: !!targetMon.isShiny, ownerId: target.id });
