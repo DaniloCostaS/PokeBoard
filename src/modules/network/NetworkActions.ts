@@ -766,18 +766,27 @@ export class NetworkActions {
         const BattleObj = (window as any).Battle;
         const isMyBattle = iAmActing && BattleObj?.active && BattleObj.player?.id === NetworkState.myPlayerId;
 
-        refreshedPlayers.forEach((refreshed: any, idx: number) => {
+        // Batalha de outro jogador vista nesta tela: os objetos dela não são atualizados no meio da luta (seguem trocados, como antes)
+        const remoteBattleIds = (BattleObj?.active && !isMyBattle) ? new Set([BattleObj.player?.id, BattleObj.enemyPlayer?.id]) : new Set<any>();
+
+        const nextPlayers = refreshedPlayers.map((refreshed: any) => {
             const local = Game.players.find((player: any) => player.id === refreshed.id);
-            if (!local) return;
+            if (!local) return refreshed;
             const isMe = refreshed.id === NetworkState.myPlayerId;
             const isBattleParticipant = isMyBattle && (refreshed.id === BattleObj.player?.id || refreshed.id === BattleObj.enemyPlayer?.id);
             // Mantém o objeto local quando ele é a fonte da verdade: meu turno, minha batalha ou gravação ainda pendente
             if ((isMe && keepLocalPlayer) || isBattleParticipant || NetworkSync.hasPendingSave(refreshed.id)) {
-                refreshedPlayers[idx] = (isBattleParticipant && refreshed.id === BattleObj.enemyPlayer?.id) ? BattleObj.enemyPlayer : local;
+                return (isBattleParticipant && refreshed.id === BattleObj.enemyPlayer?.id) ? BattleObj.enemyPlayer : local;
             }
+            if (remoteBattleIds.has(refreshed.id)) return refreshed;
+            // Atualiza o MESMO objeto em vez de trocar por um novo: telas e efeitos que guardaram o jogador (ex.: a escolha da
+            // Troca Forçada) continuam apontando para o jogador atual. Trocar o objeto fez um Pokémon sumir numa troca.
+            Object.keys(local).forEach(k => { if (!(k in refreshed)) delete (local as any)[k]; });
+            Object.assign(local, refreshed);
+            return local;
         });
-        Game.players = refreshedPlayers;
-        GameState.players = refreshedPlayers;
+        Game.players = nextPlayers;
+        GameState.players = nextPlayers;
         Game.updateHUD();
         Game.moveVisuals();
         return true;
